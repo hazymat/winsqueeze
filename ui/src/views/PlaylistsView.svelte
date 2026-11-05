@@ -54,7 +54,7 @@
 {#if playlistId}
   <div class="head"><h2>{title}</h2><span class="quiet">{items.length} tracks · {formatTime(totalSeconds)}</span>
     <button class="primary" onclick={() => play(playlistId, title)}>Play</button><button class="ghost" onclick={edit}>Edit as new playlist</button></div>
-  <div class="list" use:sortable={{ onMove, onHold: index => selectOnHold(scope, String(index), actions, 'track'), enabled: ui.search.length < 2 }}>
+  <div class="list" use:sortable={{ onMove, onHold: index => selectOnHold(scope, String(index), actions, 'track'), group: index => selection.scope === scope && selection.keys.includes(String(index)) ? selection.keys.map(Number) : [index], enabled: ui.search.length < 2 }}>
   {#each shown as item, index (index + ':' + item.id)}
     <button data-sort-row class="row" class:selected={isSelected(scope, String(index))} onclick={(event) => { if (!rowClick(event, scope, String(index), keys, actions, 'track')) play(playlistId, title, index) }}>
       {#if item.coverid}<img src={artUrl(item.coverid, 80)} alt="" loading="lazy" />{:else}<span class="glyph">♪</span>{/if}

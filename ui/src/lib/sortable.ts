@@ -1,7 +1,9 @@
 // Press-and-hold reordering, after Sift's sortable.js: hold a row and it lifts with a springy wobble, follows the
 // pointer, the other rows slide aside and a dotted slot shows where it will land. Esc puts it back.
-//   use:sortable={{ onMove(from, to), onHold(index), holdMs, enabled }}   rows are the list's [data-sort-row] children
-export type SortableOptions = { onMove: (from: number, to: number) => void; onHold?: (index: number) => void; holdMs?: number; enabled?: boolean }
+//   use:sortable={{ onMove(from, to), onHold(index), group(index), holdMs, enabled }}   rows are the list's [data-sort-row] children
+// group(index) returns the rows that travel with the held one (a multi-selection): they fly into it, it carries a count badge,
+// and onMove's "to" is where the held row lands once the whole block is placed (see blockOrder)
+export type SortableOptions = { onMove: (from: number, to: number) => void; onHold?: (index: number) => void; group?: (index: number) => number[]; holdMs?: number; enabled?: boolean }
 const TILT = -0.8
 const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches // Windows animation effects off: lift without the wobble
 // A swing past the resting angle and back, smaller each time, like something physical picked up
@@ -14,7 +16,8 @@ const scrollerOf = (element: HTMLElement): HTMLElement | null => { let parent: H
 export function sortable(listElement: HTMLElement, initialOptions: SortableOptions) {
   let options = initialOptions
   let pressTimer = 0, pressRow: HTMLElement | null = null, startX = 0, startY = 0, lastY = 0, pointerId = 0
-  let drag: null | { index: number; row: HTMLElement; rows: HTMLElement[]; rects: DOMRect[]; target: number; slot: HTMLElement; scroller: HTMLElement | null; startScroll: number; scrollTimer: number } = null
+  // index/rows/rects are in "visible" terms (gathered rows taken out); fullIndex and moving are in the real list
+  let drag: null | { index: number; fullIndex: number; moving: number[]; gathered: HTMLElement[]; badge: HTMLElement | null; ready: boolean; row: HTMLElement; allRows: HTMLElement[]; rows: HTMLElement[]; rects: DOMRect[]; target: number; slot: HTMLElement; scroller: HTMLElement | null; startScroll: number; scrollTimer: number } = null
   let swallowClick = false
   const rows = () => Array.from(listElement.children).filter(child => (child as HTMLElement).dataset.sortRow !== undefined) as HTMLElement[]
 
@@ -30,25 +33,50 @@ export function sortable(listElement: HTMLElement, initialOptions: SortableOptio
 
   function lift() {
     if (!pressRow) return
-    const allRows = rows(), index = allRows.indexOf(pressRow)
+    const allRows = rows(), fullIndex = allRows.indexOf(pressRow)
     const row = pressRow; cancelPress()
-    const listRect = listElement.getBoundingClientRect(), rects = allRows.map(each => each.getBoundingClientRect())
+    options.onHold?.(fullIndex)
+    const moving = (options.group?.(fullIndex) ?? [fullIndex]).filter(position => position >= 0 && position < allRows.length).sort((first, second) => first - second)
+    if (!moving.includes(fullIndex)) moving.splice(0, moving.length, fullIndex)
+    const gathered = moving.filter(position => position !== fullIndex).map(position => allRows[position])
     const slot = document.createElement('div'); slot.className = 'drop-slot'
     if (getComputedStyle(listElement).position === 'static') listElement.style.position = 'relative'
-    Object.assign(slot.style, { top: `${rects[index].top - listRect.top}px`, height: `${rects[index].height}px` })
-    listElement.append(slot)
     const scroller = scrollerOf(listElement)
-    drag = { index, row, rows: allRows, rects, target: index, slot, scroller, startScroll: scroller?.scrollTop ?? 0, scrollTimer: 0 }
+    drag = { index: fullIndex, fullIndex, moving, gathered, badge: null, ready: false, row, allRows, rows: allRows, rects: [], target: fullIndex, slot, scroller, startScroll: scroller?.scrollTop ?? 0, scrollTimer: 0 }
     row.classList.add('lifted'); document.body.classList.add('is-dragging')
     if (!reducedMotion()) row.animate(wobble(0, TILT, 2.4), { duration: 700, fill: 'forwards' })
     try { listElement.setPointerCapture(pointerId) } catch { }
     swallowClick = true
-    options.onHold?.(index)
+    if (!gathered.length) { startTracking(); return }
+    // A group: the other chosen rows fly into the held one, then fold away so the block drags as one stacked row
+    row.classList.add('stack')
+    const badge = document.createElement('span'); badge.className = 'drag-count'; badge.textContent = String(moving.length); row.append(badge); drag.badge = badge
+    const heldRect = row.getBoundingClientRect()
+    for (const other of gathered) { const otherRect = other.getBoundingClientRect(); other.animate([{ transform: 'none', opacity: 1 }, { transform: `translateY(${heldRect.top - otherRect.top}px) scale(0.96)`, opacity: 0 }], { duration: reducedMotion() ? 1 : 180, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' }) }
+    window.setTimeout(() => {
+      if (!drag) return
+      const topBefore = row.getBoundingClientRect().top
+      for (const other of gathered) other.classList.add('gathered')
+      startY -= topBefore - row.getBoundingClientRect().top // rows folded away above it: keep it under the pointer
+      startTracking()
+    }, reducedMotion() ? 0 : 180)
+  }
+
+  // Measure the visible rows (gathered ones are folded away) and start following the pointer
+  function startTracking() {
+    if (!drag) return
+    drag.rows = drag.allRows.filter(each => !drag!.gathered.includes(each))
+    drag.index = drag.rows.indexOf(drag.row); drag.target = drag.index
+    drag.rects = drag.rows.map(each => each.getBoundingClientRect())
+    const listRect = listElement.getBoundingClientRect()
+    Object.assign(drag.slot.style, { top: `${drag.rects[drag.index].top - listRect.top}px`, height: `${drag.rects[drag.index].height}px` })
+    listElement.append(drag.slot)
+    drag.ready = true
     move(lastY)
   }
 
   function move(pointerY: number) {
-    if (!drag) return
+    if (!drag || !drag.ready) return
     const scrollDelta = (drag.scroller?.scrollTop ?? 0) - drag.startScroll
     const shift = pointerY - startY + scrollDelta
     drag.row.style.transform = `translateY(${shift}px)`
@@ -72,14 +100,17 @@ export function sortable(listElement: HTMLElement, initialOptions: SortableOptio
 
   function finish(commit: boolean) {
     if (!drag) return
-    const { index, target, row, rows: allRows, slot } = drag
+    const { index, target, row, allRows, slot, gathered, badge, moving, fullIndex, ready } = drag
     clearInterval(drag.scrollTimer)
     for (const each of allRows) { each.style.transition = ''; each.style.transform = '' }
     row.getAnimations().forEach(animation => animation.cancel())
+    for (const other of gathered) { other.getAnimations().forEach(animation => animation.cancel()); other.classList.remove('gathered') }
+    badge?.remove(); row.classList.remove('stack')
     if (!reducedMotion()) row.animate(wobble(TILT, 0, -1.2), { duration: 600 })
     row.classList.remove('lifted'); document.body.classList.remove('is-dragging'); slot.remove()
     drag = null
-    if (commit && target !== index) options.onMove(index, target)
+    // target is the block's slot among the rows left behind; report where the held row ends up in the full list
+    if (commit && ready && (target !== index || gathered.length)) { const landed = target + moving.indexOf(fullIndex); if (gathered.length || landed !== fullIndex) options.onMove(fullIndex, landed) }
   }
 
   function onPointerMove(event: PointerEvent) {

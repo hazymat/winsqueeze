@@ -27,6 +27,11 @@
 <div class="strip" class:visible role="status" aria-live="polite">
   {#if count}
     <span class="count">{count} {selection.noun}{count === 1 ? '' : 's'} selected</span>
+    <!-- Something just done to the selection (moved, removed…) can be undone without leaving it -->
+    {#if ui.toast?.undo}
+      {#key ui.toast.id}<svg class="ring" viewBox="0 0 20 20" aria-hidden="true" style:--ms={`${ui.toast.ms}ms`}><circle class="track" cx="10" cy="10" r="8" /><circle class="left" cx="10" cy="10" r="8" pathLength="100" /></svg>{/key}
+      <span class="message inline">{ui.toast.text}</span><button class="undo inline" onclick={undoToast}>Undo<kbd>Ctrl+Z</kbd></button>
+    {/if}
     <div class="actions">
       {#each actions as action (action.label)}<button class:danger={action.danger} class:open={menu?.label === action.label} onclick={() => press(action)}>{action.label}{#if action.key}<kbd>{action.key === 'Delete' ? 'Del' : action.key}</kbd>{/if}</button>{/each}
       <button class="clear" onclick={clearSelection} aria-label="Clear selection">Done<kbd>Esc</kbd></button>
@@ -58,6 +63,7 @@
   .loading { padding: 8px 12px; color: var(--fg-quiet); }
   .wrap { position: relative; }
   .undo { margin-left: auto; color: var(--accent); font-weight: 600; background: none; }
+  .undo.inline { margin-left: 0; } .message.inline { color: var(--fg-quiet); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
   kbd { font-family: var(--font-ui); font-size: 10px; color: var(--fg-quiet); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
   .message { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .ring { flex: none; width: 18px; height: 18px; transform: rotate(-90deg); }

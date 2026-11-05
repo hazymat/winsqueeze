@@ -42,7 +42,7 @@
         <button class="icon" onclick={() => playlist.collapsed = true} title="Collapse" aria-label="Collapse">⌄</button>
       </div>
       <div class="quiet summary">{playlist.items.length} tracks · {formatTime(totalSeconds)}{#if playlist.history.length}<button class="link" onclick={undoLastAdd}>Undo last add</button>{/if}</div>
-      <div class="items" use:sortable={{ onMove, onHold: index => selectOnHold(scope, String(index), actions, 'track') }}>
+      <div class="items" use:sortable={{ onMove, onHold: index => selectOnHold(scope, String(index), actions, 'track'), group: index => selection.scope === scope && selection.keys.includes(String(index)) ? selection.keys.map(Number) : [index] }}>
         {#if !playlist.items.length}<p class="quiet">Use ＋ on albums and tracks to add them here.</p>{/if}
         {#each playlist.items as item, index (index + ':' + item.id)}
           <div data-sort-row class="item" class:selected={isSelected(scope, String(index))} role="listitem" onclick={(event) => rowClick(event, scope, String(index), keys, actions, 'track')}>

@@ -62,7 +62,7 @@
   <div class="tools"><button class="ghost" onclick={saveQueue}>Save</button><button class="ghost" onclick={startPlaylistFromQueue}>Edit as playlist</button><button class="ghost" onclick={clearQueue}>Clear</button></div>
 </div>
 {#if !queue.length}<p class="quiet">The queue is empty.</p>{/if}
-<div class="queue" use:sortable={{ onMove, onHold: position => selectOnHold(scope, String(position), actions, 'track') }}>
+<div class="queue" use:sortable={{ onMove, onHold: position => selectOnHold(scope, String(position), actions, 'track'), group: position => selection.scope === scope && selection.keys.includes(String(position)) ? selection.keys.map(Number) : [position] }}>
   {#each queue as item, position (position + ':' + item.id)}
     <button data-sort-row class="item" class:current={position === currentIndex} class:selected={isSelected(scope, String(position))}
       onclick={(event) => { if (!rowClick(event, scope, String(position), keys, actions, 'track')) command('playlist', 'index', position) }}>

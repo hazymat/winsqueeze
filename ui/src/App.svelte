@@ -1,6 +1,6 @@
 <script lang="ts">
   import { sendToShell, onShellMessage, request, command, artUrl } from './bridge'
-  import { app, nav, ui, playlist, openSection, back, currentView, newPlaylist, undoToast, writeSetting, readSetting, currentTrack } from './state.svelte'
+  import { app, nav, ui, playlist, openSection, back, currentView, newPlaylist, undoToast, toast, writeSetting, readSetting, currentTrack } from './state.svelte'
   import TransportBar from './parts/TransportBar.svelte'
   import NowPlaying from './parts/NowPlaying.svelte'
   import PlaylistPanel from './parts/PlaylistPanel.svelte'
@@ -24,19 +24,29 @@
   const vertical = $derived(!mini && width <= 900)
   const folderMode = $derived(app.librarySettings.AlbumSource !== 'tags')
   const allSections = $derived([['queue', 'Now playing', 'queue'], ['favourites', 'Favourites', 'favourites'], ['playlists', 'Playlists', 'playlists'], ['artists', 'Artists', 'artists'], ['genres', 'Genres', 'genres'], ['composers', 'Composers', 'composers'], ['performers', 'Performers', 'performers'], ['folders', folderMode ? 'Folders' : 'Albums', folderMode ? 'folders' : 'albums']] as [string, string, any][])
-  // Sidebar and bottom-bar customisation (one shared setting): every section shows by default; order and hidden ones are remembered per PC
-  let sectionOrder = $state<string[]>(JSON.parse(readSetting('sectionOrder', '[]')))
-  const sections = $derived(allSections.slice().sort((first, second) => rank(first[0]) - rank(second[0])))
-  const rank = (key: string) => { const position = sectionOrder.indexOf(key); return position < 0 ? 100 + allSections.findIndex(section => section[0] === key) : position }
-  function moveSection(from: number, to: number) {
-    const keys = sections.map(section => section[0]), moved = keys.splice(from, 1)[0]
-    keys.splice(to, 0, moved)
-    sectionOrder = keys; writeSetting('sectionOrder', JSON.stringify(keys))
-  }
+  // Sidebar and bottom-bar customisation (one shared setting): every section shows by default; order, spacers and hidden ones are remembered per PC
+  // The layout is section keys plus spacers ("spacer-…"); out of the box one spacer sits under the first section
+  const isSpacer = (key: string) => key.startsWith('spacer-')
+  function initialLayout(): string[] { const stored: string[] = JSON.parse(readSetting('sectionOrder', '[]')); if (readSetting('spacersAdded', '')) return stored; return stored.length ? stored.slice(0, 1).concat(['spacer-1'], stored.slice(1)) : ['queue', 'spacer-1'] }
+  let layoutOrder = $state<string[]>(initialLayout())
+  // Stored order first (unknown keys dropped), then any section not placed yet
+  const layout = $derived(layoutOrder.filter(key => isSpacer(key) || allSections.some(section => section[0] === key)).concat(allSections.map(section => section[0]).filter(key => !layoutOrder.includes(key))))
+  const sections = $derived(layout.map(key => isSpacer(key) ? [key, 'Spacer', 'spacer'] : allSections.find(section => section[0] === key)!) as [string, string, any][])
+  function saveLayout(order: string[]) { layoutOrder = order; writeSetting('sectionOrder', JSON.stringify(order)); writeSetting('spacersAdded', '1') }
+  function changeLayout(order: string[], label: string) { const before = layout.slice(); saveLayout(order); toast(label, () => saveLayout(before)) }
+  function moveSection(from: number, to: number) { const keys = layout.slice(), moved = keys.splice(from, 1)[0]; keys.splice(to, 0, moved); changeLayout(keys, `Moved ${isSpacer(moved) ? 'spacer' : sections[from][1]}`) }
+  const addSpacer = () => changeLayout(layout.concat([`spacer-${Date.now()}`]), 'Added a spacer at the bottom (drag it into place)')
+  const removeSpacer = (key: string) => changeLayout(layout.filter(each => each !== key), 'Removed spacer')
+  // Press and hold any sidebar item to start customising
+  let holdTimer = 0, heldIntoCustomise = false
+  const startHold = () => { clearTimeout(holdTimer); holdTimer = window.setTimeout(() => { customising = true; heldIntoCustomise = true }, 600) }
+  const cancelHold = () => clearTimeout(holdTimer)
   let hiddenSections = $state<string[]>(JSON.parse(readSetting('hiddenSections', '[]')))
   let customising = $state(false)
   const toggleSection = (key: string) => { hiddenSections = hiddenSections.includes(key) ? hiddenSections.filter(hidden => hidden !== key) : hiddenSections.concat([key]); writeSetting('hiddenSections', JSON.stringify(hiddenSections)) }
-  const visibleSections = $derived(sections.filter(([key]) => !hiddenSections.includes(key)))
+  // Shown entries: hidden sections dropped, and no spacer at the very top, the bottom or twice in a row
+  const sidebarEntries = $derived(sections.filter(([key]) => !hiddenSections.includes(key)).filter((entry, position, shown) => !isSpacer(entry[0]) || (position > 0 && position < shown.length - 1 && !isSpacer(shown[position + 1][0]))))
+  const visibleSections = $derived(sidebarEntries.filter(([key]) => !isSpacer(key)))
   // Dev builds show their version up top, so every screenshot says which build it is
   const devVersion = $derived(String(app.status?.version ?? '').startsWith('0.') ? 'v' + app.status.version + ' dev' : '')
   const view = $derived(currentView())
@@ -106,16 +116,20 @@
       <nav class="sidebar">
         <div class="brand" role="presentation" onmousedown={dragWindow}>WinSqueeze{#if devVersion}<span class="dev-version">{devVersion}</span>{/if}</div>
         <div class="section-list" use:sortable={{ onMove: moveSection, holdMs: 150, enabled: customising }}>
-        {#each customising ? sections : visibleSections as [key, label, glyph] (key)}
-          {#if customising}
+        {#each customising ? sections : sidebarEntries as [key, label, glyph] (key)}
+          {#if customising && isSpacer(key)}
+            <div class="section customise spacer-row" data-sort-row title="Hold and drag to move"><span class="grip">⋮⋮</span><span class="spacer-line"></span><button class="remove-spacer no-hold" onclick={() => removeSpacer(key)} aria-label="Remove spacer">×</button></div>
+          {:else if customising}
             <label class="section customise" data-sort-row title="Hold and drag to reorder"><span class="grip">⋮⋮</span><input type="checkbox" checked={!hiddenSections.includes(key)} onchange={() => toggleSection(key)} /><span class="glyph"><Icon name={glyph} /></span>{label}</label>
+          {:else if isSpacer(key)}
+            <div class="divider"></div>
           {:else}
-            <button class="section" class:on={nav.section === key && !everything} onclick={() => openSection(key)}><span class="glyph"><Icon name={glyph} /></span>{label}</button>
-            {#if key === visibleSections[0][0]}<div class="divider"></div>{/if}
+            <button class="section" class:on={nav.section === key && !everything} onpointerdown={startHold} onpointerup={cancelHold} onpointerleave={cancelHold} onclick={() => { if (heldIntoCustomise) { heldIntoCustomise = false; return } openSection(key) }}><span class="glyph"><Icon name={glyph} /></span>{label}</button>
           {/if}
         {/each}
         </div>
-        <button class="customise-toggle" onclick={() => customising = !customising}>{customising ? 'Done (drag to reorder, tick to show)' : 'Customise sidebar'}</button>
+        {#if customising}<button class="customise-toggle" onclick={addSpacer}>＋ Add spacer</button>{/if}
+        <button class="customise-toggle" title="Or press and hold any item" onclick={() => { customising = !customising; heldIntoCustomise = false }}>{customising ? 'Done (drag to reorder, tick to show)' : 'Customise sidebar'}</button>
         <button class="section new" onclick={() => playlist.open ? (playlist.collapsed = false) : newPlaylist()}><span class="glyph"><Icon name="plus" /></span>New playlist</button>
         <div class="spacer"></div>
         {#if app.library.total && app.library.done < app.library.total}<div class="sync" title={app.library.text}><div class="bar" style:width={`${(app.library.done / app.library.total) * 100}%`}></div></div>{/if}
@@ -200,6 +214,8 @@
   .customise-toggle { align-self: flex-start; background: none; border: 0; color: var(--fg-quiet); font: inherit; font-size: 11px; padding: 4px 10px; cursor: pointer; opacity: 0.7; }
   .customise-toggle:hover { opacity: 1; color: var(--accent); }
   .divider { height: 1px; background: var(--line); margin: 8px 10px; }
+  .spacer-row { min-height: 30px; } .spacer-line { flex: 1; height: 0; border-top: 1px dashed var(--line); }
+  .remove-spacer { background: none; border: 0; color: var(--fg-quiet); cursor: pointer; font-size: 16px; padding: 0 4px; } .remove-spacer:hover { color: #ff7a6b; }
   .section.new { color: var(--accent); margin-top: 8px; }
   .glyph { width: 20px; display: grid; place-items: center; }
   .spacer { flex: 1; }
