@@ -164,8 +164,9 @@ Bandwidth note: CD-quality FLAC needs about 1–1.5 Mbps, hi-res 24/96 about 3�
 2. **Friendly names, grouped by driver:** WASAPI, ASIO (if present), DirectSound/MME. Each shows whether it supports exclusive mode.
 3. **One-click switch:** restarts the hidden Squeezelite on the new device; if it was playing, playback resumes at the same position.
 4. **Remembered by name and driver, never by index.** Windows device numbers change when hardware is plugged in.
-5. **Missing device at startup:** show a clear warning and either wait for it to return or use a user-chosen fallback. Never silently play through laptop speakers.
-6. **Hot-plug:** device list refreshes automatically when a USB DAC is connected or removed; if the chosen device returns, switch back to it.
+5. **Player name:** the name this PC's player shows in the server's player list and in every other controller. Defaults to the Windows computer name; the user can change it in Settings › Audio, and the change applies straight away (Squeezelite restarts with the new `-n`). Each install also keeps its own stable player MAC, so it never collides with another Squeezelite on the same PC.
+6. **Missing device at startup:** show a clear warning and either wait for it to return or use a user-chosen fallback. Never silently play through laptop speakers.
+7. **Hot-plug:** device list refreshes automatically when a USB DAC is connected or removed; if the chosen device returns, switch back to it.
 
 ## Window modes and layout
 
@@ -230,7 +231,7 @@ A separate Settings window with tabs, in standard Windows style. Changes apply i
 | --- | --- |
 | General | Start with Windows; start minimised to tray; minimise to tray when minimised; close (X) hides to tray / quits; remember window position; language |
 | Servers | Server finder (auto-discovery); profiles list (name, address, port, optional username/password); default profile; test connection |
-| Audio | Output device; driver type; exclusive mode on/off; volume mode (fixed / digital); Squeezelite player name; extra Squeezelite arguments (advanced); fidelity warnings |
+| Audio | Output device; driver type; exclusive mode on/off; volume mode (fixed / digital); player name (defaults to the computer name); extra Squeezelite arguments (advanced); fidelity warnings |
 | Library & cache | Album source (tags / folders); contributor grouping (any credit / album artist text only); name separators; refresh interval; Refresh now; Rebuild cache; cache size and location; clear art cache |
 | Appearance | Skin; auto-switch rule (follow Windows / schedule / fixed); light and dark skin pair; meter style (VU needle / OLED bars); album list default (grid / list); accent from cover art on/off; reduce transparency |
 | Shortcuts | Rebind in-app shortcuts; enable global hotkeys; media keys on/off |
