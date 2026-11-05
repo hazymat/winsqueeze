@@ -15,6 +15,7 @@
   import Icon from './parts/Icon.svelte'
   import { selection } from './lib/selection.svelte'
   import PlaylistsView from './views/PlaylistsView.svelte'
+  import PlayerPicker from './parts/PlayerPicker.svelte'
   import { accentFromCover } from './lib/coverAccent'
 
   let searchBox = $state<HTMLInputElement>()
@@ -115,6 +116,7 @@
     {#if !vertical}
       <nav class="sidebar">
         <div class="brand" role="presentation" onmousedown={dragWindow}>WinSqueeze{#if devVersion}<span class="dev-version">{devVersion}</span>{/if}</div>
+        <div class="sidebar-player"><PlayerPicker /></div>
         <div class="section-list" use:sortable={{ onMove: moveSection, holdMs: 150, enabled: customising }}>
         {#each customising ? sections : sidebarEntries as [key, label, glyph] (key)}
           {#if customising && isSpacer(key)}
@@ -203,7 +205,7 @@
 <style>
   .shell { display: grid; grid-template-columns: 210px minmax(0, 1fr); height: 100vh; }
   .shell.vertical { grid-template-columns: minmax(0, 1fr); }
-  .sidebar { display: flex; flex-direction: column; gap: 2px; padding: 14px 10px; background: var(--glass); backdrop-filter: blur(var(--blur)) saturate(1.4); border-right: 1px solid var(--line); min-height: 0; }
+  .sidebar { display: flex; flex-direction: column; gap: 2px; padding: 14px 10px; background: var(--glass); backdrop-filter: blur(var(--blur)) saturate(1.4); border-right: 1px solid var(--line); min-height: 0; position: relative; z-index: 20; } /* above the content, so the player menu can overlap it */
   .brand { font-family: var(--font-display); color: var(--readout); text-shadow: 0 0 8px var(--readout-glow); letter-spacing: 0.08em; padding: 4px 10px 14px; }
   .dev-version { display: inline-block; margin-left: 8px; font-family: var(--font-ui); font-size: 10px; letter-spacing: 0; color: var(--fg-quiet); text-shadow: none; border: 1px solid var(--line); border-radius: 6px; padding: 0 5px; vertical-align: middle; white-space: nowrap; }
   .section { display: flex; align-items: center; gap: 10px; background: none; border: 0; color: var(--fg); padding: 8px 10px; border-radius: 8px; cursor: pointer; font: inherit; text-align: left; }
@@ -213,6 +215,7 @@
   .customise { cursor: grab; } .grip { color: var(--fg-quiet); font-size: 10px; margin-right: -6px; } .customise input { margin: 0 -4px 0 0; accent-color: var(--accent); }
   .customise-toggle { align-self: flex-start; background: none; border: 0; color: var(--fg-quiet); font: inherit; font-size: 11px; padding: 4px 10px; cursor: pointer; opacity: 0.7; }
   .customise-toggle:hover { opacity: 1; color: var(--accent); }
+  .sidebar-player { padding: 0 0 10px; } .sidebar-player :global(.current) { height: 30px; font-size: 12.5px; }
   .divider { height: 1px; background: var(--line); margin: 8px 10px; }
   .spacer-row { min-height: 30px; } .spacer-line { flex: 1; height: 0; border-top: 1px dashed var(--line); }
   .remove-spacer { background: none; border: 0; color: var(--fg-quiet); cursor: pointer; font-size: 16px; padding: 0 4px; } .remove-spacer:hover { color: #ff7a6b; }

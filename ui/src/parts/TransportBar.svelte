@@ -4,7 +4,6 @@
   import PixelMeter from './PixelMeter.svelte'
   import Readout from './Readout.svelte'
   import Icon from './Icon.svelte'
-  import PlayerPicker from './PlayerPicker.svelte'
   let { mini = false }: { mini?: boolean } = $props()
   let now = $state(Date.now())
   let volumeOpen = $state(false)
@@ -53,11 +52,6 @@
   <div class="right">
     <div class="readout-slot"><Readout /></div>
     <div class="pixel-meter" title="Spectrum"><PixelMeter orientation="spectrum" width={40} height={30} levels={app.levels.bands} /></div>
-    <!-- Player and output device stacked as two matching compact rows -->
-    <div class="outputs">
-      <PlayerPicker />
-      {#if ownSelected && app.status?.device}<button class="device" onclick={() => sendToShell({ type: 'openSettings', tab: 'Audio' })} title={`Output: ${app.status.device} (click for audio settings)`}><Icon name="volume" size={12} /><span class="device-name">{app.status.device}</span></button>{/if}
-    </div>
     <div class="volume">
       <input type="range" min="0" max="100" value={volume} oninput={dragVolume} onchange={releaseVolume} aria-label="Volume" />
       <button class="volume-icon" onclick={() => volumeOpen = !volumeOpen} aria-label="Volume"><Icon name="volume" /></button>
@@ -86,15 +80,11 @@
   .seek { flex: 1; height: 5px; background: var(--track); border-radius: 3px; cursor: pointer; position: relative; }
   .seek:hover { height: 7px; }
   .fill { height: 100%; background: var(--accent); border-radius: 3px; }
-  .pixel-meter { padding: 3px 5px; background: #040607; border-radius: 4px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06); }
+  .pixel-meter { display: flex; margin-right: -2px; } /* straight on the bar's glass, beside the volume */
   .right { display: flex; align-items: center; justify-content: flex-end; gap: 10px; min-width: 0; }
   .right > * { flex-shrink: 0; }
   .right > .readout-slot { flex-shrink: 1; min-width: 0; overflow: hidden; white-space: nowrap; }
   /* The right column sizes to its content, so it can never spill over the buttons */
-  .outputs { display: flex; flex-direction: column; gap: 4px; width: 168px; }
-  .device { display: flex; align-items: center; gap: 6px; height: 24px; padding: 0 8px; background: transparent; color: var(--fg-quiet); border: 1px solid var(--line); border-radius: 7px; font: inherit; font-size: 11.5px; cursor: pointer; white-space: nowrap; overflow: hidden; }
-  .device:hover { background: var(--hover); color: var(--fg); }
-  .device-name { overflow: hidden; text-overflow: ellipsis; }
   .volume { position: relative; display: flex; align-items: center; }
   .volume input { width: 90px; accent-color: var(--accent); }
   .volume-icon { display: none; background: none; border: 0; cursor: pointer; color: var(--fg); padding: 4px; }
@@ -102,14 +92,14 @@
   .pin { background: none; border: 0; cursor: pointer; opacity: 0.5; color: var(--fg); padding: 4px; } .pin.on { opacity: 1; }
   /* Never drop transport controls: collapse the readout, player switcher, seek times, then the volume slider (SPEC.md › Transport) */
   @container (max-width: 1400px) { .readout-slot { display: none; } } /* it's in Now playing too; never let it crowd the buttons */
-  @container (max-width: 900px) { .outputs { display: none; } .transport { grid-template-columns: minmax(0, 1fr) minmax(200px, 1.4fr) auto; } }
+  @container (max-width: 900px) { .transport { grid-template-columns: minmax(0, 1fr) minmax(200px, 1.4fr) auto; } }
   @container (max-width: 700px) { .time, .pixel-meter { display: none; } }
   @container (max-width: 540px) { .volume > input { display: none; } .volume-icon { display: block; } .transport { grid-template-columns: 1fr auto auto; } .seek-row { display: none; } }
   /* Mini: Winamp-style strip */
   .mini { grid-template-columns: 1fr auto; grid-template-rows: auto auto; gap: 6px 10px; padding: 10px; height: 100%; box-sizing: border-box; border: 0; }
   .mini .centre { grid-column: 1 / 3; grid-row: 2; flex-direction: row; }
   .mini .seek-row { display: flex; } .mini .seek-row .time { display: none; }
-  .mini .right .outputs, .mini .readout-slot, .mini .volume { display: none; }
+  .mini .readout-slot, .mini .volume { display: none; }
   .mini .now img, .mini .no-art { width: 64px; height: 64px; }
   .mini .buttons { gap: 6px; } .mini .buttons button { width: 30px; height: 30px; } .mini .buttons .play { width: 34px; height: 34px; }
 </style>
