@@ -73,6 +73,7 @@ public class RecordingSettings
     public bool ShowButton { get; set; } = true; // the record dot beside a playing radio station
     public string Folder { get; set; } = ""; // empty = Music\WinSqueeze recordings
     public bool SplitOnSongChange { get; set; } = true; // a new file for each song the station announces
+    public bool FolderPerStation { get; set; } // false (default): a folder per recording; true: one folder per station, files dated
 }
 
 public class LibrarySettings

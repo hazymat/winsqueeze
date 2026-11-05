@@ -375,6 +375,9 @@ public partial class SettingsWindow : Window
         recordButtonBox.IsChecked = recording.ShowButton; recordSplitBox.IsChecked = recording.SplitOnSongChange; recordFolderBox.Text = App.Recorder.Folder;
         recordButtonBox.Click += (sender, args) => { recording.ShowButton = recordButtonBox.IsChecked == true; Settings.Save(); App.RaiseStatusChanged(); };
         recordSplitBox.Click += (sender, args) => { recording.SplitOnSongChange = recordSplitBox.IsChecked == true; Settings.Save(); };
+        recordFolderPerStationRadio.IsChecked = recording.FolderPerStation; recordFolderPerRecordingRadio.IsChecked = !recording.FolderPerStation;
+        recordFolderPerStationRadio.Click += (sender, args) => { recording.FolderPerStation = true; Settings.Save(); };
+        recordFolderPerRecordingRadio.Click += (sender, args) => { recording.FolderPerStation = false; Settings.Save(); };
         chooseRecordFolderButton.Click += (sender, args) =>
         {
             var folderDialog = new Microsoft.Win32.OpenFolderDialog { Title = "Save recordings in", InitialDirectory = System.IO.Directory.Exists(App.Recorder.Folder) ? App.Recorder.Folder : "" };
