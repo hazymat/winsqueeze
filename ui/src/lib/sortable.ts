@@ -15,6 +15,7 @@ const scrollerOf = (element: HTMLElement): HTMLElement | null => { let parent: H
 
 export function sortable(listElement: HTMLElement, initialOptions: SortableOptions) {
   let options = initialOptions
+  listElement.dataset.rowList = '' // selected neighbours merge into one block (tokens.css)
   let pressTimer = 0, pressRow: HTMLElement | null = null, startX = 0, startY = 0, lastY = 0, pointerId = 0
   // index/rows/rects are in "visible" terms (gathered rows taken out); fullIndex and moving are in the real list
   let drag: null | { index: number; fullIndex: number; moving: number[]; gathered: HTMLElement[]; badge: HTMLElement | null; ready: boolean; row: HTMLElement; allRows: HTMLElement[]; rows: HTMLElement[]; rects: DOMRect[]; target: number; slot: HTMLElement; scroller: HTMLElement | null; startScroll: number; scrollTimer: number } = null

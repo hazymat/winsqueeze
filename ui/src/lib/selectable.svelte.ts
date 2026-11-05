@@ -4,6 +4,7 @@ import { selection, selectOnHold, rowClick, type SelectionAction } from './selec
 export type SelectableOptions = { scope: string; noun: string; actions: SelectionAction[]; enabled?: boolean; holdMs?: number }
 
 export function selectable(listElement: HTMLElement, initialOptions: SelectableOptions) {
+  listElement.dataset.rowList = '' // selected neighbours merge into one block (tokens.css)
   let options = initialOptions, pressTimer = 0, pressRow: HTMLElement | null = null, startX = 0, startY = 0, swallowClick = false
   const rows = () => Array.from(listElement.querySelectorAll('[data-select-key]')) as HTMLElement[]
   const keyOf = (row: HTMLElement) => row.dataset.selectKey ?? ''

@@ -69,7 +69,6 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 [data-sort-row].lifted.stack { box-shadow: 0 14px 34px var(--shadow), 0 0 0 1px var(--line), 5px 5px 0 -1px var(--panel-solid), 5px 5px 0 0 var(--line), 10px 10px 0 -2px var(--panel-solid), 10px 10px 0 -1px var(--line); }
 .drag-count { position: absolute; top: -8px; right: -8px; min-width: 22px; height: 22px; padding: 0 6px; box-sizing: border-box; border-radius: 11px; background: var(--accent); color: var(--on-accent); font-size: 12px; font-weight: 700; display: grid; place-items: center; box-shadow: 0 2px 8px var(--shadow); pointer-events: none; }
 [data-sort-row].gathered { display: none; }
-[data-sort-row].selected { background: var(--accent-soft); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 60%, transparent); }
 .drop-slot { position: absolute; left: 2px; right: 2px; border: 2px dashed color-mix(in srgb, var(--accent) 60%, transparent); border-radius: 10px; pointer-events: none; z-index: 1; transition: top 150ms cubic-bezier(.2,.8,.2,1); }
 body.is-dragging { cursor: grabbing; }
 /* Frameless: the page's corners follow the window's rounded corners inside the 4 px border (8 px outer − 4 px), so the border has a rounded inner edge */
@@ -78,7 +77,11 @@ body.is-dragging { cursor: grabbing; }
 /* Chosen rows in any browse list (lib/selectable.svelte.ts) */
 [data-select-key] { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 [data-select-key].pressing { background: var(--hover); transition: background 450ms; border-radius: 8px; }
-[data-select-key].selected { background: var(--accent-soft); box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 55%, transparent); border-radius: 8px; }
+/* Selected rows: one thin outline; in vertical lists, runs of selected neighbours merge into a single rounded block (no lines between them) */
+:is([data-select-key], [data-sort-row]).selected { --edge: color-mix(in srgb, var(--accent) 50%, transparent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--edge); border-radius: 8px; }
+:where([data-row-list]:not(.grid, .folders)) :is([data-select-key], [data-sort-row]).selected:has(+ .selected) { border-bottom-left-radius: 0; border-bottom-right-radius: 0; box-shadow: inset 1px 0 0 var(--edge), inset -1px 0 0 var(--edge), inset 0 1px 0 var(--edge); }
+:where([data-row-list]:not(.grid, .folders)) .selected + :is([data-select-key], [data-sort-row]).selected { border-top-left-radius: 0; border-top-right-radius: 0; box-shadow: inset 1px 0 0 var(--edge), inset -1px 0 0 var(--edge), inset 0 -1px 0 var(--edge); }
+:where([data-row-list]:not(.grid, .folders)) .selected + :is([data-select-key], [data-sort-row]).selected:has(+ .selected) { box-shadow: inset 1px 0 0 var(--edge), inset -1px 0 0 var(--edge); }
 .select-wrap { display: contents; }
 /* Windows "Animation effects" off: no lifts, slides or wobbles, only instant changes (SPEC.md › Look and feel) */
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 1ms; animation-iteration-count: 1; transition-duration: 1ms; scroll-behavior: auto; } }
