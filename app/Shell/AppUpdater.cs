@@ -53,6 +53,21 @@ public sealed class AppUpdater
         checking = true;
         try
         {
+            // GitHub's release feed sometimes returns a 502/504 for a moment: retry quietly before reporting a failure
+            for (var attempt = 1; ; attempt++)
+            {
+                try { await CheckOnceAsync(); return; }
+                catch (HttpRequestException networkError) when (attempt < 3) { SetStatus($"GitHub didn't answer ({networkError.StatusCode?.ToString() ?? "network"}), retrying…"); await Task.Delay(attempt * 3000); }
+            }
+        }
+        catch (HttpRequestException) { SetStatus($"GitHub isn't answering right now. WinSqueeze will try again automatically (last try {DateTime.Now:HH:mm})."); }
+        catch (Exception updateError) { SetStatus($"Update check failed: {updateError.Message}"); }
+        finally { checking = false; }
+    }
+
+    async Task CheckOnceAsync()
+    {
+        {
             if (AppPaths.IsPortable) { await CheckPortableAsync(); return; }
             var updateManager = CreateManager(App.Settings.General.UpdateChannel);
             if (!updateManager.IsInstalled) { SetStatus("Updates work once WinSqueeze is installed with Setup.exe (this copy is running from a zip)."); return; }
@@ -65,8 +80,6 @@ public sealed class AppUpdater
             SetStatus($"WinSqueeze {ReadyVersion} is downloaded and ready. Restart to update.");
             App.ShowTip("Update ready", $"WinSqueeze {ReadyVersion} is ready. Click Restart to update in the window or Settings › About.");
         }
-        catch (Exception updateError) { SetStatus($"Update check failed: {updateError.Message}"); }
-        finally { checking = false; }
     }
 
     // Relaunches into the staged version, telling it where playback was so it can carry on

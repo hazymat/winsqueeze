@@ -1,0 +1,29 @@
+<script lang="ts">
+  // Crisp transport icons as SVG: text glyphs (⏮ ▶ ⏭) render off-centre with colour fringes in WebView2
+  let { name, size = 18 }: { name: 'previous' | 'next' | 'play' | 'pause' | 'volume' | 'speaker' | 'pin' | 'favourites' | 'artists' | 'genres' | 'composers' | 'performers' | 'folders' | 'albums' | 'queue' | 'plus' | 'settings'; size?: number } = $props()
+</script>
+
+<svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" class="icon">
+  {#if name === 'play'}<path d="M8 5.14v13.72a1 1 0 0 0 1.52.85l10.6-6.86a1 1 0 0 0 0-1.7L9.52 4.29A1 1 0 0 0 8 5.14z" />
+  {:else if name === 'pause'}<rect x="6.5" y="5" width="4" height="14" rx="1.2" /><rect x="13.5" y="5" width="4" height="14" rx="1.2" />
+  {:else if name === 'previous'}<rect x="5" y="5.5" width="2.6" height="13" rx="1" /><path d="M19 6.4v11.2a.9.9 0 0 1-1.4.75L9.4 12.75a.9.9 0 0 1 0-1.5l8.2-5.6A.9.9 0 0 1 19 6.4z" />
+  {:else if name === 'next'}<rect x="16.4" y="5.5" width="2.6" height="13" rx="1" /><path d="M5 6.4v11.2a.9.9 0 0 0 1.4.75l8.2-5.6a.9.9 0 0 0 0-1.5L6.4 5.65A.9.9 0 0 0 5 6.4z" />
+  {:else if name === 'volume'}<path d="M4 9.5h3.2L11.5 6v12l-4.3-3.5H4z" /><path d="M15 9a4.2 4.2 0 0 1 0 6M17.6 6.6a7.6 7.6 0 0 1 0 10.8" class="stroke" />
+  {:else if name === 'speaker'}<rect x="6" y="3.5" width="12" height="17" rx="2.5" class="stroke" /><circle cx="12" cy="14.5" r="3" class="stroke" /><circle cx="12" cy="7.8" r="1.2" />
+  {:else if name === 'pin'}<path d="M9 4h6l-1 6 3 3H7l3-3zM12 13v7" class="stroke" />
+  {:else if name === 'favourites'}<path d="M12 4.2l2.3 4.7 5.2.75-3.75 3.65.9 5.15L12 16l-4.65 2.45.9-5.15L4.5 9.65l5.2-.75z" class="stroke" />
+  {:else if name === 'artists'}<circle cx="12" cy="8.5" r="3.6" class="stroke" /><path d="M5 19.5c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5" class="stroke" />
+  {:else if name === 'genres'}<path d="M4 12.6V5.5A1.5 1.5 0 0 1 5.5 4h7.1l7.4 7.4-8.6 8.6z" class="stroke" /><circle cx="8.5" cy="8.5" r="1.4" />
+  {:else if name === 'composers'}<path d="M9 18V6l10-2v12" class="stroke" /><circle cx="6.5" cy="18" r="2.5" class="stroke" /><circle cx="16.5" cy="16" r="2.5" class="stroke" />
+  {:else if name === 'performers'}<path d="M5 19l9-9M13 6.5l4.5 4.5M15.5 4l4.5 4.5-2.5 2.5L13 6.5z" class="stroke" />
+  {:else if name === 'folders'}<path d="M3.5 7.5A1.5 1.5 0 0 1 5 6h4.5l2 2H19a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 19 19H5a1.5 1.5 0 0 1-1.5-1.5z" class="stroke" />
+  {:else if name === 'albums'}<circle cx="12" cy="12" r="8" class="stroke" /><circle cx="12" cy="12" r="2.2" class="stroke" />
+  {:else if name === 'queue'}<path d="M4 6.5h16M4 12h16M4 17.5h10" class="stroke" />
+  {:else if name === 'plus'}<path d="M12 5v14M5 12h14" class="stroke" />
+  {:else if name === 'settings'}<circle cx="12" cy="12" r="3" class="stroke" /><path d="M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M6 6l1.6 1.6M16.4 16.4L18 18M6 18l1.6-1.6M16.4 7.6L18 6" class="stroke" />{/if}
+</svg>
+
+<style>
+  .icon { display: block; fill: currentColor; }
+  .stroke { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+</style>

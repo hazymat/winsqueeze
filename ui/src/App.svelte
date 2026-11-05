@@ -11,6 +11,7 @@
   import SearchView from './views/SearchView.svelte'
   import FavouritesView from './views/FavouritesView.svelte'
   import QueueView from './views/QueueView.svelte'
+  import Icon from './parts/Icon.svelte'
 
   let searchBox = $state<HTMLInputElement>()
   let width = $state(window.innerWidth)
@@ -18,7 +19,7 @@
   const mini = $derived(width < 420 && height < 260)
   const vertical = $derived(!mini && width <= 900)
   const folderMode = $derived(app.librarySettings.AlbumSource !== 'tags')
-  const sections = $derived([['favourites', 'Favourites', '★'], ['artists', 'Artists', '👤'], ['genres', 'Genres', '🏷'], ['composers', 'Composers', '🎼'], ['performers', 'Performers', '🎻'], ['folders', folderMode ? 'Folders' : 'Albums', folderMode ? '📁' : '💿'], ['queue', 'Queue', '☰']])
+  const sections = $derived([['favourites', 'Favourites', 'favourites'], ['artists', 'Artists', 'artists'], ['genres', 'Genres', 'genres'], ['composers', 'Composers', 'composers'], ['performers', 'Performers', 'performers'], ['folders', folderMode ? 'Folders' : 'Albums', folderMode ? 'folders' : 'albums'], ['queue', 'Queue', 'queue']] as [string, string, any][])
   const view = $derived(currentView())
   const everything = $derived(ui.search.length >= 2 && (ui.scope === 'everything' || ['queue'].includes(view.kind)))
 
@@ -60,14 +61,14 @@
       <nav class="sidebar">
         <div class="brand">WinSqueeze</div>
         {#each sections as [key, label, glyph] (key)}
-          <button class="section" class:on={nav.section === key && !everything} onclick={() => openSection(key)}><span class="glyph">{glyph}</span>{label}</button>
+          <button class="section" class:on={nav.section === key && !everything} onclick={() => openSection(key)}><span class="glyph"><Icon name={glyph} /></span>{label}</button>
         {/each}
-        <button class="section new" onclick={() => playlist.open ? (playlist.collapsed = false) : newPlaylist()}><span class="glyph">＋</span>New playlist</button>
+        <button class="section new" onclick={() => playlist.open ? (playlist.collapsed = false) : newPlaylist()}><span class="glyph"><Icon name="plus" /></span>New playlist</button>
         <div class="spacer"></div>
         {#if app.library.total && app.library.done < app.library.total}<div class="sync" title={app.library.text}><div class="bar" style:width={`${(app.library.done / app.library.total) * 100}%`}></div></div>{/if}
         {#if app.library.text}<div class="sync-text">{app.library.text}</div>{/if}
         <select class="skin" bind:value={ui.skin} onchange={() => writeSetting('skin', ui.skin)} aria-label="Skin"><option value="auto">Skin: follow Windows</option><option value="dark">Skin: frosted dark</option><option value="light">Skin: frosted light</option><option value="classic">Skin: Squeezebox classic</option><option value="amber">Skin: hi-fi amber</option></select>
-        <button class="section" onclick={() => sendToShell({ type: 'openSettings' })}><span class="glyph">⚙</span>Settings</button>
+        <button class="section" onclick={() => sendToShell({ type: 'openSettings' })}><span class="glyph"><Icon name="settings" /></span>Settings</button>
       </nav>
     {/if}
     <div class="content-column">
@@ -83,7 +84,7 @@
             <button class:on={ui.scope === 'everything'} onclick={() => ui.scope = 'everything'}>Everything</button>
           </div>
         </div>
-        {#if vertical}<button class="ghost" onclick={() => sendToShell({ type: 'openSettings' })} aria-label="Settings">⚙</button>{/if}
+        {#if vertical}<button class="ghost" onclick={() => sendToShell({ type: 'openSettings' })} aria-label="Settings"><Icon name="settings" /></button>{/if}
       </header>
       <div class="body">
         <main class="content">
@@ -112,7 +113,7 @@
       {#if vertical}
         <nav class="tabbar">
           {#each sections as [key, label, glyph] (key)}
-            <button class:on={nav.section === key} onclick={() => openSection(key)}><span class="glyph">{glyph}</span><span class="tab-label">{label}</span></button>
+            <button class:on={nav.section === key} onclick={() => openSection(key)}><span class="glyph"><Icon name={glyph} size={20} /></span><span class="tab-label">{label}</span></button>
           {/each}
         </nav>
       {/if}
@@ -133,7 +134,7 @@
   .section:hover { background: var(--hover); }
   .section.on { background: var(--accent-soft); color: var(--accent); }
   .section.new { color: var(--accent); margin-top: 8px; }
-  .glyph { width: 20px; text-align: center; }
+  .glyph { width: 20px; display: grid; place-items: center; }
   .spacer { flex: 1; }
   .sync { height: 3px; background: var(--track); border-radius: 2px; margin: 0 10px; overflow: hidden; }
   .bar { height: 100%; background: var(--accent); }
