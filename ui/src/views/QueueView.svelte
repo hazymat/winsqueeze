@@ -11,7 +11,7 @@
   const startPlaylistFromQueue = () => newPlaylist('Untitled playlist', queue.map(item => ({ id: Number(item.id), title: item.title, artist: item.artist ?? '', duration: Number(item.duration || 0) })))
 </script>
 
-{#if !compact}<div class="head"><h2>Queue</h2><span class="quiet">{queue.length} tracks · {formatTime(Math.max(remaining, 0))} remaining</span>
+{#if !compact}<div class="head"><h2>Now playing</h2><span class="quiet">{queue.length} tracks · {formatTime(Math.max(remaining, 0))} remaining</span>
   <button class="ghost" onclick={saveQueue}>Save as playlist</button><button class="ghost" onclick={startPlaylistFromQueue}>Edit as new playlist</button><button class="ghost" onclick={() => command('playlist', 'clear')}>Clear</button></div>{/if}
 {#if !queue.length}<p class="quiet">The queue is empty.</p>{/if}
 <div class="queue">

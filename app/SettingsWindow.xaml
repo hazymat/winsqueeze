@@ -101,6 +101,7 @@
         <TextBlock Text="An artist's &quot;Also appears on&quot; includes" FontWeight="SemiBold" Margin="0,16,0,0" />
         <RadioButton x:Name="anyCreditRadio" GroupName="grouping" Content="Any credit: album artist, track artist, composer, conductor or band" Margin="0,6,0,0" />
         <RadioButton x:Name="albumArtistRadio" GroupName="grouping" Content="Album artist text only" Margin="0,4,0,0" />
+        <CheckBox x:Name="hideOwnComposersBox" Content="Composers list: leave out artists credited as composer only on their own albums (singer-songwriters)" Margin="0,10,0,0" />
         <Grid Margin="0,12,0,0">
           <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="160" /></Grid.ColumnDefinitions>
           <StackPanel><TextBlock Style="{StaticResource Label}" Text="Name separators (space between each)" /><TextBox x:Name="separatorsBox" Margin="0,0,8,0" /></StackPanel>
@@ -114,7 +115,13 @@
         <TextBlock x:Name="libraryStatusText" Style="{StaticResource Quiet}" />
       </StackPanel>
     </TabItem>
-    <TabItem Header="Appearance" x:Name="appearanceTab"><TextBlock Margin="16" Style="{StaticResource Quiet}" Text="Skins, auto-switching and meter style arrive in Phase 5." /></TabItem>
+    <TabItem Header="Appearance" x:Name="appearanceTab">
+      <StackPanel Margin="16">
+        <CheckBox x:Name="glassBox" Content="Glass: let the desktop show through the window, frosted (Windows 11)" />
+        <CheckBox x:Name="framelessBox" Content="Frameless window: no title bar or standard border (drag from the top strip, resize from the edges)" Margin="0,8,0,0" />
+        <TextBlock Style="{StaticResource Quiet}" Margin="0,12,0,0" TextWrapping="Wrap" Text="Skins are picked in the main window (bottom of the sidebar). Meter style: click the meters to cycle VU, OLED VU and OLED bars." />
+      </StackPanel>
+    </TabItem>
     <TabItem Header="Shortcuts" x:Name="shortcutsTab"><TextBlock Margin="16" Style="{StaticResource Quiet}" Text="Ctrl+Q quits and Ctrl+, opens Settings. Rebinding, media keys and global hotkeys arrive in Phase 4." /></TabItem>
     <TabItem Header="Notifications" x:Name="notificationsTab"><TextBlock Margin="16" Style="{StaticResource Quiet}" Text="Track-change toasts arrive in Phase 4. Device-missing alerts are on." /></TabItem>
     <TabItem Header="About" x:Name="aboutTab">
@@ -142,7 +149,9 @@
               <Button x:Name="refreshVersionsButton" Content="Refresh" Margin="0,0,0,6" />
               <Button x:Name="switchVersionButton" Content="Switch to this" IsEnabled="False" />
             </StackPanel>
-            <ListBox x:Name="versionsList" Height="130" />
+            <ListBox x:Name="versionsList" Height="130">
+              <ListBox.ItemTemplate><DataTemplate><StackPanel Orientation="Horizontal"><TextBlock Text="{Binding Label}" /><TextBlock Text="  ✔ running now" Foreground="#2E9E44" FontWeight="SemiBold" Visibility="{Binding CurrentVisibility}" /></StackPanel></DataTemplate></ListBox.ItemTemplate>
+            </ListBox>
           </DockPanel>
           <TextBlock x:Name="versionNotesText" Style="{StaticResource Quiet}" />
           <TextBlock Margin="0,4,0,0"><Hyperlink x:Name="versionDiscussionLink">Comments for this version</Hyperlink></TextBlock>

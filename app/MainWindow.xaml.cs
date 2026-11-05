@@ -1,8 +1,12 @@
 using System.ComponentModel;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Interop;
+using System.Windows.Media;
+using System.Windows.Shell;
 using Microsoft.Web.WebView2.Core;
 using WinSqueeze.Library;
 using WinSqueeze.Settings;
@@ -20,13 +24,15 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         Loaded += async (sender, args) => await InitWebViewAsync();
+        SourceInitialized += (sender, args) => ApplyWindowStyle();
+        StateChanged += (sender, args) => { UpdateFrameMargin(); PushWindowState(); };
         IsVisibleChanged += (sender, args) => App.Session.SetVisible(IsVisible);
         App.StatusChanged += () => Push(App.StatusJson());
         App.Session.StatusUpdated += () => Push($"{{\"type\":\"nowPlaying\",\"status\":{App.Session.LastStatusJson}}}");
         App.Session.PlayersUpdated += () => Push($"{{\"type\":\"players\",\"players\":{App.Session.LastPlayersJson},\"selected\":{JsonSerializer.Serialize(App.Session.SelectedPlayerId == "" ? App.Settings.PlayerMac : App.Session.SelectedPlayerId)},\"own\":{JsonSerializer.Serialize(App.Settings.PlayerMac)}}}");
         App.Library.Changed += PushLibraryStatus;
         App.Library.IndexUpdated += () => Push("{\"type\":\"indexUpdated\"}");
-        App.LibraryChanged += () => Push("{\"type\":\"indexUpdated\"}");
+        App.LibraryChanged += () => { Push(JsonSerializer.Serialize(new { type = "settings", library = App.Settings.Library })); Push("{\"type\":\"indexUpdated\"}"); };
         // WebView2 forwards accelerator keys to WPF as KeyDown
         PreviewKeyDown += (sender, keyArgs) =>
         {
@@ -46,7 +52,7 @@ public partial class MainWindow : Window
     {
         var environment = await CoreWebView2Environment.CreateAsync(null, Path.Combine(AppPaths.DataFolder, "WebView2"));
         await webView.EnsureCoreWebView2Async(environment);
-        webView.DefaultBackgroundColor = System.Drawing.Color.FromArgb(16, 17, 20);
+        webView.DefaultBackgroundColor = glassActive ? System.Drawing.Color.Transparent : System.Drawing.Color.FromArgb(16, 17, 20);
         webView.CoreWebView2.SetVirtualHostNameToFolderMapping(uiHost, Path.Combine(AppContext.BaseDirectory, "wwwroot"), CoreWebView2HostResourceAccessKind.DenyCors);
         App.Library.AttachArtHandler(webView.CoreWebView2);
         webView.CoreWebView2.WebMessageReceived += async (sender, args) => await OnUiMessageAsync(args.WebMessageAsJson);
@@ -77,7 +83,7 @@ public partial class MainWindow : Window
         {
             switch (Text(message, "type"))
             {
-                case "ready": Push(App.StatusJson()); PushLibraryStatus(); Push(JsonSerializer.Serialize(new { type = "settings", library = App.Settings.Library })); break;
+                case "ready": PushWindowState(); Push(App.StatusJson()); PushLibraryStatus(); Push(JsonSerializer.Serialize(new { type = "settings", library = App.Settings.Library })); break;
                 case "openSettings": App.OpenSettings(Text(message, "tab")); break;
                 case "quit": App.Quit(); break;
                 case "applyUpdate": await App.Updater.RestartToUpdateAsync(); break;
@@ -108,6 +114,11 @@ public partial class MainWindow : Window
                     break;
                 case "loadDraft": ReplyRaw(message, File.Exists(Shell.PlayerSession.DraftPath) ? File.ReadAllText(Shell.PlayerSession.DraftPath) : "null"); break;
                 case "saveDraft": Directory.CreateDirectory(AppPaths.DataFolder); if (Text(message, "draft") == "null") File.Delete(Shell.PlayerSession.DraftPath); else File.WriteAllText(Shell.PlayerSession.DraftPath, message.GetProperty("draft").GetRawText()); break;
+                case "dragWindow": ReleaseCapture(); SendMessage(new WindowInteropHelper(this).Handle, 0xA1 /*WM_NCLBUTTONDOWN*/, (IntPtr)2 /*HTCAPTION*/, IntPtr.Zero); break;
+                case "windowControl":
+                    switch (Text(message, "action")) { case "minimise": WindowState = WindowState.Minimized; break; case "maximise": WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized; break; case "close": Close(); break; }
+                    break;
+                case "theme": darkTheme = message.TryGetProperty("dark", out var darkValue) && darkValue.GetBoolean(); ApplyWindowStyle(); break;
                 case "setTopmost": Topmost = message.GetProperty("on").GetBoolean(); break;
                 case "windowMode": SetWindowMode(Text(message, "mode")); break;
                 case "refreshLibrary": await App.Library.RefreshAsync(message.TryGetProperty("rebuild", out var rebuild) && rebuild.GetBoolean()); break;
@@ -128,6 +139,42 @@ public partial class MainWindow : Window
         if (mode != "mini") Topmost = false;
         App.Settings.Save();
     }
+
+    // ---- Glass and frameless (SPEC.md › Look) ----
+    [DllImport("dwmapi.dll")] static extern int DwmSetWindowAttribute(IntPtr windowHandle, int attribute, ref int value, int size);
+    [DllImport("dwmapi.dll")] static extern int DwmExtendFrameIntoClientArea(IntPtr windowHandle, ref FrameMargins margins);
+    [DllImport("user32.dll")] static extern bool ReleaseCapture();
+    [DllImport("user32.dll")] static extern IntPtr SendMessage(IntPtr windowHandle, int messageId, IntPtr wParam, IntPtr lParam);
+    struct FrameMargins { public int Left, Right, Top, Bottom; }
+    const int DarkModeAttribute = 20, BorderColourAttribute = 34, BackdropAttribute = 38, AcrylicBackdrop = 3, NoBackdrop = 1;
+    bool glassActive, darkTheme = true;
+
+    public void ApplyWindowStyle()
+    {
+        var windowHandle = new WindowInteropHelper(this).Handle;
+        if (windowHandle == IntPtr.Zero) return;
+        var general = App.Settings.General;
+        WindowChrome.SetWindowChrome(this, general.Frameless ? new WindowChrome { CaptionHeight = 0, ResizeBorderThickness = new Thickness(6), GlassFrameThickness = new Thickness(-1), UseAeroCaptionButtons = false, CornerRadius = new CornerRadius(8) } : null);
+        var darkValue = darkTheme ? 1 : 0;
+        DwmSetWindowAttribute(windowHandle, DarkModeAttribute, ref darkValue, sizeof(int));
+        var borderColour = general.Frameless ? unchecked((int)0xFFFFFFFE) /*DWMWA_COLOR_NONE*/ : unchecked((int)0xFFFFFFFF) /*default*/;
+        DwmSetWindowAttribute(windowHandle, BorderColourAttribute, ref borderColour, sizeof(int));
+        // Acrylic needs Windows 11 22H2+; elsewhere the call fails and the UI stays opaque
+        var backdrop = general.Glass ? AcrylicBackdrop : NoBackdrop;
+        glassActive = general.Glass && DwmSetWindowAttribute(windowHandle, BackdropAttribute, ref backdrop, sizeof(int)) == 0;
+        var margins = glassActive ? new FrameMargins { Left = -1, Right = -1, Top = -1, Bottom = -1 } : new FrameMargins();
+        DwmExtendFrameIntoClientArea(windowHandle, ref margins);
+        var hwndSource = HwndSource.FromHwnd(windowHandle);
+        if (hwndSource?.CompositionTarget != null) hwndSource.CompositionTarget.BackgroundColor = glassActive ? Colors.Transparent : Color.FromRgb(16, 17, 20);
+        Background = glassActive ? Brushes.Transparent : new SolidColorBrush(Color.FromRgb(16, 17, 20));
+        if (webView.CoreWebView2 != null) webView.DefaultBackgroundColor = glassActive ? System.Drawing.Color.Transparent : System.Drawing.Color.FromArgb(16, 17, 20);
+        UpdateFrameMargin();
+        PushWindowState();
+    }
+
+    // Frameless: the WebView covers the client area, so leave a thin edge for the resize border (more when maximised, which overhangs the screen)
+    void UpdateFrameMargin() => webView.Margin = App.Settings.General.Frameless ? new Thickness(WindowState == WindowState.Maximized ? 7 : 4) : new Thickness(0);
+    void PushWindowState() => Push(JsonSerializer.Serialize(new { type = "window", glass = glassActive, frameless = App.Settings.General.Frameless, maximised = WindowState == WindowState.Maximized }));
 
     void OnPreviousThumb(object sender, EventArgs args) => _ = App.Session.RequestAsync(true, "playlist", "index", "-1");
     void OnPlayPauseThumb(object sender, EventArgs args) => _ = App.Session.RequestAsync(true, "pause");

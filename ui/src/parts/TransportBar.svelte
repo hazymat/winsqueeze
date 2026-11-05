@@ -4,6 +4,7 @@
   import Meters from './Meters.svelte'
   import Readout from './Readout.svelte'
   import Icon from './Icon.svelte'
+  import PlayerPicker from './PlayerPicker.svelte'
   let { mini = false }: { mini?: boolean } = $props()
   let now = $state(Date.now())
   let volumeOpen = $state(false)
@@ -14,10 +15,17 @@
   const duration = $derived(Number(status?.duration ?? track?.duration ?? 0))
   // Smooth position between ~1 s polls
   const position = $derived(Math.min(duration || Infinity, Number(status?.time ?? 0) + (playing ? (now - app.receivedAt) / 1000 : 0)))
-  const volume = $derived(Math.abs(Number(status?.['mixer volume'] ?? 0)))
+  // While dragging, the slider owns the value and sends it continuously (throttled), so polls don't yank it back
+  let draggingVolume = $state<number | null>(null)
+  let lastVolumeSent = 0, volumeReleaseTimer = 0
+  const volume = $derived(draggingVolume ?? Math.abs(Number(status?.['mixer volume'] ?? 0)))
+  function dragVolume(event: Event) {
+    clearTimeout(volumeReleaseTimer); draggingVolume = Number((event.target as HTMLInputElement).value)
+    if (Date.now() - lastVolumeSent > 60) { lastVolumeSent = Date.now(); command('mixer', 'volume', draggingVolume) }
+  }
+  function releaseVolume(event: Event) { command('mixer', 'volume', (event.target as HTMLInputElement).value); volumeReleaseTimer = window.setTimeout(() => draggingVolume = null, 1200) }
   const ownSelected = $derived(!app.selectedPlayer || app.selectedPlayer === app.ownPlayer)
   const seek = (event: MouseEvent) => { const bar = event.currentTarget as HTMLElement; const ratio = (event.clientX - bar.getBoundingClientRect().left) / bar.clientWidth; if (duration) command('time', Math.round(ratio * duration)) }
-  const selectPlayer = (event: Event) => { app.selectedPlayer = (event.target as HTMLSelectElement).value; sendToShell({ type: 'selectPlayer', id: app.selectedPlayer }) }
 </script>
 
 <footer class="transport" class:mini>
@@ -42,14 +50,12 @@
   <div class="right">
     <div class="readout-slot"><Readout /></div>
     <Meters active={false} />
-    <select class="players" value={app.selectedPlayer || app.ownPlayer} onchange={selectPlayer} aria-label="Player">
-      {#each app.players as player (player.playerid)}<option value={player.playerid}>{player.name}{player.playerid === app.ownPlayer ? ' (this PC)' : ''}{player.connected ? '' : ' · offline'}</option>{/each}
-    </select>
+    <div class="players"><PlayerPicker /></div>
     {#if ownSelected && app.status?.device}<button class="device" onclick={() => sendToShell({ type: 'openSettings', tab: 'Audio' })} title={`Output: ${app.status.device}`}><Icon name="speaker" size={15} /><span class="device-name">{app.status.device}</span></button>{/if}
     <div class="volume">
-      <input type="range" min="0" max="100" value={volume} onchange={(event) => command('mixer', 'volume', (event.target as HTMLInputElement).value)} aria-label="Volume" />
+      <input type="range" min="0" max="100" value={volume} oninput={dragVolume} onchange={releaseVolume} aria-label="Volume" />
       <button class="volume-icon" onclick={() => volumeOpen = !volumeOpen} aria-label="Volume"><Icon name="volume" /></button>
-      {#if volumeOpen}<div class="volume-pop"><input type="range" min="0" max="100" value={volume} onchange={(event) => command('mixer', 'volume', (event.target as HTMLInputElement).value)} aria-label="Volume" /></div>{/if}
+      {#if volumeOpen}<div class="volume-pop"><input type="range" min="0" max="100" value={volume} oninput={dragVolume} onchange={releaseVolume} aria-label="Volume" /></div>{/if}
     </div>
     {#if mini}<button class="pin" class:on={ui.pinned} onclick={() => { ui.pinned = !ui.pinned; sendToShell({ type: 'setTopmost', on: ui.pinned }) }} title="Always on top"><Icon name="pin" size={16} /></button>{/if}
   </div>
@@ -75,7 +81,6 @@
   .seek:hover { height: 7px; }
   .fill { height: 100%; background: var(--accent); border-radius: 3px; }
   .right { display: flex; align-items: center; justify-content: flex-end; gap: 10px; min-width: 0; }
-  .players { background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px; max-width: 150px; font: inherit; font-size: 12px; }
   .device { background: none; border: 0; color: var(--fg-quiet); cursor: pointer; font-size: 12px; max-width: 140px; display: flex; align-items: center; gap: 5px; white-space: nowrap; overflow: hidden; }
   .device-name { overflow: hidden; text-overflow: ellipsis; }
   .volume { position: relative; display: flex; align-items: center; }

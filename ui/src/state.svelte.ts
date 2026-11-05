@@ -5,7 +5,8 @@ export type PlaylistItem = { id: number; title: string; artist: string; duration
 
 export const app = $state({
   status: null as any, nowPlaying: null as any, players: [] as any[], selectedPlayer: '', ownPlayer: '',
-  library: { text: '', done: 0, total: 0 }, librarySettings: { AlbumSource: 'folders', ContributorGrouping: 'any' } as any, indexVersion: 0, receivedAt: 0
+  library: { text: '', done: 0, total: 0 }, librarySettings: { AlbumSource: 'folders', ContributorGrouping: 'any' } as any, indexVersion: 0, receivedAt: 0,
+  window: { glass: false, frameless: false, maximised: false }
 })
 export const nav = $state({ section: 'artists', stack: [] as View[] })
 export const ui = $state({ search: '', scope: 'list' as 'list' | 'everything', expanded: false, meterStyle: readSetting('meterStyle', 'vu'), skin: readSetting('skin', 'auto'), pinned: false, toast: null as null | { text: string; undo?: () => void } })

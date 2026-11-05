@@ -1,0 +1,52 @@
+<script lang="ts">
+  import { live, artUrl } from '../bridge'
+  import { app, ui, openView, toast, formatTime, newPlaylist } from '../state.svelte'
+  // Lyrion's saved playlists, read live (small, and other controllers change them)
+  let { playlistId = '', title = '' }: { playlistId?: string; title?: string } = $props()
+  let items = $state<any[]>([])
+  let loading = $state(true)
+  async function load() {
+    loading = true
+    const result = playlistId ? await live(['playlists', 'tracks', 0, 1000, `playlist_id:${playlistId}`, 'tags:adlc']) : await live(['playlists', 0, 1000, 'tags:u'])
+    items = (playlistId ? result?.playlisttracks_loop : result?.playlists_loop) ?? []
+    loading = false
+  }
+  $effect(() => { playlistId; app.status?.server; load() })
+  const plain = (text: string) => (text ?? '').toLowerCase()
+  const shown = $derived(ui.search.length >= 2 ? items.filter(item => plain(item.playlist ?? item.title).includes(plain(ui.search))) : items)
+  const totalSeconds = $derived(items.reduce((total, item) => total + Number(item.duration || 0), 0))
+  async function play(id: string, name: string, start = 0) { await live(['playlistcontrol', 'cmd:load', `playlist_id:${id}`], true); if (start) await live(['playlist', 'index', start], true); toast(`Playing ${name}`) }
+  const edit = () => newPlaylist(title, items.map(item => ({ id: Number(item.id), title: item.title, artist: item.artist ?? '', duration: Number(item.duration || 0) })))
+</script>
+
+{#if playlistId}
+  <div class="head"><h2>{title}</h2><span class="quiet">{items.length} tracks · {formatTime(totalSeconds)}</span>
+    <button class="primary" onclick={() => play(playlistId, title)}>Play</button><button class="ghost" onclick={edit}>Edit as new playlist</button></div>
+  {#each shown as item, index (index + ':' + item.id)}
+    <button class="row" onclick={() => play(playlistId, title, index)}>
+      {#if item.coverid}<img src={artUrl(item.coverid, 80)} alt="" loading="lazy" />{:else}<span class="glyph">♪</span>{/if}
+      <span class="text"><span>{item.title}</span><span class="quiet">{item.artist}{item.album ? ` · ${item.album}` : ''}</span></span>
+      <span class="quiet">{formatTime(Number(item.duration))}</span>
+    </button>
+  {/each}
+{:else}
+  <h2>Playlists</h2>
+  {#if !loading && !items.length}<p class="quiet">No saved playlists on the server yet. Use New playlist to make one.</p>{/if}
+  {#each shown as item (item.id)}
+    <div class="row">
+      <button class="main" onclick={() => openView({ kind: 'playlist', key: String(item.id), title: item.playlist })}><span class="glyph">☰</span><span class="text"><span>{item.playlist}</span></span></button>
+      <button class="ghost" onclick={() => play(String(item.id), item.playlist)}>Play</button>
+    </div>
+  {/each}
+{/if}
+
+<style>
+  .head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+  .head h2 { margin: 0; }
+  .row { display: flex; align-items: center; gap: 10px; width: 100%; background: none; border: 0; color: var(--fg); padding: 5px 8px; border-radius: 8px; font: inherit; text-align: left; cursor: pointer; }
+  .row:hover { background: var(--hover); }
+  .main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; background: none; border: 0; color: var(--fg); font: inherit; text-align: left; cursor: pointer; padding: 0; }
+  img, .glyph { width: 36px; height: 36px; border-radius: 5px; object-fit: cover; display: grid; place-items: center; background: var(--panel-strong); flex-shrink: 0; }
+  .text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .text span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+</style>

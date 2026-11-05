@@ -1,6 +1,6 @@
 <script lang="ts">
   // Crisp transport icons as SVG: text glyphs (⏮ ▶ ⏭) render off-centre with colour fringes in WebView2
-  let { name, size = 18 }: { name: 'previous' | 'next' | 'play' | 'pause' | 'volume' | 'speaker' | 'pin' | 'favourites' | 'artists' | 'genres' | 'composers' | 'performers' | 'folders' | 'albums' | 'queue' | 'plus' | 'settings'; size?: number } = $props()
+  let { name, size = 18 }: { name: 'previous' | 'next' | 'play' | 'pause' | 'volume' | 'speaker' | 'pin' | 'favourites' | 'artists' | 'genres' | 'composers' | 'performers' | 'folders' | 'albums' | 'queue' | 'plus' | 'settings' | 'playlists' | 'minimise' | 'maximise' | 'restore' | 'close'; size?: number } = $props()
 </script>
 
 <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" class="icon">
@@ -20,10 +20,16 @@
   {:else if name === 'albums'}<circle cx="12" cy="12" r="8" class="stroke" /><circle cx="12" cy="12" r="2.2" class="stroke" />
   {:else if name === 'queue'}<path d="M4 6.5h16M4 12h16M4 17.5h10" class="stroke" />
   {:else if name === 'plus'}<path d="M12 5v14M5 12h14" class="stroke" />
-  {:else if name === 'settings'}<circle cx="12" cy="12" r="3" class="stroke" /><path d="M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M6 6l1.6 1.6M16.4 16.4L18 18M6 18l1.6-1.6M16.4 7.6L18 6" class="stroke" />{/if}
+  {:else if name === 'settings'}<circle cx="12" cy="12" r="3" class="stroke" /><path d="M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M6 6l1.6 1.6M16.4 16.4L18 18M6 18l1.6-1.6M16.4 7.6L18 6" class="stroke" />
+  {:else if name === 'playlists'}<path d="M4 6.5h11M4 11h11M4 15.5h6" class="stroke" /><path d="M17 13v6.5" class="stroke" /><circle cx="15.5" cy="19.5" r="1.8" class="stroke" /><path d="M17 13l3-1" class="stroke" />
+  {:else if name === 'minimise'}<path d="M6 12h12" class="stroke thin" />
+  {:else if name === 'maximise'}<rect x="6.5" y="6.5" width="11" height="11" rx="1.5" class="stroke thin" />
+  {:else if name === 'restore'}<rect x="6" y="8.5" width="9.5" height="9.5" rx="1.5" class="stroke thin" /><path d="M9 8.5V7.5A1.5 1.5 0 0 1 10.5 6h6A1.5 1.5 0 0 1 18 7.5v6a1.5 1.5 0 0 1-1.5 1.5h-1" class="stroke thin" />
+  {:else if name === 'close'}<path d="M7 7l10 10M17 7L7 17" class="stroke thin" />{/if}
 </svg>
 
 <style>
   .icon { display: block; fill: currentColor; }
+  .thin { stroke-width: 1.3; }
   .stroke { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 </style>

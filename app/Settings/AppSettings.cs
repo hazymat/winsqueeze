@@ -40,6 +40,7 @@ public class LibrarySettings
     public string ContributorGrouping { get; set; } = "any"; // any | albumartist
     public string NameSeparators { get; set; } = ", ; & / feat. with and";
     public int RefreshMinutes { get; set; } = 5;
+    public bool HideOwnComposers { get; set; } = true; // composers list leaves out songwriters credited only on their own albums
 }
 
 public class GeneralSettings
@@ -52,6 +53,9 @@ public class GeneralSettings
     public bool AutoUpdate { get; set; } = true;
     public Dictionary<string, double[]> ModeSizes { get; set; } = new();
     public string UpdateChannel { get; set; } = "dev"; // stable | dev; dev until the first stable release
+    public bool Glass { get; set; } = true; // Windows 11 acrylic backdrop behind a see-through UI
+    public bool Frameless { get; set; } // no title bar or standard border; the UI draws its own drag strip and buttons
+    public string LastRunVersion { get; set; } = "";
 }
 
 public enum OtherSqueezeliteAction { Ask, Stop, Leave }

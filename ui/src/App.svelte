@@ -1,6 +1,6 @@
 <script lang="ts">
   import { sendToShell, onShellMessage, request, command } from './bridge'
-  import { app, nav, ui, playlist, openSection, back, currentView, newPlaylist, undoLastAdd, writeSetting } from './state.svelte'
+  import { app, nav, ui, playlist, openSection, back, currentView, newPlaylist, undoLastAdd, writeSetting, readSetting } from './state.svelte'
   import TransportBar from './parts/TransportBar.svelte'
   import NowPlaying from './parts/NowPlaying.svelte'
   import PlaylistPanel from './parts/PlaylistPanel.svelte'
@@ -12,6 +12,7 @@
   import FavouritesView from './views/FavouritesView.svelte'
   import QueueView from './views/QueueView.svelte'
   import Icon from './parts/Icon.svelte'
+  import PlaylistsView from './views/PlaylistsView.svelte'
 
   let searchBox = $state<HTMLInputElement>()
   let width = $state(window.innerWidth)
@@ -19,7 +20,12 @@
   const mini = $derived(width < 420 && height < 260)
   const vertical = $derived(!mini && width <= 900)
   const folderMode = $derived(app.librarySettings.AlbumSource !== 'tags')
-  const sections = $derived([['favourites', 'Favourites', 'favourites'], ['artists', 'Artists', 'artists'], ['genres', 'Genres', 'genres'], ['composers', 'Composers', 'composers'], ['performers', 'Performers', 'performers'], ['folders', folderMode ? 'Folders' : 'Albums', folderMode ? 'folders' : 'albums'], ['queue', 'Queue', 'queue']] as [string, string, any][])
+  const sections = $derived([['queue', 'Now playing', 'queue'], ['favourites', 'Favourites', 'favourites'], ['playlists', 'Playlists', 'playlists'], ['artists', 'Artists', 'artists'], ['genres', 'Genres', 'genres'], ['composers', 'Composers', 'composers'], ['performers', 'Performers', 'performers'], ['folders', folderMode ? 'Folders' : 'Albums', folderMode ? 'folders' : 'albums']] as [string, string, any][])
+  // Sidebar customisation: every section shows by default; hidden ones are remembered per PC
+  let hiddenSections = $state<string[]>(JSON.parse(readSetting('hiddenSections', '[]')))
+  let customising = $state(false)
+  const toggleSection = (key: string) => { hiddenSections = hiddenSections.includes(key) ? hiddenSections.filter(hidden => hidden !== key) : hiddenSections.concat([key]); writeSetting('hiddenSections', JSON.stringify(hiddenSections)) }
+  const visibleSections = $derived(sections.filter(([key]) => !hiddenSections.includes(key)))
   const view = $derived(currentView())
   const everything = $derived(ui.search.length >= 2 && (ui.scope === 'everything' || ['queue'].includes(view.kind)))
 
@@ -28,13 +34,24 @@
   onShellMessage('players', message => { app.players = message.players ?? []; app.ownPlayer = message.own ?? ''; if (!app.selectedPlayer) app.selectedPlayer = message.selected ?? '' })
   onShellMessage('library', message => app.library = { text: message.text ?? '', done: message.done ?? 0, total: message.total ?? 0 })
   onShellMessage('indexUpdated', () => app.indexVersion++)
+  onShellMessage('window', message => app.window = { glass: !!message.glass, frameless: !!message.frameless, maximised: !!message.maximised })
   onShellMessage('settings', message => { if (message.library) app.librarySettings = message.library })
   sendToShell({ type: 'ready' })
   // Restore an unsaved playlist draft from last time
   request({ type: 'loadDraft' }).then(draft => { if (draft?.items) newPlaylist(draft.name ?? 'Untitled playlist', draft.items) })
 
   // Skins (SPEC.md › Skins): the skin is a data attribute; tokens.css holds the variables
-  $effect(() => { document.documentElement.dataset.skin = ui.skin })
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)')
+  let systemDark = $state(prefersDark.matches)
+  prefersDark.addEventListener('change', () => systemDark = prefersDark.matches)
+  $effect(() => { document.documentElement.dataset.skin = ui.skin; sendToShell({ type: 'theme', dark: ui.skin === 'auto' ? systemDark : ui.skin !== 'light' }) })
+  $effect(() => { document.documentElement.classList.toggle('glass', app.window.glass); document.documentElement.classList.toggle('frameless', app.window.frameless) })
+  // Frameless: drag the window from empty parts of the top strip (and the mini player); double-click maximises
+  function dragWindow(event: MouseEvent) {
+    if (!app.window.frameless || event.button !== 0 || (event.target as HTMLElement).closest('button, input, select, a, [role=slider], img, .no-drag')) return
+    if (event.detail === 2) { sendToShell({ type: 'windowControl', action: 'maximise' }); return }
+    sendToShell({ type: 'dragWindow' })
+  }
 
   function onKey(event: KeyboardEvent) {
     const typing = (event.target as HTMLElement)?.matches?.('input, textarea, select')
@@ -54,15 +71,21 @@
 <svelte:window bind:innerWidth={width} bind:innerHeight={height} onkeydown={onKey} onmouseup={(event) => { if (event.button === 3 && nav.stack.length) back() }} />
 
 {#if mini}
-  <div class="mini-shell"><TransportBar mini={true} /></div>
+  <div class="mini-shell" role="presentation" onmousedown={dragWindow}><TransportBar mini={true} /></div>
 {:else}
   <div class="shell" class:vertical>
     {#if !vertical}
       <nav class="sidebar">
-        <div class="brand">WinSqueeze</div>
-        {#each sections as [key, label, glyph] (key)}
-          <button class="section" class:on={nav.section === key && !everything} onclick={() => openSection(key)}><span class="glyph"><Icon name={glyph} /></span>{label}</button>
+        <div class="brand" role="presentation" onmousedown={dragWindow}>WinSqueeze</div>
+        {#each customising ? sections : visibleSections as [key, label, glyph] (key)}
+          {#if customising}
+            <label class="section customise"><input type="checkbox" checked={!hiddenSections.includes(key)} onchange={() => toggleSection(key)} /><span class="glyph"><Icon name={glyph} /></span>{label}</label>
+          {:else}
+            <button class="section" class:on={nav.section === key && !everything} onclick={() => openSection(key)}><span class="glyph"><Icon name={glyph} /></span>{label}</button>
+          {/if}
+          {#if key === 'queue'}<div class="divider"></div>{/if}
         {/each}
+        <button class="customise-toggle" onclick={() => customising = !customising}>{customising ? 'Done' : 'Customise sidebar'}</button>
         <button class="section new" onclick={() => playlist.open ? (playlist.collapsed = false) : newPlaylist()}><span class="glyph"><Icon name="plus" /></span>New playlist</button>
         <div class="spacer"></div>
         {#if app.library.total && app.library.done < app.library.total}<div class="sync" title={app.library.text}><div class="bar" style:width={`${(app.library.done / app.library.total) * 100}%`}></div></div>{/if}
@@ -75,7 +98,7 @@
       {#if app.status?.updateReady}
         <div class="update-notice"><span>WinSqueeze {app.status.updateReady} is ready.</span><button class="primary" onclick={() => sendToShell({ type: 'applyUpdate' })}>Restart to update</button></div>
       {/if}
-      <header class="topbar">
+      <header class="topbar" role="presentation" onmousedown={dragWindow}>
         {#if nav.stack.length}<button class="ghost back" onclick={back} aria-label="Back">‹</button>{/if}
         <div class="search">
           <input bind:this={searchBox} bind:value={ui.search} placeholder={ui.scope === 'everything' ? 'Search everything' : 'Search this list'} aria-label="Search" />
@@ -85,6 +108,13 @@
           </div>
         </div>
         {#if vertical}<button class="ghost" onclick={() => sendToShell({ type: 'openSettings' })} aria-label="Settings"><Icon name="settings" /></button>{/if}
+        {#if app.window.frameless}
+          <div class="window-controls">
+            <button onclick={() => sendToShell({ type: 'windowControl', action: 'minimise' })} aria-label="Minimise"><Icon name="minimise" size={16} /></button>
+            <button onclick={() => sendToShell({ type: 'windowControl', action: 'maximise' })} aria-label={app.window.maximised ? 'Restore' : 'Maximise'}><Icon name={app.window.maximised ? 'restore' : 'maximise'} size={16} /></button>
+            <button class="close" onclick={() => sendToShell({ type: 'windowControl', action: 'close' })} aria-label="Close"><Icon name="close" size={16} /></button>
+          </div>
+        {/if}
       </header>
       <div class="body">
         <main class="content">
@@ -102,6 +132,10 @@
             {#key view.kind + view.key}<AlbumsOf kind={view.kind} key={view.key} title={view.title} />{/key}
           {:else if view.kind === 'favourites'}
             {#key view.key}<FavouritesView itemId={view.key ?? ''} />{/key}
+          {:else if view.kind === 'playlists'}
+            <PlaylistsView />
+          {:else if view.kind === 'playlist'}
+            {#key view.key}<PlaylistsView playlistId={view.key} title={view.title} />{/key}
           {:else if view.kind === 'queue'}
             <QueueView />
           {/if}
@@ -112,7 +146,7 @@
       <TransportBar />
       {#if vertical}
         <nav class="tabbar">
-          {#each sections as [key, label, glyph] (key)}
+          {#each visibleSections as [key, label, glyph] (key)}
             <button class:on={nav.section === key} onclick={() => openSection(key)}><span class="glyph"><Icon name={glyph} size={20} /></span><span class="tab-label">{label}</span></button>
           {/each}
         </nav>
@@ -133,6 +167,10 @@
   .section { display: flex; align-items: center; gap: 10px; background: none; border: 0; color: var(--fg); padding: 8px 10px; border-radius: 8px; cursor: pointer; font: inherit; text-align: left; }
   .section:hover { background: var(--hover); }
   .section.on { background: var(--accent-soft); color: var(--accent); }
+  .customise { cursor: default; } .customise input { margin: 0 -4px 0 0; accent-color: var(--accent); }
+  .customise-toggle { align-self: flex-start; background: none; border: 0; color: var(--fg-quiet); font: inherit; font-size: 11px; padding: 4px 10px; cursor: pointer; opacity: 0.7; }
+  .customise-toggle:hover { opacity: 1; color: var(--accent); }
+  .divider { height: 1px; background: var(--line); margin: 8px 10px; }
   .section.new { color: var(--accent); margin-top: 8px; }
   .glyph { width: 20px; display: grid; place-items: center; }
   .spacer { flex: 1; }
@@ -143,6 +181,10 @@
   .content-column { display: flex; flex-direction: column; min-width: 0; min-height: 0; height: 100vh; }
   .update-notice { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 6px 12px; background: var(--accent-soft); font-size: 13px; }
   .topbar { display: flex; align-items: center; gap: 8px; padding: 10px 16px; }
+  .window-controls { display: flex; margin-left: auto; gap: 2px; }
+  .window-controls button { display: grid; place-items: center; width: 40px; height: 30px; background: none; border: 0; border-radius: 6px; color: var(--fg-quiet); cursor: pointer; }
+  .window-controls button:hover { background: var(--hover); color: var(--fg); }
+  .window-controls .close:hover { background: #c42b1c; color: #fff; }
   .back { font-size: 20px; padding: 2px 12px; }
   .search { flex: 1; display: flex; align-items: center; gap: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 2px 4px 2px 12px; max-width: 640px; }
   .search input { flex: 1; min-width: 0; background: none; border: 0; outline: none; color: var(--fg); font: inherit; padding: 6px 0; }

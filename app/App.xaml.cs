@@ -50,6 +50,7 @@ public partial class App : Application
         if (Settings.ActiveProfile is not { Host.Length: > 0 }) OpenSettings("Servers");
         Updater.Changed += () => Dispatcher.BeginInvoke(() => StatusChanged?.Invoke());
         Updater.Start();
+        RefreshIconsAfterUpdate();
         try { Media = new MediaControls(); } catch { } // SMTC needs Windows 10 1903+
         Session.StatusUpdated += () => { if (Settings.ActiveProfile is { } profile) Media?.Update(Session.LastStatus, $"http://{profile.Host}:{profile.Port}"); trayIcon.RefreshNowPlaying(Session.LastStatus); };
         Session.Start();
@@ -61,6 +62,17 @@ public partial class App : Application
         var resumeArgument = startupArgs.Args.FirstOrDefault(argument => argument.StartsWith("--resume="));
         if (resumeArgument != null && Player.State == PlayerState.Running && double.TryParse(resumeArgument["--resume=".Length..], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var resumeSeconds)) await ResumeAtAsync(resumeSeconds);
     }
+
+    // Windows caches shortcut and taskbar icons; after a version change, ask the shell to refresh them so a new icon shows up
+    [System.Runtime.InteropServices.DllImport("shell32.dll")] static extern void SHChangeNotify(int eventId, uint flags, IntPtr item1, IntPtr item2);
+    void RefreshIconsAfterUpdate()
+    {
+        if (Settings.General.LastRunVersion == Updater.CurrentVersion) return;
+        Settings.General.LastRunVersion = Updater.CurrentVersion; Settings.Save();
+        try { SHChangeNotify(0x08000000 /*SHCNE_ASSOCCHANGED*/, 0, IntPtr.Zero, IntPtr.Zero); System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("ie4uinit.exe", "-show") { CreateNoWindow = true, UseShellExecute = false })?.Dispose(); } catch { }
+    }
+
+    public void ApplyWindowStyle() => mainWindow.ApplyWindowStyle();
 
     public async Task<string[]> ResumeArgumentsAsync()
     {

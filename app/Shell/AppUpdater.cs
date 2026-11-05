@@ -36,6 +36,7 @@ public sealed class AppUpdater
         checkTimer.Tick += async (sender, args) => { if (App.Settings.General.AutoUpdate) await CheckNowAsync(); };
         checkTimer.Start();
         if (App.Settings.General.AutoUpdate) _ = CheckNowAsync();
+        CleanUpOldPackages();
     }
 
     // Channel feed for normal updates; a single release's assets when switching to a specific version
@@ -96,6 +97,8 @@ public sealed class AppUpdater
     {
         try
         {
+            // Already downloaded in the background: just restart into it
+            if (release.Version == ReadyVersion) { await RestartToUpdateAsync(); return; }
             if (AppPaths.IsPortable) { SetStatus($"Downloading {release.Version}…"); await SwapPortableAndRestartAsync(await DownloadPortableAsync(release.Tag)); return; }
             SetStatus($"Downloading {release.Version}…");
             var switchManager = CreateManager(release.IsDev ? "dev" : "stable", release.Tag);
@@ -160,6 +163,18 @@ public sealed class AppUpdater
         foreach (var argument in restartArguments) restartInfo.ArgumentList.Add(argument);
         Process.Start(restartInfo);
         App.Shutdown();
+    }
+
+    // Velopack keeps downloaded packages next to the app; keep only the newest so switching versions doesn't pile them up
+    static void CleanUpOldPackages()
+    {
+        try
+        {
+            var packagesFolder = Path.Combine(Path.GetDirectoryName(AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar)) ?? "", "packages");
+            if (AppPaths.IsPortable || !Directory.Exists(packagesFolder)) return;
+            foreach (var oldPackage in new DirectoryInfo(packagesFolder).GetFiles("*.nupkg").OrderByDescending(file => file.LastWriteTimeUtc).Skip(1)) oldPackage.Delete();
+        }
+        catch { }
     }
 
     public static void CleanUpAfterPortableUpdate() { try { File.Delete(AppPaths.ExePath + ".old"); File.Delete(AppPaths.ExePath + ".update"); } catch { } }

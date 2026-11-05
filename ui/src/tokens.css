@@ -36,6 +36,13 @@
   --line: rgba(255, 190, 110, 0.12); --hover: rgba(255, 190, 110, 0.08); --track: rgba(255, 190, 110, 0.16); --fg: #f2e6d6; --fg-quiet: #a08f78;
   --accent: #ffb142; --accent-soft: rgba(255, 177, 66, 0.15); --on-accent: #2a1800; --readout: #ffb142; --readout-glow: rgba(255, 160, 40, 0.55);
 }
+/* Glass: Windows paints a frosted (acrylic) copy of the desktop behind the page; the page only tints it and keeps panels see-through */
+:root.glass { --glass-tint: rgba(12, 14, 19, 0.38); --glass: rgba(255, 255, 255, 0.035); --panel: rgba(255, 255, 255, 0.07); --panel-strong: rgba(255, 255, 255, 0.12); --panel-solid: rgba(28, 31, 38, 0.92); }
+:root.glass[data-skin="light"] { --glass-tint: rgba(242, 245, 250, 0.42); --glass: rgba(255, 255, 255, 0.3); --panel: rgba(255, 255, 255, 0.35); --panel-strong: rgba(255, 255, 255, 0.5); --panel-solid: rgba(255, 255, 255, 0.95); }
+@media (prefers-color-scheme: light) { :root.glass[data-skin="auto"] { --glass-tint: rgba(242, 245, 250, 0.42); --glass: rgba(255, 255, 255, 0.3); --panel: rgba(255, 255, 255, 0.35); --panel-strong: rgba(255, 255, 255, 0.5); --panel-solid: rgba(255, 255, 255, 0.95); } }
+:root.glass[data-skin="classic"] { --glass-tint: rgba(0, 0, 0, 0.82); --glass: rgba(0, 0, 0, 0.4); }
+:root.glass[data-skin="amber"] { --glass-tint: rgba(24, 19, 13, 0.6); --glass: rgba(40, 30, 18, 0.3); }
+:root.glass body { background: var(--glass-tint); background-image: none; }
 html, body { margin: 0; height: 100%; background: var(--bg); background-image: var(--bg-gradient); background-attachment: fixed; color: var(--fg); font-family: var(--font-ui); font-size: 14px; overflow: hidden; }
 * { scrollbar-width: thin; scrollbar-color: var(--track) transparent; }
 h2 { font-size: 24px; margin: 8px 0 12px; }
@@ -50,4 +57,5 @@ h3 { font-size: 15px; margin: 18px 0 8px; color: var(--fg-quiet); font-weight: 6
 .chips button { background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 14px; padding: 4px 12px; font: inherit; font-size: 13px; cursor: pointer; }
 .chips button:hover { background: var(--hover); }
 .chips button.on { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+select option { background: var(--panel-solid); color: var(--fg); }
 button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }

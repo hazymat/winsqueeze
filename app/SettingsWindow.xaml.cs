@@ -19,7 +19,7 @@ public partial class SettingsWindow : Window
     public SettingsWindow()
     {
         InitializeComponent();
-        WireGeneralTab(); WireServersTab(); WireAudioTab(); WireLibraryTab(); WireAboutTab();
+        WireGeneralTab(); WireServersTab(); WireAudioTab(); WireLibraryTab(); WireAppearanceTab(); WireAboutTab();
         App.DevicesChanged += LoadDevices;
         App.StatusChanged += ShowPlayerStatus;
         Closed += (sender, args) => { App.DevicesChanged -= LoadDevices; App.StatusChanged -= ShowPlayerStatus; };
@@ -216,6 +216,8 @@ public partial class SettingsWindow : Window
         // Album source and grouping switch instantly: both are already in the index
         void SaveChoice() { library.AlbumSource = tagAlbumsRadio.IsChecked == true ? "tags" : "folders"; library.ContributorGrouping = albumArtistRadio.IsChecked == true ? "albumartist" : "any"; Settings.Save(); App.NotifyLibraryChanged(); }
         foreach (var radio in new[] { folderAlbumsRadio, tagAlbumsRadio, anyCreditRadio, albumArtistRadio }) radio.Click += (sender, args) => SaveChoice();
+        hideOwnComposersBox.IsChecked = library.HideOwnComposers;
+        hideOwnComposersBox.Click += (sender, args) => { library.HideOwnComposers = hideOwnComposersBox.IsChecked == true; Settings.Save(); App.NotifyLibraryChanged(); };
         separatorsBox.LostFocus += async (sender, args) => { if (separatorsBox.Text.Trim() == library.NameSeparators) return; library.NameSeparators = separatorsBox.Text.Trim(); Settings.Save(); await App.Library.RefreshAsync(true); };
         refreshMinutesBox.LostFocus += (sender, args) => { library.RefreshMinutes = int.TryParse(refreshMinutesBox.Text, out var minutes) ? Math.Clamp(minutes, 1, 1440) : library.RefreshMinutes; refreshMinutesBox.Text = library.RefreshMinutes.ToString(); Settings.Save(); };
         refreshLibraryButton.Click += async (sender, args) => { libraryStatusText.Text = "Checking the server…"; await App.Library.RefreshAsync(false); ShowLibraryStatus(); };
@@ -230,6 +232,14 @@ public partial class SettingsWindow : Window
     {
         if (App.Library.ProgressText != "") { libraryStatusText.Text = App.Library.ProgressTotal > 0 ? $"{App.Library.ProgressText}: {App.Library.ProgressDone:N0} of {App.Library.ProgressTotal:N0}" : App.Library.ProgressText; return; }
         try { libraryStatusText.Text = $"Cache size {App.Library.CacheBytes() / 1048576.0:0.#} MB. Stored in {AppPaths.DataFolder}."; } catch { libraryStatusText.Text = ""; }
+    }
+
+    void WireAppearanceTab()
+    {
+        var general = Settings.General;
+        glassBox.IsChecked = general.Glass; framelessBox.IsChecked = general.Frameless;
+        glassBox.Click += (sender, args) => { general.Glass = glassBox.IsChecked == true; Settings.Save(); App.ApplyWindowStyle(); };
+        framelessBox.Click += (sender, args) => { general.Frameless = framelessBox.IsChecked == true; Settings.Save(); App.ApplyWindowStyle(); };
     }
 
     void WireAboutTab()
@@ -257,11 +267,14 @@ public partial class SettingsWindow : Window
         Closed += (sender, args) => App.Updater.Changed -= ShowUpdateStatus;
         ShowUpdateStatus();
         _ = LoadVersionsAsync();
+        if (App.Settings.General.AutoUpdate) _ = App.Updater.CheckNowAsync(); // fetch anything released since the last 15-minute check
     }
 
     record VersionItem(ReleaseEntry Release, bool IsCurrent)
     {
-        public override string ToString() => $"{Release.Version}{(Release.IsDev ? "  dev" : "")}  ·  {Release.Published:d MMM yyyy HH:mm}{(IsCurrent ? "  ·  running now" : "")}";
+        public string Label => $"{Release.Version}{(Release.IsDev ? "  dev" : "")}  ·  {Release.Published:d MMM yyyy HH:mm}";
+        public Visibility CurrentVisibility => IsCurrent ? Visibility.Visible : Visibility.Collapsed;
+        public override string ToString() => Label + (IsCurrent ? "  ·  running now" : "");
     }
 
     async Task LoadVersionsAsync()
