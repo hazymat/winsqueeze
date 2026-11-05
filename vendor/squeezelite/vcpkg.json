@@ -1,0 +1,9 @@
+{
+  "name": "winsqueeze-squeezelite",
+  "version-string": "1612",
+  "builtin-baseline": "9eec002df1cd109f8f104cd966a763daf9751489",
+  "dependencies": [
+    "portaudio", "libflac", "libmad", "mpg123", "libogg", "libvorbis", "faad2", "soxr", "opus", "opusfile", "openssl",
+    { "name": "ffmpeg", "default-features": false, "features": ["avcodec", "avformat"] }
+  ]
+}

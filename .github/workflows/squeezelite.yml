@@ -1,0 +1,50 @@
+name: squeezelite
+# Builds vendor/squeezelite/src (upstream Squeezelite plus WinSqueeze's visualiser export) into squeezelite-ffmpeg-x64.exe.
+# The exe is uploaded as an artifact; it is committed to vendor/squeezelite once checked, so app builds never depend on this.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['vendor/squeezelite/src/**', 'vendor/squeezelite/CMakeLists.txt', 'vendor/squeezelite/vcpkg.json', '.github/workflows/squeezelite.yml']
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      VCPKG_COMMIT: 9eec002df1cd109f8f104cd966a763daf9751489
+      VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}\vcpkg-cache,readwrite
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore built libraries
+        uses: actions/cache@v4
+        with:
+          path: vcpkg-cache
+          key: vcpkg-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vendor/squeezelite/vcpkg.json') }}
+          restore-keys: vcpkg-${{ env.VCPKG_COMMIT }}-
+      - name: Get vcpkg
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force vcpkg-cache | Out-Null
+          git clone -q https://github.com/microsoft/vcpkg.git vcpkg-tool
+          git -C vcpkg-tool checkout -q $env:VCPKG_COMMIT
+          .\vcpkg-tool\bootstrap-vcpkg.bat -disableMetrics
+      - name: Configure
+        run: cmake -S vendor/squeezelite -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/vcpkg-tool/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows-static
+      - name: Build
+        run: cmake --build build --config Release
+      - name: Smoke test
+        shell: pwsh
+        run: |
+          $exe = "build/Release/squeezelite-ffmpeg-x64.exe"
+          & $exe -? ; & $exe -l
+          if (-not ((& $exe -? | Out-String) -match "VISEXPORT")) { throw "visualiser export missing from build" }
+          (Get-FileHash $exe -Algorithm SHA256).Hash
+      - uses: actions/upload-artifact@v4
+        with:
+          name: squeezelite-ffmpeg-x64
+          path: build/Release/squeezelite-ffmpeg-x64.exe
+      - name: Failed vcpkg logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vcpkg-logs
+          path: vcpkg-tool/buildtrees/**/*.log

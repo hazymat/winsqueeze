@@ -140,7 +140,7 @@
 #define OPUS    0
 #endif
 
-#if (LINUX || OSX) && defined(VISEXPORT)
+#if (LINUX || OSX || WIN) && defined(VISEXPORT) // WinSqueeze: Windows export in output_vis_win.c
 #undef VISEXPORT
 #define VISEXPORT 1 // visulizer export support uses linux shared memory
 #else

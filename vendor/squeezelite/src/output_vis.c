@@ -23,7 +23,7 @@
 
 #include "squeezelite.h"
 
-#if VISEXPORT
+#if VISEXPORT && !WIN // WinSqueeze: Windows uses output_vis_win.c
 
 #include <sys/stat.h>
 #include <sys/mman.h>
