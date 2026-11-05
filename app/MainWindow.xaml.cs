@@ -52,6 +52,7 @@ public partial class MainWindow : Window
         webView.CoreWebView2.WebMessageReceived += async (sender, args) => await OnUiMessageAsync(args.WebMessageAsJson);
         webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
         webView.CoreWebView2.Settings.IsStatusBarEnabled = false;
+        webView.CoreWebView2.Settings.AreBrowserAcceleratorKeysEnabled = false; // the UI owns Ctrl+F, Ctrl+N etc.
         webView.CoreWebView2.NavigationCompleted += (sender, args) => webViewReady = true;
         webView.CoreWebView2.Navigate($"https://{uiHost}/index.html");
     }
@@ -71,6 +72,7 @@ public partial class MainWindow : Window
     {
         using var messageDocument = JsonDocument.Parse(messageJson);
         var message = messageDocument.RootElement.Clone();
+        webViewReady = true; // the page can post 'ready' before NavigationCompleted fires
         try
         {
             switch (Text(message, "type"))

@@ -59,6 +59,8 @@ jobs:
           vpk upload github --repoUrl $env:REPO_URL --channel $channel --token $env:GH_TOKEN -o releases --publish --tag "v$version" --releaseName $title @preFlag
           Copy-Item (Get-ChildItem releases -Filter *Setup.exe | Select-Object -First 1).FullName downloads/WinSqueeze-Setup.exe
           gh release upload "v$version" downloads/WinSqueeze-Portable.exe downloads/WinSqueeze-Setup.exe --clobber
+          # Keep just the two downloads plus the updater's own feed files
+          foreach ($duplicate in (Get-ChildItem releases | Where-Object { ($_.Name -like "*-Setup.exe" -or $_.Name -like "*-Portable.zip") -and $_.Name -ne "WinSqueeze-Setup.exe" })) { gh release delete-asset "v$version" $duplicate.Name --yes }
           git log -1 --pretty=%B | Out-File notes.txt
           gh release edit "v$version" --notes-file notes.txt
           # One discussion per release for comments (needs Discussions enabled)

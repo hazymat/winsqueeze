@@ -1,3 +1,53 @@
-/* Skin tokens: a skin is just a set of these custom properties (SPEC.md › Skins) */
-:root { --bg: #101114; --panel: #1d1f25; --fg: #e8e9ed; --fg-quiet: #8b8f99; --accent: #4fc3f7; --warn: #ffb74d; --readout: #5ee7ff; --readout-glow: rgba(94, 231, 255, 0.45); --font-ui: "Segoe UI Variable", "Segoe UI", sans-serif; --font-display: "Share Tech Mono", Consolas, monospace; }
-html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font-family: var(--font-ui); }
+/* Skin tokens: a skin is just a set of these custom properties (SPEC.md › Skins). html[data-skin] picks one; "auto" follows Windows light/dark. */
+:root, :root[data-skin="dark"] {
+  --bg: #0e1015; --bg-gradient: radial-gradient(1200px 700px at 15% -10%, #1c2a3d 0%, transparent 60%), radial-gradient(900px 600px at 110% 110%, #2a1d33 0%, transparent 55%);
+  --panel: rgba(255, 255, 255, 0.06); --panel-strong: rgba(255, 255, 255, 0.1); --panel-solid: #1a1d24; --glass: rgba(22, 25, 32, 0.62); --blur: 22px;
+  --line: rgba(255, 255, 255, 0.08); --hover: rgba(255, 255, 255, 0.07); --track: rgba(255, 255, 255, 0.14); --shadow: rgba(0, 0, 0, 0.45);
+  --fg: #eceef3; --fg-quiet: #8e94a0; --accent: #5ccfff; --accent-soft: rgba(92, 207, 255, 0.15); --on-accent: #06202c; --warn: #ffb74d;
+  --readout: #5ee7ff; --readout-glow: rgba(94, 231, 255, 0.45); --meter-face: #f3e6c4; --meter-face-idle: #9a927f; --meter-ink: #2a2218; --meter-needle: #c0392b;
+  --font-ui: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; --font-display: "Cascadia Mono", Consolas, monospace;
+  color-scheme: dark;
+}
+:root[data-skin="light"] {
+  --bg: #eef1f6; --bg-gradient: radial-gradient(1200px 700px at 15% -10%, #dbe8f7 0%, transparent 60%), radial-gradient(900px 600px at 110% 110%, #efe0f2 0%, transparent 55%);
+  --panel: rgba(0, 0, 0, 0.04); --panel-strong: rgba(0, 0, 0, 0.08); --panel-solid: #ffffff; --glass: rgba(255, 255, 255, 0.62);
+  --line: rgba(0, 0, 0, 0.09); --hover: rgba(0, 0, 0, 0.05); --track: rgba(0, 0, 0, 0.12); --shadow: rgba(30, 40, 60, 0.18);
+  --fg: #1b1e24; --fg-quiet: #646b78; --accent: #0a84c6; --accent-soft: rgba(10, 132, 198, 0.12); --on-accent: #ffffff;
+  --readout: #0a7aa8; --readout-glow: rgba(10, 122, 168, 0.18); color-scheme: light;
+}
+@media (prefers-color-scheme: light) {
+  :root[data-skin="auto"] {
+    --bg: #eef1f6; --bg-gradient: radial-gradient(1200px 700px at 15% -10%, #dbe8f7 0%, transparent 60%), radial-gradient(900px 600px at 110% 110%, #efe0f2 0%, transparent 55%);
+    --panel: rgba(0, 0, 0, 0.04); --panel-strong: rgba(0, 0, 0, 0.08); --panel-solid: #ffffff; --glass: rgba(255, 255, 255, 0.62);
+    --line: rgba(0, 0, 0, 0.09); --hover: rgba(0, 0, 0, 0.05); --track: rgba(0, 0, 0, 0.12); --shadow: rgba(30, 40, 60, 0.18);
+    --fg: #1b1e24; --fg-quiet: #646b78; --accent: #0a84c6; --accent-soft: rgba(10, 132, 198, 0.12); --on-accent: #ffffff;
+    --readout: #0a7aa8; --readout-glow: rgba(10, 122, 168, 0.18); color-scheme: light;
+  }
+}
+/* Squeezebox classic: black, flat, cyan VFD-style text */
+:root[data-skin="classic"] {
+  --bg: #000000; --bg-gradient: none; --panel: #111111; --panel-strong: #1b1b1b; --panel-solid: #0c0c0c; --glass: #0a0a0a; --blur: 0px;
+  --line: #222222; --hover: #1a1a1a; --track: #2a2a2a; --fg: #d8f6ff; --fg-quiet: #6d8a93; --accent: #3fd8ff; --accent-soft: rgba(63, 216, 255, 0.14); --on-accent: #000000;
+  --readout: #6ff0ff; --readout-glow: rgba(111, 240, 255, 0.6); --font-display: "Cascadia Mono", Consolas, monospace;
+}
+/* Hi-fi amber: brushed dark with warm amber display */
+:root[data-skin="amber"] {
+  --bg: #15120e; --bg-gradient: linear-gradient(180deg, #221c15 0%, #120f0b 100%); --panel: rgba(255, 200, 120, 0.05); --panel-strong: rgba(255, 200, 120, 0.1); --panel-solid: #201a13; --glass: rgba(30, 24, 17, 0.75);
+  --line: rgba(255, 190, 110, 0.12); --hover: rgba(255, 190, 110, 0.08); --track: rgba(255, 190, 110, 0.16); --fg: #f2e6d6; --fg-quiet: #a08f78;
+  --accent: #ffb142; --accent-soft: rgba(255, 177, 66, 0.15); --on-accent: #2a1800; --readout: #ffb142; --readout-glow: rgba(255, 160, 40, 0.55);
+}
+html, body { margin: 0; height: 100%; background: var(--bg); background-image: var(--bg-gradient); background-attachment: fixed; color: var(--fg); font-family: var(--font-ui); font-size: 14px; overflow: hidden; }
+* { scrollbar-width: thin; scrollbar-color: var(--track) transparent; }
+h2 { font-size: 24px; margin: 8px 0 12px; }
+h3 { font-size: 15px; margin: 18px 0 8px; color: var(--fg-quiet); font-weight: 600; }
+.quiet { color: var(--fg-quiet); }
+.primary { background: var(--accent); color: var(--on-accent); border: 0; border-radius: 8px; padding: 6px 14px; font: inherit; font-weight: 600; cursor: pointer; }
+.primary:hover { filter: brightness(1.08); }
+.primary:disabled, .ghost:disabled { opacity: 0.5; cursor: default; }
+.ghost { background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 5px 12px; font: inherit; cursor: pointer; }
+.ghost:hover { background: var(--hover); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.chips button { background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 14px; padding: 4px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+.chips button:hover { background: var(--hover); }
+.chips button.on { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }

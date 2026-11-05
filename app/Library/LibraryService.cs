@@ -54,7 +54,7 @@ public sealed class LibraryService
                 var coverId = new string(pathParts[0].Where(char.IsLetterOrDigit).ToArray());
                 var size = pathParts.Length > 1 && int.TryParse(pathParts[1], out var requestedSize) ? Math.Clamp(requestedSize, 32, 1200) : 300;
                 var artBytes = await GetArtAsync(coverId, size);
-                args.Response = artBytes == null ? webView.Environment.CreateWebResourceResponse(null, 404, "Not found", "") : webView.Environment.CreateWebResourceResponse(new MemoryStream(artBytes), 200, "OK", $"Content-Type: {SniffType(artBytes)}\nCache-Control: max-age=31536000");
+                args.Response = artBytes == null ? webView.Environment.CreateWebResourceResponse(null, 404, "Not found", "") : webView.Environment.CreateWebResourceResponse(new MemoryStream(artBytes), 200, "OK", $"Content-Type: {SniffType(artBytes)}\nCache-Control: max-age=31536000\nAccess-Control-Allow-Origin: *");
             }
             catch { args.Response = webView.Environment.CreateWebResourceResponse(null, 500, "Error", ""); }
             finally { deferral.Complete(); }
