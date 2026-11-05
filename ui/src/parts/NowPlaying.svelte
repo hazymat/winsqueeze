@@ -33,9 +33,11 @@
   .backdrop { position: absolute; inset: -80px; background-size: cover; background-position: center; filter: blur(70px) saturate(1.7) brightness(0.6); opacity: 0.75; pointer-events: none; }
   .layout { position: relative; height: 100%; box-sizing: border-box; display: grid; grid-template-columns: minmax(200px, 1fr) minmax(220px, 0.9fr) minmax(300px, 1.1fr); gap: 28px; padding: 28px 28px 20px; align-items: center; }
   .art-column { display: flex; justify-content: center; }
-  .art { width: 100%; max-width: 440px; aspect-ratio: 1; border-radius: 12px; object-fit: cover; box-shadow: 0 24px 70px var(--shadow); }
+  .art { width: 100%; max-width: min(440px, 62vh); aspect-ratio: 1; border-radius: 12px; object-fit: cover; box-shadow: 0 24px 70px var(--shadow); }
   .art.empty { display: grid; place-items: center; font-size: 80px; background: var(--panel-strong); }
-  .meta { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .meta { display: flex; flex-direction: column; gap: 6px; min-width: 0; max-height: 100%; overflow-y: auto; padding-bottom: 4px; }
+  /* Meters shrink with short windows so they're never cut off */
+  .meta :global(.large .vu) { width: min(190px, 24vh); height: auto; }
   h1 { margin: 0; font-size: clamp(20px, 2.4vw, 32px); line-height: 1.15; }
   .link { background: none; border: 0; padding: 0; color: var(--fg); font: inherit; cursor: pointer; text-align: left; }
   .link.artist { font-size: 18px; }
