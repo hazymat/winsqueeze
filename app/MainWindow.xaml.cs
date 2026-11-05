@@ -25,7 +25,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         Loaded += async (sender, args) => await InitWebViewAsync();
-        SourceInitialized += (sender, args) => ApplyWindowStyle();
+        SourceInitialized += (sender, args) => { ApplyWindowStyle(); HwndSource.FromHwnd(new WindowInteropHelper(this).Handle)?.AddHook(ThemeMessageHook); };
         StateChanged += (sender, args) => { UpdateFrameMargin(); PushWindowState(); };
         IsVisibleChanged += (sender, args) => App.Session.SetVisible(IsVisible);
         App.StatusChanged += () => Push(App.StatusJson());
@@ -225,6 +225,20 @@ public partial class MainWindow : Window
         if (webView.CoreWebView2 != null) webView.DefaultBackgroundColor = glassActive || App.Settings.General.Frameless ? System.Drawing.Color.Transparent : System.Drawing.Color.FromArgb(16, 17, 20); // frameless: the page rounds its own corners inside the border
         UpdateFrameMargin();
         PushWindowState();
+    }
+
+    // Windows can drop the acrylic backdrop and frame extension when the theme or composition changes; the icon refresh after an update
+    // broadcasts exactly that, which left the window black. Re-apply the look whenever one arrives (batched, once things settle)
+    bool restyleQueued; DateTime lastRestyle;
+    IntPtr ThemeMessageHook(IntPtr windowHandle, int messageId, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        const int WM_SETTINGCHANGE = 0x001A, WM_THEMECHANGED = 0x031A, WM_DWMCOMPOSITIONCHANGED = 0x031E, WM_DWMCOLORIZATIONCOLORCHANGED = 0x0320;
+        if (messageId is WM_SETTINGCHANGE or WM_THEMECHANGED or WM_DWMCOMPOSITIONCHANGED or WM_DWMCOLORIZATIONCOLORCHANGED && !restyleQueued && DateTime.UtcNow - lastRestyle > TimeSpan.FromSeconds(2)) // never loops on our own restyle
+        {
+            restyleQueued = true;
+            Dispatcher.BeginInvoke(async () => { await Task.Delay(400); restyleQueued = false; lastRestyle = DateTime.UtcNow; ApplyWindowStyle(); PushSkin(); }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+        }
+        return IntPtr.Zero;
     }
 
     // The thin frameless edge around the page takes the page's own background (tint included on glass), so it reads as part of the page and
