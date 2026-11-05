@@ -196,7 +196,7 @@
   header { display: flex; align-items: baseline; gap: 16px; margin-bottom: 8px; }
   .brand { font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 17px; letter-spacing: 1.5px; color: var(--gold); text-shadow: 0 1px 0 rgba(0, 0, 0, 0.8); }
   .model { font-size: 9.5px; letter-spacing: 1.4px; }
-  .readout { font-size: 9.5px; letter-spacing: 1.2px; color: #5fe6ee; text-shadow: 0 0 4px rgba(95, 230, 238, 0.5); } .readout.limiting { color: #ff6a4d; text-shadow: 0 0 4px rgba(255, 80, 60, 0.6); }
+  .readout { font-size: 9.5px; letter-spacing: 1.4px; color: var(--gold); } .readout.limiting { color: #ff6a4d; text-shadow: 0 0 4px rgba(255, 80, 60, 0.6); }
   .close { margin-left: auto; z-index: 6; background: none; border: 0; color: var(--gold-dim); font-size: 18px; cursor: pointer; padding: 0 2px; line-height: 1; } .close:hover { color: var(--gold); }
   .body { flex: 1; min-height: 0; display: flex; gap: 14px; align-items: stretch; }
   .legend { font-size: 9px; letter-spacing: 1.2px; text-align: center; } .legend.small { font-size: 8px; }
