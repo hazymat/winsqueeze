@@ -3,6 +3,7 @@
 //   use:sortable={{ onMove(from, to), onHold(index), holdMs, enabled }}   rows are the list's [data-sort-row] children
 export type SortableOptions = { onMove: (from: number, to: number) => void; onHold?: (index: number) => void; holdMs?: number; enabled?: boolean }
 const TILT = -0.8
+const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches // Windows animation effects off: lift without the wobble
 // A swing past the resting angle and back, smaller each time, like something physical picked up
 const wobble = (fromAngle: number, toAngle: number, kick: number) => Array.from({ length: 41 }, (unused, step) => {
   const time = step / 40 * 0.7, fade = Math.exp(-time / 0.16), turn = 2 * Math.PI * 3.2 * time
@@ -39,7 +40,7 @@ export function sortable(listElement: HTMLElement, initialOptions: SortableOptio
     const scroller = scrollerOf(listElement)
     drag = { index, row, rows: allRows, rects, target: index, slot, scroller, startScroll: scroller?.scrollTop ?? 0, scrollTimer: 0 }
     row.classList.add('lifted'); document.body.classList.add('is-dragging')
-    row.animate(wobble(0, TILT, 2.4), { duration: 700, fill: 'forwards' })
+    if (!reducedMotion()) row.animate(wobble(0, TILT, 2.4), { duration: 700, fill: 'forwards' })
     try { listElement.setPointerCapture(pointerId) } catch { }
     swallowClick = true
     options.onHold?.(index)
@@ -75,7 +76,7 @@ export function sortable(listElement: HTMLElement, initialOptions: SortableOptio
     clearInterval(drag.scrollTimer)
     for (const each of allRows) { each.style.transition = ''; each.style.transform = '' }
     row.getAnimations().forEach(animation => animation.cancel())
-    row.animate(wobble(TILT, 0, -1.2), { duration: 600 })
+    if (!reducedMotion()) row.animate(wobble(TILT, 0, -1.2), { duration: 600 })
     row.classList.remove('lifted'); document.body.classList.remove('is-dragging'); slot.remove()
     drag = null
     if (commit && target !== index) options.onMove(index, target)

@@ -73,6 +73,20 @@ public partial class App : Application
         if (!firstTrack && Settings.General.TrackToasts && LyrionClient.ReadString(status, "mode") == "play") trayIcon.ShowTip(title, $"{artist}{(LyrionClient.ReadString(track, "album") is { Length: > 0 } album ? " · " + album : "")}");
     }
 
+    // Read-only fidelity check (SPEC.md › Playback and fidelity): warn if Lyrion caps this player's bitrate, which forces transcoding. Never changes it
+    async Task CheckServerTranscodingAsync()
+    {
+        await Task.Delay(8000); // give the player time to register with the server
+        try
+        {
+            if (Settings.ActiveProfile is not { Host.Length: > 0 } profile) return;
+            using var lyrionClient = new LyrionClient(profile);
+            var limit = LyrionClient.ReadString(await lyrionClient.RequestAsync(Settings.PlayerMac, "playerpref", "maxBitrate", "?"), "_p2");
+            if (limit is not ("" or "0")) trayIcon.ShowTip("The server is transcoding", $"Lyrion limits {Settings.Audio.PlayerName} to {limit} kbps, so music isn't lossless. In Lyrion: Settings › Player › Audio › Bitrate limiting › No limit.");
+        }
+        catch { }
+    }
+
     // ---- Tray actions ----
     public void SetWindowMode(string mode) { ShowMainWindow(); mainWindow.SetWindowMode(mode); }
     public void NewPlaylist() { ShowMainWindow(); mainWindow.PushNewPlaylist(); }
@@ -111,6 +125,7 @@ public partial class App : Application
         await CheckOtherPlayersAsync();
         await RefreshDevicesAsync();
         await StartPlayerAsync(false);
+        _ = CheckServerTranscodingAsync();
         // After an update or version switch, carry on from where playback was
         var resumeArgument = startupArgs.Args.FirstOrDefault(argument => argument.StartsWith("--resume="));
         if (resumeArgument != null && Player.State == PlayerState.Running && double.TryParse(resumeArgument["--resume=".Length..], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var resumeSeconds)) await ResumeAtAsync(resumeSeconds);

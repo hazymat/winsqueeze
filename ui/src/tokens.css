@@ -73,3 +73,5 @@ body.is-dragging { cursor: grabbing; }
 [data-select-key].pressing { background: var(--hover); transition: background 450ms; border-radius: 8px; }
 [data-select-key].selected { background: var(--accent-soft); box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 55%, transparent); border-radius: 8px; }
 .select-wrap { display: contents; }
+/* Windows "Animation effects" off: no lifts, slides or wobbles, only instant changes (SPEC.md › Look and feel) */
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 1ms; animation-iteration-count: 1; transition-duration: 1ms; scroll-behavior: auto; } }

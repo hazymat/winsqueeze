@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { sendToShell, onShellMessage, request, command } from './bridge'
-  import { app, nav, ui, playlist, openSection, back, currentView, newPlaylist, undoToast, writeSetting, readSetting } from './state.svelte'
+  import { sendToShell, onShellMessage, request, command, artUrl } from './bridge'
+  import { app, nav, ui, playlist, openSection, back, currentView, newPlaylist, undoToast, writeSetting, readSetting, currentTrack } from './state.svelte'
   import TransportBar from './parts/TransportBar.svelte'
   import NowPlaying from './parts/NowPlaying.svelte'
   import PlaylistPanel from './parts/PlaylistPanel.svelte'
@@ -15,6 +15,7 @@
   import Icon from './parts/Icon.svelte'
   import { selection } from './lib/selection.svelte'
   import PlaylistsView from './views/PlaylistsView.svelte'
+  import { accentFromCover } from './lib/coverAccent'
 
   let searchBox = $state<HTMLInputElement>()
   let width = $state(window.innerWidth)
@@ -56,6 +57,17 @@
   // Restore an unsaved playlist draft from last time
   request({ type: 'loadDraft' }).then(draft => { if (draft?.items) newPlaylist(draft.name ?? 'Untitled playlist', draft.items) })
 
+  // Accent from the playing cover, in the frosted skins only (classic and amber keep their hardware colours)
+  const coverId = $derived(currentTrack()?.coverid ?? '')
+  $effect(() => {
+    const cover = coverId, skin = ui.skin, rootStyle = document.documentElement.style
+    if (!cover || !['auto', 'dark', 'light'].includes(skin)) { rootStyle.removeProperty('--accent'); rootStyle.removeProperty('--accent-soft'); return }
+    accentFromCover(artUrl(cover, 120)).then(accent => {
+      if (cover !== coverId) return
+      if (!accent) { rootStyle.removeProperty('--accent'); rootStyle.removeProperty('--accent-soft'); return }
+      rootStyle.setProperty('--accent', accent); rootStyle.setProperty('--accent-soft', accent.replace('rgb(', 'rgba(').replace(')', ', 0.15)'))
+    })
+  })
   // Skins (SPEC.md › Skins): the skin is a data attribute; tokens.css holds the variables
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)')
   let systemDark = $state(prefersDark.matches)
