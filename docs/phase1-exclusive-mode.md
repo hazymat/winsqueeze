@@ -20,6 +20,8 @@ Tested 5 Nov 2026 on flanders with the AudioQuest DragonFly Black v1.5 against L
 
 - In exclusive mode the DragonFly reports 44100, 48000, 88200 and 96000. Squeezelite tells the server `MaxSampleRate=96000`.
 - 96 kHz: verified with a 30 s 96/24 WAV test tone (440 Hz L / 660 Hz R) added to the library as `_WinSqueeze test`. The library itself has nothing above 48 kHz.
+- Log: `track start sample rate: 96000` → `opening WASAPI device in exclusive mode` → `opened device 10 - Speakers (AudioQuest DragonFly Black v1.5) [Windows WASAPI] at 96000 latency 210 ms`.
+- The server sent the WAV test file as FLAC (its default lossless convert rule), which is still bit-perfect. The fidelity check in the shell should report this as "lossless transcode" rather than warn.
 - **Verdict: the pinned build supports WASAPI exclusive with the DragonFly at 44.1 and 96 kHz. No custom Squeezelite build needed.**
 
 ## Decisions for the shell
