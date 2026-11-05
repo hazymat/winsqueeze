@@ -36,6 +36,8 @@
   let customising = $state(false)
   const toggleSection = (key: string) => { hiddenSections = hiddenSections.includes(key) ? hiddenSections.filter(hidden => hidden !== key) : hiddenSections.concat([key]); writeSetting('hiddenSections', JSON.stringify(hiddenSections)) }
   const visibleSections = $derived(sections.filter(([key]) => !hiddenSections.includes(key)))
+  // Dev builds show their version up top, so every screenshot says which build it is
+  const devVersion = $derived(String(app.status?.version ?? '').startsWith('0.') ? 'v' + app.status.version + ' dev' : '')
   const view = $derived(currentView())
   const everything = $derived(ui.search.length >= 2 && (ui.scope === 'everything' || ['queue'].includes(view.kind)))
 
@@ -86,7 +88,7 @@
   <div class="shell" class:vertical>
     {#if !vertical}
       <nav class="sidebar">
-        <div class="brand" role="presentation" onmousedown={dragWindow}>WinSqueeze</div>
+        <div class="brand" role="presentation" onmousedown={dragWindow}>WinSqueeze{#if devVersion}<span class="dev-version">{devVersion}</span>{/if}</div>
         <div class="section-list" use:sortable={{ onMove: moveSection, holdMs: 150, enabled: customising }}>
         {#each customising ? sections : visibleSections as [key, label, glyph] (key)}
           {#if customising}
@@ -119,6 +121,7 @@
             <button class:on={ui.scope === 'everything'} onclick={() => ui.scope = 'everything'}>Everything</button>
           </div>
         </div>
+        {#if vertical && devVersion}<span class="dev-version">{devVersion}</span>{/if}
         {#if vertical}<button class="ghost" onclick={() => sendToShell({ type: 'openSettings' })} aria-label="Settings"><Icon name="settings" /></button>{/if}
         {#if app.window.frameless}
           <div class="window-controls">
@@ -173,6 +176,7 @@
   .shell.vertical { grid-template-columns: minmax(0, 1fr); }
   .sidebar { display: flex; flex-direction: column; gap: 2px; padding: 14px 10px; background: var(--glass); backdrop-filter: blur(var(--blur)) saturate(1.4); border-right: 1px solid var(--line); min-height: 0; }
   .brand { font-family: var(--font-display); color: var(--readout); text-shadow: 0 0 8px var(--readout-glow); letter-spacing: 0.08em; padding: 4px 10px 14px; }
+  .dev-version { display: inline-block; margin-left: 8px; font-family: var(--font-ui); font-size: 10px; letter-spacing: 0; color: var(--fg-quiet); text-shadow: none; border: 1px solid var(--line); border-radius: 6px; padding: 0 5px; vertical-align: middle; white-space: nowrap; }
   .section { display: flex; align-items: center; gap: 10px; background: none; border: 0; color: var(--fg); padding: 8px 10px; border-radius: 8px; cursor: pointer; font: inherit; text-align: left; }
   .section:hover { background: var(--hover); }
   .section.on { background: var(--accent-soft); color: var(--accent); }

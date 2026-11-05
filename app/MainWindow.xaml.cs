@@ -154,6 +154,10 @@ public partial class MainWindow : Window
     [DllImport("dwmapi.dll")] static extern int DwmSetWindowAttribute(IntPtr windowHandle, int attribute, ref int value, int size);
     [DllImport("dwmapi.dll")] static extern int DwmExtendFrameIntoClientArea(IntPtr windowHandle, ref FrameMargins margins);
     [DllImport("user32.dll")] static extern bool ReleaseCapture();
+    [DllImport("user32.dll")] static extern int GetWindowLong(IntPtr windowHandle, int index);
+    [DllImport("user32.dll")] static extern int SetWindowLong(IntPtr windowHandle, int index, int value);
+    [DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr windowHandle, IntPtr insertAfter, int x, int y, int width, int height, uint flags);
+    const int StyleIndex = -16, CaptionStyle = 0x00C00000, SystemMenuStyle = 0x00080000, CaptionColourAttribute = 35, CornerAttribute = 33, RoundCorners = 2;
     [DllImport("user32.dll")] static extern IntPtr SendMessage(IntPtr windowHandle, int messageId, IntPtr wParam, IntPtr lParam);
     struct FrameMargins { public int Left, Right, Top, Bottom; }
     const int DarkModeAttribute = 20, BorderColourAttribute = 34, BackdropAttribute = 38, AcrylicBackdrop = 3, NoBackdrop = 1;
@@ -167,6 +171,14 @@ public partial class MainWindow : Window
         WindowChrome.SetWindowChrome(this, general.Frameless ? new WindowChrome { CaptionHeight = 0, ResizeBorderThickness = new Thickness(6), GlassFrameThickness = new Thickness(-1), UseAeroCaptionButtons = false, CornerRadius = new CornerRadius(8) } : null);
         var darkValue = darkTheme ? 1 : 0;
         DwmSetWindowAttribute(windowHandle, DarkModeAttribute, ref darkValue, sizeof(int));
+        // Frameless: without the caption styles DWM draws no title strip or buttons of its own (the thick frame stays, for resizing and the shadow)
+        var style = GetWindowLong(windowHandle, StyleIndex);
+        var wantedStyle = general.Frameless ? style & ~(CaptionStyle | SystemMenuStyle) : style | CaptionStyle | SystemMenuStyle;
+        if (wantedStyle != style) { SetWindowLong(windowHandle, StyleIndex, wantedStyle); SetWindowPos(windowHandle, IntPtr.Zero, 0, 0, 0, 0, 0x0027 /*NOMOVE|NOSIZE|NOZORDER|FRAMECHANGED*/); }
+        var captionColour = general.Frameless ? unchecked((int)0xFFFFFFFE) : unchecked((int)0xFFFFFFFF);
+        DwmSetWindowAttribute(windowHandle, CaptionColourAttribute, ref captionColour, sizeof(int));
+        var corners = RoundCorners;
+        DwmSetWindowAttribute(windowHandle, CornerAttribute, ref corners, sizeof(int));
         var borderColour = general.Frameless ? unchecked((int)0xFFFFFFFE) /*DWMWA_COLOR_NONE*/ : unchecked((int)0xFFFFFFFF) /*default*/;
         DwmSetWindowAttribute(windowHandle, BorderColourAttribute, ref borderColour, sizeof(int));
         // Acrylic needs Windows 11 22H2+; elsewhere the call fails and the UI stays opaque

@@ -35,8 +35,17 @@
       for (let row = 0; row < rows; row++) { context.fillStyle = row < litRows || row === peakRow ? lit : unlit; context.fillRect(left, pixelHeight - (row + 1) * rowPitch, columnWidth, unit) }
     }
     if (orientation === 'spectrum') {
+      // Chunky blocks like the hardware: few bands, each a stack of segments, dim at the bottom and brightest at the top
       const bands = Math.max(1, levels.length), bandPitch = Math.floor(pixelWidth / bands), bandWidth = Math.max(unit, bandPitch - unit)
-      for (let band = 0; band < bands; band++) column(band * bandPitch, bandWidth, levels[band] ?? 0, peaks[band] ?? 0)
+      const segmentPitch = 3 * unit, segmentHeight = 2 * unit, segments = Math.floor(pixelHeight / segmentPitch)
+      const brightness = (segment: number) => 0.3 + 0.7 * Math.pow(segment / Math.max(1, segments - 1), 1.8)
+      for (let band = 0; band < bands; band++) {
+        const litSegments = Math.round((levels[band] ?? 0) * segments), peakSegment = (peaks[band] ?? 0) > 0 ? Math.max(litSegments, Math.round(peaks[band] * segments) - 1) : -1
+        for (let segment = 0; segment < segments; segment++) {
+          context.fillStyle = segment === peakSegment ? lit : segment < litSegments ? `rgba(94, 231, 255, ${brightness(segment).toFixed(2)})` : 'rgba(94, 231, 255, 0.09)'
+          context.fillRect(band * bandPitch, pixelHeight - segment * segmentPitch - segmentHeight, bandWidth, segmentHeight)
+        }
+      }
     } else if (orientation === 'vertical') {
       // Two bars, a gap between; each bar is rows of one lit line and one dark line
       const gap = 3 * unit, barWidth = Math.floor((pixelWidth - gap) / 2)

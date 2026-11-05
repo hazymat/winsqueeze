@@ -52,7 +52,7 @@
   </div>
   <div class="right">
     <div class="readout-slot"><Readout /></div>
-    <div class="pixel-meter" title="Spectrum (waiting for audio data from Squeezelite)"><PixelMeter orientation="spectrum" width={40} height={30} levels={Array(12).fill(0)} /></div>
+    <div class="pixel-meter" title="Spectrum (waiting for audio data from Squeezelite)"><PixelMeter orientation="spectrum" width={40} height={30} levels={Array(8).fill(0)} /></div>
     <div class="players"><PlayerPicker /></div>
     {#if ownSelected && app.status?.device}<button class="device" onclick={() => sendToShell({ type: 'openSettings', tab: 'Audio' })} title={`Output: ${app.status.device}`}><Icon name="speaker" size={15} /><span class="device-name">{app.status.device}</span></button>{/if}
     <div class="volume">

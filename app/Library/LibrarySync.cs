@@ -31,7 +31,7 @@ public sealed partial class LibrarySync
         {
             using var lyrionClient = new LyrionClient(profile);
             var serverStatus = await lyrionClient.GetServerStatusAsync();
-            var signature = $"{serverStatus.LastScan}|{serverStatus.TotalSongs}|{serverStatus.TotalAlbums}|{serverStatus.TotalArtists}|{librarySettings.NameSeparators}";
+            var signature = $"{serverStatus.LastScan}|{serverStatus.TotalSongs}|{serverStatus.TotalAlbums}|{serverStatus.TotalArtists}|{librarySettings.NameSeparators}|derive2";
             var databasePath = DatabasePath(profile);
             if (!force && File.Exists(databasePath))
             {
@@ -234,6 +234,7 @@ public sealed partial class LibrarySync
             var credits = new HashSet<(string partNorm, string credit)>();
             var albumArtistParts = TextNormaliser.SplitNames(albumArtist, librarySettings.NameSeparators);
             for (var index = 0; index < albumArtistParts.Count; index++) { credits.Add((TextNormaliser.Normalise(albumArtistParts[index]), index == 0 ? "own" : "with")); AddPerson(albumArtistParts[index], "artist", albumKey); }
+            var trackArtistParts = new List<string>();
             foreach (var (track, discNo) in orderedMembers)
                 foreach (var (contributorId, role) in track.Contributors)
                 {
@@ -242,9 +243,12 @@ public sealed partial class LibrarySync
                     {
                         credits.Add((TextNormaliser.Normalise(part), credit));
                         AddPerson(part, credit == "track" ? "artist" : credit, albumKey);
-                        if (role == "trackartist") AddPerson(part, "soloist", albumKey);
+                        if (role == "trackartist") trackArtistParts.Add(part);
                     }
                 }
+            var classicalAlbum = credits.Any(credit => credit.credit is "conductor" or "band");
+            var albumArtistNorms = albumArtistParts.Select(TextNormaliser.Normalise).ToHashSet();
+            if (classicalAlbum) foreach (var part in trackArtistParts.Distinct()) if (!albumArtistNorms.Contains(TextNormaliser.Normalise(part))) AddPerson(part, "soloist", albumKey);
             foreach (var (partNorm, credit) in credits) Execute(connection, "INSERT INTO album_credits VALUES($key,$part,$credit)", ("$key", albumKey), ("$part", partNorm), ("$credit", credit));
             Execute(connection, "INSERT INTO search(kind,ref,source,label,detail,text) VALUES('album',$key,$source,$title,$artist,$text)", ("$key", albumKey), ("$source", albumKey[..1]), ("$title", title), ("$artist", albumArtist), ("$text", title + " " + albumArtist));
         }
