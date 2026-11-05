@@ -271,7 +271,7 @@ A separate Settings window with tabs, in standard Windows style. Changes apply i
 Updating should be effortless, and is how the author tests every build.
 
 - **Updater:** Velopack, which installs per user, downloads in the background, stages the new version and applies it on restart. The same packages serve the installer and the portable zip.
-- **Checking:** on launch and every 15 minutes, a light request to GitHub Releases (well inside its anonymous rate limit). True push would need a server; polling gets an update within minutes of a build.
+- **Checking:** on launch and every 15 minutes, a light request to GitHub Releases (well inside its anonymous rate limit). The dev channel looks every 20 seconds with a conditional request (`If-None-Match`; GitHub doesn't count 304 answers against the limit) and runs a full check only when the newest release changed. True push would need a server.
 - **Seamless apply:** a found update is downloaded and staged silently. A small, calm notice ("WinSqueeze 0.4 is ready. Restart to update") appears in the window and as a tray balloon. One click relaunches into the new version, resuming playback. Nothing is installed without that click, and auto-download can be turned off.
 - **Channels:** every push to `main` is published as a *dev* pre-release, and deliberate releases go out on *stable*. Users choose a channel in Settings › About; the default is stable.
 - **Version switcher:** Settings › About lists available versions (releases and, on the dev channel, dev builds) with date and notes. Picking one downloads it and relaunches into it, downgrades included.

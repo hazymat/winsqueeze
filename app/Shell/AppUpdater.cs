@@ -19,6 +19,7 @@ public sealed class AppUpdater
     UpdateManager? readyManager;
     UpdateInfo? readyUpdate;
     bool checking;
+    DateTime lastFullCheck;
 
     public string StatusText { get; private set; } = "";
     string portableStagedPath = "", portableReadyVersion = "";
@@ -33,7 +34,15 @@ public sealed class AppUpdater
 
     public void Start()
     {
-        checkTimer.Tick += async (sender, args) => { if (App.Settings.General.AutoUpdate) await CheckNowAsync(); };
+        // Dev builds land often, so the dev channel looks every 20 s; a conditional request (304 when nothing changed) keeps that within GitHub's rate limit
+        checkTimer.Tick += async (sender, args) =>
+        {
+            var isDev = App.Settings.General.UpdateChannel == "dev";
+            checkTimer.Interval = isDev ? TimeSpan.FromSeconds(20) : TimeSpan.FromMinutes(15);
+            if (!App.Settings.General.AutoUpdate || checking) return;
+            if (!isDev || await ReleasesChangedAsync() || DateTime.Now - lastFullCheck > TimeSpan.FromMinutes(15)) await CheckNowAsync();
+        };
+        if (App.Settings.General.UpdateChannel == "dev") checkTimer.Interval = TimeSpan.FromSeconds(20);
         checkTimer.Start();
         if (App.Settings.General.AutoUpdate) _ = CheckNowAsync();
         CleanUpOldPackages();
@@ -51,7 +60,7 @@ public sealed class AppUpdater
     public async Task CheckNowAsync()
     {
         if (checking) return;
-        checking = true;
+        checking = true; lastFullCheck = DateTime.Now;
         try
         {
             // GitHub's release feed sometimes returns a 502/504 for a moment: retry quietly before reporting a failure
@@ -110,6 +119,23 @@ public sealed class AppUpdater
             switchManager.ApplyUpdatesAndRestart(switchUpdate.TargetFullRelease, restartArguments);
         }
         catch (Exception switchError) { SetStatus($"Could not switch to {release.Version}: {switchError.Message}"); }
+    }
+
+    // True when the newest release changed since the last look. GitHub doesn't count 304 Not Modified answers against the hourly limit
+    string releasesEtag = "";
+    async Task<bool> ReleasesChangedAsync()
+    {
+        try
+        {
+            using var probe = new HttpRequestMessage(HttpMethod.Get, "https://api.github.com/repos/hazymat/winsqueeze/releases?per_page=1");
+            if (releasesEtag != "") probe.Headers.TryAddWithoutValidation("If-None-Match", releasesEtag);
+            using var response = await githubClient.SendAsync(probe);
+            if (response.StatusCode == System.Net.HttpStatusCode.NotModified || !response.IsSuccessStatusCode) return false;
+            var firstLook = releasesEtag == "";
+            releasesEtag = response.Headers.ETag?.ToString() ?? "";
+            return !firstLook; // the first answer only sets the baseline (Start already checked)
+        }
+        catch { return false; }
     }
 
     public async Task<List<ReleaseEntry>> ListReleasesAsync(bool includeDev)
