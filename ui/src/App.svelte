@@ -85,8 +85,18 @@
   prefersDark.addEventListener('change', () => systemDark = prefersDark.matches)
   $effect(() => { document.documentElement.dataset.skin = ui.skin; sendToShell({ type: 'theme', dark: ui.skin === 'auto' ? systemDark : ui.skin !== 'light' }) })
   $effect(() => { document.documentElement.classList.toggle('glass', app.window.glass); document.documentElement.classList.toggle('frameless', app.window.frameless) })
+  // Selected text: Ctrl+C or right-click › Copy (the browser's own menu is off)
+  let copyMenu = $state<{ left: number; top: number } | null>(null)
+  const copySelection = () => { navigator.clipboard.writeText(getSelection()?.toString() ?? ''); copyMenu = null }
+  function onContextMenu(event: MouseEvent) {
+    if (event.defaultPrevented || (event.target as HTMLElement).matches?.('input, textarea')) return
+    if (!getSelection()?.toString()) { copyMenu = null; return }
+    event.preventDefault(); copyMenu = { left: Math.min(event.clientX, window.innerWidth - 100), top: Math.min(event.clientY, window.innerHeight - 40) }
+  }
   // Frameless: drag the window from empty parts of the top strip (and the mini player); double-click maximises
   function dragWindow(event: MouseEvent) {
+    // The native drag swallows the click, so clear any text selection here, as a click elsewhere normally would
+    if (event.button === 0 && !(event.target as HTMLElement).closest('.text, h1, input')) getSelection()?.removeAllRanges()
     if (!app.window.frameless || event.button !== 0 || (event.target as HTMLElement).closest('button, input, select, a, [role=slider], img, .no-drag')) return
     if (event.detail === 2) { sendToShell({ type: 'windowControl', action: 'maximise' }); return }
     sendToShell({ type: 'dragWindow' })
@@ -101,13 +111,15 @@
     else if (event.ctrlKey && event.key === 'ArrowDown') { event.preventDefault(); command('mixer', 'volume', '-5') }
     else if (event.ctrlKey && event.key.toLowerCase() === 'f') { event.preventDefault(); searchBox?.focus(); searchBox?.select() }
     else if (event.ctrlKey && event.key.toLowerCase() === 'n') { event.preventDefault(); if (!playlist.open) newPlaylist(); else playlist.collapsed = false }
+    else if (event.ctrlKey && event.key.toLowerCase() === 'c' && !typing && getSelection()?.toString()) { event.preventDefault(); copySelection() }
     else if (event.ctrlKey && event.key.toLowerCase() === 'z' && !typing && ui.toast?.undo) { event.preventDefault(); undoToast() }
     else if (event.key === 'Escape' && !selection.keys.length) { if (ui.search) ui.search = ''; else if (nav.stack.length) back() }
     else if (event.altKey && event.key === 'ArrowLeft' && nav.stack.length) { event.preventDefault(); back() }
   }
 </script>
 
-<svelte:window bind:innerWidth={width} bind:innerHeight={height} onkeydown={onKey} onmouseup={(event) => { if (event.button === 3 && nav.stack.length) back() }} />
+<svelte:window bind:innerWidth={width} bind:innerHeight={height} onkeydown={onKey} onmouseup={(event) => { if (event.button === 3 && nav.stack.length) back() }} oncontextmenu={onContextMenu} onpointerdown={(event) => { if (copyMenu && !(event.target as HTMLElement).closest('.copy-menu')) copyMenu = null }} />
+{#if copyMenu}<div class="copy-menu" style:left="{copyMenu.left}px" style:top="{copyMenu.top}px"><button onclick={copySelection}>Copy</button></div>{/if}
 
 {#if mini}
   <div class="mini-shell" role="presentation" onmousedown={dragWindow}><TransportBar mini={true} /></div>
@@ -248,4 +260,7 @@
   .tab-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
   @media (max-width: 480px) { .tab-label { display: none; } .tabbar .glyph { font-size: 18px; } }
   .mini-shell { height: 100vh; background: var(--glass); }
+  .copy-menu { position: fixed; z-index: 100; background: var(--panel-solid); border: 1px solid var(--line); border-radius: 8px; padding: 4px; box-shadow: 0 8px 24px var(--shadow); }
+  .copy-menu button { display: block; min-width: 90px; text-align: left; background: none; border: 0; color: var(--fg); font: inherit; padding: 6px 10px; border-radius: 5px; cursor: pointer; }
+  .copy-menu button:hover { background: var(--hover); }
 </style>
