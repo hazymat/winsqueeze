@@ -29,7 +29,7 @@ public sealed partial class SqueezeliteHost : IDisposable
         Device = device; ExclusiveActive = false; OutputSampleRate = 0;
         var startInfo = new ProcessStartInfo(AppPaths.SqueezeliteExe) { CreateNoWindow = true, UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, WorkingDirectory = AppPaths.SqueezeliteFolder };
         // -s takes the slimproto host (port 3483), not the web port
-        foreach (var argument in new[] { "-s", profile.Host, "-n", audio.PlayerName, "-m", playerMac, "-o", device.SqueezeliteId, "-a", $"{audio.LatencyMs}:{(audio.Exclusive && device.SupportsExclusive ? 1 : 0)}", "-d", "output=info" }) startInfo.ArgumentList.Add(argument);
+        foreach (var argument in new[] { "-s", profile.Host, "-n", audio.PlayerName, "-m", playerMac, "-o", device.SqueezeliteId, "-a", $"{audio.LatencyMs}:{(audio.Exclusive && device.SupportsExclusive ? 1 : 0)}", "-d", "output=info", "-d", "stream=info", "-d", "decode=info" }) startInfo.ArgumentList.Add(argument);
         var extraArguments = SplitArguments(audio.ExtraArguments).ToList();
         // Resample only tracks the device can't take natively (e.g. 22.05 kHz radio in exclusive mode); without it Squeezelite retries the open forever
         if (!extraArguments.Any(argument => argument is "-R" or "-u")) foreach (var argument in new[] { "-R", "hE" }) startInfo.ArgumentList.Add(argument);
