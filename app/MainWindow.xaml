@@ -1,0 +1,5 @@
+<Window x:Class="WinSqueeze.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        Title="WinSqueeze" Width="1200" Height="780" MinWidth="320" MinHeight="160" Background="#101114">
+  <wv2:WebView2 x:Name="webView" />
+</Window>

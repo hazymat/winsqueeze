@@ -1,0 +1,3 @@
+/* Skin tokens: a skin is just a set of these custom properties (SPEC.md › Skins) */
+:root { --bg: #101114; --fg: #e8e9ed; --fg-quiet: #8b8f99; --accent: #4fc3f7; --font-ui: "Segoe UI Variable", "Segoe UI", sans-serif; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font-family: var(--font-ui); }

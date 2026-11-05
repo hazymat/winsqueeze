@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>WinSqueeze</RootNamespace>
+    <AssemblyName>WinSqueeze</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2792.45" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Pinned Squeezelite and its licence, copied next to the exe -->
+    <None Include="..\vendor\squeezelite\squeezelite-ffmpeg-x64.exe;..\vendor\squeezelite\LICENSE;..\vendor\squeezelite\SOURCE.md" Link="squeezelite\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Built web UI (npm run build in /ui) -->
+    <None Include="wwwroot\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
