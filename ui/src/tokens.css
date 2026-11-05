@@ -60,11 +60,12 @@ h3 { font-size: 15px; margin: 18px 0 8px; color: var(--fg-quiet); font-weight: 6
 .chips button.on { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
 select option { background: var(--panel-solid); color: var(--fg); }
 button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+[data-sort-row]:focus-visible, [data-select-key]:focus-visible, [data-select-key] :focus-visible { outline: none; }
 /* Press-and-hold reordering (lib/sortable.ts): the carried row floats as glass, the dotted slot shows where it lands */
 [data-sort-row] { touch-action: pan-y; -webkit-user-select: none; user-select: none; }
 [data-sort-row].pressing { background: var(--hover); transition: background 350ms; }
 [data-sort-row].lifted { position: relative; z-index: 5; background: var(--panel-solid); box-shadow: 0 14px 34px var(--shadow), 0 0 0 1px var(--line); border-radius: 10px; cursor: grabbing; scale: 1.02; }
-[data-sort-row].selected { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+[data-sort-row].selected { background: var(--accent-soft); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 60%, transparent); }
 .drop-slot { position: absolute; left: 2px; right: 2px; border: 2px dashed color-mix(in srgb, var(--accent) 60%, transparent); border-radius: 10px; pointer-events: none; z-index: 1; transition: top 150ms cubic-bezier(.2,.8,.2,1); }
 body.is-dragging { cursor: grabbing; }
 /* Chosen rows in any browse list (lib/selectable.svelte.ts) */

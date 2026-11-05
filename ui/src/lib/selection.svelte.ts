@@ -6,7 +6,7 @@ export type SelectionAction = { label: string; key?: string; danger?: boolean; s
 export const selection = $state({ scope: '', keys: [] as string[], anchor: '', actions: [] as SelectionAction[], noun: 'item' })
 
 export const isSelected = (scope: string, key: string) => selection.scope === scope && selection.keys.includes(key)
-export function clearSelection() { selection.scope = ''; selection.keys = []; selection.anchor = ''; selection.actions = [] }
+export function clearSelection() { selection.scope = ''; selection.keys = []; selection.anchor = ''; selection.actions = []; const focused = document.activeElement as HTMLElement | null; if (focused?.closest?.('[data-sort-row], [data-select-key]')) focused.blur() }
 export function selectKeys(scope: string, keys: string[], actions: SelectionAction[], noun = 'item') { selection.scope = scope; selection.keys = keys; selection.anchor = keys[keys.length - 1] ?? ''; selection.actions = actions; selection.noun = noun }
 
 // A press and hold picks the row (adding to a selection already in this list)

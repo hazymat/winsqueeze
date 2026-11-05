@@ -65,7 +65,7 @@
 </footer>
 
 <style>
-  .transport { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(260px, 1.4fr) minmax(180px, 1fr); align-items: center; gap: 16px; padding: 10px 16px; background: var(--glass); backdrop-filter: blur(var(--blur)) saturate(1.4); border-top: 1px solid var(--line); container-type: inline-size; }
+  .transport { display: grid; grid-template-columns: minmax(160px, 1fr) minmax(280px, 1.3fr) minmax(0, 1fr); align-items: center; gap: 16px; padding: 10px 16px; background: var(--glass); backdrop-filter: blur(var(--blur)) saturate(1.4); border-top: 1px solid var(--line); container-type: inline-size; }
   .now { display: flex; align-items: center; gap: 10px; min-width: 0; background: none; border: 0; color: var(--fg); cursor: pointer; text-align: left; padding: 0; font: inherit; }
   .now img, .no-art { width: 52px; height: 52px; border-radius: 6px; object-fit: cover; flex-shrink: 0; display: grid; place-items: center; background: var(--panel-strong); box-shadow: 0 2px 10px var(--shadow); }
   .text { display: flex; flex-direction: column; min-width: 0; }
@@ -85,6 +85,8 @@
   .fill { height: 100%; background: var(--accent); border-radius: 3px; }
   .pixel-meter { padding: 3px 5px; background: #040607; border-radius: 4px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06); }
   .right { display: flex; align-items: center; justify-content: flex-end; gap: 10px; min-width: 0; }
+  .right > * { flex-shrink: 0; }
+  .right > .readout-slot { flex-shrink: 1; min-width: 0; overflow: hidden; white-space: nowrap; }
   .device { background: none; border: 0; color: var(--fg-quiet); cursor: pointer; font-size: 12px; max-width: 140px; display: flex; align-items: center; gap: 5px; white-space: nowrap; overflow: hidden; }
   .device-name { overflow: hidden; text-overflow: ellipsis; }
   .volume { position: relative; display: flex; align-items: center; }
@@ -93,9 +95,9 @@
   .volume-pop { position: absolute; bottom: 36px; right: 0; background: var(--panel-solid); border: 1px solid var(--line); border-radius: 8px; padding: 10px; box-shadow: 0 8px 24px var(--shadow); }
   .pin { background: none; border: 0; cursor: pointer; opacity: 0.5; color: var(--fg); padding: 4px; } .pin.on { opacity: 1; }
   /* Never drop transport controls: collapse the readout, player switcher, seek times, then the volume slider (SPEC.md › Transport) */
-  @container (max-width: 1150px) { .readout-slot { display: none; } }
+  @container (max-width: 1400px) { .readout-slot { display: none; } } /* it's in Now playing too; never let it crowd the buttons */
   @container (max-width: 900px) { .players, .device { display: none; } .transport { grid-template-columns: minmax(140px, 1fr) minmax(200px, 1.4fr) auto; } }
-  @container (max-width: 640px) { .time { display: none; } }
+  @container (max-width: 700px) { .time, .pixel-meter { display: none; } }
   @container (max-width: 540px) { .volume > input { display: none; } .volume-icon { display: block; } .transport { grid-template-columns: 1fr auto auto; } .seek-row { display: none; } }
   /* Mini: Winamp-style strip */
   .mini { grid-template-columns: 1fr auto; grid-template-rows: auto auto; gap: 6px 10px; padding: 10px; height: 100%; box-sizing: border-box; border: 0; }
