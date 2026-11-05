@@ -133,6 +133,8 @@ public partial class App : Application
         RefreshIconsAfterUpdate();
         if (CrashReporter.TakeUnseenReport()) ShowTip("WinSqueeze had a problem last time", "It crashed or stopped responding. Details are in Settings › About › Open logs (crash.log).");
         try { Media = new MediaControls(); } catch { } // SMTC needs Windows 10 1903+
+        // Windows' volume for the DAC moved (taskbar mixer, keyboard keys): tell the server, so the slider and other controllers follow
+        DeviceVolume.ExternalChange += volume => { if (Session.SelectedPlayerId == "") _ = volume < 0 ? Session.RequestAsync(true, "mixer", "muting", 1) : Session.RequestAsync(true, "mixer", "volume", volume); };
         Session.StatusUpdated += () => { if (Settings.ActiveProfile is { } profile) Media?.Update(Session.LastStatus, $"http://{profile.Host}:{profile.Port}"); trayIcon.RefreshNowPlaying(Session.LastStatus); NotifyTrackChange(Session.LastStatus); ApplyDeviceVolume(Session.LastStatus); Recorder.OnStatus(Session.LastStatus, Session.SelectedPlayerId == ""); };
         Recorder.Changed += () => Dispatcher.BeginInvoke(() => StatusChanged?.Invoke());
         ApplyGlobalHotkeys();
