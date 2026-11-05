@@ -23,7 +23,7 @@
   let preampDragging = false
   function preampAt(event: PointerEvent) { const box = (event.currentTarget as HTMLElement).getBoundingClientRect(); eq.PreampDb = Math.round(Math.max(-12, Math.min(0, -12 * (event.clientY - box.top) / box.height)) * 2) / 2; send() }
   function preampDown(event: PointerEvent) { if (eq.AutoPreamp || event.button !== 0) return; (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId); preampDragging = true; preampAt(event) }
-  function preampMove(event: PointerEvent) { if (preampDragging) preampAt(event) }
+  function preampMove(event: PointerEvent) { if (preampDragging && !(event.buttons & 1)) { preampUp(); return } if (preampDragging) preampAt(event) } // a lost pointer-up never leaves it following the mouse
   function preampUp() { if (preampDragging) { preampDragging = false; send(true) } }
   // Octave levels in dBFS; a +3 dB/octave tilt (pivot 1 kHz) makes typical music read evenly. Scale: 3..30 over -33..-6 dBFS
   const toLevel = (decibels: number, band: number) => Math.max(0, Math.min(1, (decibels + 3 * Math.log2(frequencies[10][band] / 1000) + 36) / 30))
@@ -80,6 +80,7 @@
     const bank = event.currentTarget as HTMLElement
     const { band, gain } = locate(event, bank)
     shiftHeld = event.shiftKey
+    if (pressed && !(event.buttons & 1)) { pointerUp(); return } // button released somewhere we didn't hear about
     if (!pressed) { hover = { side, band }; return }
     if (pressed.draw) {
       // Fill any faders skipped by a fast sweep, along the line between the last point and this one
@@ -96,7 +97,8 @@
   const knobTop = (gain: number) => `${(range - gain) / (2 * range) * 100}%`
   const scaleMarks = [10, 8, 6, 4, 2, 0, 2, 4, 6, 8, 10]
 
-  function dragWindow(event: MouseEvent) { if (event.button === 0 && !(event.target as HTMLElement).closest('button, .bank')) sendToShell({ type: 'dragWindow' }) }
+  // Window drag only from bare panel: never from a control, or the native drag loop swallows the control's pointer-up
+  function dragWindow(event: MouseEvent) { if (event.button === 0 && !(event.target as HTMLElement).closest('button, .bank, .preamp, [role=slider]')) sendToShell({ type: 'dragWindow' }) }
   const onKey = (event: KeyboardEvent) => { shiftHeld = event.shiftKey; if (event.key === 'Escape') sendToShell({ type: 'close' }) }
 </script>
 
