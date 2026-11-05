@@ -62,7 +62,7 @@
 </footer>
 
 <style>
-  .transport { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 1.3fr) auto; align-items: center; gap: 16px; padding: 10px 16px; background: var(--glass); backdrop-filter: blur(var(--blur)) saturate(1.4); border-top: 1px solid var(--line); container-type: inline-size; }
+  .transport { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 1.3fr) minmax(max-content, 1fr); /* equal sides keep the buttons centred; the right never shrinks below its content */ align-items: center; gap: 16px; padding: 10px 16px; background: var(--glass); backdrop-filter: blur(var(--blur)) saturate(1.4); border-top: 1px solid var(--line); container-type: inline-size; }
   .now { display: flex; align-items: center; gap: 10px; min-width: 0; background: none; border: 0; color: var(--fg); cursor: pointer; text-align: left; padding: 0; font: inherit; }
   .now img, .no-art { width: 52px; height: 52px; border-radius: 6px; object-fit: cover; flex-shrink: 0; display: grid; place-items: center; background: var(--panel-strong); box-shadow: 0 2px 10px var(--shadow); }
   .text { display: flex; flex-direction: column; min-width: 0; }
