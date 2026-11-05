@@ -3,7 +3,7 @@
   // After an update restart: a small glass card with the notes of every version since the one you had
   let whatsNew = $state<{ fromVersion: string; toVersion: string; releases: { version: string; date: string; notes: string }[] } | null>(null)
   onShellMessage('whatsNew', message => whatsNew = { fromVersion: message.fromVersion, toVersion: message.toVersion, releases: message.releases })
-  const lines = (notes: string) => notes.split('\n').map(line => line.trim()).filter(line => line && !line.startsWith('Co-Authored') && !line.startsWith('Claude-'))
+  const lines = (notes: string) => notes.split('\n').map(line => line.trim()).filter(line => line && !/^[A-Z][a-z]+(-[A-Za-z]+)+: /.test(line)) // drop git trailers (Key-Name: value)
 </script>
 
 {#if whatsNew}
