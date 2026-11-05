@@ -13,6 +13,7 @@ public partial class App : Application
     public static App Instance => (App)Current;
     public AppSettings Settings { get; private set; } = null!;
     public SqueezeliteHost Player { get; } = new();
+    public AppUpdater Updater { get; } = new();
     public List<OutputDevice> Devices { get; private set; } = new();
     public bool UsingFallbackDevice { get; private set; }
     public bool IsQuitting { get; private set; }
@@ -41,9 +42,29 @@ public partial class App : Application
         deviceChangeTimer.Tick += async (sender, args) => { deviceChangeTimer.Stop(); await OnDevicesChangedAsync(); };
         if (!(Settings.General.StartMinimised || startupArgs.Args.Contains("--minimised"))) mainWindow.Show();
         if (Settings.ActiveProfile is not { Host.Length: > 0 }) OpenSettings("Servers");
+        Updater.Changed += () => Dispatcher.BeginInvoke(() => StatusChanged?.Invoke());
+        Updater.Start();
         await CheckOtherPlayersAsync();
         await RefreshDevicesAsync();
         await StartPlayerAsync(false);
+        // After an update or version switch, carry on from where playback was
+        var resumeArgument = startupArgs.Args.FirstOrDefault(argument => argument.StartsWith("--resume="));
+        if (resumeArgument != null && Player.State == PlayerState.Running && double.TryParse(resumeArgument["--resume=".Length..], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var resumeSeconds)) await ResumeAtAsync(resumeSeconds);
+    }
+
+    public async Task<string[]> ResumeArgumentsAsync()
+    {
+        (string mode, double seconds) playbackState = Player.State == PlayerState.Running ? await ReadPlaybackStateAsync() : ("", 0);
+        return playbackState.mode == "play" ? new[] { "--resume=" + playbackState.seconds.ToString(System.Globalization.CultureInfo.InvariantCulture) } : Array.Empty<string>();
+    }
+
+    // Stops Squeezelite and releases the single-instance lock so the new version can start straight away
+    public void PrepareForRestart()
+    {
+        IsQuitting = true;
+        Player.Dispose();
+        trayIcon.Dispose();
+        singleInstanceMutex?.ReleaseMutex(); singleInstanceMutex?.Dispose(); singleInstanceMutex = null;
     }
 
     // Another Squeezelite (even renamed) can hold the output device and shows up as a second player
@@ -173,7 +194,9 @@ public partial class App : Application
         driver = Player.Device?.Driver ?? "",
         exclusive = Player.ExclusiveActive,
         sampleRate = Player.OutputSampleRate,
-        fallback = UsingFallbackDevice
+        fallback = UsingFallbackDevice,
+        version = Updater.CurrentVersion,
+        updateReady = Updater.ReadyVersion
     });
 
     public void ShowMainWindow() { mainWindow.Show(); if (mainWindow.WindowState == WindowState.Minimized) mainWindow.WindowState = WindowState.Normal; mainWindow.Activate(); }

@@ -5,6 +5,7 @@ using System.Windows.Data;
 using WinSqueeze.Audio;
 using WinSqueeze.Server;
 using WinSqueeze.Settings;
+using WinSqueeze.Shell;
 namespace WinSqueeze;
 
 // Changes apply immediately (no OK/Apply), SPEC.md › Settings
@@ -27,7 +28,7 @@ public partial class SettingsWindow : Window
 
     public void SelectTab(string tabName)
     {
-        var tabByName = new Dictionary<string, TabItem> { ["General"] = generalTab, ["Servers"] = serversTab, ["Audio"] = audioTab, ["About"] = aboutTab };
+        var tabByName = new Dictionary<string, TabItem> { ["General"] = generalTab, ["Servers"] = serversTab, ["Audio"] = audioTab, ["Library"] = libraryTab, ["About"] = aboutTab };
         if (tabByName.TryGetValue(tabName, out var selectedTab)) settingsTabs.SelectedItem = selectedTab;
     }
 
@@ -194,9 +195,60 @@ public partial class SettingsWindow : Window
 
     void WireAboutTab()
     {
-        versionText.Text = $"WinSqueeze {typeof(App).Assembly.GetName().Version?.ToString(3)}";
+        versionText.Text = $"WinSqueeze {App.Updater.CurrentVersion}";
         dataFolderText.Text = (AppPaths.IsPortable ? "Portable mode. " : "") + $"Settings and logs: {AppPaths.DataFolder}";
-        squeezeliteSourceLink.RequestNavigate += (sender, args) => Process.Start(new ProcessStartInfo(args.Uri.AbsoluteUri) { UseShellExecute = true });
+        squeezeliteSourceLink.RequestNavigate += (sender, args) => OpenUrl(args.Uri.AbsoluteUri);
         openLogsButton.Click += (sender, args) => Process.Start(new ProcessStartInfo(AppPaths.LogsFolder) { UseShellExecute = true });
+        channelCombo.SelectedItem = channelCombo.Items.Cast<ComboBoxItem>().First(item => (string)item.Tag == Settings.General.UpdateChannel);
+        channelCombo.SelectionChanged += async (sender, args) =>
+        {
+            if (channelCombo.SelectedItem is not ComboBoxItem chosen) return;
+            Settings.General.UpdateChannel = (string)chosen.Tag; Settings.Save();
+            await LoadVersionsAsync(); await App.Updater.CheckNowAsync();
+        };
+        autoUpdateBox.IsChecked = Settings.General.AutoUpdate;
+        autoUpdateBox.Click += (sender, args) => { Settings.General.AutoUpdate = autoUpdateBox.IsChecked == true; Settings.Save(); };
+        checkNowButton.Click += async (sender, args) => await App.Updater.CheckNowAsync();
+        restartToUpdateButton.Click += async (sender, args) => await App.Updater.RestartToUpdateAsync();
+        refreshVersionsButton.Click += async (sender, args) => await LoadVersionsAsync();
+        versionsList.SelectionChanged += (sender, args) => ShowSelectedVersion();
+        switchVersionButton.Click += async (sender, args) => { if (versionsList.SelectedItem is VersionItem item) await App.Updater.SwitchToAsync(item.Release); };
+        versionDiscussionLink.Click += (sender, args) => { if (versionsList.SelectedItem is VersionItem item) OpenUrl(item.Release.DiscussionUrl == "" ? item.Release.Url : item.Release.DiscussionUrl); };
+        App.Updater.Changed += ShowUpdateStatus;
+        Closed += (sender, args) => App.Updater.Changed -= ShowUpdateStatus;
+        ShowUpdateStatus();
+        _ = LoadVersionsAsync();
     }
+
+    record VersionItem(ReleaseEntry Release, bool IsCurrent)
+    {
+        public override string ToString() => $"{Release.Version}{(Release.IsDev ? "  dev" : "")}  ·  {Release.Published:d MMM yyyy HH:mm}{(IsCurrent ? "  ·  running now" : "")}";
+    }
+
+    async Task LoadVersionsAsync()
+    {
+        try
+        {
+            var releases = await App.Updater.ListReleasesAsync(Settings.General.UpdateChannel == "dev");
+            versionsList.ItemsSource = releases.Select(release => new VersionItem(release, release.Version == App.Updater.CurrentVersion)).ToList();
+            if (releases.Count == 0) versionNotesText.Text = "No versions published yet.";
+        }
+        catch (Exception listError) { versionNotesText.Text = $"Could not load versions: {listError.Message}"; }
+    }
+
+    void ShowSelectedVersion()
+    {
+        var selected = versionsList.SelectedItem as VersionItem;
+        switchVersionButton.IsEnabled = selected != null && !selected.IsCurrent && App.Updater.IsInstalled;
+        versionNotesText.Text = selected == null ? "" : (selected.Release.Notes.Length > 600 ? selected.Release.Notes[..600] + "…" : selected.Release.Notes);
+    }
+
+    void ShowUpdateStatus()
+    {
+        updateStatusText.Text = App.Updater.StatusText;
+        restartToUpdateButton.Visibility = App.Updater.ReadyVersion == "" ? Visibility.Collapsed : Visibility.Visible;
+        restartToUpdateButton.Content = $"Restart to update to {App.Updater.ReadyVersion}";
+    }
+
+    static void OpenUrl(string url) => Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
 }

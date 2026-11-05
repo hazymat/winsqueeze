@@ -93,15 +93,39 @@
     <TabItem Header="Shortcuts" x:Name="shortcutsTab"><TextBlock Margin="16" Style="{StaticResource Quiet}" Text="Ctrl+Q quits and Ctrl+, opens Settings. Rebinding, media keys and global hotkeys arrive in Phase 4." /></TabItem>
     <TabItem Header="Notifications" x:Name="notificationsTab"><TextBlock Margin="16" Style="{StaticResource Quiet}" Text="Track-change toasts arrive in Phase 4. Device-missing alerts are on." /></TabItem>
     <TabItem Header="About" x:Name="aboutTab">
-      <StackPanel Margin="16">
-        <TextBlock x:Name="versionText" FontSize="16" FontWeight="SemiBold" />
-        <TextBlock x:Name="dataFolderText" Style="{StaticResource Quiet}" />
-        <TextBlock Style="{StaticResource Quiet}" Margin="0,16,0,0" Text="WinSqueeze is free software under the GNU GPL v3." />
-        <TextBlock Style="{StaticResource Quiet}" Text="Bundles Squeezelite 2.0.0-1610 (Adrian Smith, Ralph Irving), GPL v3. Its licence is in the squeezelite folder next to WinSqueeze.exe." />
-        <TextBlock Margin="0,4,0,0"><Hyperlink x:Name="squeezeliteSourceLink" NavigateUri="https://github.com/ralph-irving/squeezelite">Squeezelite source code</Hyperlink></TextBlock>
-        <StackPanel Orientation="Horizontal" Margin="0,16,0,0"><Button x:Name="openLogsButton" Content="Open logs folder" /></StackPanel>
-        <TextBlock Style="{StaticResource Quiet}" Margin="0,16,0,0" Text="Update checks arrive in Phase 6." />
-      </StackPanel>
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="16">
+          <TextBlock x:Name="versionText" FontSize="16" FontWeight="SemiBold" />
+          <TextBlock x:Name="dataFolderText" Style="{StaticResource Quiet}" />
+          <TextBlock Text="Updates" FontWeight="SemiBold" Margin="0,16,0,4" />
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="Channel" VerticalAlignment="Center" Margin="0,0,8,0" />
+            <ComboBox x:Name="channelCombo" Width="200" Margin="0,0,12,0">
+              <ComboBoxItem Content="Stable releases" Tag="stable" />
+              <ComboBoxItem Content="Dev builds (every change)" Tag="dev" />
+            </ComboBox>
+            <CheckBox x:Name="autoUpdateBox" Content="Download updates automatically" VerticalAlignment="Center" Margin="0" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+            <Button x:Name="checkNowButton" Content="Check now" />
+            <Button x:Name="restartToUpdateButton" Content="Restart to update" Visibility="Collapsed" FontWeight="SemiBold" />
+          </StackPanel>
+          <TextBlock x:Name="updateStatusText" Style="{StaticResource Quiet}" />
+          <TextBlock Text="Versions" FontWeight="SemiBold" Margin="0,16,0,4" />
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Right" Margin="8,0,0,0">
+              <Button x:Name="refreshVersionsButton" Content="Refresh" Margin="0,0,0,6" />
+              <Button x:Name="switchVersionButton" Content="Switch to this" IsEnabled="False" />
+            </StackPanel>
+            <ListBox x:Name="versionsList" Height="130" />
+          </DockPanel>
+          <TextBlock x:Name="versionNotesText" Style="{StaticResource Quiet}" />
+          <TextBlock Margin="0,4,0,0"><Hyperlink x:Name="versionDiscussionLink">Comments for this version</Hyperlink></TextBlock>
+          <TextBlock Style="{StaticResource Quiet}" Margin="0,16,0,0" Text="WinSqueeze is free software under the GNU GPL v3. It bundles Squeezelite 2.0.0-1610 (Adrian Smith, Ralph Irving), GPL v3; its licence is in the squeezelite folder next to WinSqueeze.exe." />
+          <TextBlock Margin="0,4,0,0"><Hyperlink x:Name="squeezeliteSourceLink" NavigateUri="https://github.com/ralph-irving/squeezelite">Squeezelite source code</Hyperlink></TextBlock>
+          <StackPanel Orientation="Horizontal" Margin="0,16,0,0"><Button x:Name="openLogsButton" Content="Open logs folder" /></StackPanel>
+        </StackPanel>
+      </ScrollViewer>
     </TabItem>
   </TabControl>
 </Window>

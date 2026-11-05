@@ -23,6 +23,7 @@ public sealed class TrayIcon : IDisposable
         trayMenu.Items.Add(new ToolStripMenuItem("Window mode (Phase 5)") { Enabled = false });
         trayMenu.Items.Add(new ToolStripMenuItem("Skin (Phase 5)") { Enabled = false });
         trayMenu.Items.Add(new ToolStripSeparator());
+        trayMenu.Items.Add("Check for updates", null, async (sender, args) => { await App.Updater.CheckNowAsync(); if (App.Updater.ReadyVersion == "") ShowTip("WinSqueeze", App.Updater.StatusText); });
         trayMenu.Items.Add("Settings", null, (sender, args) => App.OpenSettings());
         trayMenu.Items.Add("Quit", null, (sender, args) => App.Quit());
         trayMenu.Opening += (sender, args) => RebuildOutputMenu();

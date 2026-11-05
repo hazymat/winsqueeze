@@ -49,6 +49,7 @@ public partial class MainWindow : Window
             case "ready": PushStatus(); break;
             case "openSettings": App.Instance.OpenSettings(message.TryGetProperty("tab", out var tabName) ? tabName.GetString() ?? "" : ""); break;
             case "quit": App.Instance.Quit(); break;
+            case "applyUpdate": await App.Instance.Updater.RestartToUpdateAsync(); break;
             case "command": await App.Instance.SendPlayerCommandAsync(message.GetProperty("command").EnumerateArray().Select(part => (object)(part.GetString() ?? "")).ToArray()); break;
         }
     }

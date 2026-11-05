@@ -41,6 +41,8 @@ public class GeneralSettings
     public bool CloseHidesToTray { get; set; } = true;
     public bool CloseToTrayTipShown { get; set; }
     public OtherSqueezeliteAction OtherSqueezelite { get; set; } = OtherSqueezeliteAction.Ask;
+    public bool AutoUpdate { get; set; } = true;
+    public string UpdateChannel { get; set; } = "stable"; // stable | dev
 }
 
 public enum OtherSqueezeliteAction { Ask, Stop, Leave }

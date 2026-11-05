@@ -1,11 +1,18 @@
 name: build
 on:
-  push: { branches: [main] }
+  push:
+    branches: [main]
+    tags: ['v*']
   pull_request:
   workflow_dispatch:
+permissions:
+  contents: write
+  discussions: write
 jobs:
   windows:
     runs-on: windows-latest
+    env:
+      REPO_URL: https://github.com/${{ github.repository }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -16,9 +23,35 @@ jobs:
         working-directory: ui
       - uses: actions/setup-dotnet@v4
         with: { dotnet-version: 8.0.x }
-      - run: dotnet publish app/WinSqueeze.csproj -c Release -o publish/WinSqueeze
+      - name: Version and channel
+        id: version
+        shell: pwsh
+        run: |
+          # Tags vX.Y.Z are stable releases; every push to main is a dev build
+          if ("${{ github.ref_type }}" -eq "tag") { $version = "${{ github.ref_name }}".TrimStart("v"); $channel = "stable" } else { $version = "0.1.${{ github.run_number }}"; $channel = "dev" }
+          "version=$version" >> $env:GITHUB_OUTPUT; "channel=$channel" >> $env:GITHUB_OUTPUT
+      - run: dotnet publish app/WinSqueeze.csproj -c Release -o publish/WinSqueeze -p:Version=${{ steps.version.outputs.version }}
       - name: Add VC++ runtime for Squeezelite
         shell: pwsh
         run: Copy-Item "$env:SystemRoot\System32\vcruntime140.dll" publish/WinSqueeze/squeezelite/
       - uses: actions/upload-artifact@v4
         with: { name: WinSqueeze-win-x64, path: publish/WinSqueeze }
+      - name: Package and publish release
+        if: github.event_name != 'pull_request'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $version = "${{ steps.version.outputs.version }}"; $channel = "${{ steps.version.outputs.channel }}"
+          dotnet tool install -g vpk --version 0.0.1298
+          vpk download github --repoUrl $env:REPO_URL --channel $channel --token $env:GH_TOKEN -o releases  # previous release, for delta updates
+          $global:LASTEXITCODE = 0
+          vpk pack --packId WinSqueeze --packVersion $version --packDir publish/WinSqueeze --mainExe WinSqueeze.exe --packTitle WinSqueeze --channel $channel -o releases
+          $preFlag = if ($channel -eq "dev") { "--pre" } else { "" }
+          $title = if ($channel -eq "dev") { "WinSqueeze $version (dev)" } else { "WinSqueeze $version" }
+          vpk upload github --repoUrl $env:REPO_URL --channel $channel --token $env:GH_TOKEN -o releases --publish --tag "v$version" --releaseName $title $preFlag
+          git log -1 --pretty=%B | Out-File notes.txt
+          gh release edit "v$version" --notes-file notes.txt
+          # One discussion per release for comments (needs Discussions enabled)
+          gh release edit "v$version" --discussion-category "Announcements"
+          if ($LASTEXITCODE -ne 0) { Write-Host "Discussions not enabled yet; skipped"; $global:LASTEXITCODE = 0 }
