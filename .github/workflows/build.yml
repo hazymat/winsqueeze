@@ -36,7 +36,7 @@ jobs:
           if ("${{ github.ref_type }}" -eq "tag") { $version = "${{ github.ref_name }}".TrimStart("v"); $channel = "stable" }
           else {
             $stableTag = gh api "repos/${{ github.repository }}/releases/latest" --jq .tag_name 2>$null; $global:LASTEXITCODE = 0
-            $stable = if ($stableTag) { [version]$stableTag.TrimStart("v") } else { $null }
+            $stable = $null; if ("$stableTag" -match '^v(\d+\.\d+\.\d+)$') { $stable = [version]$Matches[1] } # 404 (no stable yet) prints an error body, not a tag
             $version = if ($stable) { "$($stable.Major).$($stable.Minor + 1).${{ github.run_number }}" } else { "0.1.${{ github.run_number }}" }; $channel = "dev"
           }
           "version=$version" >> $env:GITHUB_OUTPUT; "channel=$channel" >> $env:GITHUB_OUTPUT
