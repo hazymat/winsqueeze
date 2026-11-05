@@ -132,6 +132,7 @@ public partial class MainWindow : Window
                 case "loadDraft": ReplyRaw(message, File.Exists(Shell.PlayerSession.DraftPath) ? File.ReadAllText(Shell.PlayerSession.DraftPath) : "null"); break;
                 case "saveDraft": Directory.CreateDirectory(AppPaths.DataFolder); if (Text(message, "draft") == "null") File.Delete(Shell.PlayerSession.DraftPath); else File.WriteAllText(Shell.PlayerSession.DraftPath, message.GetProperty("draft").GetRawText()); break;
                 case "openEq": App.OpenEqualiser(); break;
+                case "edgeColour": SetEdgeColour(Text(message, "colour")); break;
                 case "dragWindow": ReleaseCapture(); SendMessage(new WindowInteropHelper(this).Handle, 0xA1 /*WM_NCLBUTTONDOWN*/, (IntPtr)2 /*HTCAPTION*/, IntPtr.Zero); webView.Focus(); break; // the drag loop returns on mouse-up; give the page keyboard focus back so Ctrl+C reaches it
                 case "windowControl":
                     switch (Text(message, "action")) { case "minimise": WindowState = WindowState.Minimized; break; case "maximise": WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized; break; case "close": Close(); break; }
@@ -218,10 +219,21 @@ public partial class MainWindow : Window
         DwmExtendFrameIntoClientArea(windowHandle, ref margins);
         var hwndSource = HwndSource.FromHwnd(windowHandle);
         if (hwndSource?.CompositionTarget != null) hwndSource.CompositionTarget.BackgroundColor = glassActive ? Colors.Transparent : Color.FromRgb(16, 17, 20);
-        Background = glassActive ? Brushes.Transparent : new SolidColorBrush(Color.FromRgb(16, 17, 20));
+        Background = general.Frameless && edgeColour != null ? new SolidColorBrush(edgeColour.Value) : glassActive ? Brushes.Transparent : new SolidColorBrush(Color.FromRgb(16, 17, 20));
         if (webView.CoreWebView2 != null) webView.DefaultBackgroundColor = glassActive || App.Settings.General.Frameless ? System.Drawing.Color.Transparent : System.Drawing.Color.FromArgb(16, 17, 20); // frameless: the page rounds its own corners inside the border
         UpdateFrameMargin();
         PushWindowState();
+    }
+
+    // The thin frameless edge around the page takes the page's own background (tint included on glass), so it reads as part of the page and
+    // the corners are just the window's rounded ones, not a ring with a different inner curve
+    Color? edgeColour;
+    void SetEdgeColour(string cssColour)
+    {
+        var parts = System.Text.RegularExpressions.Regex.Matches(cssColour, @"[\d.]+").Select(match => double.Parse(match.Value, System.Globalization.CultureInfo.InvariantCulture)).ToList();
+        if (parts.Count < 3) return;
+        edgeColour = Color.FromArgb((byte)Math.Round((parts.Count > 3 ? parts[3] : 1) * 255), (byte)parts[0], (byte)parts[1], (byte)parts[2]);
+        if (App.Settings.General.Frameless) Background = new SolidColorBrush(edgeColour.Value);
     }
 
     // Frameless: the WebView covers the client area, so leave a thin edge for the resize border (more when maximised, which overhangs the screen)

@@ -6,14 +6,24 @@
   const frequencies: Record<number, number[]> = { 10: [31.5, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000], 7: [63, 160, 400, 1000, 2500, 6300, 16000], 3: [100, 1000, 8000] }
   const range = 10 // ±dB on the faders
   let eq = $state<any>(null)
-  let supported = $state(true), preampDb = $state(0)
+  let supported = $state(true), autoPreampDb = $state(0), clipping = $state(0)
+  let clipTimer = 0
   let analyser = $state({ left: Array(10).fill(0), right: Array(10).fill(0) })
   let analyserTargets = { left: Array(10).fill(0), right: Array(10).fill(0) }
   let hover = $state<{ side: string; band: number } | null>(null)
   let shiftHeld = $state(false)
 
-  onShellMessage('eq', message => { eq = message.eq; supported = message.supported; preampDb = message.preampDb })
-  onShellMessage('eqPreamp', message => preampDb = message.preampDb)
+  onShellMessage('eq', message => { eq = message.eq; supported = message.supported })
+  onShellMessage('eqPreamp', message => autoPreampDb = message.autoPreampDb)
+  // CLIP lamp: lit while the limiter is pulling peaks down, held a moment so short hits are visible
+  onShellMessage('eqClip', message => { if (message.reductionDb > 0) { clipping = message.reductionDb; clearTimeout(clipTimer); clipTimer = window.setTimeout(() => clipping = 0, 600) } })
+  const preampNow = $derived(eq ? (eq.AutoPreamp ? autoPreampDb : eq.PreampDb ?? -6) : 0)
+  // Preamp fader: 0 to -12 dB in 0.5 dB steps (manual only)
+  let preampDragging = false
+  function preampAt(event: PointerEvent) { const box = (event.currentTarget as HTMLElement).getBoundingClientRect(); eq.PreampDb = Math.round(Math.max(-12, Math.min(0, -12 * (event.clientY - box.top) / box.height)) * 2) / 2; send() }
+  function preampDown(event: PointerEvent) { if (eq.AutoPreamp || event.button !== 0) return; (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId); preampDragging = true; preampAt(event) }
+  function preampMove(event: PointerEvent) { if (preampDragging) preampAt(event) }
+  function preampUp() { if (preampDragging) { preampDragging = false; send(true) } }
   // Octave levels in dBFS; a +3 dB/octave tilt (pivot 1 kHz) makes typical music read evenly. Scale: 3..30 over -33..-6 dBFS
   const toLevel = (decibels: number, band: number) => Math.max(0, Math.min(1, (decibels + 3 * Math.log2(frequencies[10][band] / 1000) + 36) / 30))
   onShellMessage('eqLevels', message => analyserTargets = { left: message.left.map(toLevel), right: message.right.map(toLevel) })
@@ -128,7 +138,7 @@
     <header>
       <span class="brand">WinSqueeze</span>
       <span class="model">GRAPHIC EQUALIZER · SPECTRUM ANALYZER</span>
-      <span class="readout">{hover ? `${bandCount === 3 ? bandLabel(hover.band) : formatFrequency(frequencies[bandCount][hover.band]) + ' Hz'} · ${eq.Linked ? 'L+R' : hover.side} ${formatGain(gainsFor(hover.side)[hover.band])}` : eq.Enabled ? `PREAMP ${preampDb.toFixed(1)} dB · ${eq.Character === 'precise' ? 'PRECISE' : 'VINTAGE'}` : 'BYPASS · BIT-PERFECT'}</span>
+      <span class="readout">{hover ? `${bandCount === 3 ? bandLabel(hover.band) : formatFrequency(frequencies[bandCount][hover.band]) + ' Hz'} · ${eq.Linked ? 'L+R' : hover.side} ${formatGain(gainsFor(hover.side)[hover.band])}` : eq.Enabled ? `PREAMP ${preampNow.toFixed(1)} dB${eq.AutoPreamp ? ' (AUTO)' : ''} · ${eq.Character === 'precise' ? 'PRECISE' : 'VINTAGE'}` : 'BYPASS · BIT-PERFECT'}</span>
       <button class="close" onclick={() => sendToShell({ type: 'close' })} aria-label="Close">×</button>
     </header>
     <div class="body">
@@ -137,6 +147,13 @@
         <button class="power" class:on={eq.Enabled} onclick={() => change('Enabled', !eq.Enabled)} aria-pressed={eq.Enabled} title="Equaliser on, or bypassed (bit-perfect)"></button>
         <span class="led" class:on={eq.Enabled}></span>
         <span class="legend small">{eq.Enabled ? 'ON' : 'BYPASS'}</span>
+        <span class="legend preamp-legend">PREAMP</span>
+        <div class="preamp" class:auto={eq.AutoPreamp} role="slider" tabindex="0" aria-label="Preamp" aria-valuenow={preampNow} title={eq.AutoPreamp ? 'Auto: lowered as bands rise, so nothing clips' : 'Drag: headroom for boosts (double-click for -6 dB)'}
+          onpointerdown={preampDown} onpointermove={preampMove} onpointerup={preampUp} onpointercancel={preampUp} ondblclick={() => { if (!eq.AutoPreamp) { eq.PreampDb = -6; send(true) } }}>
+          <div class="slot"></div><div class="knob small" style:top="{-preampNow / 12 * 100}%"></div>
+        </div>
+        <span class="legend small">{preampNow.toFixed(1)} dB</span>
+        <span class="clip" class:on={clipping > 0} title={clipping > 0 ? `Limiting ${clipping} dB: lower the preamp or the boosts` : 'Lights when peaks would clip and the limiter steps in'}>CLIP</span>
       </div>
       {@render bank('L')}
       <div class="centre">
@@ -148,13 +165,14 @@
       <div class="cluster">
         {@render pushButton('BANDS', [['10', 10], ['7', 7], ['3', 3]], 'BandCount')}
         {@render pushButton('CHARACTER', [['VINTAGE', 'vintage'], ['PRECISE', 'precise']], 'Character')}
+        {@render pushButton('PREAMP', [['MANUAL', false], ['AUTO', true]], 'AutoPreamp')}
         {@render pushButton('STEREO', [['LINK', true], ['L/R', false]], 'Linked')}
         {@render pushButton('EDIT', [['DRAW', 'draw'], ['SINGLE', 'single']], 'EditMode')}
         {@render pushButton('DISPLAY', [['L+R', 'sum'], ['L/R', 'split']], 'Display')}
         {@render pushButton('DECAY TIME', [['FAST', 'fast'], ['SLOW', 'slow']], 'Decay')}
+        <button class="push" onclick={reset}><span class="push-label">RESET</span><span class="push-options"><b>FLAT</b></span><span class="cap"></span></button>
         <button class="push" disabled={eq.Linked} onclick={() => copy('L', 'R')}><span class="push-label">COPY</span><span class="push-options"><b>L → R</b></span><span class="cap"></span></button>
         <button class="push" disabled={eq.Linked} onclick={() => copy('R', 'L')}><span class="push-label">COPY</span><span class="push-options"><b>R → L</b></span><span class="cap"></span></button>
-        <button class="push wide" onclick={reset}><span class="push-label">RESET</span><span class="push-options"><b>FLAT</b></span><span class="cap"></span></button>
         <div class="hint">{shiftHeld ? (eq.EditMode === 'single' ? 'Shift: drawing' : 'Shift: single fader') : 'Shift swaps edit mode · double-click = 0 dB · scroll = ±0.5'}</div>
       </div>
     </div>
@@ -176,7 +194,13 @@
   .close { z-index: 6; background: none; border: 0; color: var(--gold-dim); font-size: 18px; cursor: pointer; padding: 0 2px; line-height: 1; } .close:hover { color: var(--gold); }
   .body { flex: 1; min-height: 0; display: flex; gap: 14px; align-items: stretch; }
   .legend { font-size: 9px; letter-spacing: 1.2px; text-align: center; } .legend.small { font-size: 8px; }
-  .power-column { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; width: 64px; flex-shrink: 0; }
+  .power-column { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; width: 64px; flex-shrink: 0; }
+  .preamp-legend { margin-top: 6px; }
+  .preamp { position: relative; width: 26px; height: 54px; display: flex; justify-content: center; cursor: ns-resize; touch-action: none; }
+  .preamp .slot { top: 0; bottom: 0; } .preamp.auto { opacity: 0.55; cursor: default; }
+  .knob.small { width: 14px; height: 12px; margin-top: -6px; }
+  .clip { font-size: 7.5px; letter-spacing: 1px; padding: 1px 4px; border-radius: 2px; color: rgba(255, 80, 60, 0.35); border: 1px solid rgba(255, 80, 60, 0.2); }
+  .clip.on { color: #fff1ec; background: #e0321e; border-color: #ff6a4d; box-shadow: 0 0 8px rgba(255, 60, 30, 0.8); }
   .power { width: 46px; height: 46px; border-radius: 3px; cursor: pointer; border: 1px solid #000; background: linear-gradient(160deg, #2a2a2d, #141416 60%, #0e0e10); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09), inset 0 -2px 3px rgba(0, 0, 0, 0.7), 0 2px 4px rgba(0, 0, 0, 0.6); transition: transform 60ms; }
   .power:active { transform: translateY(1px); }
   .power.on { box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.8), inset 0 -1px 0 rgba(255, 255, 255, 0.05); }

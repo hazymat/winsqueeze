@@ -26,7 +26,7 @@ public sealed class Equaliser : IDisposable
     readonly object writeLock = new();
     public Func<int> CurrentRate { get; set; } = () => 0; // what Squeezelite is playing at (from the visualiser export)
     public EqualiserSettings Tuning { get; set; } = new();
-    public double PreampDb { get; private set; }
+    public double AutoPreampDb { get; private set; } // what AUTO would use, shown in the panel
 
     public Equaliser() { timer = new System.Threading.Timer(_ => Tick(), null, 500, 500); }
 
@@ -71,7 +71,7 @@ public sealed class Equaliser : IDisposable
         return tuning.Gains.TryGetValue(key, out var gains) && gains.Length == count ? gains : new double[count];
     }
 
-    // Per channel: one biquad per band, then a preamp that keeps the loudest point of either curve at 0 dBFS
+    // Per channel: one biquad per band. Preamp: manual (PreampDb, default -6) or auto (keeps the loudest point of the curves at 0 dBFS); Squeezelite's limiter catches what still overshoots
     public (double[][][] stages, double preamp) Design(EqualiserSettings tuning, int rate)
     {
         var count = Frequencies.ContainsKey(tuning.BandCount) ? tuning.BandCount : 10;
@@ -84,8 +84,9 @@ public sealed class Equaliser : IDisposable
             for (var band = 0; band < count; band++) stages[channel][band] = Band(count, band, Math.Clamp(gains[band], -12, 12), tuning.Character == "precise", rate);
             loudest = Math.Max(loudest, PeakMagnitude(stages[channel], rate));
         }
-        PreampDb = Math.Round(-20 * Math.Log10(loudest), 1);
-        return (stages, 1 / loudest);
+        AutoPreampDb = Math.Round(-20 * Math.Log10(loudest), 1);
+        if (tuning.AutoPreamp) return (stages, 1 / loudest);
+        return (stages, Math.Pow(10, Math.Clamp(tuning.PreampDb, -18, 0) / 20));
     }
 
     static double[] Band(int count, int band, double gainDb, bool precise, int rate)
@@ -134,6 +135,16 @@ public sealed class Equaliser : IDisposable
             loudest = Math.Max(loudest, magnitude);
         }
         return loudest;
+    }
+
+    // Peak gain reduction from Squeezelite's safety limiter since the last read (dB, 0 = untouched); drives the CLIP lamp
+    public double TakeLimiterReductionDb()
+    {
+        lock (writeLock)
+        {
+            try { if (view == null) return 0; var lowestGain = view.ReadSingle(20); view.Write(20, 1f); return lowestGain > 0 && lowestGain < 0.9999f ? Math.Round(-20 * Math.Log10(lowestGain), 1) : 0; }
+            catch { return 0; }
+        }
     }
 
     public void Dispose() { timer.Dispose(); view?.Dispose(); sharedFile?.Dispose(); }

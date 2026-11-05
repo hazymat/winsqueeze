@@ -53,6 +53,8 @@ public class EqualiserSettings
     public int BandCount { get; set; } = 10; // 10, 7 or 3
     public string Character { get; set; } = "vintage"; // "vintage" (proportional Q, like the analogue units) or "precise" (constant Q)
     public bool Linked { get; set; } = true; // one curve for both channels
+    public bool AutoPreamp { get; set; } = false; // AUTO lowers the preamp as bands rise (never clips, but boosts sound quieter overall)
+    public double PreampDb { get; set; } = -6; // fixed headroom while on; boosts beyond it meet the safety limiter, so turning a band up never turns the rest down
     public Dictionary<string, double[]> Gains { get; set; } = new(); // "10L", "10R", "7L"... in dB
     public string Display { get; set; } = "sum"; // analyser: "sum" (L+R) or "split" (L/R)
     public string Decay { get; set; } = "fast";

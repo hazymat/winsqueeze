@@ -86,6 +86,8 @@
   let systemDark = $state(prefersDark.matches)
   prefersDark.addEventListener('change', () => systemDark = prefersDark.matches)
   $effect(() => { document.documentElement.dataset.skin = ui.skin; sendToShell({ type: 'theme', dark: ui.skin === 'auto' ? systemDark : ui.skin !== 'light' }) })
+  // Tell the shell the page's edge colour, so the frameless border matches it exactly (after the classes and skin have applied)
+  $effect(() => { ui.skin; app.window.glass; app.window.frameless; mini; requestAnimationFrame(() => sendToShell({ type: 'edgeColour', colour: getComputedStyle(document.body).backgroundColor })) })
   $effect(() => { document.documentElement.classList.toggle('mini-mode', mini); document.documentElement.classList.toggle('maximised', app.window.maximised) })
   $effect(() => { document.documentElement.classList.toggle('glass', app.window.glass); document.documentElement.classList.toggle('frameless', app.window.frameless) })
   // Selected text: Ctrl+C or right-click › Copy (the browser's own menu is off)

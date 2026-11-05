@@ -38,6 +38,11 @@ public partial class EqualiserWindow : Window
         App.Visualiser.AnalyserReady += OnAnalyser;
         Closed += (sender, args) => { owner.LocationChanged -= follow; owner.SizeChanged -= followSize; owner.IsVisibleChanged -= showWithOwner; App.Visualiser.AnalyserReady -= OnAnalyser; App.Visualiser.AnalyserWanted = false; };
         App.Visualiser.AnalyserWanted = true;
+        // CLIP lamp: how hard the limiter worked in the last 100 ms
+        var clipTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
+        clipTimer.Tick += (sender, args) => { if (webViewReady && IsVisible) webView.CoreWebView2?.PostWebMessageAsJson(JsonSerializer.Serialize(new { type = "eqClip", reductionDb = App.Equaliser.TakeLimiterReductionDb() })); };
+        clipTimer.Start();
+        Closed += (sender, args) => clipTimer.Stop();
     }
 
     void OnAnalyser(string levelsJson) { if (webViewReady) Dispatcher.BeginInvoke(() => { if (IsVisible) webView.CoreWebView2?.PostWebMessageAsJson(levelsJson); }); }
@@ -55,7 +60,7 @@ public partial class EqualiserWindow : Window
         webView.CoreWebView2.Navigate("https://app.winsqueeze/index.html#eq");
     }
 
-    public void PushState() { if (webViewReady) webView.CoreWebView2?.PostWebMessageAsJson(JsonSerializer.Serialize(new { type = "eq", eq = Tuning, preampDb = App.Equaliser.PreampDb, supported = SqueezeliteHost.SupportsEqualiser, rate = App.Visualiser.SampleRate })); }
+    public void PushState() { if (webViewReady) webView.CoreWebView2?.PostWebMessageAsJson(JsonSerializer.Serialize(new { type = "eq", eq = Tuning, supported = SqueezeliteHost.SupportsEqualiser, rate = App.Visualiser.SampleRate })); }
 
     void OnUiMessage(string messageJson)
     {
@@ -65,18 +70,18 @@ public partial class EqualiserWindow : Window
         {
             switch (message.GetProperty("type").GetString())
             {
-                case "ready": webViewReady = true; PushState(); break;
+                case "ready": webViewReady = true; PushState(); webView.CoreWebView2.PostWebMessageAsJson(JsonSerializer.Serialize(new { type = "eqPreamp", autoPreampDb = App.Equaliser.AutoPreampDb })); break;
                 // The panel sends the whole EQ state; Commit (pointer up, button press) also saves it to disk
                 case "eqSet":
                     var incoming = message.GetProperty("eq").Deserialize<EqualiserSettings>();
                     if (incoming == null) break;
                     var tuning = Tuning; var wasEnabled = tuning.Enabled;
-                    tuning.Enabled = incoming.Enabled; tuning.BandCount = incoming.BandCount; tuning.Character = incoming.Character; tuning.Linked = incoming.Linked; tuning.Gains = incoming.Gains;
+                    tuning.Enabled = incoming.Enabled; tuning.BandCount = incoming.BandCount; tuning.Character = incoming.Character; tuning.Linked = incoming.Linked; tuning.PreampDb = incoming.PreampDb; tuning.AutoPreamp = incoming.AutoPreamp; tuning.Gains = incoming.Gains;
                     tuning.Display = incoming.Display; tuning.Decay = incoming.Decay; tuning.EditMode = incoming.EditMode;
                     App.Equaliser.Changed();
                     if (message.TryGetProperty("commit", out var commit) && commit.GetBoolean()) App.Settings.Save();
                     if (wasEnabled != tuning.Enabled) App.RaiseStatusChanged();
-                    webView.CoreWebView2.PostWebMessageAsJson(JsonSerializer.Serialize(new { type = "eqPreamp", preampDb = App.Equaliser.PreampDb }));
+                    webView.CoreWebView2.PostWebMessageAsJson(JsonSerializer.Serialize(new { type = "eqPreamp", autoPreampDb = App.Equaliser.AutoPreampDb }));
                     break;
                 case "dragWindow": ReleaseCapture(); SendMessage(Handle, 0xA1 /*WM_NCLBUTTONDOWN*/, (IntPtr)2 /*HTCAPTION*/, IntPtr.Zero); webView.Focus(); break;
                 case "close": Close(); break;

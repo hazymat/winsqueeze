@@ -17,7 +17,7 @@ struct eq_win_t {
 	u32_t rate;               // sample rate the coefficients were designed for
 	u32_t stages;             // biquads per channel
 	float preamp;             // linear gain before the filters (headroom for boosts)
-	float reserved;
+	float limiter_low;        // lowest limiter gain since WinSqueeze last reset it to 1 (its CLIP lamp)
 	float coeffs[2][EQ_MAX_STAGES][5]; // per channel: b0 b1 b2 a1 a2 (a0 = 1)
 };
 
@@ -47,6 +47,7 @@ void eq_process(s32_t *samples, frames_t frames, unsigned rate) {
 	if (!active || active_rate != rate) return;
 	const double ceiling = 0.977; // -0.2 dBFS
 	const double release = 1.0 - exp(-1.0 / (0.15 * rate));
+	double block_low = 1.0;
 	while (frames--) {
 		double filtered[2];
 		for (int channel = 0; channel < 2; channel++) {
@@ -63,13 +64,14 @@ void eq_process(s32_t *samples, frames_t frames, unsigned rate) {
 		// Only peaks that would clip are pulled down; below the ceiling the gain recovers to 1 and the signal is untouched
 		double peak = fabs(filtered[0]) > fabs(filtered[1]) ? fabs(filtered[0]) : fabs(filtered[1]);
 		limiter_gain += (1.0 - limiter_gain) * release;
-		if (peak * limiter_gain > ceiling) limiter_gain = ceiling / peak;
+		if (peak * limiter_gain > ceiling) { limiter_gain = ceiling / peak; if (limiter_gain < block_low) block_low = limiter_gain; }
 		for (int channel = 0; channel < 2; channel++) {
 			double value = filtered[channel] * limiter_gain * 2147483648.0;
 			samples[channel] = value >= 2147483647.0 ? 0x7fffffff : value <= -2147483648.0 ? (s32_t)0x80000000 : (s32_t)value;
 		}
 		samples += 2;
 	}
+	if (block_low < eq_map->limiter_low) eq_map->limiter_low = (float)block_low;
 }
 
 void eq_init(u8_t *mac) {
