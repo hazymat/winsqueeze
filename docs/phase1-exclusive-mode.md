@@ -1,11 +1,11 @@
 # Phase 1: WASAPI exclusive mode check
 
-Tested 5 Nov 2026 on flanders with the AudioQuest DragonFly Black v1.5 against Lyrion at 10.1.1.44, using the pinned `squeezelite-ffmpeg-x64.exe` 2.0.0-1610.
+Tested 5 Nov 2026 on a Windows PC with the AudioQuest DragonFly Black v1.5 against a local Lyrion server, using the pinned `squeezelite-ffmpeg-x64.exe` 2.0.0-1610.
 
 ## Binary
 
 - Exclusive mode is built in: `-a <latency_ms>:<exclusive 0|1>` (Windows PortAudio build, `paWinWasapiExclusive`).
-- Output device is matched by prefix on `"<name> [<host API>]"`, so name it as `"Speakers (AudioQuest DragonFly Black v1.5) [Windows WASAPI]"`, never by index (index was 10 on flanders).
+- Output device is matched by prefix on `"<name> [<host API>]"`, so name it as `"Speakers (AudioQuest DragonFly Black v1.5) [Windows WASAPI]"`, never by index (the index differs from PC to PC).
 - Needs `VCRUNTIME140.dll` (VC++ 2015–2022 x64 runtime). The installer must ship it.
 - No visualiser/level export on Windows (`VISEXPORT` is Linux/macOS only). Meters need a small patch (Phase 5).
 
@@ -14,8 +14,8 @@ Tested 5 Nov 2026 on flanders with the AudioQuest DragonFly Black v1.5 against L
 | Run | Result |
 | --- | --- |
 | Exclusive, `-a 40:1` | DAC locks at 44.1 kHz (green LED) but the stream stops and reopens about every 10 s; no audible output |
-| Exclusive, `-a 200:1` | Plays cleanly at 44.1 kHz, 16- and 24-bit FLAC; heard by Mat, LED green |
-| Exclusive, `-a 200:1`, 96/24 test tone | DAC switches to 96 kHz (LED magenta), tone heard by Mat |
+| Exclusive, `-a 200:1` | Plays cleanly at 44.1 kHz, 16- and 24-bit FLAC; audible, LED green |
+| Exclusive, `-a 200:1`, 96/24 test tone | DAC switches to 96 kHz (LED magenta), tone audible |
 | Shared, `-a 40:0` | Fails: "Invalid sample rate" repeatedly. Squeezelite doesn't resample, so shared mode only works when the track rate matches the Windows mixer rate |
 
 - In exclusive mode the DragonFly reports 44100, 48000, 88200 and 96000. Squeezelite tells the server `MaxSampleRate=96000`.
