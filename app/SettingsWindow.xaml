@@ -12,6 +12,12 @@
         <CheckBox x:Name="startWithWindowsBox" Content="Start with Windows" />
         <CheckBox x:Name="startMinimisedBox" Content="Start minimised to tray" />
         <CheckBox x:Name="closeHidesBox" Content="Close (X) hides to tray and keeps playing (otherwise it quits)" />
+        <TextBlock Style="{StaticResource Label}" Text="When another Squeezelite is running at launch" Margin="0,16,0,3" />
+        <ComboBox x:Name="otherSqueezeliteCombo" Width="320" HorizontalAlignment="Left">
+          <ComboBoxItem Content="Ask me" Tag="Ask" />
+          <ComboBoxItem Content="Always stop it" Tag="Stop" />
+          <ComboBoxItem Content="Leave it running" Tag="Leave" />
+        </ComboBox>
         <TextBlock Style="{StaticResource Quiet}" Text="Minimise to tray, remember window position and language arrive with the window modes in Phase 5." Margin="0,16,0,0" />
       </StackPanel>
     </TabItem>

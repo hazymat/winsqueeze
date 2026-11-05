@@ -212,6 +212,8 @@ Chosen direction: **Frosted Dark**, frosted glass meets Squeezebox hardware. iOS
 - Mouse wheel over the icon: volume.
 - Tooltip: current track and artist.
 
+**Other Squeezelite instances:** at launch, WinSqueeze looks for any other Squeezelite running on the PC, even one whose exe has been renamed. Candidates are processes connected to a server's player port (TCP 3483) or with "squeezelite" in their name, confirmed by Squeezelite's own banner text inside the exe. For each one it offers to stop it, and if a Startup-folder shortcut or HKCU Run entry launches it at login, to switch that off (moved aside, never deleted). Settings › General sets this to Ask (default), Always stop or Leave it running.
+
 **Close (X):** hides to tray and keeps playing (default). The first time, a one-off toast explains this. Quit only from the tray menu or File ▸ Quit. Configurable in settings.
 
 **Media integration:**
@@ -229,7 +231,7 @@ A separate Settings window with tabs, in standard Windows style. Changes apply i
 
 | Tab | Settings |
 | --- | --- |
-| General | Start with Windows; start minimised to tray; minimise to tray when minimised; close (X) hides to tray / quits; remember window position; language |
+| General | Start with Windows; start minimised to tray; other Squeezelite at launch (ask / always stop / leave); minimise to tray when minimised; close (X) hides to tray / quits; remember window position; language |
 | Servers | Server finder (auto-discovery); profiles list (name, address, port, optional username/password); default profile; test connection |
 | Audio | Output device; driver type; exclusive mode on/off; volume mode (fixed / digital); player name (defaults to the computer name); extra Squeezelite arguments (advanced); fidelity warnings |
 | Library & cache | Album source (tags / folders); contributor grouping (any credit / album artist text only); name separators; refresh interval; Refresh now; Rebuild cache; cache size and location; clear art cache |

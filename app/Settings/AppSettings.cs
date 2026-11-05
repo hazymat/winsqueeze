@@ -40,7 +40,10 @@ public class GeneralSettings
     public bool StartMinimised { get; set; }
     public bool CloseHidesToTray { get; set; } = true;
     public bool CloseToTrayTipShown { get; set; }
+    public OtherSqueezeliteAction OtherSqueezelite { get; set; } = OtherSqueezeliteAction.Ask;
 }
+
+public enum OtherSqueezeliteAction { Ask, Stop, Leave }
 
 public class AppSettings
 {
@@ -52,7 +55,7 @@ public class AppSettings
 
     [JsonIgnore] public ServerProfile? ActiveProfile => Profiles.FirstOrDefault(profile => profile.Id == DefaultProfileId) ?? Profiles.FirstOrDefault();
 
-    static readonly JsonSerializerOptions jsonOptions = new() { WriteIndented = true };
+    static readonly JsonSerializerOptions jsonOptions = new() { WriteIndented = true, Converters = { new JsonStringEnumConverter() } };
 
     public static AppSettings Load()
     {

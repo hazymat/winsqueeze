@@ -41,8 +41,30 @@ public partial class App : Application
         deviceChangeTimer.Tick += async (sender, args) => { deviceChangeTimer.Stop(); await OnDevicesChangedAsync(); };
         if (!(Settings.General.StartMinimised || startupArgs.Args.Contains("--minimised"))) mainWindow.Show();
         if (Settings.ActiveProfile is not { Host.Length: > 0 }) OpenSettings("Servers");
+        await CheckOtherPlayersAsync();
         await RefreshDevicesAsync();
         await StartPlayerAsync(false);
+    }
+
+    // Another Squeezelite (even renamed) can hold the output device and shows up as a second player
+    async Task CheckOtherPlayersAsync()
+    {
+        var otherAction = Settings.General.OtherSqueezelite;
+        if (otherAction == OtherSqueezeliteAction.Leave) return;
+        var otherPlayers = await Task.Run(() => OtherPlayerDetector.Find(0));
+        var problems = new List<string>();
+        foreach (var otherPlayer in otherPlayers)
+        {
+            var startupText = otherPlayer.StartupEntries.Count == 0 ? "" : $"\n\nIt starts at login via: {string.Join(", ", otherPlayer.StartupEntries.Select(entry => entry.Description))}.";
+            var choice = otherAction == OtherSqueezeliteAction.Stop ? MessageBoxResult.Yes : MessageBox.Show(
+                $"Another Squeezelite is running:\n{otherPlayer.ExePath} (process {otherPlayer.ProcessId})\n\nIt can hold your output device and shows up as a second player on the server.{startupText}\n\n" +
+                (otherPlayer.StartupEntries.Count == 0 ? "Stop it now?" : "Yes: stop it and switch off its startup entry (moved aside, not deleted).\nNo: stop it this time only.\nCancel: leave it running."),
+                "WinSqueeze", otherPlayer.StartupEntries.Count == 0 ? MessageBoxButton.YesNo : MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+            if (choice == MessageBoxResult.Yes) problems.AddRange(OtherPlayerDetector.Stop(otherPlayer, otherAction == OtherSqueezeliteAction.Ask));
+            else if (choice == MessageBoxResult.No && otherPlayer.StartupEntries.Count > 0) problems.AddRange(OtherPlayerDetector.Stop(otherPlayer, false));
+        }
+        if (problems.Count > 0) MessageBox.Show(string.Join("\n\n", problems), "WinSqueeze", MessageBoxButton.OK, MessageBoxImage.Warning);
+        if (otherPlayers.Count > 0) await Task.Delay(500); // let Windows release the device
     }
 
     // Hot-plug: Windows broadcasts WM_DEVICECHANGE to top-level windows; debounce the burst
