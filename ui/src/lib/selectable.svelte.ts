@@ -4,13 +4,15 @@ import { selection, selectOnHold, rowClick, type SelectionAction } from './selec
 export type SelectableOptions = { scope: string; noun: string; actions: SelectionAction[]; enabled?: boolean; holdMs?: number }
 
 export function selectable(listElement: HTMLElement, initialOptions: SelectableOptions) {
-  listElement.dataset.rowList = '' // selected neighbours merge into one block (tokens.css)
   let options = initialOptions, pressTimer = 0, pressRow: HTMLElement | null = null, startX = 0, startY = 0, swallowClick = false
   const rows = () => Array.from(listElement.querySelectorAll('[data-select-key]')) as HTMLElement[]
   const keyOf = (row: HTMLElement) => row.dataset.selectKey ?? ''
-  const paint = () => { for (const row of rows()) row.classList.toggle('selected', selection.scope === options.scope && selection.keys.includes(keyOf(row))) }
+  // Selected neighbours merge into one block (tokens.css), but only in a single-column list: side-by-side tiles each keep their own outline
+  const markColumns = (allRows: HTMLElement[]) => { if (allRows.length > 1 && allRows[0].offsetLeft !== allRows[1].offsetLeft) delete listElement.dataset.rowList; else listElement.dataset.rowList = '' }
+  const paint = () => { const allRows = rows(); markColumns(allRows); for (const row of allRows) row.classList.toggle('selected', selection.scope === options.scope && selection.keys.includes(keyOf(row))) }
   const stopEffect = $effect.root(() => { $effect(() => { selection.scope; selection.keys; paint() }) })
   const observer = new MutationObserver(paint); observer.observe(listElement, { childList: true, subtree: true })
+  const resizeObserver = new ResizeObserver(() => markColumns(rows())); resizeObserver.observe(listElement)
 
   function cancelPress() { clearTimeout(pressTimer); pressRow?.classList.remove('pressing'); pressRow = null }
   function onPointerDown(event: PointerEvent) {
@@ -38,6 +40,6 @@ export function selectable(listElement: HTMLElement, initialOptions: SelectableO
   window.addEventListener('pointercancel', cancelPress)
   return {
     update(newOptions: SelectableOptions) { options = newOptions; paint() },
-    destroy() { stopEffect(); observer.disconnect(); listElement.removeEventListener('pointerdown', onPointerDown); listElement.removeEventListener('click', onClick, true); listElement.removeEventListener('contextmenu', onContextMenu); window.removeEventListener('pointermove', onPointerMove); window.removeEventListener('pointerup', cancelPress); window.removeEventListener('pointercancel', cancelPress) }
+    destroy() { stopEffect(); observer.disconnect(); resizeObserver.disconnect(); listElement.removeEventListener('pointerdown', onPointerDown); listElement.removeEventListener('click', onClick, true); listElement.removeEventListener('contextmenu', onContextMenu); window.removeEventListener('pointermove', onPointerMove); window.removeEventListener('pointerup', cancelPress); window.removeEventListener('pointercancel', cancelPress) }
   }
 }
