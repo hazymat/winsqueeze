@@ -137,7 +137,8 @@
           <Button x:Name="accentChooseButton" Content="Choose…" Padding="10,2" Margin="0,0,6,0" />
           <Button x:Name="accentResetButton" Content="Reset to default blue" Padding="10,2" />
         </StackPanel>
-        <CheckBox x:Name="coverAccentBox" Content="Or take it from the playing album's cover (frosted skins)" Margin="0,0,0,14" />
+        <CheckBox x:Name="coverAccentBox" Content="Or take it from the playing album's cover (frosted skins)" Margin="0,0,0,8" />
+        <CheckBox x:Name="coverBackdropBox" Content="Tint Now playing with the album cover's colours" Margin="0,0,0,14" />
         <TextBlock Style="{StaticResource Label}" Text="Glass (frosted skins with glass on)" />
         <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
           <TextBlock Text="Transparency" Width="100" VerticalAlignment="Center" />

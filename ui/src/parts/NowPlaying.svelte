@@ -1,6 +1,6 @@
 <script lang="ts">
   import { artUrl } from '../bridge'
-  import { currentTrack, openView } from '../state.svelte'
+  import { currentTrack, openView, ui } from '../state.svelte'
   import Meters from './Meters.svelte'
   import Readout from './Readout.svelte'
   import QueueView from '../views/QueueView.svelte'
@@ -11,7 +11,7 @@
 </script>
 
 <section class="now-playing">
-  {#if cover}<div class="backdrop" style:background-image={`url("${cover}")`}></div>{/if}
+  {#if cover && ui.coverBackdrop}<div class="backdrop" style:background-image={`url("${cover}")`}></div>{/if}
   <div class="layout">
     <div class="art-column">{#if cover}<img class="art" src={cover} alt="" />{:else}<div class="art empty">♪</div>{/if}</div>
     <div class="meta">

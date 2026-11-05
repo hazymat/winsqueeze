@@ -99,6 +99,7 @@ public class GeneralSettings
     public string AccentColour { get; set; } = ""; // #rrggbb chosen in Appearance; empty = the skin's own (blue)
     public int GlassTransparency { get; set; } = -1; // 0..100 % see-through for the glass tint; -1 = the skin's default
     public int GlassTintHue { get; set; } = 0; // 0 = neutral, 1..360 = colour the glass
+    public bool CoverBackdrop { get; set; } = true; // Now playing's blurred album-art colours behind the page
     public bool CoverAccent { get; set; } // accent colour taken from the playing cover (off by default) // auto | dark | light | classic | amber (SPEC.md › Skins)
     [JsonIgnore] public bool Frameless { get => !ShowTitleBar; set => ShowTitleBar = !value; }
     public string LastRunVersion { get; set; } = "";
