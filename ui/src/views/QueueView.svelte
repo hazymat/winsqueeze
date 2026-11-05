@@ -1,45 +1,93 @@
 <script lang="ts">
   import { command, live, artUrl } from '../bridge'
   import { app, formatTime, toast, newPlaylist } from '../state.svelte'
-  let { compact = false }: { compact?: boolean } = $props()
-  let dragFrom = $state<number | null>(null)
-  const queue = $derived<any[]>(app.nowPlaying?.playlist_loop ?? [])
+  import { sortable, planMoves, blockOrder } from '../lib/sortable'
+  import { isSelected, rowClick, selectOnHold, selection, type SelectionAction } from '../lib/selection.svelte'
+  // The player's queue: hold to reorder (several at once when chosen), choose rows to remove or play next
+  const scope = 'queue'
+  let localQueue = $state<any[] | null>(null)
+  let holdLocalUntil = 0
+  const serverQueue = $derived<any[]>(app.nowPlaying?.playlist_loop ?? [])
+  // Show our own change straight away; the server's poll catches up a moment later
+  $effect(() => { serverQueue; if (Date.now() > holdLocalUntil) localQueue = null })
+  const queue = $derived(localQueue ?? serverQueue)
   const currentIndex = $derived(Number(app.nowPlaying?.playlist_cur_index ?? -1))
-  const remaining = $derived(queue.filter(item => Number(item['playlist index']) >= currentIndex).reduce((total, item) => total + Number(item.duration || 0), 0) - Number(app.nowPlaying?.time ?? 0))
-  const drop = (toIndex: number) => { if (dragFrom !== null && dragFrom !== toIndex) command('playlist', 'move', dragFrom, toIndex); dragFrom = null }
-  async function saveQueue() { const name = prompt('Save queue as Lyrion playlist named:'); if (!name) return; await live(['playlist', 'save', name], true); toast(`Saved queue as “${name}”`) }
+  const remaining = $derived(queue.filter((item, position) => position >= currentIndex).reduce((total, item) => total + Number(item.duration || 0), 0) - Number(app.nowPlaying?.time ?? 0))
+  const keys = $derived(queue.map((item, position) => String(position)))
+  const selectedPositions = () => selection.scope === scope ? selection.keys.map(Number).sort((first, second) => first - second) : []
+
+  async function applyOrder(finalOrder: number[], label: string, undoable = true) {
+    const before = queue.slice()
+    localQueue = finalOrder.map(position => before[position]); holdLocalUntil = Date.now() + 4000
+    for (const [from, to] of planMoves(before.map((item, position) => position), finalOrder)) await live(['playlist', 'move', from, to], true)
+    holdLocalUntil = Date.now() + 1500
+    if (undoable) toast(label, () => { const inverse = finalOrder.map((unused, position) => finalOrder.indexOf(position)); applyOrder(inverse, 'Order restored', false) })
+  }
+  function onMove(from: number, to: number) {
+    const selected = selectedPositions()
+    const finalOrder = blockOrder(queue.length, selected.includes(from) ? selected : [from], from, to)
+    applyOrder(finalOrder, selected.includes(from) && selected.length > 1 ? `Moved ${selected.length} tracks` : `Moved “${queue[from]?.title}”`)
+    if (selected.includes(from)) selection.keys = selected.map(position => String(finalOrder.indexOf(position)))
+  }
+  async function remove(positionKeys: string[]) {
+    const positions = positionKeys.map(Number).sort((first, second) => second - first), removed = positions.map(position => ({ position, item: queue[position] }))
+    localQueue = queue.filter((item, position) => !positions.includes(position)); holdLocalUntil = Date.now() + 4000
+    for (const position of positions) await live(['playlist', 'delete', position], true)
+    holdLocalUntil = Date.now() + 1500
+    toast(removed.length === 1 ? `Removed “${removed[0].item?.title}”` : `Removed ${removed.length} tracks`, async () => {
+      // Put them back where they were: append each, then move it into place (lowest position first)
+      for (const { position, item } of removed.slice().reverse()) { if (Number(item?.id) > 0) { await live(['playlistcontrol', 'cmd:add', `track_id:${item.id}`], true); const status = await live(['status', '-', 1], true); await live(['playlist', 'move', Number(status?.playlist_tracks ?? 1) - 1, position], true) } }
+      toast('Tracks restored')
+    })
+  }
+  function playNext(positionKeys: string[]) {
+    const positions = positionKeys.map(Number).sort((first, second) => first - second).filter(position => position !== currentIndex)
+    const order = queue.map((item, position) => position).filter(position => !positions.includes(position))
+    const after = order.indexOf(currentIndex) + 1
+    applyOrder(order.slice(0, after).concat(positions, order.slice(after)), positions.length === 1 ? `“${queue[positions[0]]?.title}” plays next` : `${positions.length} tracks play next`)
+  }
+  const actions: SelectionAction[] = [
+    { label: 'Play now', single: true, key: 'Enter', run: positionKeys => command('playlist', 'index', Number(positionKeys[0])) },
+    { label: 'Play next', run: playNext },
+    { label: 'New playlist from these', run: positionKeys => newPlaylist('Untitled playlist', positionKeys.map(Number).sort((first, second) => first - second).map(position => queue[position]).map(item => ({ id: Number(item.id), title: item.title, artist: item.artist ?? '', duration: Number(item.duration || 0) }))) },
+    { label: 'Remove', key: 'Delete', danger: true, run: remove }
+  ]
+  async function saveQueue() { const name = prompt('Save the queue as a Lyrion playlist named:'); if (!name) return; await live(['playlist', 'save', name], true); toast(`Saved queue as “${name}”`) }
   const startPlaylistFromQueue = () => newPlaylist('Untitled playlist', queue.map(item => ({ id: Number(item.id), title: item.title, artist: item.artist ?? '', duration: Number(item.duration || 0) })))
+  const clearQueue = () => { const ids = queue.map(item => Number(item.id)).filter(id => id > 0); command('playlist', 'clear'); toast('Queue cleared', () => ids.length && live(['playlistcontrol', 'cmd:add', `track_id:${ids.join(',')}`], true)) }
 </script>
 
-{#if !compact}<div class="head"><h2>Now playing</h2><span class="quiet">{queue.length} tracks · {formatTime(Math.max(remaining, 0))} remaining</span>
-  <button class="ghost" onclick={saveQueue}>Save as playlist</button><button class="ghost" onclick={startPlaylistFromQueue}>Edit as new playlist</button><button class="ghost" onclick={() => command('playlist', 'clear')}>Clear</button></div>{/if}
+<div class="head">
+  <h3>Up next</h3><span class="quiet">{queue.length} tracks · {formatTime(Math.max(remaining, 0))} left</span>
+  <div class="tools"><button class="ghost" onclick={saveQueue}>Save</button><button class="ghost" onclick={startPlaylistFromQueue}>Edit as playlist</button><button class="ghost" onclick={clearQueue}>Clear</button></div>
+</div>
 {#if !queue.length}<p class="quiet">The queue is empty.</p>{/if}
-<div class="queue">
-  {#each queue as item (item['playlist index'] + ':' + item.id)}
-    {@const index = Number(item['playlist index'])}
-    <div class="item" class:current={index === currentIndex} draggable="true" role="listitem" ondragstart={() => dragFrom = index} ondragover={(event) => event.preventDefault()} ondrop={() => drop(index)}>
-      <button class="main" onclick={() => command('playlist', 'index', index)}>
-        {#if !compact}{#if item.coverid}<img src={artUrl(item.coverid, 80)} alt="" loading="lazy" />{:else}<span class="glyph">♪</span>{/if}{/if}
-        <span class="text"><span class="title">{item.title}</span><span class="quiet">{item.artist}{item.album ? ` · ${item.album}` : ''}</span></span>
-        <span class="quiet">{formatTime(Number(item.duration))}</span>
-      </button>
-      <button class="remove" onclick={() => command('playlist', 'delete', index)} aria-label="Remove">✕</button>
-    </div>
+<div class="queue" use:sortable={{ onMove, onHold: position => selectOnHold(scope, String(position), actions, 'track') }}>
+  {#each queue as item, position (position + ':' + item.id)}
+    <button data-sort-row class="item" class:current={position === currentIndex} class:selected={isSelected(scope, String(position))}
+      onclick={(event) => { if (!rowClick(event, scope, String(position), keys, actions, 'track')) command('playlist', 'index', position) }}>
+      {#if item.coverid}<img src={artUrl(item.coverid, 80)} alt="" loading="lazy" draggable="false" />{:else}<span class="glyph">♪</span>{/if}
+      <span class="text"><span class="title">{item.title}</span><span class="quiet">{item.artist}{item.album ? ` · ${item.album}` : ''}</span></span>
+      {#if position === currentIndex}<span class="playing" aria-label="Playing">▶</span>{/if}
+      <span class="quiet time">{formatTime(Number(item.duration))}</span>
+    </button>
   {/each}
 </div>
 
 <style>
-  .head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
-  h2 { margin: 0; font-size: 24px; }
-  .queue { display: flex; flex-direction: column; }
-  .item { display: flex; align-items: center; border-radius: 8px; }
+  .head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+  h3 { margin: 0; color: var(--fg); font-size: 16px; }
+  .tools { display: flex; gap: 6px; margin-left: auto; }
+  .tools .ghost { padding: 4px 10px; font-size: 12px; }
+  .queue { display: flex; flex-direction: column; gap: 2px; }
+  .item { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 52px; background: none; border: 0; border-radius: 10px; color: var(--fg); padding: 6px 10px; cursor: pointer; font: inherit; text-align: left; }
   .item:hover { background: var(--hover); }
   .item.current { background: var(--accent-soft); }
-  .main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; background: none; border: 0; color: var(--fg); padding: 5px 8px; cursor: pointer; font: inherit; text-align: left; }
-  .main img, .glyph { width: 36px; height: 36px; border-radius: 5px; object-fit: cover; display: grid; place-items: center; background: var(--panel-strong); flex-shrink: 0; }
+  img, .glyph { width: 40px; height: 40px; border-radius: 6px; object-fit: cover; display: grid; place-items: center; background: var(--panel-strong); flex-shrink: 0; }
   .text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-  .title, .text .quiet { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .remove { background: none; border: 0; color: var(--fg-quiet); cursor: pointer; padding: 0 10px; opacity: 0; }
-  .item:hover .remove { opacity: 1; }
+  .text span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .title { font-weight: 500; }
   .quiet { color: var(--fg-quiet); font-size: 12px; }
+  .playing { color: var(--accent); font-size: 11px; }
+  .time { font-variant-numeric: tabular-nums; }
 </style>

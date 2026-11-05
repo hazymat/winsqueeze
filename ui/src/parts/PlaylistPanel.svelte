@@ -1,13 +1,23 @@
 <script lang="ts">
   import { request, sendToShell } from '../bridge'
   import { playlist, saveDraft, undoLastAdd, toast, formatTime } from '../state.svelte'
+  import { sortable, blockOrder } from '../lib/sortable'
+  import { isSelected, rowClick, selectOnHold, selection, type SelectionAction } from '../lib/selection.svelte'
   // Playlist builder (SPEC.md › Playlist builder): docked panel, collapses to a chip, saves to Lyrion
-  let dragFrom = $state<number | null>(null)
+  const scope = 'builder'
   let asFavourite = $state(true)
   let saving = $state(false)
   const totalSeconds = $derived(playlist.items.reduce((total, item) => total + Number(item.duration || 0), 0))
-  const drop = (toIndex: number) => { if (dragFrom === null || dragFrom === toIndex) return; const items = playlist.items.slice(); const moved = items.splice(dragFrom, 1)[0]; items.splice(toIndex, 0, moved); playlist.items = items; dragFrom = null; saveDraft() }
-  const remove = (index: number) => { playlist.items = playlist.items.filter((item, itemIndex) => itemIndex !== index); playlist.history = []; saveDraft() }
+  const keys = $derived(playlist.items.map((item, index) => String(index)))
+  function setItems(items: typeof playlist.items, label: string) { const before = playlist.items; playlist.items = items; playlist.history = []; saveDraft(); toast(label, () => { playlist.items = before; saveDraft() }) }
+  function onMove(from: number, to: number) {
+    const selected = selection.scope === scope ? selection.keys.map(Number) : []
+    const order = blockOrder(playlist.items.length, selected.includes(from) ? selected : [from], from, to)
+    setItems(order.map(index => playlist.items[index]), 'Moved')
+    if (selected.includes(from)) selection.keys = selected.map(index => String(order.indexOf(index)))
+  }
+  const remove = (indexKeys: string[]) => { const indexes = indexKeys.map(Number); setItems(playlist.items.filter((item, index) => !indexes.includes(index)), indexes.length === 1 ? `Removed “${playlist.items[indexes[0]]?.title}”` : `Removed ${indexes.length} tracks`) }
+  const actions: SelectionAction[] = [{ label: 'Remove', key: 'Delete', danger: true, run: remove }]
   const preview = () => sendToShell({ type: 'playTracks', ids: playlist.items.map(item => item.id), mode: 'load', start: 0 })
   function close() { playlist.open = false; playlist.items = []; playlist.history = []; saveDraft() }
   async function save() {
@@ -32,14 +42,13 @@
         <button class="icon" onclick={() => playlist.collapsed = true} title="Collapse" aria-label="Collapse">⌄</button>
       </div>
       <div class="quiet summary">{playlist.items.length} tracks · {formatTime(totalSeconds)}{#if playlist.history.length}<button class="link" onclick={undoLastAdd}>Undo last add</button>{/if}</div>
-      <div class="items">
+      <div class="items" use:sortable={{ onMove, onHold: index => selectOnHold(scope, String(index), actions, 'track') }}>
         {#if !playlist.items.length}<p class="quiet">Use ＋ on albums and tracks to add them here.</p>{/if}
         {#each playlist.items as item, index (index + ':' + item.id)}
-          <div class="item" draggable="true" role="listitem" ondragstart={() => dragFrom = index} ondragover={(event) => event.preventDefault()} ondrop={() => drop(index)}>
-            <span class="grip">⋮⋮</span>
+          <div data-sort-row class="item" class:selected={isSelected(scope, String(index))} role="listitem" onclick={(event) => rowClick(event, scope, String(index), keys, actions, 'track')}>
             <span class="text"><span class="title">{item.title}</span><span class="quiet">{item.artist}</span></span>
             <span class="quiet">{formatTime(item.duration)}</span>
-            <button class="icon" onclick={() => remove(index)} aria-label="Remove">✕</button>
+            <button class="icon no-hold" onclick={(event) => { event.stopPropagation(); remove([String(index)]) }} aria-label="Remove">✕</button>
           </div>
         {/each}
       </div>
@@ -60,9 +69,8 @@
   .summary { font-size: 12px; display: flex; gap: 10px; }
   .link { background: none; border: 0; color: var(--accent); cursor: pointer; padding: 0; font: inherit; }
   .items { flex: 1; overflow-y: auto; min-height: 0; }
-  .item { display: flex; align-items: center; gap: 6px; padding: 4px; border-radius: 6px; cursor: grab; }
+  .item { display: flex; align-items: center; gap: 6px; padding: 6px; min-height: 40px; box-sizing: border-box; border-radius: 8px; cursor: default; }
   .item:hover { background: var(--hover); }
-  .grip { color: var(--fg-quiet); font-size: 10px; }
   .text { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 13px; }
   .text span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .quiet { color: var(--fg-quiet); font-size: 12px; }

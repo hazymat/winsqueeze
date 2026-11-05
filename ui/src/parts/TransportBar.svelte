@@ -1,6 +1,6 @@
 <script lang="ts">
   import { command, sendToShell, artUrl } from '../bridge'
-  import { app, ui, currentTrack, formatTime } from '../state.svelte'
+  import { app, ui, nav, openSection, currentTrack, formatTime } from '../state.svelte'
   import Meters from './Meters.svelte'
   import Readout from './Readout.svelte'
   import Icon from './Icon.svelte'
@@ -9,6 +9,9 @@
   let now = $state(Date.now())
   let volumeOpen = $state(false)
   $effect(() => { const ticker = setInterval(() => now = Date.now(), 250); return () => clearInterval(ticker) })
+  // The art opens Now playing; again goes back to where you were
+  let previousSection = 'artists'
+  function showNowPlaying() { if (nav.section === 'queue' && !nav.stack.length) openSection(previousSection); else { previousSection = nav.section === 'queue' ? previousSection : nav.section; openSection('queue') } }
   const status = $derived(app.nowPlaying)
   const track = $derived(currentTrack())
   const playing = $derived(status?.mode === 'play')
@@ -29,7 +32,7 @@
 </script>
 
 <footer class="transport" class:mini>
-  <button class="now" onclick={() => ui.expanded = !ui.expanded} title="Now playing">
+  <button class="now" onclick={showNowPlaying} title="Now playing">
     {#if track?.coverid}<img src={artUrl(track.coverid, 120)} alt="" />{:else}<span class="no-art">♪</span>{/if}
     <span class="text"><span class="title">{track?.title ?? 'Nothing playing'}</span><span class="artist">{track?.artist ?? (ownSelected ? app.status?.message ?? '' : '')}</span></span>
   </button>

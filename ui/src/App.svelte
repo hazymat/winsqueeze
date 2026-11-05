@@ -1,6 +1,6 @@
 <script lang="ts">
   import { sendToShell, onShellMessage, request, command } from './bridge'
-  import { app, nav, ui, playlist, openSection, back, currentView, newPlaylist, undoLastAdd, writeSetting, readSetting } from './state.svelte'
+  import { app, nav, ui, playlist, openSection, back, currentView, newPlaylist, undoToast, writeSetting, readSetting } from './state.svelte'
   import TransportBar from './parts/TransportBar.svelte'
   import NowPlaying from './parts/NowPlaying.svelte'
   import PlaylistPanel from './parts/PlaylistPanel.svelte'
@@ -10,8 +10,10 @@
   import FolderView from './views/FolderView.svelte'
   import SearchView from './views/SearchView.svelte'
   import FavouritesView from './views/FavouritesView.svelte'
-  import QueueView from './views/QueueView.svelte'
+  import ActionStrip from './parts/ActionStrip.svelte'
+  import { sortable } from './lib/sortable'
   import Icon from './parts/Icon.svelte'
+  import { selection } from './lib/selection.svelte'
   import PlaylistsView from './views/PlaylistsView.svelte'
 
   let searchBox = $state<HTMLInputElement>()
@@ -25,12 +27,10 @@
   let sectionOrder = $state<string[]>(JSON.parse(readSetting('sectionOrder', '[]')))
   const sections = $derived(allSections.slice().sort((first, second) => rank(first[0]) - rank(second[0])))
   const rank = (key: string) => { const position = sectionOrder.indexOf(key); return position < 0 ? 100 + allSections.findIndex(section => section[0] === key) : position }
-  let draggedSection = $state<string | null>(null)
-  function dropSection(targetKey: string) {
-    if (!draggedSection || draggedSection === targetKey) return
-    const keys = sections.map(section => section[0]).filter(key => key !== draggedSection)
-    keys.splice(keys.indexOf(targetKey), 0, draggedSection)
-    sectionOrder = keys; writeSetting('sectionOrder', JSON.stringify(keys)); draggedSection = null
+  function moveSection(from: number, to: number) {
+    const keys = sections.map(section => section[0]), moved = keys.splice(from, 1)[0]
+    keys.splice(to, 0, moved)
+    sectionOrder = keys; writeSetting('sectionOrder', JSON.stringify(keys))
   }
   let hiddenSections = $state<string[]>(JSON.parse(readSetting('hiddenSections', '[]')))
   let customising = $state(false)
@@ -72,8 +72,8 @@
     else if (event.ctrlKey && event.key === 'ArrowDown') { event.preventDefault(); command('mixer', 'volume', '-5') }
     else if (event.ctrlKey && event.key.toLowerCase() === 'f') { event.preventDefault(); searchBox?.focus(); searchBox?.select() }
     else if (event.ctrlKey && event.key.toLowerCase() === 'n') { event.preventDefault(); if (!playlist.open) newPlaylist(); else playlist.collapsed = false }
-    else if (event.ctrlKey && event.key.toLowerCase() === 'z' && !typing && playlist.history.length) { event.preventDefault(); undoLastAdd() }
-    else if (event.key === 'Escape') { if (ui.expanded) ui.expanded = false; else if (ui.search) ui.search = ''; else if (nav.stack.length) back() }
+    else if (event.ctrlKey && event.key.toLowerCase() === 'z' && !typing && ui.toast?.undo) { event.preventDefault(); undoToast() }
+    else if (event.key === 'Escape' && !selection.keys.length) { if (ui.search) ui.search = ''; else if (nav.stack.length) back() }
     else if (event.altKey && event.key === 'ArrowLeft' && nav.stack.length) { event.preventDefault(); back() }
   }
 </script>
@@ -87,14 +87,16 @@
     {#if !vertical}
       <nav class="sidebar">
         <div class="brand" role="presentation" onmousedown={dragWindow}>WinSqueeze</div>
+        <div class="section-list" use:sortable={{ onMove: moveSection, holdMs: 150, enabled: customising }}>
         {#each customising ? sections : visibleSections as [key, label, glyph] (key)}
           {#if customising}
-            <label class="section customise" draggable="true" ondragstart={() => draggedSection = key} ondragover={(event) => event.preventDefault()} ondrop={() => dropSection(key)} title="Drag to reorder"><span class="grip">⋮⋮</span><input type="checkbox" checked={!hiddenSections.includes(key)} onchange={() => toggleSection(key)} /><span class="glyph"><Icon name={glyph} /></span>{label}</label>
+            <label class="section customise" data-sort-row title="Hold and drag to reorder"><span class="grip">⋮⋮</span><input type="checkbox" checked={!hiddenSections.includes(key)} onchange={() => toggleSection(key)} /><span class="glyph"><Icon name={glyph} /></span>{label}</label>
           {:else}
             <button class="section" class:on={nav.section === key && !everything} onclick={() => openSection(key)}><span class="glyph"><Icon name={glyph} /></span>{label}</button>
+            {#if key === visibleSections[0][0]}<div class="divider"></div>{/if}
           {/if}
-          {#if !customising && key === visibleSections[0][0]}<div class="divider"></div>{/if}
         {/each}
+        </div>
         <button class="customise-toggle" onclick={() => customising = !customising}>{customising ? 'Done (drag to reorder, tick to show)' : 'Customise sidebar'}</button>
         <button class="section new" onclick={() => playlist.open ? (playlist.collapsed = false) : newPlaylist()}><span class="glyph"><Icon name="plus" /></span>New playlist</button>
         <div class="spacer"></div>
@@ -127,6 +129,7 @@
         {/if}
       </header>
       <div class="body">
+        {#if view.kind === 'queue' && !everything}<main class="content now-playing-host"><NowPlaying /></main>{:else}
         <main class="content">
           {#if everything}
             <SearchView />
@@ -146,13 +149,11 @@
             <PlaylistsView />
           {:else if view.kind === 'playlist'}
             {#key view.key}<PlaylistsView playlistId={view.key} title={view.title} />{/key}
-          {:else if view.kind === 'queue'}
-            <QueueView />
           {/if}
-        </main>
+        </main>{/if}
         <PlaylistPanel />
-        {#if ui.expanded}<NowPlaying />{/if}
       </div>
+      <ActionStrip />
       <TransportBar />
       {#if vertical}
         <nav class="tabbar">
@@ -165,9 +166,7 @@
   </div>
 {/if}
 
-{#if ui.toast}
-  <div class="toast" role="status">{ui.toast.text}{#if ui.toast.undo}<button onclick={() => { ui.toast?.undo?.(); ui.toast = null }}>Undo</button>{/if}</div>
-{/if}
+
 
 <style>
   .shell { display: grid; grid-template-columns: 210px minmax(0, 1fr); height: 100vh; }
@@ -177,6 +176,7 @@
   .section { display: flex; align-items: center; gap: 10px; background: none; border: 0; color: var(--fg); padding: 8px 10px; border-radius: 8px; cursor: pointer; font: inherit; text-align: left; }
   .section:hover { background: var(--hover); }
   .section.on { background: var(--accent-soft); color: var(--accent); }
+  .section-list { display: flex; flex-direction: column; gap: 2px; }
   .customise { cursor: grab; } .grip { color: var(--fg-quiet); font-size: 10px; margin-right: -6px; } .customise input { margin: 0 -4px 0 0; accent-color: var(--accent); }
   .customise-toggle { align-self: flex-start; background: none; border: 0; color: var(--fg-quiet); font: inherit; font-size: 11px; padding: 4px 10px; cursor: pointer; opacity: 0.7; }
   .customise-toggle:hover { opacity: 1; color: var(--accent); }
@@ -203,12 +203,12 @@
   .scope button.on { background: var(--accent-soft); color: var(--accent); }
   .body { flex: 1; display: flex; min-height: 0; position: relative; }
   .content { flex: 1; overflow-y: auto; padding: 4px 20px 24px; min-width: 0; }
+  .content.now-playing-host { padding: 0; overflow: hidden; }
+  @media (max-width: 900px) { .content.now-playing-host { overflow-y: auto; } }
   .tabbar { display: flex; justify-content: space-around; background: var(--glass); backdrop-filter: blur(var(--blur)); border-top: 1px solid var(--line); }
   .tabbar button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; background: none; border: 0; color: var(--fg-quiet); font: inherit; font-size: 10px; padding: 6px 0; cursor: pointer; min-width: 0; }
   .tabbar button.on { color: var(--accent); }
   .tab-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
   @media (max-width: 480px) { .tab-label { display: none; } .tabbar .glyph { font-size: 18px; } }
   .mini-shell { height: 100vh; background: var(--glass); }
-  .toast { position: fixed; left: 50%; bottom: 100px; transform: translateX(-50%); z-index: 50; display: flex; gap: 14px; align-items: center; background: var(--panel-solid); color: var(--fg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 16px; box-shadow: 0 10px 30px var(--shadow); font-size: 13px; }
-  .toast button { background: none; border: 0; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; }
 </style>

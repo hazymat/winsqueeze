@@ -9,19 +9,21 @@ export const app = $state({
   window: { glass: false, frameless: false, maximised: false }
 })
 export const nav = $state({ section: 'artists', stack: [] as View[] })
-export const ui = $state({ search: '', scope: 'list' as 'list' | 'everything', expanded: false, meterStyle: readSetting('meterStyle', 'vu'), skin: readSetting('skin', 'auto'), pinned: false, toast: null as null | { text: string; undo?: () => void } })
+export const ui = $state({ search: '', scope: 'list' as 'list' | 'everything', expanded: false, meterStyle: readSetting('meterStyle', 'vu'), skin: readSetting('skin', 'auto'), pinned: false, toast: null as null | { text: string; undo?: () => void; ms: number; id: number } })
 export const playlist = $state({ open: false, collapsed: false, name: 'Untitled playlist', items: [] as PlaylistItem[], history: [] as number[] })
 
 export function readSetting(name: string, fallback: string) { try { return localStorage.getItem('ws.' + name) ?? fallback } catch { return fallback } }
 export function writeSetting(name: string, value: string) { try { localStorage.setItem('ws.' + name, value) } catch { } }
 
-export function openSection(section: string) { nav.section = section; nav.stack = []; ui.search = ''; ui.expanded = false }
+export function openSection(section: string) { nav.section = section; nav.stack = []; ui.search = '' }
 export function openView(view: View) { nav.stack = nav.stack.concat([view]); ui.search = '' }
 export function back() { nav.stack = nav.stack.slice(0, -1) }
 export const currentView = () => nav.stack.length ? nav.stack[nav.stack.length - 1] : { kind: nav.section }
 
-let toastTimer = 0
-export function toast(text: string, undo?: () => void) { ui.toast = { text, undo }; clearTimeout(toastTimer); toastTimer = window.setTimeout(() => ui.toast = null, 4000) }
+// Messages show in the action strip above the transport (ActionStrip.svelte), with a ring counting down their time
+let toastTimer = 0, toastId = 0
+export function toast(text: string, undo?: () => void) { const ms = undo ? 6000 : 2500; ui.toast = { text, undo, ms, id: ++toastId }; clearTimeout(toastTimer); toastTimer = window.setTimeout(() => ui.toast = null, ms) }
+export function undoToast() { const undo = ui.toast?.undo; ui.toast = null; undo?.() }
 
 // The current track of the selected player, from its queue
 export function currentTrack() {
