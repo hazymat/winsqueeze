@@ -19,7 +19,6 @@ public sealed class AppUpdater
     UpdateManager? readyManager;
     UpdateInfo? readyUpdate;
     bool checking;
-    DateTime lastFullCheck;
 
     public string StatusText { get; private set; } = "";
     string portableStagedPath = "", portableReadyVersion = "";
@@ -34,13 +33,12 @@ public sealed class AppUpdater
 
     public void Start()
     {
-        // Dev builds land often, so the dev channel looks every 20 s; a conditional request (304 when nothing changed) keeps that within GitHub's rate limit
+        // Dev builds land often, so the dev channel looks every 20 s. Checks read github.com's release feed, never the rate-limited API (60 calls an hour without sign-in)
         checkTimer.Tick += async (sender, args) =>
         {
             var isDev = App.Settings.General.UpdateChannel == "dev";
             checkTimer.Interval = isDev ? TimeSpan.FromSeconds(20) : TimeSpan.FromMinutes(15);
-            if (!App.Settings.General.AutoUpdate || checking) return;
-            if (!isDev || await ReleasesChangedAsync() || DateTime.Now - lastFullCheck > TimeSpan.FromMinutes(15)) await CheckNowAsync();
+            if (App.Settings.General.AutoUpdate && !checking) await CheckNowAsync();
         };
         if (App.Settings.General.UpdateChannel == "dev") checkTimer.Interval = TimeSpan.FromSeconds(20);
         checkTimer.Start();
@@ -49,18 +47,50 @@ public sealed class AppUpdater
     }
 
     // Channel feed for normal updates; a single release's assets when switching to a specific version
-    static UpdateManager CreateManager(string channel, string releaseTag = "")
+    static UpdateManager CreateManager(string channel, string releaseTag = "", bool allowDowngrade = true)
     {
         IUpdateSource updateSource = releaseTag == "" ? new GithubSource(RepoUrl, null, channel == "dev") : new SimpleWebSource($"{RepoUrl}/releases/download/{releaseTag}/");
-        return new UpdateManager(updateSource, new UpdateOptions { ExplicitChannel = channel, AllowVersionDowngrade = releaseTag != "" });
+        return new UpdateManager(updateSource, new UpdateOptions { ExplicitChannel = channel, AllowVersionDowngrade = releaseTag != "" && allowDowngrade });
     }
+
+    // Newest release tag without the API: dev reads the Atom feed (newest first, pre-releases included, conditional so unchanged answers are tiny);
+    // stable follows the /releases/latest redirect, which GitHub points at the newest non-pre-release
+    static readonly HttpClient webClient = CreateWebClient();
+    string feedEtag = "", feedTag = "";
+    async Task<string> NewestTagAsync(string channel)
+    {
+        if (channel == "dev")
+        {
+            using var feedRequest = new HttpRequestMessage(HttpMethod.Get, $"{RepoUrl}/releases.atom");
+            if (feedEtag != "") feedRequest.Headers.TryAddWithoutValidation("If-None-Match", feedEtag);
+            using var feedResponse = await webClient.SendAsync(feedRequest);
+            if (feedResponse.StatusCode == System.Net.HttpStatusCode.NotModified) return feedTag;
+            feedResponse.EnsureSuccessStatusCode();
+            var feedMatch = System.Text.RegularExpressions.Regex.Match(await feedResponse.Content.ReadAsStringAsync(), @"/releases/tag/([^""<>\s]+)");
+            feedEtag = feedResponse.Headers.ETag?.ToString() ?? ""; feedTag = feedMatch.Success ? Uri.UnescapeDataString(feedMatch.Groups[1].Value) : "";
+            return feedTag;
+        }
+        using var latestResponse = await webClient.GetAsync($"{RepoUrl}/releases/latest");
+        var location = latestResponse.Headers.Location?.ToString() ?? "";
+        var tagStart = location.LastIndexOf("/tag/", StringComparison.Ordinal);
+        return tagStart < 0 ? "" : Uri.UnescapeDataString(location[(tagStart + 5)..]);
+    }
+
+    static HttpClient CreateWebClient()
+    {
+        var client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(20) };
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("WinSqueeze");
+        return client;
+    }
+
+    static bool IsNewer(string candidate, string current) => Version.TryParse(candidate, out var candidateVersion) && Version.TryParse(current, out var currentVersion) && candidateVersion > currentVersion;
 
     static UpdateManager? SafeManager(string channel) { try { return CreateManager(channel); } catch { return null; } }
 
     public async Task CheckNowAsync()
     {
         if (checking) return;
-        checking = true; lastFullCheck = DateTime.Now;
+        checking = true;
         try
         {
             // GitHub's release feed sometimes returns a 502/504 for a moment: retry quietly before reporting a failure
@@ -82,8 +112,13 @@ public sealed class AppUpdater
             var updateManager = CreateManager(App.Settings.General.UpdateChannel);
             if (!updateManager.IsInstalled) { SetStatus("Updates work once WinSqueeze is installed with Setup.exe (this copy is running from a zip)."); return; }
             SetStatus("Checking for updates…");
+            var newestTag = await NewestTagAsync(App.Settings.General.UpdateChannel);
+            var installedVersion = updateManager.CurrentVersion?.ToString() ?? AssemblyVersion;
+            if (newestTag == "" || !IsNewer(newestTag.TrimStart('v'), installedVersion) || newestTag.TrimStart('v') == ReadyVersion) { if (ReadyVersion == "") SetStatus($"Up to date ({installedVersion}). Checked {DateTime.Now:HH:mm:ss}."); return; }
+            // That release's own Velopack feed (a plain download from github.com, not the API)
+            updateManager = CreateManager(App.Settings.General.UpdateChannel, newestTag, false);
             var foundUpdate = await updateManager.CheckForUpdatesAsync();
-            if (foundUpdate == null) { SetStatus($"Up to date ({updateManager.CurrentVersion}). Checked {DateTime.Now:HH:mm}."); return; }
+            if (foundUpdate == null) { SetStatus($"Up to date ({installedVersion}). Checked {DateTime.Now:HH:mm:ss}."); return; }
             SetStatus($"Downloading {foundUpdate.TargetFullRelease.Version}…");
             await updateManager.DownloadUpdatesAsync(foundUpdate);
             readyManager = updateManager; readyUpdate = foundUpdate;
@@ -121,23 +156,6 @@ public sealed class AppUpdater
         catch (Exception switchError) { SetStatus($"Could not switch to {release.Version}: {switchError.Message}"); }
     }
 
-    // True when the newest release changed since the last look. GitHub doesn't count 304 Not Modified answers against the hourly limit
-    string releasesEtag = "";
-    async Task<bool> ReleasesChangedAsync()
-    {
-        try
-        {
-            using var probe = new HttpRequestMessage(HttpMethod.Get, "https://api.github.com/repos/hazymat/winsqueeze/releases?per_page=1");
-            if (releasesEtag != "") probe.Headers.TryAddWithoutValidation("If-None-Match", releasesEtag);
-            using var response = await githubClient.SendAsync(probe);
-            if (response.StatusCode == System.Net.HttpStatusCode.NotModified || !response.IsSuccessStatusCode) return false;
-            var firstLook = releasesEtag == "";
-            releasesEtag = response.Headers.ETag?.ToString() ?? "";
-            return !firstLook; // the first answer only sets the baseline (Start already checked)
-        }
-        catch { return false; }
-    }
-
     public async Task<List<ReleaseEntry>> ListReleasesAsync(bool includeDev)
     {
         var releasesJson = await githubClient.GetStringAsync("https://api.github.com/repos/hazymat/winsqueeze/releases?per_page=60");
@@ -157,12 +175,12 @@ public sealed class AppUpdater
     // ---- Portable single-file exe: download the release's exe next to this one, swap on restart ----
     async Task CheckPortableAsync()
     {
-        SetStatus("Checking for updates…");
-        var latest = (await ListReleasesAsync(App.Settings.General.UpdateChannel == "dev")).FirstOrDefault();
-        if (latest == null || !Version.TryParse(latest.Version, out var latestVersion) || latestVersion <= Version.Parse(AssemblyVersion)) { SetStatus($"Up to date ({AssemblyVersion}). Checked {DateTime.Now:HH:mm}."); return; }
-        SetStatus($"Downloading {latest.Version}…");
-        portableStagedPath = await DownloadPortableAsync(latest.Tag);
-        portableReadyVersion = latest.Version;
+        var newestTag = await NewestTagAsync(App.Settings.General.UpdateChannel);
+        var newestVersion = newestTag.TrimStart('v');
+        if (newestTag == "" || !IsNewer(newestVersion, AssemblyVersion) || newestVersion == portableReadyVersion) { if (portableReadyVersion == "") SetStatus($"Up to date ({AssemblyVersion}). Checked {DateTime.Now:HH:mm:ss}."); return; }
+        SetStatus($"Downloading {newestVersion}…");
+        portableStagedPath = await DownloadPortableAsync(newestTag);
+        portableReadyVersion = newestVersion;
         SetStatus($"WinSqueeze {ReadyVersion} is downloaded and ready. Restart to update.");
         App.ShowTip("Update ready", $"WinSqueeze {ReadyVersion} is ready. Click Restart to update in the window or Settings › About.");
     }
