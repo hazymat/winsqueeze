@@ -6,6 +6,9 @@ on:
   push:
     branches: [main]
     paths: ['vendor/squeezelite/src/**', 'vendor/squeezelite/CMakeLists.txt', 'vendor/squeezelite/vcpkg.json', '.github/workflows/squeezelite.yml']
+permissions:
+  contents: write
+  actions: write
 jobs:
   build:
     runs-on: windows-latest
@@ -45,12 +48,26 @@ jobs:
         run: |
           $exe = "build/Release/squeezelite-ffmpeg-x64.exe"
           & $exe -? ; & $exe -l
-          if (-not ((& $exe -? | Out-String) -match "VISEXPORT")) { throw "visualiser export missing from build" }
+          $help = & $exe -? | Out-String
+          if (-not ($help -match "VISEXPORT")) { throw "visualiser export missing from build" }
+          if (-not ($help -match "-F ")) { throw "fixed-volume option missing from build" }
           (Get-FileHash $exe -Algorithm SHA256).Hash
       - uses: actions/upload-artifact@v4
         with:
           name: squeezelite-ffmpeg-x64
           path: build/Release/squeezelite-ffmpeg-x64.exe
+      # The app bundles the committed exe; committing it here and starting an app build ships it as the next dev release
+      - name: Commit the exe into vendor/squeezelite
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          Copy-Item build/Release/squeezelite-ffmpeg-x64.exe vendor/squeezelite/ -Force
+          git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add vendor/squeezelite/squeezelite-ffmpeg-x64.exe
+          git diff --cached --quiet
+          if ($LASTEXITCODE -ne 0) { git commit -m "Squeezelite: rebuilt from vendor/squeezelite/src"; git pull --rebase origin main; git push origin HEAD:main; gh workflow run build.yml --ref main }
       - name: Failed vcpkg logs
         if: failure()
         uses: actions/upload-artifact@v4
