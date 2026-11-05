@@ -115,7 +115,7 @@
       onpointerdown={(event) => pointerDown(event, side)} onpointermove={(event) => pointerMove(event, side)} onpointerup={pointerUp} onpointercancel={pointerUp}
       onpointerleave={() => { if (!pressed) hover = null }} onwheel={(event) => wheel(event, side)} ondblclick={(event) => doubleClick(event, side)}>
       <div class="tracks">
-        {#each scaleMarks as mark, index}<div class="tick" class:zero={index === zeroMark} style:top="{index * 100 / lastMark}%"></div>{/each}
+        {#each scaleMarks as mark, index}<div class="tick" class:major={index === zeroMark || index === 0 || index === lastMark} style:top="{index * 100 / lastMark}%"></div>{/each}
         {#each gains as gain, band}
           <div class="fader" class:hovered={hover && (hover.side === side || eq.Linked) && hover.band === band}>
             <div class="slot"></div>
@@ -144,8 +144,7 @@
   {#if eq}
     <header>
       <span class="brand">WinSqueeze</span>
-      <span class="model">GRAPHIC EQUALIZER · SPECTRUM ANALYZER</span>
-      <span class="readout">{hover ? `${bandCount === 3 ? bandLabel(hover.band) : formatFrequency(frequencies[bandCount][hover.band]) + ' Hz'} · ${eq.Linked ? 'L+R' : hover.side} ${formatGain(gainsFor(hover.side)[hover.band])}` : eq.Enabled ? `PREAMP ${preampNow.toFixed(1)} dB${eq.AutoPreamp ? ' (AUTO)' : ''} · ${eq.Character === 'precise' ? 'PRECISE' : 'VINTAGE'}` : 'BYPASS · BIT-PERFECT'}</span>
+      <span class="readout" class:limiting={clipping > 0 && !hover}>{hover ? `${bandCount === 3 ? bandLabel(hover.band) : formatFrequency(frequencies[bandCount][hover.band]) + ' Hz'} · ${eq.Linked ? 'L+R' : hover.side} ${formatGain(gainsFor(hover.side)[hover.band])}` : clipping > 0 ? `LIMITING −${clipping.toFixed(1)} dB · lower the preamp or the boosts` : eq.Enabled ? `PREAMP ${preampNow.toFixed(1)} dB${eq.AutoPreamp ? ' (AUTO)' : ''} · ${eq.Character === 'precise' ? 'PRECISE' : 'VINTAGE'}` : 'BYPASS · BIT-PERFECT'}</span>
       <button class="close" onclick={() => sendToShell({ type: 'close' })} aria-label="Close">×</button>
     </header>
     <div class="body">
@@ -197,8 +196,8 @@
   header { display: flex; align-items: baseline; gap: 16px; margin-bottom: 8px; }
   .brand { font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 17px; letter-spacing: 1.5px; color: var(--gold); text-shadow: 0 1px 0 rgba(0, 0, 0, 0.8); }
   .model { font-size: 9.5px; letter-spacing: 1.4px; }
-  .readout { margin-left: auto; font-size: 9px; letter-spacing: 1.2px; color: #5fe6ee; text-shadow: 0 0 4px rgba(95, 230, 238, 0.5); }
-  .close { z-index: 6; background: none; border: 0; color: var(--gold-dim); font-size: 18px; cursor: pointer; padding: 0 2px; line-height: 1; } .close:hover { color: var(--gold); }
+  .readout { font-size: 9.5px; letter-spacing: 1.2px; color: #5fe6ee; text-shadow: 0 0 4px rgba(95, 230, 238, 0.5); } .readout.limiting { color: #ff6a4d; text-shadow: 0 0 4px rgba(255, 80, 60, 0.6); }
+  .close { margin-left: auto; z-index: 6; background: none; border: 0; color: var(--gold-dim); font-size: 18px; cursor: pointer; padding: 0 2px; line-height: 1; } .close:hover { color: var(--gold); }
   .body { flex: 1; min-height: 0; display: flex; gap: 14px; align-items: stretch; }
   .legend { font-size: 9px; letter-spacing: 1.2px; text-align: center; } .legend.small { font-size: 8px; }
   .power-column { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; width: 64px; flex-shrink: 0; }
@@ -216,7 +215,7 @@
   .bank { flex: 1; min-width: 0; display: flex; flex-direction: column; cursor: crosshair; touch-action: none; }
   .bank.dimmed .knob { opacity: 0.85; }
   .tracks { flex: 1; position: relative; display: flex; margin: 6px 0; }
-  .tick { position: absolute; left: 0; right: 0; height: 1px; background: rgba(201, 168, 92, 0.28); } .tick.zero { background: rgba(201, 168, 92, 0.5); }
+  .tick { position: absolute; left: 0; right: 0; height: 1px; background: rgba(201, 168, 92, 0.28); } .tick.major { height: 2px; margin-top: -0.5px; background: rgba(201, 168, 92, 0.55); }
   .fader { flex: 1; position: relative; display: flex; justify-content: center; border-radius: 3px; }
   .fader.hovered { background: linear-gradient(180deg, rgba(201, 168, 92, 0.05), rgba(201, 168, 92, 0.12), rgba(201, 168, 92, 0.05)); box-shadow: 0 0 0 1px rgba(201, 168, 92, 0.18); }
   .slot { position: absolute; top: -4px; bottom: -4px; width: 3px; border-radius: 2px; background: #000; box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.04); }
@@ -224,8 +223,8 @@
   .knob::after { content: ""; position: absolute; left: 2px; right: 2px; top: 50%; height: 1px; background: rgba(255, 255, 255, 0.55); }
   .labels { display: flex; font-size: 8.5px; letter-spacing: 0.3px; } .labels span { flex: 1; text-align: center; white-space: nowrap; overflow: hidden; }
   .scale { display: flex; flex-direction: column; justify-content: space-between; font-size: 8px; margin: 1px 0 16px; text-align: right; min-width: 16px; line-height: 1; }
-  .centre { flex: 0 0 auto; width: clamp(270px, calc((100vh - 112px) * 1.6), 420px); /* the analyser window is about 1.6:1, like the hardware's */ display: flex; flex-direction: column; gap: 5px; }
-  .analyser-slot { flex: 1; min-height: 0; display: flex; }
+  .centre { flex: 0 0 auto; width: max(270px, calc((100vh - 112px) * 2)); /* the analyser frame keeps the hardware's ~2:1, whatever the window width; the fader banks absorb the rest */ display: flex; flex-direction: column; gap: 5px; }
+  .analyser-slot { flex: 1; min-height: 0; display: flex; --analyser-legend: var(--gold); }
   .analyser-slot :global(.analyser) { flex: 1; }
   .title { letter-spacing: 2px; font-size: 10px; }
   .arrows { display: flex; align-items: center; gap: 6px; font-size: 8px; white-space: nowrap; } .rule { flex: 1; height: 1px; background: var(--gold-dim); }
@@ -241,7 +240,7 @@
   .unsupported { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 8; background: rgba(0, 0, 0, 0.85); border: 1px solid var(--gold-dim); padding: 6px 12px; border-radius: 4px; font-size: 11px; color: #f2e3bb; }
   /* Narrow: the analyser makes way for the faders */
   @media (max-width: 860px) { .centre { display: none; } }
-  @media (max-width: 760px) { .model, .hint { display: none; } .cluster { width: 150px; gap: 5px 6px; } .power-column { width: 52px; } .labels { font-size: 7.5px; } }
+  @media (max-width: 760px) { .hint { display: none; } .cluster { width: 150px; gap: 5px 6px; } .power-column { width: 52px; } .labels { font-size: 7.5px; } }
   /* Short window: the buttons go three across and the help line drops, so nothing runs into the header */
   @media (max-height: 320px) { .hint { display: none; } .cluster { grid-template-columns: repeat(3, 1fr); width: 246px; gap: 4px 6px; } }
   @media (max-height: 320px) and (max-width: 760px) { .cluster { width: 196px; gap: 4px 4px; } .push-label { font-size: 7.5px; letter-spacing: 0.5px; } .push-options { font-size: 6.5px; letter-spacing: 0; } }

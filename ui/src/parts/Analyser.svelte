@@ -28,7 +28,7 @@
         </div>
         {#if labels.length}
           <div class="legend"><div class="legend-bands">{#each labels as label}<span>{label}</span>{/each}</div>{#if fullRange !== null}<div class="full-gap"></div><span class="full-label"></span>{/if}</div>
-          <div class="legend-captions"><span class="bracket">FREQUENCY (Hz)</span>{#if fullRange !== null}<span class="full-caption">FULL RANGE</span>{/if}</div>
+          <div class="legend-captions"><span class="bracket">FREQUENCY (Hz)</span>{#if fullRange !== null}<div class="full-gap"></div><span class="full-label full-caption"><span>FULL RANGE</span></span>{/if}</div>
         {/if}
       </div>
       {#if scale.length}{@render scaleColumn('right')}{/if}
@@ -37,7 +37,7 @@
 </div>
 
 <style>
-  .analyser { --segment-on: #57d6c4; --segment-glow: rgba(87, 214, 196, 0.45); --segment-off: rgba(190, 205, 205, 0.11); --legend: #d6d6cf; --strip: #9a9a92; display: flex; flex-direction: column; min-height: 0; }
+  .analyser { --segment-on: #57d6c4; --segment-glow: rgba(87, 214, 196, 0.45); --segment-off: rgba(190, 205, 205, 0.11); --legend: var(--analyser-legend, #d6d6cf); --strip: #9a9a92; display: flex; flex-direction: column; min-height: 0; }
   /* The window's bezel: a dark frame with a fine highlight, glass recessed inside */
   .frame { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 5px; border-radius: 5px; background: linear-gradient(180deg, #1b1c1e, #0c0c0d); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(0, 0, 0, 0.8), 0 1px 3px rgba(0, 0, 0, 0.6); }
   .title-strip { height: 13px; margin: 0 2px 4px; border-radius: 1px; background: linear-gradient(180deg, #5c5d5a, #3f403d); color: #d9d8cf; font-size: 7.5px; letter-spacing: 1.6px; display: grid; place-items: center; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15); }
@@ -56,13 +56,16 @@
   .labelled .scale { padding-bottom: 25px; } /* the scale spans the columns only, not the legend under them */
   .scale span { display: flex; align-items: center; gap: 3px; } .scale.right span { flex-direction: row-reverse; }
   .scale b { font-weight: 400; min-width: 10px; text-align: right; } .scale.right b { text-align: left; }
-  .scale em { width: 7px; height: 1px; background: rgba(214, 214, 207, 0.6); }
+  .scale em { width: 7px; height: 1px; background: var(--legend); opacity: 0.6; }
   .legend { display: flex; color: var(--legend); font-size: 7.5px; } .legend-bands { flex: 1; display: flex; justify-content: space-between; }
   .legend-bands span { flex: 1; text-align: center; white-space: nowrap; }
   .full-label { flex: 1 0 0; max-width: calc(100% / 11); }
   .legend-captions { display: flex; color: var(--legend); font-size: 7px; letter-spacing: 1px; }
-  .bracket { flex: 1; text-align: center; border-top: 1px solid rgba(214, 214, 207, 0.45); margin: 0 4%; padding-top: 2px; }
-  .full-caption { white-space: nowrap; padding-top: 3px; }
+  /* FREQUENCY (Hz) sits in a bracket that spans the bands, its rule running out of both sides */
+  .bracket { flex: 1; display: flex; align-items: center; gap: 5px; padding: 0 3%; white-space: nowrap; }
+  .bracket::before, .bracket::after { content: ""; flex: 1; height: 4px; margin-top: -4px; border-bottom: 1px solid var(--legend); opacity: 0.6; } .bracket::before { border-left: 1px solid var(--legend); } .bracket::after { border-right: 1px solid var(--legend); }
+  .full-caption { display: flex; justify-content: flex-end; white-space: nowrap; }
+  .labelled:not(.compact) .full-caption span { margin-right: -26px; } /* right-aligned with the scale on the right */
   .compact .frame { padding: 2px; border-radius: 3px; } .compact .window { padding: 2px 1px; gap: 0; }
   .compact .bar { max-width: 70%; } .compact .bar i.on { box-shadow: none; }
 </style>
