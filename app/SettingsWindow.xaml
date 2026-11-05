@@ -135,8 +135,22 @@
         <TextBlock Style="{StaticResource Quiet}" Margin="0,12,0,0" TextWrapping="Wrap" Text="Meter style: click the meters in Now playing to cycle VU, OLED VU and bars." />
       </StackPanel>
     </TabItem>
-    <TabItem Header="Shortcuts" x:Name="shortcutsTab"><TextBlock Margin="16" Style="{StaticResource Quiet}" Text="Ctrl+Q quits and Ctrl+, opens Settings. Rebinding, media keys and global hotkeys arrive in Phase 4." /></TabItem>
-    <TabItem Header="Notifications" x:Name="notificationsTab"><TextBlock Margin="16" Style="{StaticResource Quiet}" Text="Track-change toasts arrive in Phase 4. Device-missing alerts are on." /></TabItem>
+    <TabItem Header="Shortcuts" x:Name="shortcutsTab">
+      <StackPanel Margin="16">
+        <TextBlock Text="In the window" FontWeight="SemiBold" />
+        <TextBlock Style="{StaticResource Quiet}" TextWrapping="Wrap" Margin="0,4,0,0" Text="Space play/pause · Ctrl+Left/Right previous/next · Ctrl+Up/Down volume · Ctrl+F search · Ctrl+N new playlist · Ctrl+Z undo · Ctrl+1/2/3 window mode · Ctrl+, settings · Ctrl+Q quit · Esc back or clear selection" />
+        <TextBlock Text="Keyboard media keys" FontWeight="SemiBold" Margin="0,16,0,0" />
+        <TextBlock Style="{StaticResource Quiet}" TextWrapping="Wrap" Margin="0,4,0,0" Text="Play/pause, next and previous keys control WinSqueeze through the Windows media overlay." />
+        <CheckBox x:Name="globalHotkeysBox" Content="Global hotkeys: Ctrl+Alt+Space play/pause, Ctrl+Alt+Left/Right previous/next, Ctrl+Alt+Up/Down volume, from any app" Margin="0,16,0,0" />
+        <TextBlock x:Name="hotkeyStatusText" Style="{StaticResource Quiet}" TextWrapping="Wrap" />
+      </StackPanel>
+    </TabItem>
+    <TabItem Header="Notifications" x:Name="notificationsTab">
+      <StackPanel Margin="16">
+        <CheckBox x:Name="trackToastsBox" Content="Show a notification when a new track starts" />
+        <TextBlock Style="{StaticResource Quiet}" TextWrapping="Wrap" Margin="0,10,0,0" Text="Output device missing and update-ready alerts are always shown." />
+      </StackPanel>
+    </TabItem>
     <TabItem Header="About" x:Name="aboutTab">
       <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="16">

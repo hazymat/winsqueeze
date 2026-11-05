@@ -19,7 +19,7 @@ public partial class SettingsWindow : Window
     public SettingsWindow()
     {
         InitializeComponent();
-        WireGeneralTab(); WireServersTab(); WireAudioTab(); WireLibraryTab(); WireBrowsingTab(); WireAppearanceTab(); WireAboutTab();
+        WireGeneralTab(); WireServersTab(); WireAudioTab(); WireLibraryTab(); WireBrowsingTab(); WireAppearanceTab(); WireShortcutsAndNotifications(); WireAboutTab();
         App.DevicesChanged += LoadDevices;
         App.StatusChanged += ShowPlayerStatus;
         Closed += (sender, args) => { App.DevicesChanged -= LoadDevices; App.StatusChanged -= ShowPlayerStatus; };
@@ -273,6 +273,20 @@ public partial class SettingsWindow : Window
         }
         FillAreaBoxes();
         foreach (var (area, box) in areaBoxes) box.SelectionChanged += (sender, args) => { if (!filling && box.SelectedItem is ComboBoxItem { Tag: string value }) { library.DefaultGrouping[area] = value; SaveAndPush(); } };
+    }
+
+    void WireShortcutsAndNotifications()
+    {
+        var general = Settings.General;
+        globalHotkeysBox.IsChecked = general.GlobalHotkeys;
+        globalHotkeysBox.Click += (sender, args) =>
+        {
+            general.GlobalHotkeys = globalHotkeysBox.IsChecked == true; Settings.Save();
+            var taken = App.ApplyGlobalHotkeys();
+            hotkeyStatusText.Text = taken.Count == 0 ? "" : $"Another app already uses Ctrl+Alt+{string.Join(", Ctrl+Alt+", taken)}.";
+        };
+        trackToastsBox.IsChecked = general.TrackToasts;
+        trackToastsBox.Click += (sender, args) => { general.TrackToasts = trackToastsBox.IsChecked == true; Settings.Save(); };
     }
 
     void WireAppearanceTab()

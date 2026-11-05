@@ -43,9 +43,10 @@
 
   onShellMessage('status', message => app.status = message)
   onShellMessage('nowPlaying', message => { app.nowPlaying = message.status; app.receivedAt = Date.now() })
-  onShellMessage('players', message => { app.players = message.players ?? []; app.ownPlayer = message.own ?? ''; if (!app.selectedPlayer) app.selectedPlayer = message.selected ?? '' })
+  onShellMessage('players', message => { app.players = message.players ?? []; app.ownPlayer = message.own ?? ''; app.selectedPlayer = message.selected ?? app.selectedPlayer })
   onShellMessage('library', message => app.library = { text: message.text ?? '', done: message.done ?? 0, total: message.total ?? 0 })
   onShellMessage('indexUpdated', () => app.indexVersion++)
+  onShellMessage('newPlaylist', () => { if (!playlist.open) newPlaylist(); else playlist.collapsed = false })
   onShellMessage('levels', message => app.levels = { vu: message.vu, peak: message.peak, bands: message.bands, at: Date.now() })
   // The skin is chosen in Settings › Appearance and applied live; cached locally so the next start paints in it straight away
   onShellMessage('skin', message => { ui.skin = message.skin || 'auto'; writeSetting('skin', ui.skin) })

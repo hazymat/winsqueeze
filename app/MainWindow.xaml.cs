@@ -35,6 +35,7 @@ public partial class MainWindow : Window
         App.Library.IndexUpdated += () => Push("{\"type\":\"indexUpdated\"}");
         // Meter data, only while the window is on screen
         App.Visualiser.LevelsReady += levelsJson => { if (webViewReady) Dispatcher.BeginInvoke(() => { if (IsVisible && WindowState != WindowState.Minimized) webView.CoreWebView2?.PostWebMessageAsJson(levelsJson); }); };
+        Microsoft.Win32.SystemEvents.DisplaySettingsChanged += (sender, args) => Dispatcher.BeginInvoke(RestoreBoundsForDisplays);
         App.LibraryChanged += () => { Push(JsonSerializer.Serialize(new { type = "settings", library = App.Settings.Library })); Push("{\"type\":\"indexUpdated\"}"); };
         // WebView2 forwards accelerator keys to WPF as KeyDown
         PreviewKeyDown += (sender, keyArgs) =>
@@ -165,7 +166,7 @@ public partial class MainWindow : Window
         if (parts[0] == "maximised") WindowState = WindowState.Maximized; else if (parts[0] == "minimised") WindowState = WindowState.Minimized;
     }
 
-    void SetWindowMode(string mode)
+    public void SetWindowMode(string mode)
     {
         if (!defaultModeSizes.TryGetValue(mode, out var defaultSize)) return;
         var modeSizes = App.Settings.General.ModeSizes;
@@ -224,6 +225,42 @@ public partial class MainWindow : Window
 
     // Frameless: the WebView covers the client area, so leave a thin edge for the resize border (more when maximised, which overhangs the screen)
     void UpdateFrameMargin() => webView.Margin = App.Settings.General.Frameless ? new Thickness(WindowState == WindowState.Maximized ? 7 : 4) : new Thickness(0);
+    public void PushNewPlaylist() => Push("{\"type\":\"newPlaylist\"}");
+
+    // ---- Multi-monitor: size and position are remembered per monitor layout, and a window left off-screen comes back ----
+    static string DisplayKey => string.Join("|", System.Windows.Forms.Screen.AllScreens.Select(screen => $"{screen.Bounds.X},{screen.Bounds.Y},{screen.Bounds.Width}x{screen.Bounds.Height}").OrderBy(text => text));
+    public void SaveBounds()
+    {
+        var bounds = WindowState == WindowState.Normal ? new Rect(Left, Top, Width, Height) : RestoreBounds;
+        if (bounds.IsEmpty || double.IsNaN(bounds.Width) || double.IsInfinity(bounds.Width) || bounds.Width < 200) return;
+        App.Settings.General.WindowBounds[DisplayKey] = new[] { bounds.Left, bounds.Top, bounds.Width, bounds.Height, WindowState == WindowState.Maximized ? 1 : 0 };
+    }
+
+    public void RestoreBoundsForDisplays()
+    {
+        if (App.Settings.General.WindowBounds.TryGetValue(DisplayKey, out var saved) && saved.Length == 5 && saved[2] >= 200 && saved[3] >= 150)
+        {
+            WindowStartupLocation = WindowStartupLocation.Manual;
+            if (WindowState == WindowState.Maximized) WindowState = WindowState.Normal;
+            Left = saved[0]; Top = saved[1]; Width = saved[2]; Height = saved[3];
+            if (saved[4] == 1) WindowState = WindowState.Maximized;
+        }
+        KeepOnScreen();
+    }
+
+    // The top strip (where you drag) must be on some screen's working area; otherwise move onto the primary screen
+    void KeepOnScreen()
+    {
+        if (double.IsNaN(Left) || double.IsNaN(Top)) return;
+        var scale = PresentationSource.FromVisual(this)?.CompositionTarget?.TransformToDevice.M11 ?? 1;
+        var dragPoint = new Point(Left + Math.Min(Width, 400) / 2, Top + 12);
+        var onScreen = System.Windows.Forms.Screen.AllScreens.Any(screen => new Rect(screen.WorkingArea.X / scale, screen.WorkingArea.Y / scale, screen.WorkingArea.Width / scale, screen.WorkingArea.Height / scale).Contains(dragPoint));
+        if (onScreen) return;
+        var workArea = SystemParameters.WorkArea;
+        Width = Math.Min(Width, workArea.Width); Height = Math.Min(Height, workArea.Height);
+        Left = workArea.Left + (workArea.Width - Width) / 2; Top = workArea.Top + (workArea.Height - Height) / 2;
+    }
+
     public void PushSkin() => Push(JsonSerializer.Serialize(new { type = "skin", skin = App.Settings.General.Skin }));
     void PushWindowState() => Push(JsonSerializer.Serialize(new { type = "window", glass = glassActive, frameless = App.Settings.General.Frameless, maximised = WindowState == WindowState.Maximized }));
 
@@ -236,6 +273,7 @@ public partial class MainWindow : Window
         if (App.IsQuitting) return;
         closingArgs.Cancel = true;
         if (!App.Settings.General.CloseHidesToTray) { App.Quit(); return; }
+        SaveBounds(); App.Settings.Save();
         Hide();
         if (!App.Settings.General.CloseToTrayTipShown)
         {

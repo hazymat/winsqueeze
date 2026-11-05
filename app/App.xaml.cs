@@ -32,7 +32,52 @@ public partial class App : Application
     Mutex? singleInstanceMutex;
     EventWaitHandle? showWindowSignal;
     readonly DispatcherTimer deviceChangeTimer = new() { Interval = TimeSpan.FromMilliseconds(1500) };
-    const int WM_DEVICECHANGE = 0x0219, DBT_DEVNODES_CHANGED = 0x0007;
+    const int WM_DEVICECHANGE = 0x0219, DBT_DEVNODES_CHANGED = 0x0007, WM_HOTKEY = 0x0312;
+
+    // ---- Global hotkeys (Settings › Shortcuts, off by default): Ctrl+Alt with Space, arrows ----
+    [System.Runtime.InteropServices.DllImport("user32.dll")] static extern bool RegisterHotKey(IntPtr windowHandle, int id, uint modifiers, uint virtualKey);
+    [System.Runtime.InteropServices.DllImport("user32.dll")] static extern bool UnregisterHotKey(IntPtr windowHandle, int id);
+    static readonly (int id, uint virtualKey)[] globalHotkeys = { (1, 0x20), (2, 0x25), (3, 0x27), (4, 0x26), (5, 0x28) }; // space, left, right, up, down
+    public List<string> ApplyGlobalHotkeys()
+    {
+        var windowHandle = new WindowInteropHelper(mainWindow).EnsureHandle();
+        var taken = new List<string>();
+        foreach (var (id, virtualKey) in globalHotkeys)
+        {
+            UnregisterHotKey(windowHandle, id);
+            if (Settings.General.GlobalHotkeys && !RegisterHotKey(windowHandle, id, 0x0001 | 0x0002 | 0x4000 /*Alt, Ctrl, no repeat*/, virtualKey)) taken.Add(new[] { "", "Space", "Left", "Right", "Up", "Down" }[id]);
+        }
+        return taken; // combinations another app already owns
+    }
+    async Task OnGlobalHotkeyAsync(int id)
+    {
+        switch (id)
+        {
+            case 1: await SendPlayerCommandAsync("pause"); break;
+            case 2: await SendPlayerCommandAsync("playlist", "index", "-1"); break;
+            case 3: await SendPlayerCommandAsync("playlist", "index", "+1"); break;
+            case 4: await SendPlayerCommandAsync("mixer", "volume", "+5"); break;
+            case 5: await SendPlayerCommandAsync("mixer", "volume", "-5"); break;
+        }
+    }
+
+    // ---- Track-change notifications (Settings › Notifications, off by default) ----
+    string lastTrackKey = "";
+    void NotifyTrackChange(System.Text.Json.JsonElement status)
+    {
+        if (status.ValueKind != JsonValueKind.Object || MediaControls.CurrentTrack(status) is not { } track) return;
+        var title = LyrionClient.ReadString(track, "title"); var artist = LyrionClient.ReadString(track, "artist");
+        var trackKey = title + "\u0001" + artist;
+        if (trackKey == lastTrackKey) return;
+        var firstTrack = lastTrackKey == ""; lastTrackKey = trackKey;
+        if (!firstTrack && Settings.General.TrackToasts && LyrionClient.ReadString(status, "mode") == "play") trayIcon.ShowTip(title, $"{artist}{(LyrionClient.ReadString(track, "album") is { Length: > 0 } album ? " · " + album : "")}");
+    }
+
+    // ---- Tray actions ----
+    public void SetWindowMode(string mode) { ShowMainWindow(); mainWindow.SetWindowMode(mode); }
+    public void NewPlaylist() { ShowMainWindow(); mainWindow.PushNewPlaylist(); }
+    public void SetSkin(string skin) { Settings.General.Skin = skin; Settings.Save(); ApplySkin(); }
+    public async Task SelectPlayerAsync(string playerId) { Session.SelectedPlayerId = playerId == Settings.PlayerMac ? "" : playerId; await Session.RequestAsync(true, "status", "-", 1); }
 
     protected override async void OnStartup(StartupEventArgs startupArgs)
     {
@@ -49,6 +94,7 @@ public partial class App : Application
         HwndSource.FromHwnd(new WindowInteropHelper(mainWindow).EnsureHandle()).AddHook(WindowMessageHook);
         deviceChangeTimer.Tick += async (sender, args) => { deviceChangeTimer.Stop(); await OnDevicesChangedAsync(); };
         // A restart for an update brings the window back exactly as it was (--window=normal|maximised|minimised|hidden,left,top,width,height); otherwise the start-minimised setting applies
+        mainWindow.RestoreBoundsForDisplays();
         var windowArgument = startupArgs.Args.FirstOrDefault(argument => argument.StartsWith("--window="));
         if (windowArgument != null) mainWindow.RestoreFromArgument(windowArgument["--window=".Length..]);
         else if (!(Settings.General.StartMinimised || startupArgs.Args.Contains("--minimised"))) mainWindow.Show();
@@ -58,7 +104,8 @@ public partial class App : Application
         RefreshIconsAfterUpdate();
         if (CrashReporter.TakeUnseenReport()) ShowTip("WinSqueeze had a problem last time", "It crashed or stopped responding. Details are in Settings › About › Open logs (crash.log).");
         try { Media = new MediaControls(); } catch { } // SMTC needs Windows 10 1903+
-        Session.StatusUpdated += () => { if (Settings.ActiveProfile is { } profile) Media?.Update(Session.LastStatus, $"http://{profile.Host}:{profile.Port}"); trayIcon.RefreshNowPlaying(Session.LastStatus); };
+        Session.StatusUpdated += () => { if (Settings.ActiveProfile is { } profile) Media?.Update(Session.LastStatus, $"http://{profile.Host}:{profile.Port}"); trayIcon.RefreshNowPlaying(Session.LastStatus); NotifyTrackChange(Session.LastStatus); };
+        ApplyGlobalHotkeys();
         Session.Start();
         Library.Start();
         await CheckOtherPlayersAsync();
@@ -92,6 +139,7 @@ public partial class App : Application
     // Stops Squeezelite and releases the single-instance lock so the new version can start straight away
     public void PrepareForRestart()
     {
+        mainWindow.SaveBounds(); Settings.Save();
         IsQuitting = true;
         Player.Dispose();
         trayIcon.Dispose();
@@ -123,6 +171,7 @@ public partial class App : Application
     IntPtr WindowMessageHook(IntPtr windowHandle, int message, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
         if (message == WM_DEVICECHANGE && wParam.ToInt32() == DBT_DEVNODES_CHANGED) { deviceChangeTimer.Stop(); deviceChangeTimer.Start(); }
+        if (message == WM_HOTKEY) { handled = true; _ = OnGlobalHotkeyAsync(wParam.ToInt32()); }
         return IntPtr.Zero;
     }
 
@@ -257,6 +306,7 @@ public partial class App : Application
 
     public void Quit()
     {
+        mainWindow.SaveBounds(); Settings.Save();
         IsQuitting = true;
         Player.Dispose();
         trayIcon.Dispose();

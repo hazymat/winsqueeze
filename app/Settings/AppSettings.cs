@@ -59,6 +59,9 @@ public class GeneralSettings
     public bool Glass { get; set; } = true; // Windows 11 acrylic backdrop behind a see-through UI
     // No title bar or standard border by default; the UI draws its own drag strip and buttons (stored as ShowTitleBar so older "Frameless": false files get the new default)
     public bool ShowTitleBar { get; set; }
+    public bool GlobalHotkeys { get; set; } // Ctrl+Alt+Space / Left / Right / Up / Down work from any app (off by default)
+    public bool TrackToasts { get; set; } // a notification on each new track (off by default)
+    public Dictionary<string, double[]> WindowBounds { get; set; } = new(); // per monitor layout: left, top, width, height, maximised
     public string Skin { get; set; } = "auto"; // auto | dark | light | classic | amber (SPEC.md › Skins)
     [JsonIgnore] public bool Frameless { get => !ShowTitleBar; set => ShowTitleBar = !value; }
     public string LastRunVersion { get; set; } = "";
