@@ -92,7 +92,7 @@
   .seek:hover { height: 7px; }
   .fill { height: 100%; background: var(--accent); border-radius: 3px; }
   .pixel-meter { display: flex; width: 54px; height: 34px; padding: 0; background: none; border: 0; cursor: pointer; border-radius: 5px; } /* the analyser opens the EQ */
-  .pixel-meter :global(.analyser) { flex: 1; } .pixel-meter:hover { box-shadow: 0 0 0 1px color-mix(in srgb, #c9a85c 60%, transparent); }
+  .pixel-meter :global(.analyser) { flex: 1; } .pixel-meter:hover { filter: brightness(1.15); }
   .right { display: flex; align-items: center; justify-content: flex-end; gap: 10px; min-width: 0; }
   .right > * { flex-shrink: 0; }
   .right > .readout-slot { flex-shrink: 1; min-width: 0; overflow: hidden; white-space: nowrap; }
