@@ -54,6 +54,16 @@ public sealed class TrayIcon : IDisposable
         notifyIcon.Text = tooltipText.Length > 127 ? tooltipText[..127] : tooltipText;
     }
 
+    // Tooltip: current track and artist
+    public void RefreshNowPlaying(System.Text.Json.JsonElement status)
+    {
+        if (status.ValueKind != System.Text.Json.JsonValueKind.Object) return;
+        var currentTrack = MediaControls.CurrentTrack(status);
+        if (currentTrack == null) { Refresh(); return; }
+        var tooltipText = $"{Server.LyrionClient.ReadString(currentTrack.Value, "title")} · {Server.LyrionClient.ReadString(currentTrack.Value, "artist")}";
+        notifyIcon.Text = tooltipText.Length > 127 ? tooltipText[..127] : tooltipText;
+    }
+
     public void ShowTip(string title, string text) => notifyIcon.ShowBalloonTip(5000, title, text, ToolTipIcon.Info);
 
     static Icon CreateIcon()

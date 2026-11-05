@@ -50,7 +50,8 @@ public class GeneralSettings
     public bool CloseToTrayTipShown { get; set; }
     public OtherSqueezeliteAction OtherSqueezelite { get; set; } = OtherSqueezeliteAction.Ask;
     public bool AutoUpdate { get; set; } = true;
-    public string UpdateChannel { get; set; } = "stable"; // stable | dev
+    public Dictionary<string, double[]> ModeSizes { get; set; } = new();
+    public string UpdateChannel { get; set; } = "dev"; // stable | dev; dev until the first stable release
 }
 
 public enum OtherSqueezeliteAction { Ask, Stop, Leave }

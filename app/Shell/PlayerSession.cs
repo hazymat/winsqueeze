@@ -1,0 +1,80 @@
+using System.IO;
+using System.Text.Json;
+using System.Windows.Threading;
+using WinSqueeze.Server;
+using WinSqueeze.Settings;
+namespace WinSqueeze.Shell;
+
+// Live state of the selected player from Lyrion (polled ~1 s while visible, slower when hidden) and the commands the UI sends
+public sealed class PlayerSession
+{
+    readonly DispatcherTimer pollTimer = new() { Interval = TimeSpan.FromSeconds(1) };
+    int pollTick;
+    bool polling;
+    public string SelectedPlayerId { get; set; } = "";
+    public string LastStatusJson { get; private set; } = "{}";
+    public string LastPlayersJson { get; private set; } = "[]";
+    public JsonElement LastStatus { get; private set; }
+    public event Action? StatusUpdated;
+    public event Action? PlayersUpdated;
+    App App => App.Instance;
+    string PlayerId => SelectedPlayerId == "" ? App.Settings.PlayerMac : SelectedPlayerId;
+
+    public void Start() { pollTimer.Tick += async (sender, args) => await PollAsync(); pollTimer.Start(); }
+    public void SetVisible(bool windowVisible) => pollTimer.Interval = TimeSpan.FromSeconds(windowVisible ? 1 : 5);
+
+    async Task PollAsync()
+    {
+        if (polling || App.Settings.ActiveProfile is not { Host.Length: > 0 } profile) return;
+        polling = true;
+        try
+        {
+            using var lyrionClient = new LyrionClient(profile);
+            LastStatus = await lyrionClient.RequestAsync(PlayerId, "status", 0, 500, "tags:aAcdlKjJotTIrsSe");
+            LastStatusJson = LastStatus.ValueKind == JsonValueKind.Undefined ? "{}" : LastStatus.GetRawText();
+            StatusUpdated?.Invoke();
+            if (pollTick++ % 10 == 0)
+            {
+                var players = await lyrionClient.RequestAsync("", "players", 0, 50);
+                LastPlayersJson = players.ValueKind == JsonValueKind.Object && players.TryGetProperty("players_loop", out var playersLoop) ? playersLoop.GetRawText() : "[]";
+                PlayersUpdated?.Invoke();
+            }
+        }
+        catch { }
+        finally { polling = false; }
+    }
+
+    public async Task<JsonElement> RequestAsync(bool forPlayer, params object[] command)
+    {
+        using var lyrionClient = new LyrionClient(App.Settings.ActiveProfile!);
+        var result = await lyrionClient.RequestAsync(forPlayer ? PlayerId : "", command);
+        if (forPlayer) { await Task.Delay(150); await PollAsync(); }
+        return result;
+    }
+
+    // mode: load (replace queue), insert (play next), add (add to queue)
+    public async Task PlayTracksAsync(List<long> trackIds, string mode, int startIndex)
+    {
+        if (trackIds.Count == 0) return;
+        await RequestAsync(true, "playlistcontrol", $"cmd:{mode}", "track_id:" + string.Join(",", trackIds));
+        if (mode == "load" && startIndex > 0) await RequestAsync(true, "playlist", "index", startIndex);
+    }
+
+    // Saves a Lyrion playlist (a deliberate, user-initiated write) and optionally favourites it
+    public async Task<string> SavePlaylistAsync(string playlistName, List<string> trackUrls, bool addToFavourites)
+    {
+        var created = await RequestAsync(false, "playlists", "new", $"name:{playlistName}");
+        var playlistId = LyrionClient.ReadString(created, "playlist_id");
+        if (playlistId == "") throw new InvalidOperationException(LyrionClient.ReadString(created, "overwritten_playlist_id") != "" ? "A playlist with that name already exists." : "The server did not create the playlist.");
+        foreach (var trackUrl in trackUrls) await RequestAsync(false, "playlists", "edit", "cmd:add", $"playlist_id:{playlistId}", $"url:{trackUrl}");
+        if (addToFavourites)
+        {
+            var playlistInfo = await RequestAsync(false, "playlists", 0, 1, $"playlist_id:{playlistId}", "tags:u");
+            if (playlistInfo.ValueKind == JsonValueKind.Object && playlistInfo.TryGetProperty("playlists_loop", out var playlistsLoop))
+                foreach (var playlistItem in playlistsLoop.EnumerateArray()) await RequestAsync(false, "favorites", "add", $"url:{LyrionClient.ReadString(playlistItem, "url")}", $"title:{playlistName}");
+        }
+        return playlistId;
+    }
+
+    public static string DraftPath => Path.Combine(AppPaths.DataFolder, "playlist-draft.json");
+}

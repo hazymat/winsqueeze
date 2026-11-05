@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Threading;
 using WinSqueeze.Audio;
+using WinSqueeze.Library;
 using WinSqueeze.Server;
 using WinSqueeze.Settings;
 using WinSqueeze.Shell;
@@ -14,6 +15,9 @@ public partial class App : Application
     public AppSettings Settings { get; private set; } = null!;
     public SqueezeliteHost Player { get; } = new();
     public AppUpdater Updater { get; } = new();
+    public PlayerSession Session { get; } = new();
+    public LibraryService Library { get; } = new();
+    public MediaControls? Media { get; private set; }
     public List<OutputDevice> Devices { get; private set; } = new();
     public bool UsingFallbackDevice { get; private set; }
     public bool IsQuitting { get; private set; }
@@ -46,6 +50,10 @@ public partial class App : Application
         if (Settings.ActiveProfile is not { Host.Length: > 0 }) OpenSettings("Servers");
         Updater.Changed += () => Dispatcher.BeginInvoke(() => StatusChanged?.Invoke());
         Updater.Start();
+        try { Media = new MediaControls(); } catch { } // SMTC needs Windows 10 1903+
+        Session.StatusUpdated += () => { if (Settings.ActiveProfile is { } profile) Media?.Update(Session.LastStatus, $"http://{profile.Host}:{profile.Port}"); trayIcon.RefreshNowPlaying(Session.LastStatus); };
+        Session.Start();
+        Library.Start();
         await CheckOtherPlayersAsync();
         await RefreshDevicesAsync();
         await StartPlayerAsync(false);
@@ -120,6 +128,7 @@ public partial class App : Application
 
     public async Task StartPlayerAsync(bool resumePosition)
     {
+        _ = Library.RefreshAsync(false);
         var profile = Settings.ActiveProfile;
         if (profile is not { Host.Length: > 0 }) { Player.SetWaiting("No server set. Open Settings › Servers."); return; }
         if (profile.DeviceName == "") { Player.SetWaiting("Choose an output device in Settings › Audio."); return; }
@@ -209,6 +218,8 @@ public partial class App : Application
         await StartPlayerAsync(false);
         LibraryChanged?.Invoke();
     }
+
+    public void NotifyLibraryChanged() => LibraryChanged?.Invoke();
 
     public void ShowMainWindow() { mainWindow.Show(); if (mainWindow.WindowState == WindowState.Minimized) mainWindow.WindowState = WindowState.Normal; mainWindow.Activate(); }
     public void ToggleMainWindow() { if (mainWindow.IsVisible && mainWindow.WindowState != WindowState.Minimized) mainWindow.Hide(); else ShowMainWindow(); }

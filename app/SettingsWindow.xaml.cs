@@ -19,7 +19,7 @@ public partial class SettingsWindow : Window
     public SettingsWindow()
     {
         InitializeComponent();
-        WireGeneralTab(); WireServersTab(); WireAudioTab(); WireAboutTab();
+        WireGeneralTab(); WireServersTab(); WireAudioTab(); WireLibraryTab(); WireAboutTab();
         App.DevicesChanged += LoadDevices;
         App.StatusChanged += ShowPlayerStatus;
         Closed += (sender, args) => { App.DevicesChanged -= LoadDevices; App.StatusChanged -= ShowPlayerStatus; };
@@ -205,6 +205,31 @@ public partial class SettingsWindow : Window
         var player = App.Player;
         var detail = player.State == PlayerState.Running ? (player.ExclusiveActive ? " · WASAPI exclusive" : " · shared") + (player.OutputSampleRate > 0 ? $" · {player.OutputSampleRate / 1000.0:0.#} kHz" : "") : "";
         playerStatusText.Text = player.StatusText + detail + (App.UsingFallbackDevice ? " (fallback)" : "");
+    }
+
+    void WireLibraryTab()
+    {
+        var library = Settings.Library;
+        folderAlbumsRadio.IsChecked = library.AlbumSource != "tags"; tagAlbumsRadio.IsChecked = library.AlbumSource == "tags";
+        anyCreditRadio.IsChecked = library.ContributorGrouping != "albumartist"; albumArtistRadio.IsChecked = library.ContributorGrouping == "albumartist";
+        separatorsBox.Text = library.NameSeparators; refreshMinutesBox.Text = library.RefreshMinutes.ToString();
+        // Album source and grouping switch instantly: both are already in the index
+        void SaveChoice() { library.AlbumSource = tagAlbumsRadio.IsChecked == true ? "tags" : "folders"; library.ContributorGrouping = albumArtistRadio.IsChecked == true ? "albumartist" : "any"; Settings.Save(); App.NotifyLibraryChanged(); }
+        foreach (var radio in new[] { folderAlbumsRadio, tagAlbumsRadio, anyCreditRadio, albumArtistRadio }) radio.Click += (sender, args) => SaveChoice();
+        separatorsBox.LostFocus += async (sender, args) => { if (separatorsBox.Text.Trim() == library.NameSeparators) return; library.NameSeparators = separatorsBox.Text.Trim(); Settings.Save(); await App.Library.RefreshAsync(true); };
+        refreshMinutesBox.LostFocus += (sender, args) => { library.RefreshMinutes = int.TryParse(refreshMinutesBox.Text, out var minutes) ? Math.Clamp(minutes, 1, 1440) : library.RefreshMinutes; refreshMinutesBox.Text = library.RefreshMinutes.ToString(); Settings.Save(); };
+        refreshLibraryButton.Click += async (sender, args) => { libraryStatusText.Text = "Checking the server…"; await App.Library.RefreshAsync(false); ShowLibraryStatus(); };
+        rebuildLibraryButton.Click += async (sender, args) => { libraryStatusText.Text = "Rebuilding…"; await App.Library.RefreshAsync(true); ShowLibraryStatus(); };
+        clearArtButton.Click += (sender, args) => { try { App.Library.ClearArtCache(); } catch { } ShowLibraryStatus(); };
+        App.Library.Changed += ShowLibraryStatus;
+        Closed += (sender, args) => App.Library.Changed -= ShowLibraryStatus;
+        ShowLibraryStatus();
+    }
+
+    void ShowLibraryStatus()
+    {
+        if (App.Library.ProgressText != "") { libraryStatusText.Text = App.Library.ProgressTotal > 0 ? $"{App.Library.ProgressText}: {App.Library.ProgressDone:N0} of {App.Library.ProgressTotal:N0}" : App.Library.ProgressText; return; }
+        try { libraryStatusText.Text = $"Cache size {App.Library.CacheBytes() / 1048576.0:0.#} MB. Stored in {AppPaths.DataFolder}."; } catch { libraryStatusText.Text = ""; }
     }
 
     void WireAboutTab()

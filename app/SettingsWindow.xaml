@@ -93,7 +93,27 @@
         <TextBlock Style="{StaticResource Quiet}" Text="Volume mode and fidelity warnings arrive in Phase 4." Margin="0,12,0,0" />
       </StackPanel>
     </TabItem>
-    <TabItem Header="Library &amp; cache" x:Name="libraryTab"><TextBlock Margin="16" Style="{StaticResource Quiet}" Text="Album source, contributor grouping, refresh and cache settings arrive with the synchronising cache in Phase 2." /></TabItem>
+    <TabItem Header="Library &amp; cache" x:Name="libraryTab">
+      <StackPanel Margin="16">
+        <TextBlock Text="Albums are built from" FontWeight="SemiBold" />
+        <RadioButton x:Name="folderAlbumsRadio" GroupName="albumSource" Content="Folders: one folder is one album or CD (CD1/CD2 subfolders join their parent)" Margin="0,6,0,0" />
+        <RadioButton x:Name="tagAlbumsRadio" GroupName="albumSource" Content="Tags: Lyrion's own albums" Margin="0,4,0,0" />
+        <TextBlock Text="An artist's &quot;Also appears on&quot; includes" FontWeight="SemiBold" Margin="0,16,0,0" />
+        <RadioButton x:Name="anyCreditRadio" GroupName="grouping" Content="Any credit: album artist, track artist, composer, conductor or band" Margin="0,6,0,0" />
+        <RadioButton x:Name="albumArtistRadio" GroupName="grouping" Content="Album artist text only" Margin="0,4,0,0" />
+        <Grid Margin="0,12,0,0">
+          <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="160" /></Grid.ColumnDefinitions>
+          <StackPanel><TextBlock Style="{StaticResource Label}" Text="Name separators (space between each)" /><TextBox x:Name="separatorsBox" Margin="0,0,8,0" /></StackPanel>
+          <StackPanel Grid.Column="1"><TextBlock Style="{StaticResource Label}" Text="Check every (minutes)" /><TextBox x:Name="refreshMinutesBox" /></StackPanel>
+        </Grid>
+        <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+          <Button x:Name="refreshLibraryButton" Content="Refresh now" />
+          <Button x:Name="rebuildLibraryButton" Content="Rebuild cache" />
+          <Button x:Name="clearArtButton" Content="Clear art cache" />
+        </StackPanel>
+        <TextBlock x:Name="libraryStatusText" Style="{StaticResource Quiet}" />
+      </StackPanel>
+    </TabItem>
     <TabItem Header="Appearance" x:Name="appearanceTab"><TextBlock Margin="16" Style="{StaticResource Quiet}" Text="Skins, auto-switching and meter style arrive in Phase 5." /></TabItem>
     <TabItem Header="Shortcuts" x:Name="shortcutsTab"><TextBlock Margin="16" Style="{StaticResource Quiet}" Text="Ctrl+Q quits and Ctrl+, opens Settings. Rebinding, media keys and global hotkeys arrive in Phase 4." /></TabItem>
     <TabItem Header="Notifications" x:Name="notificationsTab"><TextBlock Margin="16" Style="{StaticResource Quiet}" Text="Track-change toasts arrive in Phase 4. Device-missing alerts are on." /></TabItem>
