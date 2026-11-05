@@ -170,6 +170,8 @@
         </div>
         {#if vertical && devVersion}<span class="dev-version">{devVersion}</span>{/if}
         {#if vertical}<button class="ghost" onclick={() => sendToShell({ type: 'openSettings' })} aria-label="Settings"><Icon name="settings" /></button>{/if}
+        <!-- Always on top: the same pin as the mini player -->
+        <button class="pin-top" class:on={ui.pinned} onclick={() => { ui.pinned = !ui.pinned; sendToShell({ type: 'setTopmost', on: ui.pinned }) }} aria-pressed={ui.pinned} title={ui.pinned ? 'Always on top: on' : 'Always on top: off'}><Icon name="pin" size={15} /></button>
         {#if app.window.frameless}
           <div class="window-controls">
             <button onclick={() => sendToShell({ type: 'windowControl', action: 'minimise' })} aria-label="Minimise"><Icon name="minimise" size={16} /></button>
@@ -244,7 +246,7 @@
   .content-column { display: flex; flex-direction: column; min-width: 0; min-height: 0; height: 100vh; }
   .update-notice { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 6px 12px; background: var(--accent-soft); font-size: 13px; }
   .topbar { display: flex; align-items: center; gap: 8px; padding: 10px 16px; }
-  .window-controls { display: flex; margin-left: auto; gap: 2px; }
+  .window-controls { display: flex; gap: 2px; } /* follows the pin, which takes the free space */
   .window-controls button { display: grid; place-items: center; width: 40px; height: 30px; background: none; border: 0; border-radius: 6px; color: var(--fg-quiet); cursor: pointer; }
   .window-controls button:hover { background: var(--hover); color: var(--fg); }
   .window-controls .close:hover { background: #c42b1c; color: #fff; }
@@ -263,6 +265,9 @@
   .tabbar button.on { color: var(--accent); }
   .tab-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
   @media (max-width: 480px) { .tab-label { display: none; } .tabbar .glyph { font-size: 18px; } }
+  .pin-top { display: grid; place-items: center; width: 34px; height: 30px; margin-left: auto; background: none; border: 0; border-radius: 6px; color: var(--fg); opacity: 0.45; cursor: pointer; transform: rotate(45deg); transition: opacity 120ms, transform 120ms, background 120ms; }
+  .pin-top:hover { opacity: 0.8; background: var(--hover); }
+  .pin-top.on { opacity: 1; color: var(--accent); background: var(--accent-soft); transform: none; } /* upright and lit when pinned */
   .mini-shell { height: 100vh; background: var(--glass); position: relative; }
   /* Mini on glass: a light tint so the desktop shows through Windows' blur, plus a fine frosted grain */
   :global(:root.glass.mini-mode body) { background: rgba(12, 14, 19, 0.14); }
