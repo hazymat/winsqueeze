@@ -141,7 +141,7 @@ Building a playlist works like opening a case: start it, browse anywhere while i
 
 - The bar never drops transport controls at narrow widths. Lower-priority items collapse first, in this order: format readout, player switcher, seek times, volume slider (becomes an icon popover).
 - Clicking the art or title opens the **expanded now-playing view**: large art over a blurred-art backdrop, full metadata (composer, performers, album, year), signal path readout, large meters, and the queue alongside.
-- **Meters** are driven by the real playback level of the bundled Squeezelite (see Risks). For other players, they show a muted idle state. Two styles, toggled by clicking the meters: analogue **VU needles** or **OLED bar graph**.
+- **Meters** are driven by the real playback level of the bundled Squeezelite (see Risks). For other players, they show a muted idle state. Three styles, cycled by clicking the meters: analogue **VU needles**, **OLED VU** (needle meters drawn as a glowing display) or **OLED bar graph**.
 - **Signal readout:** format, sample rate, bit depth, and a "bit-perfect" badge when the whole chain is untouched.
 
 ## Playback and fidelity
@@ -190,7 +190,7 @@ Chosen direction: **Frosted Dark**, frosted glass meets Squeezebox hardware. iOS
 
 - **Glass:** sidebar, transport bar and dialogs are frosted panels over a blurred, darkened version of the current album art. Windows 11 Mica/Acrylic backdrop used for the window frame where available.
 - **Colour** comes from the cover art: an accent picked from the current album, applied sparingly (play button, progress, active nav item).
-- **Meters:** a pair of needle VU meters with a warm backlit face, ballistics close to real VU (~300 ms). Switchable with an OLED-style bar graph (segmented left and right bars with peak hold): click the meters to toggle, or set it in Settings › Appearance.
+- **Meters:** a pair of needle VU meters with a warm backlit face, ballistics close to real VU (~300 ms). Reference: `docs/reference/analogue-vu-reference.png` (cream face, lamp glow falling off upward and outward from below). Also an **OLED VU**: the same two needle meters drawn as a Squeezebox Transporter-style display, with glowing cyan arc scales from 20 to +3 that widen into the red zone, VU labels and thin glowing needles on black glass (reference: `docs/reference/oled-vu-reference.png`). Third style: an OLED-style bar graph (segmented left and right bars with peak hold). Click the meters to cycle, or set it in Settings › Appearance.
 - **Display readout:** the signal path and time shown in a clean monospaced display face (Share Tech Mono, cyan with a soft glow). It echoes the Squeezebox display without using a pixel font.
 - **Theme:** Frosted Dark is the default. A Light view is a full equal, not an afterthought (see Skins).
 - **Typography:** Segoe UI Variable for UI text; the display face only for the readout.
@@ -235,7 +235,7 @@ A separate Settings window with tabs, in standard Windows style. Changes apply i
 | Servers | Server finder (auto-discovery); profiles list (name, address, port, optional username/password); default profile; test connection |
 | Audio | Output device; driver type; exclusive mode on/off; volume mode (fixed / digital); player name (defaults to the computer name); extra Squeezelite arguments (advanced); fidelity warnings |
 | Library & cache | Album source (tags / folders); contributor grouping (any credit / album artist text only); name separators; refresh interval; Refresh now; Rebuild cache; cache size and location; clear art cache |
-| Appearance | Skin; auto-switch rule (follow Windows / schedule / fixed); light and dark skin pair; meter style (VU needle / OLED bars); album list default (grid / list); accent from cover art on/off; reduce transparency |
+| Appearance | Skin; auto-switch rule (follow Windows / schedule / fixed); light and dark skin pair; meter style (VU needle / OLED VU / OLED bars); album list default (grid / list); accent from cover art on/off; reduce transparency |
 | Shortcuts | Rebind in-app shortcuts; enable global hotkeys; media keys on/off |
 | Notifications | Track-change toasts; device missing alerts |
 | About | Version; update channel (stable / dev); version switcher with per-version comments; check now; auto-update on/off; licences (Squeezelite GPL notice and source link); logs folder |
@@ -287,5 +287,5 @@ Updating should be effortless, and is how the author tests every build.
 2. **Cache (synchronising client):** SQLite index, full sync, change detection, art cache.
 3. **Browse UI:** WebView2 front end with sidebar, Artists, Albums, Genres, Composers, Performers, Folders, Favourites, search (including folder-grouped results), album view.
 4. **Transport, queue and playlist builder:** bottom bar, expanded now-playing, queue editing, playlist builder, player switcher, media keys, SMTC, taskbar buttons.
-5. **Look:** Frosted Dark and Frosted Light skins, skin switching, VU and OLED meters, display readout, window modes including Mini, multi-monitor handling. Then the Squeezebox Classic and Hi-fi Amber skins.
+5. **Look:** Frosted Dark and Frosted Light skins, skin switching, VU, OLED VU and OLED bar meters, display readout, window modes including Mini, multi-monitor handling. Then the Squeezebox Classic and Hi-fi Amber skins.
 6. **Ship:** installer, single-file portable exe, icon, code signing, update check, settings export/import, licences, README.

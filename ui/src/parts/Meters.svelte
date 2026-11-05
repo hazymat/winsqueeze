@@ -5,7 +5,8 @@
   import { ui, writeSetting } from '../state.svelte'
   // Squeezelite on Windows has no level output yet (SPEC.md › Risks), so the needles rest at -20 with the lamp dimmed
   let { size = 'small', active = false }: { size?: 'small' | 'large'; active?: boolean } = $props()
-  const toggle = () => { ui.meterStyle = ui.meterStyle === 'vu' ? 'oled' : 'vu'; writeSetting('meterStyle', ui.meterStyle) }
+  const meterStyles = ['vu', 'oledvu', 'oled']
+  const toggle = () => { ui.meterStyle = meterStyles[(meterStyles.indexOf(ui.meterStyle) + 1) % meterStyles.length]; writeSetting('meterStyle', ui.meterStyle) }
   const gradientId = `vu-lamp-${meterCount++}`
   // Classic VU scale: dB mark -> needle angle (degrees from vertical), pivot sits below the face like a real meter
   const scaleMarks: [number, number][] = [[-20, -48], [-10, -31], [-7, -21], [-5, -12], [-3, -1], [-2, 6], [-1, 13], [0, 21], [1, 29], [2, 37], [3, 46]]
@@ -13,6 +14,8 @@
   const point = (angle: number, radius: number) => [pivotX + radius * Math.sin(angle * Math.PI / 180), pivotY - radius * Math.cos(angle * Math.PI / 180)]
   const arc = (fromAngle: number, toAngle: number, radius: number) => { const [startX, startY] = point(fromAngle, radius); const [endX, endY] = point(toAngle, radius); return `M${startX} ${startY} A${radius} ${radius} 0 0 1 ${endX} ${endY}` }
   const restAngle = -54
+  // OLED VU: the scale is a band that widens towards +3, like the Transporter display
+  const band = (fromAngle: number, toAngle: number, fromWidth: number, toWidth: number) => { const [innerStartX, innerStartY] = point(fromAngle, 50); const [innerEndX, innerEndY] = point(toAngle, 50); const [outerEndX, outerEndY] = point(toAngle, 50 + toWidth); const [outerStartX, outerStartY] = point(fromAngle, 50 + fromWidth); return `M${innerStartX} ${innerStartY} A50 50 0 0 1 ${innerEndX} ${innerEndY} L${outerEndX} ${outerEndY} A${50 + toWidth} ${50 + toWidth} 0 0 0 ${outerStartX} ${outerStartY} Z` }
 </script>
 
 <button class="meters {size}" class:idle={!active} onclick={toggle} title={active ? 'Click to switch meter style' : 'Level meters (waiting for level data from Squeezelite). Click to switch style.'}>
@@ -44,6 +47,27 @@
         <rect x="5" y="60" width="110" height="7" class="pivot-cover" />
       </svg>
     {/each}
+  {:else if ui.meterStyle === 'oledvu'}
+    {#each ['L', 'R'] as channel}
+      <svg viewBox="0 0 120 72" class="vu oledvu" aria-hidden="true">
+        <defs><filter id={gradientId + '-glow'} x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="1.4" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter></defs>
+        <rect x="0" y="0" width="120" height="72" rx="5" class="glass" />
+        <g filter="url(#{gradientId}-glow)" class="display">
+          <path d={band(-48, 21, 1, 3.2)} class="oled-band" />
+          <path d={band(21, 46, 3.2, 6)} class="oled-band hot" />
+          {#each scaleMarks as [decibels, angle]}
+            {@const [innerX, innerY] = point(angle, 47.5)}{@const [outerX, outerY] = point(angle, 50)}{@const [labelX, labelY] = point(angle, 61)}
+            <line x1={innerX} y1={innerY} x2={outerX} y2={outerY} class="oled-tick" />
+            {#if decibels !== -2 && decibels !== -1 && decibels !== 1}<text x={labelX} y={labelY} class="oled-number">{Math.abs(decibels)}</text>{/if}
+          {/each}
+          <text x="14" y="15" class="oled-number">−</text><text x="108" y="15" class="oled-number">+</text>
+          <text x="60" y="52" class="oled-label">VU</text>
+          <g clip-path="url(#{gradientId}-clip)"><line x1={pivotX} y1={pivotY} x2={pivotX} y2={pivotY - 58} class="oled-needle" transform="rotate({restAngle} {pivotX} {pivotY})" /></g>
+        </g>
+        <text x="60" y="64" class="oled-channel">{channel}</text>
+        <defs><clipPath id={gradientId + '-clip'}><rect x="5" y="5" width="110" height="55" /></clipPath></defs>
+      </svg>
+    {/each}
   {:else}
     <div class="oled">
       {#each ['L', 'R'] as channel}<div class="bar"><span class="ch">{channel}</span>{#each Array(16) as _, segment}<span class="segment" class:hot={segment >= 13}></span>{/each}</div>{/each}
@@ -69,6 +93,14 @@
   .channel { fill: rgba(29, 26, 20, 0.55); font-size: 6px; text-anchor: middle; font-family: var(--font-display); }
   .needle { stroke: #111; stroke-width: 0.9; transition: transform 300ms ease-out; }
   .pivot-cover { fill: #15161a; }
+  .glass { fill: #030507; stroke: #1c1f24; stroke-width: 1; }
+  .oled-band { fill: #3fb8ff; } .oled-band.hot { fill: #6fd2ff; }
+  .oled-tick { stroke: #3fb8ff; stroke-width: 0.9; }
+  .oled-number { fill: #4cc0ff; font-size: 6px; text-anchor: middle; dominant-baseline: middle; font-family: "Segoe UI", Arial, sans-serif; }
+  .oled-label { fill: #4cc0ff; font-size: 7.5px; font-weight: 700; text-anchor: middle; font-family: "Segoe UI", Arial, sans-serif; letter-spacing: 0.5px; }
+  .oled-needle { stroke: #d8f4ff; stroke-width: 1; transition: transform 300ms ease-out; }
+  .oled-channel { fill: rgba(76, 192, 255, 0.35); font-size: 5px; text-anchor: middle; font-family: var(--font-display); }
+  .idle .display { opacity: 0.55; }
   .oled { display: flex; flex-direction: column; gap: 3px; background: #050607; padding: 4px 6px; border-radius: 4px; }
   .bar { display: flex; gap: 2px; align-items: center; }
   .ch { font-family: var(--font-display); font-size: 8px; color: var(--readout); width: 8px; }
