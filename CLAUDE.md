@@ -4,11 +4,9 @@ Read `SPEC.md` before any work. It is the source of truth; propose changes to it
 
 ## Dev environment
 
-- Build and test on Windows (the app can't be built or tested on Linux). Mat's Windows machine is **flanders**; the DragonFly is plugged into it.
-- Test server: Lyrion Music Server at `http://10.1.1.44:9000`.
+- Build and test on Windows (the app can't be built or tested on Linux). The test PC, server address and library details live in the project's private notes, not in this public repo.
 - Squeezelite: Windows x64 FFmpeg build `squeezelite-2.0.0-1610-ffmpeg-win64` from SourceForge (see `vendor/squeezelite/SOURCE.md`).
 - Test DAC: AudioQuest DragonFly (USB).
-- Test library: about 900 albums, 9,600 tracks, 650 artists; a mix of jazz and classical; many folders map one-to-one to a CD.
 
 ## How to work
 
