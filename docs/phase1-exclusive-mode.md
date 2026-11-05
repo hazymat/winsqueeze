@@ -14,13 +14,17 @@ Tested 5 Nov 2026 on flanders with the AudioQuest DragonFly Black v1.5 against L
 | Run | Result |
 | --- | --- |
 | Exclusive, `-a 40:1` | DAC locks at 44.1 kHz (green LED) but the stream stops and reopens about every 10 s; no audible output |
-| Exclusive, `-a 200:1` | Plays cleanly at 44.1 kHz, 16- and 24-bit FLAC; heard by Mat |
+| Exclusive, `-a 200:1` | Plays cleanly at 44.1 kHz, 16- and 24-bit FLAC; heard by Mat, LED green |
+| Exclusive, `-a 200:1`, 96/24 test tone | DAC switches to 96 kHz (LED magenta), tone heard by Mat |
 | Shared, `-a 40:0` | Fails: "Invalid sample rate" repeatedly. Squeezelite doesn't resample, so shared mode only works when the track rate matches the Windows mixer rate |
 
 - In exclusive mode the DragonFly reports 44100, 48000, 88200 and 96000. Squeezelite tells the server `MaxSampleRate=96000`.
-- 96 kHz: pending (library had nothing above 48 kHz; a 96/24 test tone is being added).
+- 96 kHz: verified with a 30 s 96/24 WAV test tone (440 Hz L / 660 Hz R) added to the library as `_WinSqueeze test`. The library itself has nothing above 48 kHz.
+- **Verdict: the pinned build supports WASAPI exclusive with the DragonFly at 44.1 and 96 kHz. No custom Squeezelite build needed.**
 
 ## Decisions for the shell
+
+- Hardware volume: the Windows master (endpoint) volume still drives the DragonFly's hardware volume in exclusive mode, while the data stays bit-perfect. There is no per-app mixer slider. WinSqueeze's volume control should drive the endpoint volume when the device has hardware volume, keeping Squeezelite at 100.
 
 - Default Squeezelite args: `-a 200:1`, device by full name + host API.
 - Shared-mode fallback needs resampling (`-R`) or the mixer rate, and must be clearly labelled as not bit-perfect.

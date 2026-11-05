@@ -54,7 +54,7 @@ One Windows app with three parts: a C# shell, a web front end hosted in WebView2
 
 - **C# shell (.NET 8, WPF):** owns the window, tray, settings, server discovery, the Squeezelite process, and all HTTP calls to Lyrion. The UI never calls the server directly, which avoids CORS and keeps credentials out of the web layer.
 - **Web UI:** HTML/CSS/TypeScript in WebView2, served from app resources. Talks to the shell over the WebView2 message bridge. Queries the local index through the shell for all browsing and search.
-- **Squeezelite:** pinned FFmpeg build, launched hidden with `-s <server> -n <player name> -o <device>`, restarted on device or server change, stopped on quit. Registers with Lyrion as a normal player.
+- **Squeezelite:** pinned FFmpeg build, launched hidden with `-s <server> -n <player name> -o "<device name> [<host API>]" -a 200:1` (exclusive; 40 ms latency caused stream restarts on the DragonFly), restarted on device or server change, stopped on quit. Registers with Lyrion as a normal player.
 - **Live state:** current track, queue and transport state come from Lyrion via JSON-RPC polling (about 1 s while visible, slower when hidden) or the CometD subscription if reliable.
 
 ## Library model and cache
@@ -151,7 +151,7 @@ Fidelity is a headline feature, not an afterthought. Playback always goes throug
 1. **Lossless end to end.** The server sends original files in their native format (FLAC, ALAC, WAV, AIFF, hi-res). Squeezelite decodes locally. No MP3 transcoding.
 2. **Bypass the Windows mixer.** Default output is the device's WASAPI endpoint in exclusive mode, giving bit-perfect output with no other system sounds mixed in. Falls back to shared mode with a visible warning if exclusive isn't available.
 3. **Native sample rates.** 44.1, 48, 88.2, 96, 176.4 and 192 kHz pass straight through; the DAC switches rate per track. No resampling by default.
-4. **Volume:** default fixed full-level output, with volume handled at the DAC or amp. Optional Squeezelite digital volume, clearly labelled as not bit-perfect.
+4. **Volume:** default fixed full-level output, with volume handled at the DAC or amp. Where the device has hardware volume (e.g. the DragonFly), WinSqueeze's volume control drives the Windows endpoint volume, which stays bit-perfect even in exclusive mode. Optional Squeezelite digital volume, clearly labelled as not bit-perfect.
 5. **Server-side check (read-only).** Read the player's bitrate-limit and transcoding prefs from the server. If anything would force transcoding, show a warning explaining which server setting to change. Never change it.
 6. **Gapless** playback preserved (native Squeezelite behaviour).
 7. **Signal path on screen:** source format → decoder → output mode → device rate, with the bit-perfect badge.
