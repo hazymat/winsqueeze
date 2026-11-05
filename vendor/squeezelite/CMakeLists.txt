@@ -12,4 +12,4 @@ set(vcpkg_root ${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET})
 target_include_directories(squeezelite PRIVATE ${vcpkg_root}/include ${vcpkg_root}/include/opus)
 # MSVC searches every library for unresolved symbols regardless of order, so linking all of vcpkg's static libraries is simplest
 file(GLOB vcpkg_libraries ${vcpkg_root}/lib/*.lib)
-target_link_libraries(squeezelite PRIVATE ${vcpkg_libraries} ws2_32 crypt32 winmm ole32 oleaut32 uuid setupapi ksuser avrt bcrypt secur32 advapi32 user32 shlwapi)
+target_link_libraries(squeezelite PRIVATE ${vcpkg_libraries} ws2_32 crypt32 ncrypt winmm ole32 oleaut32 uuid mfuuid mfplat strmiids setupapi ksuser avrt bcrypt secur32 advapi32 user32 shlwapi)
