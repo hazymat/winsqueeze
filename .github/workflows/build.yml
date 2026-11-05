@@ -47,9 +47,9 @@ jobs:
           vpk download github --repoUrl $env:REPO_URL --channel $channel --token $env:GH_TOKEN -o releases  # previous release, for delta updates
           $global:LASTEXITCODE = 0
           vpk pack --packId WinSqueeze --packVersion $version --packDir publish/WinSqueeze --mainExe WinSqueeze.exe --packTitle WinSqueeze --channel $channel -o releases
-          $preFlag = if ($channel -eq "dev") { "--pre" } else { "" }
+          $preFlag = @(); if ($channel -eq "dev") { $preFlag = @("--pre") }
           $title = if ($channel -eq "dev") { "WinSqueeze $version (dev)" } else { "WinSqueeze $version" }
-          vpk upload github --repoUrl $env:REPO_URL --channel $channel --token $env:GH_TOKEN -o releases --publish --tag "v$version" --releaseName $title $preFlag
+          vpk upload github --repoUrl $env:REPO_URL --channel $channel --token $env:GH_TOKEN -o releases --publish --tag "v$version" --releaseName $title @preFlag
           git log -1 --pretty=%B | Out-File notes.txt
           gh release edit "v$version" --notes-file notes.txt
           # One discussion per release for comments (needs Discussions enabled)
