@@ -23,7 +23,7 @@ public sealed partial class SqueezeliteHost : IDisposable
 
     [GeneratedRegex(@"opened device \d+ - (.+) at (\d+) latency")] private static partial Regex OpenedDeviceRegex();
 
-    public void Start(ServerProfile profile, OutputDevice device, AudioSettings audio, string playerMac)
+    public void Start(ServerProfile profile, OutputDevice device, AudioSettings audio, string playerMac, bool fixedVolume = false)
     {
         Stop();
         Device = device; ExclusiveActive = false; OutputSampleRate = 0;
@@ -34,6 +34,7 @@ public sealed partial class SqueezeliteHost : IDisposable
         // Resample only tracks the device can't take natively (e.g. 22.05 kHz radio in exclusive mode); without it Squeezelite retries the open forever
         if (!extraArguments.Any(argument => argument is "-R" or "-u")) foreach (var argument in new[] { "-R", "hE" }) startInfo.ArgumentList.Add(argument);
         if (SupportsVisualiser) startInfo.ArgumentList.Add("-v"); // share played samples for the meters
+        if (fixedVolume) startInfo.ArgumentList.Add("-F"); // full level; the device's own volume does the work
         foreach (var extraArgument in extraArguments) startInfo.ArgumentList.Add(extraArgument);
         logWriter = new StreamWriter(Path.Combine(AppPaths.LogsFolder, "squeezelite.log"), false) { AutoFlush = true };
         logWriter.WriteLine($"[{DateTime.Now:O}] start: {string.Join(" ", startInfo.ArgumentList.Select(argument => argument.Contains(' ') ? $"\"{argument}\"" : argument))}");
@@ -59,18 +60,19 @@ public sealed partial class SqueezeliteHost : IDisposable
     public void SetWaiting(string message) { Stop(); SetStatus(PlayerState.WaitingForDevice, message); }
 
     // Only our own build has the Windows visualiser export; an unknown -v would make another build exit
-    static bool? supportsVisualiser;
-    public static bool SupportsVisualiser => supportsVisualiser ??= CheckVisualiserSupport();
-    static bool CheckVisualiserSupport()
+    static string? helpText;
+    public static bool SupportsVisualiser => (helpText ??= ReadHelpText()).Contains("VISEXPORT");
+    public static bool SupportsFixedVolume => (helpText ??= ReadHelpText()).Contains("-F ");
+    static string ReadHelpText()
     {
         try
         {
             using var helpProcess = Process.Start(new ProcessStartInfo(AppPaths.SqueezeliteExe, "-?") { CreateNoWindow = true, UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true })!;
-            var helpText = helpProcess.StandardOutput.ReadToEnd() + helpProcess.StandardError.ReadToEnd();
+            var output = helpProcess.StandardOutput.ReadToEnd() + helpProcess.StandardError.ReadToEnd();
             helpProcess.WaitForExit(3000);
-            return helpText.Contains("VISEXPORT");
+            return output;
         }
-        catch { return false; }
+        catch { return ""; }
     }
 
     long logSecond, linesThisSecond, droppedLines;

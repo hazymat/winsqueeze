@@ -27,6 +27,7 @@ public class ServerProfile
 public class AudioSettings
 {
     public bool Exclusive { get; set; } = true;
+    public bool HardwareVolume { get; set; } = true; // use the device's own volume (bit-perfect) when it has one
     public int LatencyMs { get; set; } = 200; // 40 ms made the DragonFly restart its stream every 10 s
     public string PlayerName { get; set; } = Environment.MachineName; // shown in the server's player list; user can rename
     public string ExtraArguments { get; set; } = "";

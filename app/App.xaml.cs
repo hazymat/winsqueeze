@@ -19,6 +19,7 @@ public partial class App : Application
     public LibraryService Library { get; } = new();
     public MediaControls? Media { get; private set; }
     public VisualiserReader Visualiser { get; } = new();
+    public DeviceVolume DeviceVolume { get; } = new();
     public List<OutputDevice> Devices { get; private set; } = new();
     public bool UsingFallbackDevice { get; private set; }
     public bool IsQuitting { get; private set; }
@@ -87,6 +88,13 @@ public partial class App : Application
         catch { }
     }
 
+    // The server's volume for this PC's player goes to the device (only while this player is the one being polled)
+    void ApplyDeviceVolume(JsonElement status)
+    {
+        if (!DeviceVolume.Active || Session.SelectedPlayerId != "" || status.ValueKind != JsonValueKind.Object) return;
+        if (int.TryParse(LyrionClient.ReadString(status, "mixer volume"), out var serverVolume)) DeviceVolume.Apply(serverVolume);
+    }
+
     // ---- Tray actions ----
     public void SetWindowMode(string mode) { ShowMainWindow(); mainWindow.SetWindowMode(mode); }
     public void NewPlaylist() { ShowMainWindow(); mainWindow.PushNewPlaylist(); }
@@ -118,7 +126,7 @@ public partial class App : Application
         RefreshIconsAfterUpdate();
         if (CrashReporter.TakeUnseenReport()) ShowTip("WinSqueeze had a problem last time", "It crashed or stopped responding. Details are in Settings › About › Open logs (crash.log).");
         try { Media = new MediaControls(); } catch { } // SMTC needs Windows 10 1903+
-        Session.StatusUpdated += () => { if (Settings.ActiveProfile is { } profile) Media?.Update(Session.LastStatus, $"http://{profile.Host}:{profile.Port}"); trayIcon.RefreshNowPlaying(Session.LastStatus); NotifyTrackChange(Session.LastStatus); };
+        Session.StatusUpdated += () => { if (Settings.ActiveProfile is { } profile) Media?.Update(Session.LastStatus, $"http://{profile.Host}:{profile.Port}"); trayIcon.RefreshNowPlaying(Session.LastStatus); NotifyTrackChange(Session.LastStatus); ApplyDeviceVolume(Session.LastStatus); };
         ApplyGlobalHotkeys();
         Session.Start();
         Library.Start();
@@ -228,7 +236,9 @@ public partial class App : Application
         }
         (string mode, double seconds) resumeState = ("", 0);
         if (resumePosition && Player.State == PlayerState.Running) resumeState = await ReadPlaybackStateAsync();
-        Player.Start(profile, outputDevice, Settings.Audio, Settings.PlayerMac);
+        var hardwareVolume = Settings.Audio.HardwareVolume && SqueezeliteHost.SupportsFixedVolume && DeviceVolume.Attach(outputDevice.Name);
+        if (!hardwareVolume) DeviceVolume.Detach();
+        Player.Start(profile, outputDevice, Settings.Audio, Settings.PlayerMac, hardwareVolume);
         if (SqueezeliteHost.SupportsVisualiser) Visualiser.Start(Settings.PlayerMac, Settings.Audio.LatencyMs);
         if (resumeState.mode == "play") await ResumeAtAsync(resumeState.seconds);
     }
