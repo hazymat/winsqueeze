@@ -3,6 +3,7 @@
   import { app, nav, ui, playlist, openSection, back, forward, forwardHistory, currentView, newPlaylist, undoToast, toast, receiveLevels, writeSetting, readSetting, currentTrack } from './state.svelte'
   import TransportBar from './parts/TransportBar.svelte'
   import WhatsNew from './parts/WhatsNew.svelte'
+  import ResizeEdges from './parts/ResizeEdges.svelte'
   import NowPlaying from './parts/NowPlaying.svelte'
   import PlaylistPanel from './parts/PlaylistPanel.svelte'
   import PeopleList from './views/PeopleList.svelte'
@@ -126,6 +127,7 @@
 
 <svelte:window bind:innerWidth={width} bind:innerHeight={height} onkeydown={onKey} onmouseup={(event) => { if (event.button === 3 && nav.stack.length) back(); if (event.button === 4) forward() }} oncontextmenu={onContextMenu} onpointerdown={(event) => { if (copyMenu && !(event.target as HTMLElement).closest('.copy-menu')) copyMenu = null }} />
 <WhatsNew />
+{#if app.window.frameless && !app.window.maximised}<ResizeEdges />{/if}
 {#if copyMenu}<div class="copy-menu" style:left="{copyMenu.left}px" style:top="{copyMenu.top}px"><button onclick={copySelection}>Copy</button></div>{/if}
 
 {#if mini}

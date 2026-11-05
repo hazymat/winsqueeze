@@ -85,10 +85,13 @@ public partial class EqualiserWindow : Window
                     break;
                 case "dragWindow": ReleaseCapture(); SendMessage(Handle, 0xA1 /*WM_NCLBUTTONDOWN*/, (IntPtr)2 /*HTCAPTION*/, IntPtr.Zero); webView.Focus(); break;
                 case "close": Close(); break;
+                case "resizeWindow": if (resizeHitCodes.TryGetValue(message.GetProperty("edge").GetString() ?? "", out var hitCode)) { ReleaseCapture(); SendMessage(Handle, 0xA1, (IntPtr)hitCode, IntPtr.Zero); } break;
             }
         }
         catch (Exception error) { CrashReporter.Write("Equaliser window message failed", error, false); }
     }
+
+    static readonly Dictionary<string, int> resizeHitCodes = new() { ["left"] = 10, ["right"] = 11, ["top"] = 12, ["topleft"] = 13, ["topright"] = 14, ["bottom"] = 15, ["bottomleft"] = 16, ["bottomright"] = 17 };
 
     void SaveBounds()
     {

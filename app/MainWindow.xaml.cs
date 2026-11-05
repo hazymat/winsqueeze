@@ -133,6 +133,8 @@ public partial class MainWindow : Window
                 case "saveDraft": Directory.CreateDirectory(AppPaths.DataFolder); if (Text(message, "draft") == "null") File.Delete(Shell.PlayerSession.DraftPath); else File.WriteAllText(Shell.PlayerSession.DraftPath, message.GetProperty("draft").GetRawText()); break;
                 case "openEq": App.OpenEqualiser(); break;
                 case "edgeColour": SetEdgeColour(Text(message, "colour")); break;
+                // Frameless: the page asks Windows to resize from an edge, as if the native frame were grabbed
+                case "resizeWindow": if (resizeHitCodes.TryGetValue(Text(message, "edge"), out var hitCode)) { ReleaseCapture(); SendMessage(new WindowInteropHelper(this).Handle, 0xA1 /*WM_NCLBUTTONDOWN*/, (IntPtr)hitCode, IntPtr.Zero); } break;
                 case "dragWindow": ReleaseCapture(); SendMessage(new WindowInteropHelper(this).Handle, 0xA1 /*WM_NCLBUTTONDOWN*/, (IntPtr)2 /*HTCAPTION*/, IntPtr.Zero); webView.Focus(); break; // the drag loop returns on mouse-up; give the page keyboard focus back so Ctrl+C reaches it
                 case "windowControl":
                     switch (Text(message, "action")) { case "minimise": WindowState = WindowState.Minimized; break; case "maximise": WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized; break; case "close": Close(); break; }
@@ -227,6 +229,7 @@ public partial class MainWindow : Window
 
     // The thin frameless edge around the page takes the page's own background (tint included on glass), so it reads as part of the page and
     // the corners are just the window's rounded ones, not a ring with a different inner curve
+    static readonly Dictionary<string, int> resizeHitCodes = new() { ["left"] = 10, ["right"] = 11, ["top"] = 12, ["topleft"] = 13, ["topright"] = 14, ["bottom"] = 15, ["bottomleft"] = 16, ["bottomright"] = 17 };
     Color? edgeColour;
     void SetEdgeColour(string cssColour)
     {
@@ -236,8 +239,9 @@ public partial class MainWindow : Window
         if (App.Settings.General.Frameless) Background = new SolidColorBrush(edgeColour.Value);
     }
 
-    // Frameless: the WebView covers the client area, so leave a thin edge for the resize border (more when maximised, which overhangs the screen)
-    void UpdateFrameMargin() => webView.Margin = App.Settings.General.Frameless ? new Thickness(WindowState == WindowState.Maximized ? 7 : 4) : new Thickness(0);
+    // Frameless: the page fills the window to its edge, so Windows' rounded corners clip it cleanly (resizing comes from the page's edge strips);
+    // maximised windows overhang the screen, so keep that overhang clear
+    void UpdateFrameMargin() => webView.Margin = App.Settings.General.Frameless && WindowState == WindowState.Maximized ? new Thickness(7) : new Thickness(0);
     public void PushNewPlaylist() => Push("{\"type\":\"newPlaylist\"}");
 
     // ---- Multi-monitor: size and position are remembered per monitor layout, and a window left off-screen comes back ----

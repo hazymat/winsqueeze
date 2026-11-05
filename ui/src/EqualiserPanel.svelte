@@ -1,6 +1,7 @@
 <script lang="ts">
   import { sendToShell, onShellMessage } from './bridge'
   import Analyser from './parts/Analyser.svelte'
+  import ResizeEdges from './parts/ResizeEdges.svelte'
   // The graphic equaliser window (SPEC.md › Equaliser): a black brushed hi-fi panel with gold legends, a fader bank per channel,
   // and a recessed analyser between them. Settings travel to the shell as the whole EQ object (PascalCase, as stored).
   const frequencies: Record<number, number[]> = { 10: [31.5, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000], 7: [63, 160, 400, 1000, 2500, 6300, 16000], 3: [100, 1000, 8000] }
@@ -132,6 +133,7 @@
   </button>
 {/snippet}
 
+<ResizeEdges />
 <div class="panel" role="presentation" onmousedown={dragWindow}>
   <div class="sheen"></div>
   {#if eq}

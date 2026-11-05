@@ -71,9 +71,6 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 [data-sort-row].gathered { display: none; }
 .drop-slot { position: absolute; left: 2px; right: 2px; border: 2px dashed color-mix(in srgb, var(--accent) 60%, transparent); border-radius: 10px; pointer-events: none; z-index: 1; transition: top 150ms cubic-bezier(.2,.8,.2,1); }
 body.is-dragging { cursor: grabbing; }
-/* Frameless: the page's corners follow the window's rounded corners inside the 4 px border (8 px outer − 4 px), so the border has a rounded inner edge */
-:root.frameless { background: transparent; }
-:root.frameless body { border-radius: 4px; } :root.frameless.maximised body { border-radius: 0; }
 /* Chosen rows in any browse list (lib/selectable.svelte.ts) */
 [data-select-key] { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 [data-select-key].pressing { background: var(--hover); transition: background 450ms; border-radius: 8px; }
