@@ -59,7 +59,7 @@ public class EqualiserSettings
     public string EditMode { get; set; } = "draw"; // "draw" sweeps across faders, "single" moves one
     public double WindowLeft { get; set; } = double.NaN;
     public double WindowTop { get; set; } = double.NaN;
-    public double WindowWidth { get; set; } = 980;
+    public double WindowWidth { get; set; } = 1200;
     public double WindowHeight { get; set; } = 330;
     public string DockSide { get; set; } = ""; // "", "left", "right", "top", "bottom" of the main window
     public int DockOffset { get; set; } // pixels along that edge

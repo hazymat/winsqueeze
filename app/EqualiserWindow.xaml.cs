@@ -24,6 +24,7 @@ public partial class EqualiserWindow : Window
     {
         InitializeComponent();
         Owner = owner;
+        if (Tuning.WindowWidth == 980) Tuning.WindowWidth = 1200; // the first release's default was too narrow
         Width = Math.Max(MinWidth, Tuning.WindowWidth); Height = Math.Max(MinHeight, Tuning.WindowHeight);
         if (!double.IsNaN(Tuning.WindowLeft)) { WindowStartupLocation = WindowStartupLocation.Manual; Left = Tuning.WindowLeft; Top = Tuning.WindowTop; }
         else WindowStartupLocation = WindowStartupLocation.CenterOwner;
