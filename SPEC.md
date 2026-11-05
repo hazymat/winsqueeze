@@ -197,6 +197,7 @@ One resizable window that changes layout by its own size. Breakpoints are in dev
 - Modes switch automatically as the window is resized, and Ctrl+1/2/3 jumps straight to a mode (restoring the size last used for it).
 - Selected text can be copied (Ctrl+C or right-click › Copy); clicking elsewhere clears the selection.
 - Mini mode has an **always-on-top** pin. It floats freely; no edge snapping.
+- After an update, Mini shows the same kind of dot for What's new; its notice has a Details button that opens the full window and the card.
 - When an update is ready, Mini shows a small pulsing accent dot in the top-right corner; clicking it slides the "Restart to update" notice down over the player.
 - **Multi-monitor:** size, position and mode are remembered per monitor configuration (keyed by the set of connected displays and their resolutions). When a monitor is unplugged or the resolution changes, any window left off-screen is moved back onto the nearest visible display.
 - **Per-monitor DPI aware (v2):** stays sharp when dragged between screens with different scaling.
