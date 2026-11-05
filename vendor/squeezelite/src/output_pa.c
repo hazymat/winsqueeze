@@ -464,6 +464,13 @@ static int _write_frames(frames_t out_frames, bool silence, s32_t gainL, s32_t g
 			_apply_cross(outputbuf, out_frames, cross_gain_in, cross_gain_out, cross_ptr);
 		}
 		
+#if VISEXPORT && WIN
+#if DSD
+		if (output.outfmt == PCM)
+#endif
+		eq_process((s32_t *)outputbuf->readp, out_frames, output.current_sample_rate); // WinSqueeze graphic equaliser, before volume
+#endif
+
 		if (gainL != FIXED_ONE || gainR!= FIXED_ONE) {
 			_apply_gain(outputbuf, out_frames, gainL, gainR, flags);
 		}

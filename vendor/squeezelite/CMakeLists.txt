@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.21)
 project(squeezelite C CXX)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
-set(sources buffer decode dop dsd dsd2pcm/dsd2pcm faad ffmpeg flac mad main mpg opus output output_pa output_pack output_stdout output_vis output_vis_win pcm process resample slimproto sslsym stream utils vorbis)
+set(sources buffer decode dop dsd dsd2pcm/dsd2pcm faad ffmpeg flac mad main mpg opus output output_pa output_pack output_stdout output_vis output_vis_win output_eq_win pcm process resample slimproto sslsym stream utils vorbis)
 list(TRANSFORM sources PREPEND ${CMAKE_SOURCE_DIR}/src/)
 list(TRANSFORM sources APPEND .c)
 add_executable(squeezelite ${sources})

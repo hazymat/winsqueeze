@@ -51,6 +51,7 @@ jobs:
           $help = & $exe -? | Out-String
           if (-not ($help -match "VISEXPORT")) { throw "visualiser export missing from build" }
           if (-not ($help -match "-F ")) { throw "fixed-volume option missing from build" }
+          if (-not ($help -match "WINEQ")) { throw "graphic equaliser missing from build" }
           (Get-FileHash $exe -Algorithm SHA256).Hash
       - uses: actions/upload-artifact@v4
         with:

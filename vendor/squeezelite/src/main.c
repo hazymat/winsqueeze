@@ -220,6 +220,9 @@ static void usage(const char *argv0) {
 #if VISEXPORT
 		   " VISEXPORT"
 #endif
+#if VISEXPORT && WIN
+		   " WINEQ"
+#endif
 #if IR
 		   " IR"
 #endif

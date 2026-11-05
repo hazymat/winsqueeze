@@ -722,6 +722,10 @@ void output_close_alsa(void);
 // output_pa.c
 #if PORTAUDIO
 extern bool fixed_volume; // WinSqueeze: -F (fixed full-level output)
+#if VISEXPORT && WIN
+void eq_init(u8_t *mac); // WinSqueeze: graphic equaliser (output_eq_win.c)
+void eq_process(s32_t *samples, frames_t frames, unsigned rate);
+#endif
 void list_devices(void);
 void set_volume(unsigned left, unsigned right);
 bool test_open(const char *device, unsigned rates[], bool userdef_rates);
