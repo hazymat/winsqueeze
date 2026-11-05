@@ -2,9 +2,10 @@
  *  WinSqueeze addition to Squeezelite (GPLv3, same terms as Squeezelite).
  *  Graphic equaliser: WinSqueeze writes biquad coefficients for the current sample rate into the shared memory
  *  "Local\squeezelite-eq-<mac>" (sequence counter odd while it writes); the output thread runs them over the PCM it is
- *  about to play. When disabled (or the coefficients are for another rate) the samples are untouched, so bypass is bit-perfect.
+ *  about to play, then a safety limiter catches any peak the boosts push past full scale. When disabled (or the coefficients are for another rate) the samples are untouched, so bypass is bit-perfect.
  */
 #include "squeezelite.h"
+#include <math.h>
 
 #if VISEXPORT && WIN
 
@@ -25,6 +26,7 @@ static HANDLE eq_handle = NULL;
 static LONG seen_sequence = -1;
 static u32_t active = 0, active_rate = 0, active_stages = 0;
 static double preamp = 1.0, coeffs[2][EQ_MAX_STAGES][5], state[2][EQ_MAX_STAGES][2];
+static double limiter_gain = 1.0; // safety limiter after the filters: instant attack, ~150 ms release, both channels together
 
 // Take a consistent copy of new settings; filter memory is cleared when the EQ switches on or its shape changes size
 static void eq_refresh(void) {
@@ -34,7 +36,7 @@ static void eq_refresh(void) {
 	double new_preamp = eq_map->preamp, new_coeffs[2][EQ_MAX_STAGES][5];
 	for (int channel = 0; channel < 2; channel++) for (u32_t stage = 0; stage < stages; stage++) for (int k = 0; k < 5; k++) new_coeffs[channel][stage][k] = eq_map->coeffs[channel][stage][k];
 	if (eq_map->sequence != sequence) return; // writer was mid-update: try again next block
-	if (!active || stages != active_stages) memset(state, 0, sizeof(state));
+	if (!active || stages != active_stages) { memset(state, 0, sizeof(state)); limiter_gain = 1.0; }
 	memcpy(coeffs, new_coeffs, sizeof(coeffs));
 	preamp = new_preamp; active = enabled && stages > 0; active_rate = rate; active_stages = stages; seen_sequence = sequence;
 }
@@ -43,7 +45,10 @@ void eq_process(s32_t *samples, frames_t frames, unsigned rate) {
 	if (!eq_map) return;
 	eq_refresh();
 	if (!active || active_rate != rate) return;
+	const double ceiling = 0.977; // -0.2 dBFS
+	const double release = 1.0 - exp(-1.0 / (0.15 * rate));
 	while (frames--) {
+		double filtered[2];
 		for (int channel = 0; channel < 2; channel++) {
 			double value = samples[channel] / 2147483648.0 * preamp;
 			for (u32_t stage = 0; stage < active_stages; stage++) { // transposed direct form II
@@ -53,7 +58,14 @@ void eq_process(s32_t *samples, frames_t frames, unsigned rate) {
 				z[1] = c[2] * value - c[4] * out;
 				value = out;
 			}
-			value *= 2147483648.0;
+			filtered[channel] = value;
+		}
+		// Only peaks that would clip are pulled down; below the ceiling the gain recovers to 1 and the signal is untouched
+		double peak = fabs(filtered[0]) > fabs(filtered[1]) ? fabs(filtered[0]) : fabs(filtered[1]);
+		limiter_gain += (1.0 - limiter_gain) * release;
+		if (peak * limiter_gain > ceiling) limiter_gain = ceiling / peak;
+		for (int channel = 0; channel < 2; channel++) {
+			double value = filtered[channel] * limiter_gain * 2147483648.0;
 			samples[channel] = value >= 2147483647.0 ? 0x7fffffff : value <= -2147483648.0 ? (s32_t)0x80000000 : (s32_t)value;
 		}
 		samples += 2;
