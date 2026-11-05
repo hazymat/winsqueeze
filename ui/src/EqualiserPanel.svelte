@@ -9,8 +9,8 @@
   let eq = $state<any>(null)
   let supported = $state(true), autoPreampDb = $state(0), clipping = $state(0)
   let clipTimer = 0
-  let analyser = $state({ left: Array(10).fill(0), right: Array(10).fill(0) })
-  let analyserTargets = { left: Array(10).fill(0), right: Array(10).fill(0) }
+  let analyser = $state({ left: Array(11).fill(0), right: Array(11).fill(0) }) // 10 octaves + the broadband level
+  let analyserTargets = { left: Array(11).fill(0), right: Array(11).fill(0) }
   let hover = $state<{ side: string; band: number } | null>(null)
   let shiftHeld = $state(false)
 
@@ -27,7 +27,9 @@
   function preampUp() { if (preampDragging) { preampDragging = false; send(true) } }
   // Octave levels in dBFS; a +3 dB/octave tilt (pivot 1 kHz) makes typical music read evenly. Scale: 3..30 over -33..-6 dBFS
   const toLevel = (decibels: number, band: number) => Math.max(0, Math.min(1, (decibels + 3 * Math.log2(frequencies[10][band] / 1000) + 36) / 30))
-  onShellMessage('eqLevels', message => analyserTargets = { left: message.left.map(toLevel), right: message.right.map(toLevel) })
+  // FULL RANGE: the whole signal, as the power sum of the octaves (0 dBFS at the top, 30 dB span like the bands)
+  const broadband = (octaves: number[]) => Math.max(0, Math.min(1, (10 * Math.log10(octaves.reduce((sum, decibels) => sum + Math.pow(10, decibels / 10), 0) + 1e-12) + 30) / 30))
+  onShellMessage('eqLevels', message => analyserTargets = { left: message.left.map(toLevel).concat([broadband(message.left)]), right: message.right.map(toLevel).concat([broadband(message.right)]) })
   sendToShell({ type: 'ready' })
   // Instant rise, then a fall set by DECAY
   $effect(() => {
@@ -162,7 +164,7 @@
       </div>
       {@render bank('L')}
       <div class="centre">
-        <div class="analyser-slot"><Analyser levels={analyser.left.map((level, index) => eq.Display === 'split' ? level : (level + analyser.right[index]) / 2)} levelsRight={eq.Display === 'split' ? analyser.right : null} labels={frequencies[10].map(shortFrequency)} scale={['30', '24', '18', '12', '6', '3']} /></div>
+        <div class="analyser-slot"><Analyser levels={analyser.left.slice(0, 10).map((level, index) => eq.Display === 'split' ? level : (level + analyser.right[index]) / 2)} levelsRight={eq.Display === 'split' ? analyser.right.slice(0, 10) : null} labels={frequencies[10].map(shortFrequency)} scale={['30', '27', '24', '21', '18', '15', '12', '9', '6', '3']} segments={30} title="SPECTRUM ANALYZER" fullRange={Math.max(analyser.left[10], analyser.right[10])} /></div>
         <div class="legend title">GRAPHIC EQUALIZER</div>
         <div class="legend arrows"><span>◄ LEFT</span><span class="rule"></span><span>FREQUENCY (Hz)</span><span class="rule"></span><span>RIGHT ►</span></div>
       </div>
@@ -222,9 +224,9 @@
   .knob::after { content: ""; position: absolute; left: 2px; right: 2px; top: 50%; height: 1px; background: rgba(255, 255, 255, 0.55); }
   .labels { display: flex; font-size: 8.5px; letter-spacing: 0.3px; } .labels span { flex: 1; text-align: center; white-space: nowrap; overflow: hidden; }
   .scale { display: flex; flex-direction: column; justify-content: space-between; font-size: 8px; margin: 1px 0 16px; text-align: right; min-width: 16px; line-height: 1; }
-  .centre { flex: 1.2; min-width: 200px; max-width: 380px; display: flex; flex-direction: column; gap: 5px; }
-  .analyser-slot { flex: 1; min-height: 0; display: flex; padding: 5px; border-radius: 6px; background: #050506; box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.9), 0 1px 0 rgba(255, 255, 255, 0.06); }
-  .analyser-slot :global(.analyser) { flex: 1; } .analyser-slot :global(.legend span) { font-size: 7.5px; letter-spacing: 0; }
+  .centre { flex: 0 0 auto; width: clamp(220px, calc((100vh - 112px) * 1.6), 420px); /* the analyser window is about 1.6:1, like the hardware's */ display: flex; flex-direction: column; gap: 5px; }
+  .analyser-slot { flex: 1; min-height: 0; display: flex; }
+  .analyser-slot :global(.analyser) { flex: 1; }
   .title { letter-spacing: 2px; font-size: 10px; }
   .arrows { display: flex; align-items: center; gap: 6px; font-size: 8px; white-space: nowrap; } .rule { flex: 1; height: 1px; background: var(--gold-dim); }
   .cluster { width: 176px; flex-shrink: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 7px 8px; align-content: center; }

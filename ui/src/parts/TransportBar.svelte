@@ -59,7 +59,7 @@
   </div>
   <div class="right">
     <div class="readout-slot"><Readout /></div>
-    <button class="pixel-meter" title="Equaliser" onclick={() => sendToShell({ type: 'openEq' })}><Analyser levels={meters.bands} compact={true} /></button>
+    <button class="pixel-meter" title="Equaliser" onclick={() => sendToShell({ type: 'openEq' })}><Analyser levels={meters.bands} compact={true} segments={14} /></button>
     <div class="volume">
       <input type="range" min="0" max="100" value={volume} oninput={dragVolume} onchange={releaseVolume} aria-label="Volume" />
       <button class="volume-icon" onclick={() => volumeOpen = !volumeOpen} aria-label="Volume"><Icon name="volume" /></button>

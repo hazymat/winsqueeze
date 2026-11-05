@@ -89,7 +89,7 @@
     {/each}
   {:else}
     <!-- Spectrum analyser (the third style; stored as 'oled' so earlier choices carry over) -->
-    <div class="spectrum">{#if size === 'large'}<Analyser levels={meters.bands} labels={bandLabels} scale={spectrumScale} />{:else}<Analyser levels={meters.bands} compact={true} />{/if}</div>
+    <div class="spectrum">{#if size === 'large'}<Analyser levels={meters.bands} labels={bandLabels} scale={spectrumScale} segments={24} title="SPECTRUM ANALYZER" fullRange={Math.max(0, Math.min(1, (Math.max(meters.vu[0] ?? -90, meters.vu[1] ?? -90) + 40) / 40))} />{:else}<Analyser levels={meters.bands} compact={true} segments={12} />{/if}</div>
   {/if}
 </button>
 
@@ -122,7 +122,7 @@
   .oled-needle { stroke: #d8f4ff; stroke-width: 1; }
   .oled-channel { fill: rgba(76, 192, 255, 0.35); font-size: 5px; text-anchor: middle; font-family: var(--font-display); }
   .idle .display { opacity: 0.55; }
-  .spectrum { display: flex; } .large .spectrum { width: 300px; height: 120px; } .small .spectrum { width: 64px; height: 29px; }
+  .spectrum { display: flex; } .large .spectrum { width: 320px; height: 150px; } .small .spectrum { width: 64px; height: 29px; }
   .spectrum :global(.analyser) { flex: 1; }
   .oledvu :is(.oled-line, .oled-tick, .oled-number, .oled-label, .oled-needle) { filter: drop-shadow(0 0 1.2px rgba(63, 184, 255, 0.7)); }
 </style>
