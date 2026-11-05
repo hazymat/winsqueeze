@@ -224,12 +224,12 @@
   .knob::after { content: ""; position: absolute; left: 2px; right: 2px; top: 50%; height: 1px; background: rgba(255, 255, 255, 0.55); }
   .labels { display: flex; font-size: 8.5px; letter-spacing: 0.3px; } .labels span { flex: 1; text-align: center; white-space: nowrap; overflow: hidden; }
   .scale { display: flex; flex-direction: column; justify-content: space-between; font-size: 8px; margin: 1px 0 16px; text-align: right; min-width: 16px; line-height: 1; }
-  .centre { flex: 0 0 auto; width: clamp(220px, calc((100vh - 112px) * 1.6), 420px); /* the analyser window is about 1.6:1, like the hardware's */ display: flex; flex-direction: column; gap: 5px; }
+  .centre { flex: 0 0 auto; width: clamp(270px, calc((100vh - 112px) * 1.6), 420px); /* the analyser window is about 1.6:1, like the hardware's */ display: flex; flex-direction: column; gap: 5px; }
   .analyser-slot { flex: 1; min-height: 0; display: flex; }
   .analyser-slot :global(.analyser) { flex: 1; }
   .title { letter-spacing: 2px; font-size: 10px; }
   .arrows { display: flex; align-items: center; gap: 6px; font-size: 8px; white-space: nowrap; } .rule { flex: 1; height: 1px; background: var(--gold-dim); }
-  .cluster { width: 176px; flex-shrink: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 7px 8px; align-content: center; }
+  .cluster { width: 176px; flex-shrink: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 7px 8px; align-content: safe center; min-height: 0; }
   .push { position: relative; display: flex; flex-direction: column; align-items: center; gap: 1px; background: none; border: 0; padding: 0 0 15px; color: var(--gold); cursor: pointer; font-family: inherit; }
   .push.wide { grid-column: 1 / 3; }
   .push:disabled { opacity: 0.35; cursor: default; }
@@ -242,4 +242,7 @@
   /* Narrow: the analyser makes way for the faders */
   @media (max-width: 860px) { .centre { display: none; } }
   @media (max-width: 760px) { .model, .hint { display: none; } .cluster { width: 150px; gap: 5px 6px; } .power-column { width: 52px; } .labels { font-size: 7.5px; } }
+  /* Short window: the buttons go three across and the help line drops, so nothing runs into the header */
+  @media (max-height: 320px) { .hint { display: none; } .cluster { grid-template-columns: repeat(3, 1fr); width: 246px; gap: 4px 6px; } }
+  @media (max-height: 320px) and (max-width: 760px) { .cluster { width: 196px; gap: 4px 4px; } .push-label { font-size: 7.5px; letter-spacing: 0.5px; } .push-options { font-size: 6.5px; letter-spacing: 0; } }
 </style>
