@@ -46,6 +46,8 @@
   onShellMessage('players', message => { app.players = message.players ?? []; app.ownPlayer = message.own ?? ''; if (!app.selectedPlayer) app.selectedPlayer = message.selected ?? '' })
   onShellMessage('library', message => app.library = { text: message.text ?? '', done: message.done ?? 0, total: message.total ?? 0 })
   onShellMessage('indexUpdated', () => app.indexVersion++)
+  // The skin is chosen in Settings › Appearance and applied live; cached locally so the next start paints in it straight away
+  onShellMessage('skin', message => { ui.skin = message.skin || 'auto'; writeSetting('skin', ui.skin) })
   onShellMessage('window', message => app.window = { glass: !!message.glass, frameless: !!message.frameless, maximised: !!message.maximised })
   onShellMessage('settings', message => { if (message.library) app.librarySettings = message.library })
   sendToShell({ type: 'ready' })
@@ -104,7 +106,6 @@
         <div class="spacer"></div>
         {#if app.library.total && app.library.done < app.library.total}<div class="sync" title={app.library.text}><div class="bar" style:width={`${(app.library.done / app.library.total) * 100}%`}></div></div>{/if}
         {#if app.library.text}<div class="sync-text">{app.library.text}</div>{/if}
-        <select class="skin" bind:value={ui.skin} onchange={() => writeSetting('skin', ui.skin)} aria-label="Skin"><option value="auto">Skin: follow Windows</option><option value="dark">Skin: frosted dark</option><option value="light">Skin: frosted light</option><option value="classic">Skin: Squeezebox classic</option><option value="amber">Skin: hi-fi amber</option></select>
         <button class="section" onclick={() => sendToShell({ type: 'openSettings' })}><span class="glyph"><Icon name="settings" /></span>Settings</button>
       </nav>
     {/if}
@@ -190,7 +191,6 @@
   .spacer { flex: 1; }
   .sync { height: 3px; background: var(--track); border-radius: 2px; margin: 0 10px; overflow: hidden; }
   .bar { height: 100%; background: var(--accent); }
-  .skin { margin: 4px 10px; background: var(--panel); color: var(--fg-quiet); border: 1px solid var(--line); border-radius: 6px; padding: 3px 4px; font: inherit; font-size: 12px; }
   .sync-text { color: var(--fg-quiet); font-size: 11px; padding: 4px 10px 8px; }
   .content-column { display: flex; flex-direction: column; min-width: 0; min-height: 0; height: 100vh; }
   .update-notice { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 6px 12px; background: var(--accent-soft); font-size: 13px; }

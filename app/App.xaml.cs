@@ -78,6 +78,7 @@ public partial class App : Application
     }
 
     public void ApplyWindowStyle() => mainWindow.ApplyWindowStyle();
+    public void ApplySkin() => mainWindow.PushSkin();
 
     public async Task<string[]> ResumeArgumentsAsync()
     {

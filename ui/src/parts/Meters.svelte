@@ -54,9 +54,10 @@
     {/each}
   {:else if ui.meterStyle === 'oledvu'}
     {#each ['L', 'R'] as channel}
-      <svg viewBox="0 0 120 72" class="vu oledvu" aria-hidden="true">
+      <!-- Cropped to the scale: the panel holds just the arc, numbers, needle and channel, centred top to bottom -->
+      <svg viewBox="0 17 120 54" class="vu oledvu" aria-hidden="true">
         <defs><filter id={gradientId + '-glow'} x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="1.4" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter></defs>
-        <rect x="0" y="0" width="120" height="72" rx="5" class="glass" />
+        <rect x="0" y="17" width="120" height="54" rx="5" class="glass" />
         <g filter="url(#{gradientId}-glow)" class="display">
           <path d={oledArc(-48, 46, oledRadius)} class="oled-line" />
           {#each detentAngles as angle}{@const [detentX1, detentY1] = oledPoint(angle, oledRadius)}{@const [detentX2, detentY2] = oledPoint(angle, oledRadius + 4.5)}<line x1={detentX1} y1={detentY1} x2={detentX2} y2={detentY2} class="oled-tick detent" />{/each}
@@ -65,12 +66,11 @@
             {#if decibels < 0}<line x1={innerX} y1={innerY} x2={outerX} y2={outerY} class="oled-tick" />{/if}
             {#if decibels !== -2 && decibels !== -1 && decibels !== 1}<text x={labelX} y={labelY} class="oled-number">{Math.abs(decibels)}</text>{/if}
           {/each}
-          <text x="14" y="15" class="oled-number">−</text><text x="108" y="15" class="oled-number">+</text>
           <text x="60" y="52" class="oled-label">VU</text>
           <g clip-path="url(#{gradientId}-oled-clip)"><line x1={pivotX} y1={oledPivotY} x2={pivotX} y2={oledPivotY - 48} class="oled-needle" transform="rotate({oledRestAngle} {pivotX} {oledPivotY})" /></g>
         </g>
         <text x="60" y="64" class="oled-channel">{channel}</text>
-        <defs><clipPath id={gradientId + '-oled-clip'}><rect x="5" y="5" width="110" height="61" /></clipPath></defs>
+        <defs><clipPath id={gradientId + '-oled-clip'}><rect x="5" y="18" width="110" height="48" /></clipPath></defs>
       </svg>
     {/each}
   {:else}
@@ -81,6 +81,7 @@
 <style>
   .meters { display: flex; gap: 4px; background: none; border: 0; padding: 0; cursor: pointer; align-items: center; }
   .small .vu { width: 60px; height: 36px; } .large .vu { width: 190px; height: 114px; }
+  .small .oledvu { height: 27px; } .large .oledvu { height: 85.5px; }
   .bezel { fill: #15161a; stroke: #2c2e34; stroke-width: 1; }
   .lamp-hot { stop-color: #fff6d8; } .lamp-warm { stop-color: #f6e3b0; } .lamp-mid { stop-color: #d9bf86; } .lamp-edge { stop-color: #9c8457; }
   .idle .lamp-hot { stop-color: #e9dcb6; } .idle .lamp-warm { stop-color: #d8c595; } .idle .lamp-mid { stop-color: #b59d6c; } .idle .lamp-edge { stop-color: #7a6744; }

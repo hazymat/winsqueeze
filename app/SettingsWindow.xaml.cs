@@ -278,6 +278,10 @@ public partial class SettingsWindow : Window
     void WireAppearanceTab()
     {
         var general = Settings.General;
+        var skinNames = new[] { ("auto", "Follow Windows (light or dark)"), ("dark", "Frosted dark"), ("light", "Frosted light"), ("classic", "Squeezebox classic"), ("amber", "Hi-fi amber") };
+        skinBox.ItemsSource = skinNames.Select(skin => new ComboBoxItem { Content = skin.Item2, Tag = skin.Item1 }).ToList();
+        skinBox.SelectedItem = ((List<ComboBoxItem>)skinBox.ItemsSource).FirstOrDefault(item => (string)item.Tag == general.Skin) ?? ((List<ComboBoxItem>)skinBox.ItemsSource)[0];
+        skinBox.SelectionChanged += (sender, args) => { if (skinBox.SelectedItem is ComboBoxItem { Tag: string skin }) { general.Skin = skin; Settings.Save(); App.ApplySkin(); } };
         glassBox.IsChecked = general.Glass; framelessBox.IsChecked = general.Frameless;
         glassBox.Click += (sender, args) => { general.Glass = glassBox.IsChecked == true; Settings.Save(); App.ApplyWindowStyle(); };
         framelessBox.Click += (sender, args) => { general.Frameless = framelessBox.IsChecked == true; Settings.Save(); App.ApplyWindowStyle(); };
