@@ -183,6 +183,7 @@ public partial class App : Application
     public void OpenSettings(string tabName = "")
     {
         if (settingsWindow == null) { settingsWindow = new SettingsWindow(); settingsWindow.Closed += (sender, args) => settingsWindow = null; }
+        if (mainWindow.IsVisible && settingsWindow.Owner == null) settingsWindow.Owner = mainWindow; // keeps Settings in front of the main window
         settingsWindow.SelectTab(tabName);
         settingsWindow.Show(); settingsWindow.Activate();
     }
