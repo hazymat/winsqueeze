@@ -59,8 +59,8 @@ public class EqualiserSettings
     public string Display { get; set; } = "sum"; // analyser: "sum" (L+R) or "split" (L/R)
     public string Decay { get; set; } = "fast";
     public string EditMode { get; set; } = "draw"; // "draw" sweeps across faders, "single" moves one
-    public double WindowLeft { get; set; } = double.NaN;
-    public double WindowTop { get; set; } = double.NaN;
+    public double? WindowLeft { get; set; } // null until the window has been placed (NaN can't be written as JSON)
+    public double? WindowTop { get; set; }
     public double WindowWidth { get; set; } = 1200;
     public double WindowHeight { get; set; } = 330;
     public string DockSide { get; set; } = ""; // "", "left", "right", "top", "bottom" of the main window

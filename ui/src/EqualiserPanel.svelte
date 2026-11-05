@@ -4,8 +4,8 @@
   import ResizeEdges from './parts/ResizeEdges.svelte'
   // The graphic equaliser window (SPEC.md › Equaliser): a black brushed hi-fi panel with gold legends, a fader bank per channel,
   // and a recessed analyser between them. Settings travel to the shell as the whole EQ object (PascalCase, as stored).
-  const frequencies: Record<number, number[]> = { 10: [31.5, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000], 7: [63, 160, 400, 1000, 2500, 6300, 16000], 3: [100, 1000, 8000] }
-  const range = 10 // ±dB on the faders
+  const frequencies: Record<number, number[]> = { 10: [31.5, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000], 7: [63, 160, 400, 1000, 2500, 6300, 16000], 3: [150, 1000, 5000] }
+  const range = 12 // ±dB on the faders (true dB)
   let eq = $state<any>(null)
   let supported = $state(true), autoPreampDb = $state(0), clipping = $state(0)
   let clipTimer = 0
@@ -95,7 +95,8 @@
   function wheel(event: WheelEvent, side: string) { const { band } = locate(event as unknown as PointerEvent, event.currentTarget as HTMLElement); const gains = gainsFor(side); setBand(side, band, Math.max(-range, Math.min(range, gains[band] + (event.deltaY < 0 ? 0.5 : -0.5)))); send(true) }
   function doubleClick(event: MouseEvent, side: string) { const { band } = locate(event as unknown as PointerEvent, event.currentTarget as HTMLElement); setBand(side, band, 0); send(true) }
   const knobTop = (gain: number) => `${(range - gain) / (2 * range) * 100}%`
-  const scaleMarks = [10, 8, 6, 4, 2, 0, 2, 4, 6, 8, 10]
+  const scaleMarks = [12, 10, 8, 6, 4, 2, 0, 2, 4, 6, 8, 10, 12]
+  const lastMark = scaleMarks.length - 1, zeroMark = lastMark / 2
 
   // Window drag only from bare panel: never from a control, or the native drag loop swallows the control's pointer-up
   function dragWindow(event: MouseEvent) { if (event.button === 0 && !(event.target as HTMLElement).closest('button, .bank, .preamp, [role=slider]')) sendToShell({ type: 'dragWindow' }) }
@@ -107,12 +108,12 @@
 {#snippet bank(side: string)}
   {@const gains = gainsFor(side)}
   <div class="bank-wrap" class:left={side === 'L'}>
-    {#if side === 'R'}<div class="scale">{#each scaleMarks as mark, index}<span>{index === 0 ? '+' : index === 10 ? '−' : ''}{mark}</span>{/each}</div>{/if}
+    {#if side === 'R'}<div class="scale">{#each scaleMarks as mark, index}<span>{index === 0 ? '+' : index === lastMark ? '−' : ''}{mark}</span>{/each}</div>{/if}
     <div class="bank" role="group" aria-label={side === 'L' ? 'Left channel' : 'Right channel'} class:dimmed={eq.Linked && side === 'R'}
       onpointerdown={(event) => pointerDown(event, side)} onpointermove={(event) => pointerMove(event, side)} onpointerup={pointerUp} onpointercancel={pointerUp}
       onpointerleave={() => { if (!pressed) hover = null }} onwheel={(event) => wheel(event, side)} ondblclick={(event) => doubleClick(event, side)}>
       <div class="tracks">
-        {#each scaleMarks as mark, index}<div class="tick" class:zero={index === 5} style:top="{index * 10}%"></div>{/each}
+        {#each scaleMarks as mark, index}<div class="tick" class:zero={index === zeroMark} style:top="{index * 100 / lastMark}%"></div>{/each}
         {#each gains as gain, band}
           <div class="fader" class:hovered={hover && (hover.side === side || eq.Linked) && hover.band === band}>
             <div class="slot"></div>
@@ -122,7 +123,7 @@
       </div>
       <div class="labels">{#each gains as unused, band}<span>{bandLabel(band)}</span>{/each}</div>
     </div>
-    {#if side === 'L'}<div class="scale">{#each scaleMarks as mark, index}<span>{index === 0 ? '+' : index === 10 ? '−' : ''}{mark}</span>{/each}</div>{/if}
+    {#if side === 'L'}<div class="scale">{#each scaleMarks as mark, index}<span>{index === 0 ? '+' : index === lastMark ? '−' : ''}{mark}</span>{/each}</div>{/if}
   </div>
 {/snippet}
 

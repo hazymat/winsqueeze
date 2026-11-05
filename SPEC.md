@@ -166,8 +166,8 @@ Bandwidth note: CD-quality FLAC needs about 1–1.5 Mbps, hi-res 24/96 about 3�
 
 ## Equaliser
 
-- Opened by clicking the transport's spectrum analyser. Its own window, styled like a classic hi-fi graphic EQ: black brushed panel, gold legends, a fader bank per channel (±10 dB), a recessed cyan analyser between them (10 octave bands, L+R or L/R display, fast or slow decay), and a smoked-glass reflection over the front.
-- **Bands:** 10 (octaves 31.5 Hz–16 kHz), 7 (63 Hz–16 kHz, 1⅓-octave spacing) or 3 (bass shelf 100 Hz, mid 1 kHz, treble shelf 8 kHz).
+- Opened by clicking the transport's spectrum analyser. Its own window, styled like a classic hi-fi graphic EQ: black brushed panel, gold legends, a fader bank per channel (±12 dB, true dB), a recessed cyan analyser between them (10 octave bands, L+R or L/R display, fast or slow decay), and a smoked-glass reflection over the front.
+- **Bands:** 10 (octaves 31.5 Hz–16 kHz), 7 (63 Hz–16 kHz, 1⅓-octave spacing) or 3 (bass shelf 150 Hz, mid 1 kHz, treble shelf 5 kHz).
 - **Character:** Vintage (default) models an analogue gyrator EQ: bands are broad at gentle settings and narrow to about an octave at full boost. Precise keeps a constant Q.
 - **Stereo:** linked (one curve, both banks move together) or L/R independently, with copy L→R and R→L. Reset sets the current band layout flat.
 - **Editing:** Draw (default) sweeps across the faders and each one jumps to the pointer; Single moves only the fader you grabbed. Shift swaps the mode while held. Hovering highlights the fader and shows its frequency and gain; double-click returns it to 0 dB; the wheel steps 0.5 dB.

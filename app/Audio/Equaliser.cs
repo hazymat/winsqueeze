@@ -13,7 +13,7 @@ public sealed class Equaliser : IDisposable
     {
         [10] = new double[] { 31.5, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000 }, // octaves, as on classic hi-fi graphic EQs
         [7] = new double[] { 63, 160, 400, 1000, 2500, 6300, 16000 },                   // 1⅓-octave spacing
-        [3] = new double[] { 100, 1000, 8000 },                                          // bass shelf, mid, treble shelf
+        [3] = new double[] { 150, 1000, 5000 },                                          // bass shelf, mid, treble shelf (tone-control corners)
     };
     // Q of a band at full boost: about an octave wide for 10 bands, broader as the bands spread out
     static readonly Dictionary<int, double> fullBoostQ = new() { [10] = 1.41, [7] = 1.0, [3] = 0.7 };
@@ -95,7 +95,7 @@ public sealed class Equaliser : IDisposable
         if (Math.Abs(gainDb) < 0.05 || frequency >= rate * 0.45) return new double[] { 1, 0, 0, 0, 0 };
         if (count == 3 && band != 1) return Shelf(band == 2, frequency, gainDb, rate);
         // Vintage: like an analogue gyrator EQ, a band is broad at gentle settings and narrows towards full boost or cut
-        var quality = precise ? fullBoostQ[count] : fullBoostQ[count] * (0.45 + 0.55 * Math.Min(1, Math.Abs(gainDb) / 10));
+        var quality = precise ? fullBoostQ[count] : fullBoostQ[count] * (0.45 + 0.55 * Math.Min(1, Math.Abs(gainDb) / 12));
         return Peaking(frequency, gainDb, quality, rate);
     }
 

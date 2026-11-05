@@ -26,7 +26,7 @@ public partial class EqualiserWindow : Window
         Owner = owner;
         if (Tuning.WindowWidth == 980) Tuning.WindowWidth = 1200; // the first release's default was too narrow
         Width = Math.Max(MinWidth, Tuning.WindowWidth); Height = Math.Max(MinHeight, Tuning.WindowHeight);
-        if (!double.IsNaN(Tuning.WindowLeft)) { WindowStartupLocation = WindowStartupLocation.Manual; Left = Tuning.WindowLeft; Top = Tuning.WindowTop; }
+        if (Tuning.WindowLeft is double savedLeft && Tuning.WindowTop is double savedTop && !double.IsNaN(savedLeft)) { WindowStartupLocation = WindowStartupLocation.Manual; Left = savedLeft; Top = savedTop; }
         else WindowStartupLocation = WindowStartupLocation.CenterOwner;
         SourceInitialized += (sender, args) => { HwndSource.FromHwnd(Handle).AddHook(WindowMessageHook); FollowOwner(); };
         Loaded += async (sender, args) => await InitWebViewAsync();
