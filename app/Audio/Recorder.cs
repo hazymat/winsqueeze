@@ -23,6 +23,7 @@ public sealed class Recorder : IDisposable
     public string CurrentFile { get; private set; } = "";
     public DateTime StartedAt { get; private set; }
     public int FilesThisRecording { get; private set; }
+    public string SessionFolder { get; private set; } = ""; // "<station> - yyyy-MM-dd, HH.mm.ss" per recording (default), or "<station>" for all of them
     string noteText = "";
     public string Note { get => noteText; private set { noteText = value; if (value != "") NoteId++; } } // last thing worth telling the user (saved, or an error)
     public int NoteId { get; private set; }
@@ -45,7 +46,7 @@ public sealed class Recorder : IDisposable
         if (!IsStream(status)) { Note = "Recording works on radio stations and other streams"; Changed?.Invoke(); return; }
         station = ""; // read once per recording: plugins later swap in the programme name, which would scatter files across folders
         ReadSong(status);
-        lock (writeLock) { Recording = true; FilesThisRecording = 0; StartedAt = DateTime.Now; Note = ""; }
+        lock (writeLock) { Recording = true; FilesThisRecording = 0; StartedAt = DateTime.Now; Note = ""; SessionFolder = Path.Combine(Folder, Tuning.FolderPerStation ? Safe(station) : $"{Safe(station)} - {StartedAt:yyyy-MM-dd, HH.mm.ss}"); }
         NextFile();
     }
 
@@ -54,7 +55,7 @@ public sealed class Recorder : IDisposable
         lock (writeLock)
         {
             if (!Recording) return;
-            Recording = false; Note = FilesThisRecording > 1 ? $"{message}: {FilesThisRecording} files in {Folder}" : $"{message} in {Folder}";
+            Recording = false; Note = FilesThisRecording > 1 ? $"{message}: {FilesThisRecording} files in {SessionFolder}" : $"{message} in {SessionFolder}";
             WriteRequest(false, "", "");
         }
         Changed?.Invoke();
@@ -99,17 +100,17 @@ public sealed class Recorder : IDisposable
         lock (writeLock)
         {
             if (!Recording) return;
-            var folder = Path.Combine(Folder, Safe(station));
+            var folder = SessionFolder;
             try { Directory.CreateDirectory(folder); }
             catch (Exception error) { Recording = false; Note = $"Can't create the recordings folder: {error.Message}"; WriteRequest(false, "", ""); Changed?.Invoke(); return; }
             var song = songArtist != "" && songTitle != "" ? $"{songArtist} - {songTitle}" : FirstOf(songTitle, station);
-            var stem = Path.Combine(folder, $"{DateTime.Now:yyyy-MM-dd HH.mm} {Safe(song, 80)}"); // programme blurbs can run to paragraphs
+            var stem = Path.Combine(folder, $"{(Tuning.FolderPerStation ? DateTime.Now.ToString("yyyy-MM-dd HH.mm") : (FilesThisRecording + 1).ToString("00"))} {Safe(song, 80)}"); // numbered in recording order, or dated in a shared station folder; programme blurbs can run to paragraphs
             if (stem.Length > 230) stem = stem[..230];
             var path = stem + ".flac";
             for (var copy = 2; File.Exists(path); copy++) path = $"{stem} ({copy}).flac";
             var tags = new StringBuilder();
             void Tag(string name, string value) { if (value != "") tags.Append(name).Append('=').Append(value.Replace('\n', ' ')).Append('\n'); }
-            Tag("TITLE", FirstOf(songTitle, station)); Tag("ARTIST", songArtist); Tag("ALBUM", station); Tag("DATE", DateTime.Now.ToString("yyyy-MM-dd")); Tag("COMMENT", $"Recorded from {station} with WinSqueeze");
+            Tag("TITLE", FirstOf(songTitle, station)); Tag("ARTIST", songArtist); Tag("ALBUM", Tuning.FolderPerStation ? station : $"{station} {StartedAt:yyyy-MM-dd HH.mm}"); if (!Tuning.FolderPerStation) Tag("TRACKNUMBER", (FilesThisRecording + 1).ToString()); Tag("DATE", DateTime.Now.ToString("yyyy-MM-dd")); Tag("COMMENT", $"Recorded from {station} with WinSqueeze");
             CurrentFile = path; FilesThisRecording++;
             WriteRequest(true, path, tags.ToString());
         }
