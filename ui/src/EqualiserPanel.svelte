@@ -219,9 +219,9 @@
   .fader { flex: 1; position: relative; display: flex; justify-content: center; border-radius: 3px; }
   .fader.hovered { background: linear-gradient(180deg, rgba(201, 168, 92, 0.05), rgba(201, 168, 92, 0.12), rgba(201, 168, 92, 0.05)); box-shadow: 0 0 0 1px rgba(201, 168, 92, 0.18); }
   /* A wide black channel with the cap riding inside it */
-  .slot { position: absolute; top: -6px; bottom: -6px; width: 12px; border-radius: 2px; background: linear-gradient(90deg, #000, #070708 50%, #000); box-shadow: inset 0 2px 3px #000, inset 1px 0 0 rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.05), 0 1px 0 rgba(255, 255, 255, 0.06); }
+  .slot { position: absolute; top: -6px; bottom: -6px; width: min(12px, 70%); border-radius: 2px; background: linear-gradient(90deg, #000, #070708 50%, #000); box-shadow: inset 0 2px 3px #000, inset 1px 0 0 rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.05), 0 1px 0 rgba(255, 255, 255, 0.06); }
   /* Moulded cap: a finger dip across the middle instead of a painted line */
-  .knob { position: absolute; width: 10px; height: 26px; margin-top: -13px; border-radius: 1.5px; background: linear-gradient(180deg, #3a3a3d 0%, #26262a 18%, #1b1b1e 38%, #0c0c0d 47%, #050505 50%, #2a2a2e 53%, #1d1d20 64%, #141416 84%, #0d0d0e 100%); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 -1px 0 rgba(0, 0, 0, 0.9), inset 1px 0 0 rgba(255, 255, 255, 0.05), inset -1px 0 0 rgba(0, 0, 0, 0.6), 0 3px 4px rgba(0, 0, 0, 0.85); }
+  .knob { position: absolute; width: min(10px, calc(70% - 2px)); height: 26px; margin-top: -13px; border-radius: 1.5px; background: linear-gradient(180deg, #3a3a3d 0%, #26262a 18%, #1b1b1e 38%, #0c0c0d 47%, #050505 50%, #2a2a2e 53%, #1d1d20 64%, #141416 84%, #0d0d0e 100%); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 -1px 0 rgba(0, 0, 0, 0.9), inset 1px 0 0 rgba(255, 255, 255, 0.05), inset -1px 0 0 rgba(0, 0, 0, 0.6), 0 3px 4px rgba(0, 0, 0, 0.85); }
   .labels { display: flex; font-size: 8.5px; letter-spacing: 0.3px; } .labels span { flex: 1; text-align: center; white-space: nowrap; overflow: hidden; }
   .scale { display: flex; flex-direction: column; justify-content: space-between; font-size: 8px; margin: 1px 0 16px; text-align: right; min-width: 16px; line-height: 1; }
   .centre { flex: 0 0 auto; width: max(270px, calc((100vh - 112px) * 2)); /* the analyser frame keeps the hardware's ~2:1, whatever the window width; the fader banks absorb the rest */ display: flex; flex-direction: column; gap: 5px; }
@@ -242,7 +242,6 @@
   /* Narrow: the analyser makes way for the faders */
   @media (max-width: 860px) { .centre { display: none; } }
   @media (max-width: 760px) { .hint { display: none; } .cluster { width: 150px; gap: 5px 6px; } .power-column { width: 52px; } .labels { font-size: 7.5px; } }
-  /* Short window: the buttons go three across and the help line drops, so nothing runs into the header */
-  @media (max-height: 320px) { .hint { display: none; } .cluster { grid-template-columns: repeat(3, 1fr); width: 246px; gap: 4px 6px; } }
-  @media (max-height: 320px) and (max-width: 760px) { .cluster { width: 196px; gap: 4px 4px; } .push-label { font-size: 7.5px; letter-spacing: 0.5px; } .push-options { font-size: 6.5px; letter-spacing: 0; } }
+  /* Short window: the button rows close up and the help line drops, so nothing runs into the header */
+  @media (max-height: 320px) { .hint { display: none; } .cluster { gap: 3px 8px; } }
 </style>

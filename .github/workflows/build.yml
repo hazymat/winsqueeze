@@ -56,7 +56,14 @@ jobs:
           dotnet tool install -g vpk --version 0.0.1298
           vpk download github --repoUrl $env:REPO_URL --channel $channel --token $env:GH_TOKEN -o releases  # previous release, for delta updates
           $global:LASTEXITCODE = 0
-          vpk pack --packId WinSqueeze --packVersion $version --packDir publish/WinSqueeze --mainExe WinSqueeze.exe --packTitle WinSqueeze --icon app/Assets/WinSqueeze.ico --channel $channel -o releases
+          # Notes (worked out before packing, so the release is born with them): every change since the previous release (one line each, written for users), skipping the bot's player builds
+          $previousTag = gh api "repos/$env:GITHUB_REPOSITORY/releases?per_page=5" --jq ('[.[] | select(.tag_name != "v' + $version + '")][0].tag_name')
+          $previousSha = if ($previousTag) { gh api "repos/$env:GITHUB_REPOSITORY/commits/$previousTag" --jq .sha } else { "" }
+          $notes = if ($previousSha) { git log "$previousSha..HEAD" --no-merges --perl-regexp --author='^((?!github-actions).)*$' --pretty="- %s" } else { "" }
+          if (-not $notes) { $notes = git log -1 --pretty=%B }
+          $global:LASTEXITCODE = 0
+          $notes | Out-File notes.txt -Encoding utf8
+          vpk pack --packId WinSqueeze --packVersion $version --packDir publish/WinSqueeze --mainExe WinSqueeze.exe --packTitle WinSqueeze --icon app/Assets/WinSqueeze.ico --channel $channel --releaseNotes notes.txt -o releases
           $preFlag = @(); if ($channel -eq "dev") { $preFlag = @("--pre") }
           $title = if ($channel -eq "dev") { "WinSqueeze $version (dev)" } else { "WinSqueeze $version" }
           vpk upload github --repoUrl $env:REPO_URL --channel $channel --token $env:GH_TOKEN -o releases --publish --tag "v$version" --releaseName $title @preFlag
@@ -64,13 +71,6 @@ jobs:
           gh release upload "v$version" downloads/WinSqueeze-Portable.exe downloads/WinSqueeze-Setup.exe --clobber
           # Keep just the two downloads plus the updater's own feed files
           foreach ($duplicate in (Get-ChildItem releases | Where-Object { ($_.Name -like "*-Setup.exe" -or $_.Name -like "*-Portable.zip") -and $_.Name -ne "WinSqueeze-Setup.exe" })) { gh release delete-asset "v$version" $duplicate.Name --yes }
-          # Notes: every change since the previous release (one line each, written for users), skipping the bot's player builds
-          $previousTag = gh api "repos/$env:GITHUB_REPOSITORY/releases?per_page=5" --jq ('[.[] | select(.tag_name != "v' + $version + '")][0].tag_name')
-          $previousSha = if ($previousTag) { gh api "repos/$env:GITHUB_REPOSITORY/commits/$previousTag" --jq .sha } else { "" }
-          $notes = if ($previousSha) { git log "$previousSha..HEAD" --no-merges --perl-regexp --author='^((?!github-actions).)*$' --pretty="- %s" } else { "" }
-          if (-not $notes) { $notes = git log -1 --pretty=%B }
-          $global:LASTEXITCODE = 0
-          $notes | Out-File notes.txt
           gh release edit "v$version" --notes-file notes.txt
           # One discussion per release for comments (needs Discussions enabled)
           gh release edit "v$version" --discussion-category "Announcements"
