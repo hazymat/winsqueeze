@@ -21,9 +21,12 @@ export const playlist = $state({ open: false, collapsed: false, name: 'Untitled 
 export function readSetting(name: string, fallback: string) { try { return localStorage.getItem('ws.' + name) ?? fallback } catch { return fallback } }
 export function writeSetting(name: string, value: string) { try { localStorage.setItem('ws.' + name, value) } catch { } }
 
-export function openSection(section: string) { nav.section = section; nav.stack = []; ui.search = '' }
-export function openView(view: View) { nav.stack = nav.stack.concat([view]); ui.search = '' }
-export function back() { nav.stack = nav.stack.slice(0, -1) }
+// Forward history, like a browser: Back keeps what it left, any new navigation clears it
+export const forwardHistory = $state({ views: [] as View[] })
+export function openSection(section: string) { nav.section = section; nav.stack = []; ui.search = ''; forwardHistory.views = [] }
+export function openView(view: View) { nav.stack = nav.stack.concat([view]); ui.search = ''; forwardHistory.views = [] }
+export function back() { if (!nav.stack.length) return; forwardHistory.views = forwardHistory.views.concat([nav.stack[nav.stack.length - 1]]); nav.stack = nav.stack.slice(0, -1) }
+export function forward() { if (!forwardHistory.views.length) return; nav.stack = nav.stack.concat([forwardHistory.views[forwardHistory.views.length - 1]]); forwardHistory.views = forwardHistory.views.slice(0, -1) }
 export const currentView = () => nav.stack.length ? nav.stack[nav.stack.length - 1] : { kind: nav.section }
 
 // Messages show in the action strip above the transport (ActionStrip.svelte), with a ring counting down their time

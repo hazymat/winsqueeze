@@ -1,10 +1,12 @@
 <script lang="ts">
   // Crisp transport icons as SVG: text glyphs (⏮ ▶ ⏭) render off-centre with colour fringes in WebView2
-  let { name, size = 18 }: { name: 'previous' | 'next' | 'play' | 'pause' | 'volume' | 'speaker' | 'pin' | 'favourites' | 'artists' | 'genres' | 'composers' | 'performers' | 'folders' | 'albums' | 'queue' | 'plus' | 'settings' | 'playlists' | 'minimise' | 'maximise' | 'restore' | 'close'; size?: number } = $props()
+  let { name, size = 18 }: { name: 'back' | 'forward' | 'previous' | 'next' | 'play' | 'pause' | 'volume' | 'speaker' | 'pin' | 'favourites' | 'artists' | 'genres' | 'composers' | 'performers' | 'folders' | 'albums' | 'queue' | 'plus' | 'settings' | 'playlists' | 'minimise' | 'maximise' | 'restore' | 'close'; size?: number } = $props()
 </script>
 
 <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" class="icon">
-  {#if name === 'play'}<path d="M8 5.14v13.72a1 1 0 0 0 1.52.85l10.6-6.86a1 1 0 0 0 0-1.7L9.52 4.29A1 1 0 0 0 8 5.14z" />
+  {#if name === 'back'}<path d="M14.5 5.5L8 12l6.5 6.5" class="stroke" />
+  {:else if name === 'forward'}<path d="M9.5 5.5L16 12l-6.5 6.5" class="stroke" />
+  {:else if name === 'play'}<path d="M8 5.14v13.72a1 1 0 0 0 1.52.85l10.6-6.86a1 1 0 0 0 0-1.7L9.52 4.29A1 1 0 0 0 8 5.14z" />
   {:else if name === 'pause'}<rect x="6.5" y="5" width="4" height="14" rx="1.2" /><rect x="13.5" y="5" width="4" height="14" rx="1.2" />
   {:else if name === 'previous'}<rect x="5" y="5.5" width="2.6" height="13" rx="1" /><path d="M19 6.4v11.2a.9.9 0 0 1-1.4.75L9.4 12.75a.9.9 0 0 1 0-1.5l8.2-5.6A.9.9 0 0 1 19 6.4z" />
   {:else if name === 'next'}<rect x="16.4" y="5.5" width="2.6" height="13" rx="1" /><path d="M5 6.4v11.2a.9.9 0 0 0 1.4.75l8.2-5.6a.9.9 0 0 0 0-1.5L6.4 5.65A.9.9 0 0 0 5 6.4z" />

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { sendToShell, onShellMessage, request, command, artUrl } from './bridge'
-  import { app, nav, ui, playlist, openSection, back, currentView, newPlaylist, undoToast, toast, receiveLevels, writeSetting, readSetting, currentTrack } from './state.svelte'
+  import { app, nav, ui, playlist, openSection, back, forward, forwardHistory, currentView, newPlaylist, undoToast, toast, receiveLevels, writeSetting, readSetting, currentTrack } from './state.svelte'
   import TransportBar from './parts/TransportBar.svelte'
   import WhatsNew from './parts/WhatsNew.svelte'
   import NowPlaying from './parts/NowPlaying.svelte'
@@ -118,10 +118,11 @@
     else if (event.ctrlKey && event.key.toLowerCase() === 'z' && !typing && ui.toast?.undo) { event.preventDefault(); undoToast() }
     else if (event.key === 'Escape' && !selection.keys.length) { if (ui.search) ui.search = ''; else if (nav.stack.length) back() }
     else if (event.altKey && event.key === 'ArrowLeft' && nav.stack.length) { event.preventDefault(); back() }
+    else if (event.altKey && event.key === 'ArrowRight' && forwardHistory.views.length) { event.preventDefault(); forward() }
   }
 </script>
 
-<svelte:window bind:innerWidth={width} bind:innerHeight={height} onkeydown={onKey} onmouseup={(event) => { if (event.button === 3 && nav.stack.length) back() }} oncontextmenu={onContextMenu} onpointerdown={(event) => { if (copyMenu && !(event.target as HTMLElement).closest('.copy-menu')) copyMenu = null }} />
+<svelte:window bind:innerWidth={width} bind:innerHeight={height} onkeydown={onKey} onmouseup={(event) => { if (event.button === 3 && nav.stack.length) back(); if (event.button === 4) forward() }} oncontextmenu={onContextMenu} onpointerdown={(event) => { if (copyMenu && !(event.target as HTMLElement).closest('.copy-menu')) copyMenu = null }} />
 <WhatsNew />
 {#if copyMenu}<div class="copy-menu" style:left="{copyMenu.left}px" style:top="{copyMenu.top}px"><button onclick={copySelection}>Copy</button></div>{/if}
 
@@ -160,7 +161,7 @@
         <div class="update-notice"><span>WinSqueeze {app.status.updateReady} is ready.</span><button class="primary" onclick={() => sendToShell({ type: 'applyUpdate' })}>Restart to update</button></div>
       {/if}
       <header class="topbar" role="presentation" onmousedown={dragWindow}>
-        {#if nav.stack.length}<button class="ghost back" onclick={back} aria-label="Back">‹</button>{/if}
+        {#if nav.stack.length || forwardHistory.views.length}<div class="history"><button class="ghost back" onclick={back} disabled={!nav.stack.length} aria-label="Back" title="Back (Alt+Left)"><Icon name="back" size={18} /></button><button class="ghost back" onclick={forward} disabled={!forwardHistory.views.length} aria-label="Forward" title="Forward (Alt+Right)"><Icon name="forward" size={18} /></button></div>{/if}
         <div class="search">
           <input bind:this={searchBox} bind:value={ui.search} placeholder={ui.scope === 'everything' ? 'Search everything' : 'Search this list'} aria-label="Search" />
           <div class="scope">
@@ -250,7 +251,9 @@
   .window-controls button { display: grid; place-items: center; width: 40px; height: 30px; background: none; border: 0; border-radius: 6px; color: var(--fg-quiet); cursor: pointer; }
   .window-controls button:hover { background: var(--hover); color: var(--fg); }
   .window-controls .close:hover { background: #c42b1c; color: #fff; }
-  .back { font-size: 20px; padding: 2px 12px; }
+  .history { display: flex; gap: 2px; }
+  .back { display: grid; place-items: center; width: 34px; height: 32px; padding: 0; }
+  .back:disabled { opacity: 0.3; cursor: default; }
   .search { flex: 1; display: flex; align-items: center; gap: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 2px 4px 2px 12px; max-width: 640px; }
   .search input { flex: 1; min-width: 0; background: none; border: 0; outline: none; color: var(--fg); font: inherit; padding: 6px 0; }
   .scope { display: flex; gap: 2px; }
