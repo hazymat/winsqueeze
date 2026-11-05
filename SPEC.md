@@ -174,6 +174,16 @@ Bandwidth note: CD-quality FLAC needs about 1–1.5 Mbps, hi-res 24/96 about 3�
 - **Processing:** inside our Squeezelite, before volume (biquads from WinSqueeze via shared memory, redesigned for each sample rate). Preamp: MANUAL (default, fixed −6 dB headroom, adjustable 0 to −12 dB) so raising a band only ever makes that band louder, or AUTO (lowered as bands rise so the curve's peak stays at 0 dBFS). A transparent safety limiter (instant attack, ~150 ms release, −0.2 dBFS ceiling) catches any overshoot, and a red CLIP lamp lights while it works. The big square button bypasses it completely: bypass is bit-perfect and the readout's badge reflects it.
 - **Docking:** the window snaps magnetically to any edge of the main window and then moves with it; dragging it away undocks it. It keeps its own size whatever the main window's mode. When docked, resizing it snaps an edge to the main window's matching edge within 12 px, so it takes the same width or height.
 
+## Recording
+
+Record a radio station (or any other stream) to FLAC, for personal listening.
+
+- **Button:** a small red ring beside the title in the transport bar, shown only while this PC's player plays a stream (Lyrion's `remote`). Never for library files, never for other players. Click to record: it turns solid red, pulses and shows the elapsed time; click again to stop. Settings › Recording can hide it completely.
+- **Capture:** inside our Squeezelite (`vendor/squeezelite/src/output_rec_win.c`, shared memory `Local\squeezelite-rec-<mac>`). The decoded audio about to play, before EQ and volume, goes through a ring to a writer thread that encodes 24-bit FLAC at the stream's own sample rate, so the audio thread never touches the disk. A rate change mid-recording continues in "(part 2)".
+- **Files:** `<folder>\<station>\<yyyy-MM-dd HH.mm> <artist> - <title>.flac`, tagged TITLE, ARTIST, ALBUM (station), DATE and COMMENT. Default folder `Music\WinSqueeze recordings`. With "new file per song" (default on), each song change the station announces starts a new file (timing follows Lyrion's delayed title change, so cuts are approximate).
+- **Ends** when you click stop, the player leaves the stream for a library file or stops, or WinSqueeze quits (the file is finished cleanly). A Squeezelite restart (device change) finishes the file and carries on in a new one.
+- A toast says where the files went. The UI and Settings say recordings are for personal use only.
+
 ## Output device selection
 
 1. **Picker in the app:** a dropdown in the transport bar's device indicator, in settings (Audio tab) and in the tray menu.
@@ -263,6 +273,7 @@ A separate Settings window with tabs, in standard Windows style. Changes apply i
 | Appearance | Skin; auto-switch rule (follow Windows / schedule / fixed); light and dark skin pair; meter style (VU needle / OLED VU / OLED bars); album list default (grid / list); accent from cover art on/off; reduce transparency |
 | Shortcuts | Rebind in-app shortcuts; enable global hotkeys; media keys on/off |
 | Notifications | Track-change toasts; device missing alerts |
+| Recording | Show the record button; new file per song; save folder (choose / open) |
 | About | Version; update channel (stable / dev); version switcher with per-version comments; check now; auto-update on/off; licences (Squeezelite GPL notice and source link); logs folder |
 
 **Server finder:** uses Lyrion's UDP discovery on port 3483 to list servers on the local network, showing name, address and version. Manual address entry for VPN or other subnets.

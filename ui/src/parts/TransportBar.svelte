@@ -33,15 +33,22 @@
   }
   function releaseVolume(event: Event) { command('mixer', 'volume', (event.target as HTMLInputElement).value); volumeReleaseTimer = window.setTimeout(() => draggingVolume = null, 1200) }
   const ownSelected = $derived(!app.selectedPlayer || app.selectedPlayer === app.ownPlayer)
+  // Record (SPEC.md › Recording): only while this PC's player plays a radio station or other stream (never library files), or while a recording runs
+  const recording = $derived(app.status?.recording ?? {})
+  const showRecord = $derived(recording.available && ownSelected && (recording.on || status?.remote == 1))
+  const recordedFor = $derived(recording.on && recording.startedAt ? formatTime((now - recording.startedAt) / 1000) : '')
   const seek = (event: MouseEvent) => { const bar = event.currentTarget as HTMLElement; const ratio = (event.clientX - bar.getBoundingClientRect().left) / bar.clientWidth; if (duration) command('time', Math.round(ratio * duration)) }
 </script>
 
 <div class="transport-host" class:mini-host={mini}>
 <footer class="transport" class:mini onwheel={wheelVolume}>
+  <div class="left">
   <button class="now" onclick={showNowPlaying} title="Now playing">
     {#if track?.coverid}<img src={artUrl(track.coverid, 120)} alt="" />{:else}<span class="no-art">♪</span>{/if}
     <span class="text"><span class="title">{track?.title ?? 'Nothing playing'}</span><span class="artist" title={track?.artist ?? (ownSelected ? app.status?.message ?? '' : '')}>{track?.artist ?? (ownSelected ? app.status?.message ?? '' : '')}</span></span>
   </button>
+  {#if showRecord}<button class="record" class:on={recording.on} onclick={() => sendToShell({ type: 'toggleRecording' })} title={recording.on ? `Recording ${recordedFor}${recording.files > 1 ? ` · file ${recording.files}` : ''}. Click to stop` : 'Record this station'} aria-label={recording.on ? 'Stop recording' : 'Record'}><span class="dot"></span>{#if recording.on && !mini}<span class="rec-time">{recordedFor}</span>{/if}</button>{/if}
+  </div>
   <div class="centre">
     <div class="buttons">
       <button onclick={() => command('playlist', 'index', '-1')} aria-label="Previous"><Icon name="previous" /></button>
@@ -74,6 +81,15 @@
   /* The host is the size container: a container query can't restyle the container itself */
   .transport-host { container-type: inline-size; } .mini-host { height: 100%; }
   .transport { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 1.3fr) minmax(max-content, 1fr); /* equal sides keep the buttons centred; the right never shrinks below its content */ align-items: center; gap: 16px; padding: 10px 16px; background: var(--glass); backdrop-filter: blur(var(--blur)) saturate(1.4); border-top: 1px solid var(--line); }
+  .left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  /* Record: a quiet red ring beside a playing station; solid and pulsing while it records */
+  .record { display: flex; align-items: center; gap: 6px; flex-shrink: 0; height: 26px; padding: 0 7px; background: none; border: 0; border-radius: 13px; cursor: pointer; color: #e5484d; font: inherit; }
+  .record:hover { background: var(--hover); }
+  .record .dot { width: 10px; height: 10px; border-radius: 50%; box-sizing: border-box; border: 2px solid currentColor; opacity: 0.75; }
+  .record:hover .dot { opacity: 1; }
+  .record.on .dot { background: currentColor; opacity: 1; animation: recording-pulse 1.4s ease-in-out infinite; }
+  .rec-time { font-size: 11px; font-variant-numeric: tabular-nums; }
+  @keyframes recording-pulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, #e5484d 60%, transparent); } 50% { box-shadow: 0 0 0 5px transparent; opacity: 0.55; } }
   .now { display: flex; align-items: center; gap: 10px; min-width: 0; background: none; border: 0; color: var(--fg); cursor: pointer; text-align: left; padding: 0; font: inherit; }
   .now img, .no-art { width: 52px; height: 52px; border-radius: 6px; object-fit: cover; flex-shrink: 0; display: grid; place-items: center; background: var(--panel-strong); box-shadow: 0 2px 10px var(--shadow); }
   .text { display: flex; flex-direction: column; min-width: 0; }

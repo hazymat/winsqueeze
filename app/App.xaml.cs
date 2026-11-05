@@ -20,6 +20,7 @@ public partial class App : Application
     public MediaControls? Media { get; private set; }
     public VisualiserReader Visualiser { get; } = new();
     public Equaliser Equaliser { get; } = new();
+    public Recorder Recorder { get; } = new();
     EqualiserWindow? equaliserWindow;
     public DeviceVolume DeviceVolume { get; } = new();
     public List<OutputDevice> Devices { get; private set; } = new();
@@ -132,7 +133,8 @@ public partial class App : Application
         RefreshIconsAfterUpdate();
         if (CrashReporter.TakeUnseenReport()) ShowTip("WinSqueeze had a problem last time", "It crashed or stopped responding. Details are in Settings › About › Open logs (crash.log).");
         try { Media = new MediaControls(); } catch { } // SMTC needs Windows 10 1903+
-        Session.StatusUpdated += () => { if (Settings.ActiveProfile is { } profile) Media?.Update(Session.LastStatus, $"http://{profile.Host}:{profile.Port}"); trayIcon.RefreshNowPlaying(Session.LastStatus); NotifyTrackChange(Session.LastStatus); ApplyDeviceVolume(Session.LastStatus); };
+        Session.StatusUpdated += () => { if (Settings.ActiveProfile is { } profile) Media?.Update(Session.LastStatus, $"http://{profile.Host}:{profile.Port}"); trayIcon.RefreshNowPlaying(Session.LastStatus); NotifyTrackChange(Session.LastStatus); ApplyDeviceVolume(Session.LastStatus); Recorder.OnStatus(Session.LastStatus, Session.SelectedPlayerId == ""); };
+        Recorder.Changed += () => Dispatcher.BeginInvoke(() => StatusChanged?.Invoke());
         ApplyGlobalHotkeys();
         Session.Start();
         Library.Start();
@@ -197,6 +199,7 @@ public partial class App : Application
     {
         mainWindow.SaveBounds(); Settings.Save();
         IsQuitting = true;
+        Recorder.Dispose(); // finish any recording before Squeezelite stops
         Player.Dispose();
         trayIcon.Dispose();
         singleInstanceMutex?.ReleaseMutex(); singleInstanceMutex?.Dispose(); singleInstanceMutex = null;
@@ -271,7 +274,9 @@ public partial class App : Application
         if (resumePosition && Player.State == PlayerState.Running) resumeState = await ReadPlaybackStateAsync();
         var hardwareVolume = Settings.Audio.HardwareVolume && !hardwareVolumeFailed && SqueezeliteHost.SupportsFixedVolume && DeviceVolume.Attach(outputDevice.Name);
         if (!hardwareVolume) DeviceVolume.Detach();
+        Recorder.Flush(); // finish the file cleanly; it carries on in a new one once Squeezelite is back
         Player.Start(profile, outputDevice, Settings.Audio, Settings.PlayerMac, hardwareVolume);
+        if (SqueezeliteHost.SupportsRecording) Recorder.Start(Settings.PlayerMac);
         Visualiser.Tuning = Settings.Meters;
         if (SqueezeliteHost.SupportsVisualiser) Visualiser.Start(Settings.PlayerMac, Settings.Audio.LatencyMs);
         Equaliser.Tuning = Settings.Equaliser; Equaliser.CurrentRate = () => Visualiser.SampleRate;
@@ -339,6 +344,7 @@ public partial class App : Application
         hardwareVolume = DeviceVolume.Active,
         eqActive = Settings.Equaliser.Enabled && SqueezeliteHost.SupportsEqualiser,
         sampleRate = Player.OutputSampleRate,
+        recording = new { available = SqueezeliteHost.SupportsRecording && Settings.Recording.ShowButton, on = Recorder.Recording, file = System.IO.Path.GetFileName(Recorder.CurrentFile), startedAt = Recorder.Recording ? new DateTimeOffset(Recorder.StartedAt).ToUnixTimeMilliseconds() : 0, files = Recorder.FilesThisRecording, note = Recorder.Note, noteId = Recorder.NoteId },
         fallback = UsingFallbackDevice,
         version = Updater.CurrentVersion,
         updateReady = Updater.ReadyVersion
@@ -371,6 +377,7 @@ public partial class App : Application
     {
         mainWindow.SaveBounds(); Settings.Save();
         IsQuitting = true;
+        Recorder.Dispose(); // finish any recording before Squeezelite stops
         Player.Dispose();
         trayIcon.Dispose();
         settingsWindow?.Close();

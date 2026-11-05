@@ -68,6 +68,7 @@ void output_vis_init(log_level level, u8_t *mac) {
 		vis_map->rate = 44100;
 		LOG_INFO("opened visualiser shared memory as %s", name);
 		eq_init(mac); // WinSqueeze graphic equaliser rides on the same switch
+		rec_init(level, mac); // and so does the recorder
 	} else {
 		LOG_WARN("unable to open visualiser shared memory");
 	}

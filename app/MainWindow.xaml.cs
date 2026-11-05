@@ -133,6 +133,8 @@ public partial class MainWindow : Window
                 case "loadDraft": ReplyRaw(message, File.Exists(Shell.PlayerSession.DraftPath) ? File.ReadAllText(Shell.PlayerSession.DraftPath) : "null"); break;
                 case "saveDraft": Directory.CreateDirectory(AppPaths.DataFolder); if (Text(message, "draft") == "null") File.Delete(Shell.PlayerSession.DraftPath); else File.WriteAllText(Shell.PlayerSession.DraftPath, message.GetProperty("draft").GetRawText()); break;
                 case "openEq": App.OpenEqualiser(); break;
+                case "toggleRecording": App.Recorder.Toggle(App.Session.LastStatus); break;
+                case "openRecordings": Directory.CreateDirectory(App.Recorder.Folder); System.Diagnostics.Process.Start("explorer.exe", App.Recorder.Folder); break;
                 case "edgeColour": LookLog("edge " + Text(message, "colour")); SetEdgeColour(Text(message, "colour")); break;
                 // Frameless: the page asks Windows to resize from an edge, as if the native frame were grabbed
                 case "resizeWindow": if (resizeHitCodes.TryGetValue(Text(message, "edge"), out var hitCode)) { ReleaseCapture(); SendMessage(new WindowInteropHelper(this).Handle, 0xA1 /*WM_NCLBUTTONDOWN*/, (IntPtr)hitCode, IntPtr.Zero); } break;

@@ -55,7 +55,9 @@
   const view = $derived(currentView())
   const everything = $derived(ui.search.length >= 2 && (ui.scope === 'everything' || ['queue'].includes(view.kind)))
 
-  onShellMessage('status', message => app.status = message)
+  // A finished or failed recording says where it went (only notes that arrive after startup)
+  let lastRecordingNote = -1
+  onShellMessage('status', message => { const recording = message.recording; if (recording && lastRecordingNote >= 0 && recording.noteId > lastRecordingNote && recording.note) toast(recording.note); if (recording) lastRecordingNote = recording.noteId; app.status = message })
   onShellMessage('nowPlaying', message => { app.nowPlaying = message.status; app.receivedAt = Date.now() })
   onShellMessage('players', message => { app.players = message.players ?? []; app.ownPlayer = message.own ?? ''; app.selectedPlayer = message.selected ?? app.selectedPlayer })
   onShellMessage('library', message => app.library = { text: message.text ?? '', done: message.done ?? 0, total: message.total ?? 0 })

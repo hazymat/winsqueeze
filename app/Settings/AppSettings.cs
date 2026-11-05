@@ -67,6 +67,14 @@ public class EqualiserSettings
     public int DockOffset { get; set; } // pixels along that edge
 }
 
+// Radio recording (SPEC.md › Recording)
+public class RecordingSettings
+{
+    public bool ShowButton { get; set; } = true; // the record dot beside a playing radio station
+    public string Folder { get; set; } = ""; // empty = Music\WinSqueeze recordings
+    public bool SplitOnSongChange { get; set; } = true; // a new file for each song the station announces
+}
+
 public class LibrarySettings
 {
     public string AlbumSource { get; set; } = "folders"; // folders | tags
@@ -115,6 +123,7 @@ public class AppSettings
     public MeterSettings Meters { get; set; } = new();
     public EqualiserSettings Equaliser { get; set; } = new();
     public LibrarySettings Library { get; set; } = new();
+    public RecordingSettings Recording { get; set; } = new();
     public List<ServerProfile> Profiles { get; set; } = new();
     public string DefaultProfileId { get; set; } = "";
     public string PlayerMac { get; set; } = ""; // own stable MAC so we never collide with another Squeezelite on this PC

@@ -3,6 +3,8 @@ name: squeezelite
 # The exe is uploaded as an artifact; it is committed to vendor/squeezelite once checked, so app builds never depend on this.
 on:
   workflow_dispatch:
+  pull_request: # build and smoke test only; nothing is committed
+    paths: ['vendor/squeezelite/src/**', 'vendor/squeezelite/CMakeLists.txt', 'vendor/squeezelite/vcpkg.json', '.github/workflows/squeezelite.yml']
   push:
     branches: [main]
     paths: ['vendor/squeezelite/src/**', 'vendor/squeezelite/CMakeLists.txt', 'vendor/squeezelite/vcpkg.json', '.github/workflows/squeezelite.yml']
@@ -52,6 +54,7 @@ jobs:
           if (-not ($help -match "VISEXPORT")) { throw "visualiser export missing from build" }
           if (-not ($help -match "-F ")) { throw "fixed-volume option missing from build" }
           if (-not ($help -match "WINEQ")) { throw "graphic equaliser missing from build" }
+          if (-not ($help -match "WINREC")) { throw "recorder missing from build" }
           (Get-FileHash $exe -Algorithm SHA256).Hash
       - uses: actions/upload-artifact@v4
         with:

@@ -19,7 +19,7 @@ public partial class SettingsWindow : Window
     public SettingsWindow()
     {
         InitializeComponent();
-        WireGeneralTab(); WireServersTab(); WireAudioTab(); WireLibraryTab(); WireBrowsingTab(); WireAppearanceTab(); WireMetersTab(); WireShortcutsAndNotifications(); WireAboutTab();
+        WireGeneralTab(); WireServersTab(); WireAudioTab(); WireLibraryTab(); WireBrowsingTab(); WireAppearanceTab(); WireMetersTab(); WireShortcutsAndNotifications(); WireRecordingTab(); WireAboutTab();
         App.DevicesChanged += LoadDevices;
         App.StatusChanged += ShowPlayerStatus;
         Closed += (sender, args) => { App.DevicesChanged -= LoadDevices; App.StatusChanged -= ShowPlayerStatus; };
@@ -367,6 +367,21 @@ public partial class SettingsWindow : Window
         double chroma = 0.45, section = hue / 60.0, second = chroma * (1 - Math.Abs(section % 2 - 1)), lightness = 0.3 - chroma / 2;
         var (red, green, blue) = section < 1 ? (chroma, second, 0.0) : section < 2 ? (second, chroma, 0.0) : section < 3 ? (0.0, chroma, second) : section < 4 ? (0.0, second, chroma) : section < 5 ? (second, 0.0, chroma) : (chroma, 0.0, second);
         return System.Windows.Media.Color.FromRgb((byte)((red + lightness) * 255), (byte)((green + lightness) * 255), (byte)((blue + lightness) * 255));
+    }
+
+    void WireRecordingTab()
+    {
+        var recording = Settings.Recording;
+        recordButtonBox.IsChecked = recording.ShowButton; recordSplitBox.IsChecked = recording.SplitOnSongChange; recordFolderBox.Text = App.Recorder.Folder;
+        recordButtonBox.Click += (sender, args) => { recording.ShowButton = recordButtonBox.IsChecked == true; Settings.Save(); App.RaiseStatusChanged(); };
+        recordSplitBox.Click += (sender, args) => { recording.SplitOnSongChange = recordSplitBox.IsChecked == true; Settings.Save(); };
+        chooseRecordFolderButton.Click += (sender, args) =>
+        {
+            var folderDialog = new Microsoft.Win32.OpenFolderDialog { Title = "Save recordings in", InitialDirectory = System.IO.Directory.Exists(App.Recorder.Folder) ? App.Recorder.Folder : "" };
+            if (folderDialog.ShowDialog(this) != true) return;
+            recording.Folder = folderDialog.FolderName == Recorder.DefaultFolder ? "" : folderDialog.FolderName; Settings.Save(); recordFolderBox.Text = App.Recorder.Folder;
+        };
+        openRecordFolderButton.Click += (sender, args) => { System.IO.Directory.CreateDirectory(App.Recorder.Folder); Process.Start("explorer.exe", App.Recorder.Folder); };
     }
 
     void WireAboutTab()

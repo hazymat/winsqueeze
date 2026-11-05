@@ -63,6 +63,7 @@ public sealed partial class SqueezeliteHost : IDisposable
     static string? helpText;
     public static bool SupportsVisualiser => (helpText ??= ReadHelpText()).Contains("VISEXPORT");
     public static bool SupportsEqualiser => (helpText ??= ReadHelpText()).Contains("WINEQ"); // rides on -v
+    public static bool SupportsRecording => (helpText ??= ReadHelpText()).Contains("WINREC"); // rides on -v
     public static bool SupportsFixedVolume => (helpText ??= ReadHelpText()).Contains("-F ");
     static string ReadHelpText()
     {
