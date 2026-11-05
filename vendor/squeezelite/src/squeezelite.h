@@ -725,6 +725,8 @@ extern bool fixed_volume; // WinSqueeze: -F (fixed full-level output)
 #if VISEXPORT && WIN
 void eq_init(u8_t *mac); // WinSqueeze: graphic equaliser (output_eq_win.c)
 void eq_process(s32_t *samples, frames_t frames, unsigned rate);
+void rec_init(log_level level, u8_t *mac); // WinSqueeze: radio recorder (output_rec_win.c)
+void rec_capture(s32_t *samples, frames_t frames, unsigned rate);
 #endif
 void list_devices(void);
 void set_volume(unsigned left, unsigned right);

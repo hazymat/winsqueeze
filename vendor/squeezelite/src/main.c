@@ -222,6 +222,7 @@ static void usage(const char *argv0) {
 #endif
 #if VISEXPORT && WIN
 		   " WINEQ"
+		   " WINREC"
 #endif
 #if IR
 		   " IR"
