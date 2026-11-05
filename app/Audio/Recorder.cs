@@ -43,6 +43,7 @@ public sealed class Recorder : IDisposable
     void Begin(JsonElement status)
     {
         if (!IsStream(status)) { Note = "Recording works on radio stations and other streams"; Changed?.Invoke(); return; }
+        station = ""; // read once per recording: plugins later swap in the programme name, which would scatter files across folders
         ReadSong(status);
         lock (writeLock) { Recording = true; FilesThisRecording = 0; StartedAt = DateTime.Now; Note = ""; }
         NextFile();
@@ -86,10 +87,11 @@ public sealed class Recorder : IDisposable
         var track = MediaControls.CurrentTrack(status) ?? default; // default reads as empty
         var title = LyrionClient.ReadString(track, "title"); var artist = LyrionClient.ReadString(track, "artist");
         var currentTitle = LyrionClient.ReadString(status, "current_title");
-        station = FirstOf(LyrionClient.ReadString(track, "remote_title"), LyrionClient.ReadString(status, "remote_title"), artist == "" && currentTitle != "" && currentTitle != title ? title : "", LyrionClient.ReadString(track, "album"), "Radio");
+        var streamName = FirstOf(LyrionClient.ReadString(track, "remote_title"), LyrionClient.ReadString(status, "remote_title"), artist == "" && currentTitle != "" && currentTitle != title ? title : "", LyrionClient.ReadString(track, "album"), "Radio");
+        if (station == "") station = streamName;
         // Plain ICY streams only send "Artist - Title" as the stream title; stations with a metadata plugin fill in title and artist
-        if (title == station || title == "") { title = currentTitle; artist = ""; var dash = title.IndexOf(" - ", StringComparison.Ordinal); if (dash > 0) { artist = title[..dash]; title = title[(dash + 3)..]; } }
-        songTitle = title; songArtist = artist; songKey = station + "\u0001" + title + "\u0001" + artist;
+        if (title == station || title == streamName || title == "") { title = currentTitle; artist = ""; var dash = title.IndexOf(" - ", StringComparison.Ordinal); if (dash > 0) { artist = title[..dash]; title = title[(dash + 3)..]; } }
+        songTitle = title; songArtist = artist; songKey = title + "\u0001" + artist;
     }
 
     void NextFile()
@@ -101,7 +103,7 @@ public sealed class Recorder : IDisposable
             try { Directory.CreateDirectory(folder); }
             catch (Exception error) { Recording = false; Note = $"Can't create the recordings folder: {error.Message}"; WriteRequest(false, "", ""); Changed?.Invoke(); return; }
             var song = songArtist != "" && songTitle != "" ? $"{songArtist} - {songTitle}" : FirstOf(songTitle, station);
-            var stem = Path.Combine(folder, $"{DateTime.Now:yyyy-MM-dd HH.mm} {Safe(song)}");
+            var stem = Path.Combine(folder, $"{DateTime.Now:yyyy-MM-dd HH.mm} {Safe(song, 80)}"); // programme blurbs can run to paragraphs
             if (stem.Length > 230) stem = stem[..230];
             var path = stem + ".flac";
             for (var copy = 2; File.Exists(path); copy++) path = $"{stem} ({copy}).flac";
@@ -158,7 +160,7 @@ public sealed class Recorder : IDisposable
     }
 
     static string FirstOf(params string[] values) => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value))?.Trim() ?? "";
-    static string Safe(string name) { var cleaned = string.Concat(name.Select(character => Path.GetInvalidFileNameChars().Contains(character) ? '_' : character)).Trim().TrimEnd('.'); return cleaned.Length > 120 ? cleaned[..120] : cleaned == "" ? "Radio" : cleaned; }
+    static string Safe(string name, int maxLength = 120) { var cleaned = string.Concat(name.Select(character => Path.GetInvalidFileNameChars().Contains(character) ? '_' : character)).Trim(); if (cleaned.Length > maxLength) cleaned = cleaned[..maxLength].TrimEnd() + "…"; cleaned = cleaned.TrimEnd('.', ' '); return cleaned == "" ? "Radio" : cleaned; }
 
     public void Dispose() { timer.Dispose(); Flush(); view?.Dispose(); sharedFile?.Dispose(); }
 }
