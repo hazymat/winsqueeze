@@ -52,7 +52,7 @@
   </div>
   <div class="right">
     <div class="readout-slot"><Readout /></div>
-    <div class="pixel-meter" title="Spectrum (waiting for audio data from Squeezelite)"><PixelMeter orientation="spectrum" width={40} height={30} levels={Array(8).fill(0)} /></div>
+    <div class="pixel-meter" title="Spectrum"><PixelMeter orientation="spectrum" width={40} height={30} levels={app.levels.bands} /></div>
     <!-- Player and output device stacked as two matching compact rows -->
     <div class="outputs">
       <PlayerPicker />

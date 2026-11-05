@@ -18,6 +18,7 @@ public partial class App : Application
     public PlayerSession Session { get; } = new();
     public LibraryService Library { get; } = new();
     public MediaControls? Media { get; private set; }
+    public VisualiserReader Visualiser { get; } = new();
     public List<OutputDevice> Devices { get; private set; } = new();
     public bool UsingFallbackDevice { get; private set; }
     public bool IsQuitting { get; private set; }
@@ -164,6 +165,7 @@ public partial class App : Application
         (string mode, double seconds) resumeState = ("", 0);
         if (resumePosition && Player.State == PlayerState.Running) resumeState = await ReadPlaybackStateAsync();
         Player.Start(profile, outputDevice, Settings.Audio, Settings.PlayerMac);
+        if (SqueezeliteHost.SupportsVisualiser) Visualiser.Start(Settings.PlayerMac, Settings.Audio.LatencyMs);
         if (resumeState.mode == "play") await ResumeAtAsync(resumeState.seconds);
     }
 

@@ -33,6 +33,7 @@ public sealed partial class SqueezeliteHost : IDisposable
         var extraArguments = SplitArguments(audio.ExtraArguments).ToList();
         // Resample only tracks the device can't take natively (e.g. 22.05 kHz radio in exclusive mode); without it Squeezelite retries the open forever
         if (!extraArguments.Any(argument => argument is "-R" or "-u")) foreach (var argument in new[] { "-R", "hE" }) startInfo.ArgumentList.Add(argument);
+        if (SupportsVisualiser) startInfo.ArgumentList.Add("-v"); // share played samples for the meters
         foreach (var extraArgument in extraArguments) startInfo.ArgumentList.Add(extraArgument);
         logWriter = new StreamWriter(Path.Combine(AppPaths.LogsFolder, "squeezelite.log"), false) { AutoFlush = true };
         logWriter.WriteLine($"[{DateTime.Now:O}] start: {string.Join(" ", startInfo.ArgumentList.Select(argument => argument.Contains(' ') ? $"\"{argument}\"" : argument))}");
@@ -56,6 +57,21 @@ public sealed partial class SqueezeliteHost : IDisposable
     }
 
     public void SetWaiting(string message) { Stop(); SetStatus(PlayerState.WaitingForDevice, message); }
+
+    // Only our own build has the Windows visualiser export; an unknown -v would make another build exit
+    static bool? supportsVisualiser;
+    public static bool SupportsVisualiser => supportsVisualiser ??= CheckVisualiserSupport();
+    static bool CheckVisualiserSupport()
+    {
+        try
+        {
+            using var helpProcess = Process.Start(new ProcessStartInfo(AppPaths.SqueezeliteExe, "-?") { CreateNoWindow = true, UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true })!;
+            var helpText = helpProcess.StandardOutput.ReadToEnd() + helpProcess.StandardError.ReadToEnd();
+            helpProcess.WaitForExit(3000);
+            return helpText.Contains("VISEXPORT");
+        }
+        catch { return false; }
+    }
 
     long logSecond, linesThisSecond, droppedLines;
     void OnLogLine(string? logLine)

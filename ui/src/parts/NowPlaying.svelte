@@ -22,7 +22,7 @@
       {#if track?.conductor}<div class="quiet">Conductor {track.conductor}</div>{/if}
       {#if track?.band}<div class="quiet">Orchestra {track.band}</div>{/if}
       <div class="readout"><Readout /></div>
-      <Meters size="large" active={false} />
+      <Meters size="large" />
     </div>
     <div class="queue-panel"><QueueView /></div>
   </div>

@@ -33,6 +33,8 @@ public partial class MainWindow : Window
         App.Session.PlayersUpdated += () => Push($"{{\"type\":\"players\",\"players\":{App.Session.LastPlayersJson},\"selected\":{JsonSerializer.Serialize(App.Session.SelectedPlayerId == "" ? App.Settings.PlayerMac : App.Session.SelectedPlayerId)},\"own\":{JsonSerializer.Serialize(App.Settings.PlayerMac)}}}");
         App.Library.Changed += PushLibraryStatus;
         App.Library.IndexUpdated += () => Push("{\"type\":\"indexUpdated\"}");
+        // Meter data, only while the window is on screen
+        App.Visualiser.LevelsReady += levelsJson => { if (webViewReady) Dispatcher.BeginInvoke(() => { if (IsVisible && WindowState != WindowState.Minimized) webView.CoreWebView2?.PostWebMessageAsJson(levelsJson); }); };
         App.LibraryChanged += () => { Push(JsonSerializer.Serialize(new { type = "settings", library = App.Settings.Library })); Push("{\"type\":\"indexUpdated\"}"); };
         // WebView2 forwards accelerator keys to WPF as KeyDown
         PreviewKeyDown += (sender, keyArgs) =>
