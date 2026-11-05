@@ -721,6 +721,7 @@ void output_close_alsa(void);
 
 // output_pa.c
 #if PORTAUDIO
+extern bool fixed_volume; // WinSqueeze: -F (fixed full-level output)
 void list_devices(void);
 void set_volume(unsigned left, unsigned right);
 bool test_open(const char *device, unsigned rates[], bool userdef_rates);

@@ -8,7 +8,7 @@
 
 #if VISEXPORT && WIN
 
-#define VIS_BUF_SIZE 16384 // samples (interleaved L/R s16), about 186 ms at 44.1 kHz
+#define VIS_BUF_SIZE 262144 // samples (interleaved L/R s16): 680 ms even at 192 kHz, so the reader can look back past the output latency
 
 struct vis_win_t {
 	volatile LONG sequence;   // odd while the writer is updating

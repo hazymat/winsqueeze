@@ -107,7 +107,10 @@ void list_devices(void) {
 	}
 }
 
+bool fixed_volume = false; // WinSqueeze: -F
+
 void set_volume(unsigned left, unsigned right) {
+	if (fixed_volume) left = right = FIXED_ONE; // bit-perfect: no digital gain
 	LOG_DEBUG("setting internal gain left: %u right: %u", left, right);
 	LOCK;
 	output.gainL = left;

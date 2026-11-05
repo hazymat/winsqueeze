@@ -15,11 +15,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Restore built libraries
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: vcpkg-cache
           key: vcpkg-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vendor/squeezelite/vcpkg.json') }}
-          restore-keys: vcpkg-${{ env.VCPKG_COMMIT }}-
+          restore-keys: |
+            vcpkg-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vendor/squeezelite/vcpkg.json') }}-
+            vcpkg-${{ env.VCPKG_COMMIT }}-
       - name: Get vcpkg
         shell: pwsh
         run: |
@@ -28,7 +30,14 @@ jobs:
           git -C vcpkg-tool checkout -q $env:VCPKG_COMMIT
           .\vcpkg-tool\bootstrap-vcpkg.bat -disableMetrics
       - name: Configure
-        run: cmake -S vendor/squeezelite -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/vcpkg-tool/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows-static
+        run: cmake -S vendor/squeezelite -B build -A x64 -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/vcpkg-tool/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows-static
+      # Saved even if the app build fails, so the slow library builds (FFmpeg etc.) only ever happen once
+      - name: Save built libraries
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: vcpkg-cache
+          key: vcpkg-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vendor/squeezelite/vcpkg.json') }}-${{ github.run_id }}
       - name: Build
         run: cmake --build build --config Release
       - name: Smoke test

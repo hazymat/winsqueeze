@@ -135,6 +135,9 @@ static void usage(const char *argv0) {
 #if VISEXPORT
 		   "  -v \t\t\tVisualizer support\n"
 #endif
+#if WIN
+		   "  -F \t\t\tFixed full-level output: ignore server volume (WinSqueeze sets the device volume)\n"
+#endif
 # if ALSA
 		   "  -O <mixer device>\tSpecify mixer device, defaults to 'output device'\n"
 		   "  -L \t\t\tList volume controls for output device\n"
@@ -386,6 +389,9 @@ int main(int argc, char **argv) {
 #if VISEXPORT
 						  "v"
 #endif
+#if WIN
+						  "F" // WinSqueeze: fixed full-level output
+#endif
 #if IR
 						  "i"
 #endif
@@ -590,6 +596,11 @@ int main(int argc, char **argv) {
 #if VISEXPORT
 		case 'v':
 			visexport = true;
+			break;
+#endif
+#if WIN
+		case 'F':
+			fixed_volume = true; // WinSqueeze: ignore the server's digital volume; the app drives the device's own volume instead
 			break;
 #endif
 #if ALSA
