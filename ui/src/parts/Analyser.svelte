@@ -3,26 +3,33 @@
   // thin segments (faint grey when off, soft teal when lit), a dotted scale each side and an optional FULL RANGE column.
   // levels: 0..1 per column; with levelsRight each column splits into a left and a right bar (L/R display)
   let { levels, levelsRight = null, labels = [], segments = 30, scale = [], compact = false, title = '', fullRange = null }: { levels: number[]; levelsRight?: number[] | null; labels?: string[]; segments?: number; scale?: string[]; compact?: boolean; title?: string; fullRange?: number | null } = $props()
-  const segmentIndexes = $derived(Array.from({ length: segments }, (unused, index) => segments - 1 - index))
-  const lit = (level: number, segment: number) => level * segments > segment + 0.3
+  const litCount = (level: number) => Math.max(0, Math.min(segments, Math.ceil(level * segments - 0.3)))
   // fullRange: 0..1 broadband level for the separate FULL RANGE column (null = no column)
+  // Segments repeat on a whole-device-pixel pitch (painted as a gradient, so no layout rounding drift): every row is identical at any window size
+  let columnsElement = $state<HTMLElement | null>(null), columnsHeight = $state(0)
+  $effect(() => { if (!columnsElement) return; const observer = new ResizeObserver(() => columnsHeight = columnsElement!.clientHeight); observer.observe(columnsElement); return () => observer.disconnect() })
+  const segmentStyle = $derived.by(() => {
+    if (!columnsHeight) return ''
+    const pixelRatio = window.devicePixelRatio || 1, gapPixels = Math.max(1, Math.round(pixelRatio)), pitchPixels = Math.max(gapPixels + 1, Math.floor(columnsHeight * pixelRatio / segments))
+    return `--segment-height: ${(pitchPixels - gapPixels) / pixelRatio}px; --segment-pitch: ${pitchPixels / pixelRatio}px`
+  })
 </script>
 
 {#snippet column(columnLevels: number[])}
-  <div class="column">{#each columnLevels as barLevel}<div class="bar">{#each segmentIndexes as segment}<i class:on={lit(barLevel, segment)}></i>{/each}</div>{/each}</div>
+  <div class="column">{#each columnLevels as barLevel}<div class="bar" style="--lit: {litCount(barLevel)}"></div>{/each}</div>
 {/snippet}
 
 {#snippet scaleColumn(side: string)}
   <div class="scale {side}">{#each scale as mark}<span><b>{mark}</b><em></em></span>{/each}</div>
 {/snippet}
 
-<div class="analyser" class:compact class:labelled={labels.length > 0}>
+<div class="analyser" class:compact class:labelled={labels.length > 0} style="--segments: {segments}; {segmentStyle}">
   <div class="frame">
     {#if title}<div class="title-strip">{title}</div>{/if}
     <div class="window">
       {#if scale.length}{@render scaleColumn('left')}{/if}
       <div class="plot">
-        <div class="columns">
+        <div class="columns" bind:this={columnsElement}>
           {#each levels as level, index}{@render column(levelsRight ? [level, levelsRight[index] ?? 0] : [level])}{/each}
           {#if fullRange !== null}<div class="full-gap"></div>{@render column([fullRange])}{/if}
         </div>
@@ -48,9 +55,10 @@
   .columns { flex: 1; min-height: 0; display: flex; justify-content: space-between; }
   /* Narrow columns with wide gaps between them */
   .column { flex: 1; display: flex; justify-content: center; gap: 1px; min-width: 0; }
-  .bar { flex: 1; display: flex; flex-direction: column; gap: 1px; max-width: min(12px, 46%); }
-  .bar i { flex: 1; min-height: 1px; border-radius: 0.5px; background: var(--segment-off); }
-  .bar i.on { background: var(--segment-on); box-shadow: 0 0 3px var(--segment-glow); }
+  .bar { --pitch: var(--segment-pitch, 5px); --segment: var(--segment-height, 4px); flex: 1; max-width: min(12px, 46%);
+    background: repeating-linear-gradient(to top, var(--segment-on) 0 var(--segment), transparent 0 var(--pitch)) bottom / 100% calc(var(--lit) * var(--pitch)) no-repeat,
+      repeating-linear-gradient(to top, var(--segment-off) 0 var(--segment), transparent 0 var(--pitch)) bottom / 100% calc(var(--segments) * var(--pitch)) no-repeat; }
+  .analyser:not(.compact) .bar { filter: drop-shadow(0 0 2px var(--segment-glow)); }
   .full-gap { width: 9%; } /* the broadband meter stands apart from the bands */
   .scale { display: flex; flex-direction: column; justify-content: space-between; color: var(--legend); font-size: 7.5px; line-height: 1; font-variant-numeric: tabular-nums; }
   .labelled .scale { padding-bottom: 25px; } /* the scale spans the columns only, not the legend under them */
@@ -67,5 +75,5 @@
   .full-caption { display: flex; justify-content: flex-end; white-space: nowrap; }
   .labelled:not(.compact) .full-caption span { margin-right: -26px; } /* right-aligned with the scale on the right */
   .compact .frame { padding: 2px; border-radius: 3px; } .compact .window { padding: 2px 1px; gap: 0; }
-  .compact .bar { max-width: 70%; } .compact .bar i.on { box-shadow: none; }
+  .compact .bar { max-width: 70%; }
 </style>
