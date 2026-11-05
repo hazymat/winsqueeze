@@ -147,7 +147,7 @@ Building a playlist works like opening a case: start it, browse anywhere while i
 
 - The bar never drops transport controls at narrow widths. Lower-priority items collapse first, in this order: format readout, player switcher, seek times, volume slider (becomes an icon popover).
 - Clicking the art or title opens the **expanded now-playing view**: large art over a blurred-art backdrop, full metadata (composer, performers, album, year), signal path readout, large meters, and the queue alongside.
-- **Meters** are driven by the real playback level of the bundled Squeezelite (see Risks). For other players, they show a muted idle state. Three styles, cycled by clicking the meters: analogue **VU needles**, **OLED VU** (needle meters drawn as a glowing display) or **OLED bar graph**.
+- **Meters** are driven by the real playback level of the bundled Squeezelite (see Risks). For other players, they show a muted idle state. Three styles, cycled by clicking the meters: analogue **VU needles**, **OLED VU** (needle meters drawn as a glowing display) or **OLED bar graph**. **Settings › Meters** tunes them live: 0 VU reference (default −18 dBFS), VU ballistics, bar range, peak hold and fall, spectrum floor/top, tilt and fall.
 - **Signal readout:** format, sample rate, bit depth, and a "bit-perfect" badge when the whole chain is untouched.
 
 ## Playback and fidelity
@@ -182,9 +182,10 @@ One resizable window that changes layout by its own size. Breakpoints are in dev
 | --- | --- | --- |
 | Desktop | Wider than ~900 | Left sidebar, main browse area, bottom transport bar |
 | Vertical | ~420–900 wide, taller than wide | Sidebar becomes a bottom tab bar above the transport bar; single-column browsing |
-| Mini | Smaller than ~420 × ~260 | Winamp-style strip, roughly 2:1: small art, title, artist, prev/play/next, small meters, seek line. No browsing |
+| Mini | Smaller than ~420 × ~260 | Winamp-style strip, roughly 2:1: small art, title, artist, prev/play/next, small switchable meters, seek line; the speaker icon (or the mouse wheel) swaps the seek line for a volume slider. No browsing |
 
 - Modes switch automatically as the window is resized, and Ctrl+1/2/3 jumps straight to a mode (restoring the size last used for it).
+- Selected text can be copied (Ctrl+C or right-click › Copy); clicking elsewhere clears the selection.
 - Mini mode has an **always-on-top** pin. It floats freely; no edge snapping.
 - **Multi-monitor:** size, position and mode are remembered per monitor configuration (keyed by the set of connected displays and their resolutions). When a monitor is unplugged or the resolution changes, any window left off-screen is moved back onto the nearest visible display.
 - **Per-monitor DPI aware (v2):** stays sharp when dragged between screens with different scaling.

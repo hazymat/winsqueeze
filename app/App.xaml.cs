@@ -154,6 +154,7 @@ public partial class App : Application
 
     public void ApplyWindowStyle() => mainWindow.ApplyWindowStyle();
     public void ApplySkin() => mainWindow.PushSkin();
+    public void ApplyMeters() { Visualiser.Tuning = Settings.Meters; mainWindow.PushMeterSettings(); }
 
     public async Task<string[]> ResumeArgumentsAsync()
     {
@@ -243,6 +244,7 @@ public partial class App : Application
         var hardwareVolume = Settings.Audio.HardwareVolume && !hardwareVolumeFailed && SqueezeliteHost.SupportsFixedVolume && DeviceVolume.Attach(outputDevice.Name);
         if (!hardwareVolume) DeviceVolume.Detach();
         Player.Start(profile, outputDevice, Settings.Audio, Settings.PlayerMac, hardwareVolume);
+        Visualiser.Tuning = Settings.Meters;
         if (SqueezeliteHost.SupportsVisualiser) Visualiser.Start(Settings.PlayerMac, Settings.Audio.LatencyMs);
         if (resumeState.mode == "play") await ResumeAtAsync(resumeState.seconds);
     }

@@ -1,6 +1,7 @@
 using System.IO;
 using System.IO.MemoryMappedFiles;
 using System.Text.Json;
+using WinSqueeze.Settings;
 namespace WinSqueeze.Audio;
 
 // Reads the samples our Squeezelite build shares (-v, see vendor/squeezelite/src/output_vis_win.c) and turns them into meter data ~30 times a second:
@@ -17,6 +18,8 @@ public sealed class VisualiserReader : IDisposable
     double vuLeft, vuRight, peakLeft, peakRight;
     readonly double[] bandLevels = new double[BandCount];
     bool sentSilence;
+    double peakHeldLeft, peakHeldRight; // seconds each bar has held its peak
+    public MeterSettings Tuning { get; set; } = new(); // Settings › Meters, read every frame so changes show live
 
     public void Start(string playerMac, int outputLatencyMs)
     {
@@ -76,28 +79,39 @@ public sealed class VisualiserReader : IDisposable
             double left = samples[frame * 2] / 32768.0, right = samples[frame * 2 + 1] / 32768.0;
             sumLeft += left * left; sumRight += right * right; maxLeft = Math.Max(maxLeft, Math.Abs(left)); maxRight = Math.Max(maxRight, Math.Abs(right));
         }
-        var vuFollow = 1 - Math.Exp(-elapsedSeconds / 0.3);
+        var tuning = Tuning;
+        var vuFollow = 1 - Math.Exp(-elapsedSeconds / Math.Max(0.02, tuning.VuIntegrationMs / 1000));
         vuLeft += (Math.Sqrt(sumLeft / rmsFrames) - vuLeft) * vuFollow; vuRight += (Math.Sqrt(sumRight / rmsFrames) - vuRight) * vuFollow;
-        // Bars: instant attack, ~1.5 s fall from full scale (in dB terms)
-        var peakFall = Math.Pow(10, -elapsedSeconds * 30 / 20);
-        peakLeft = Math.Max(maxLeft, peakLeft * peakFall); peakRight = Math.Max(maxRight, peakRight * peakFall);
-        // Spectrum: Hann-windowed FFT of the mono mix. A full-scale sine peaks at |X| = N/4, so 20·log10(|X|·4/N) is the band's level in dBFS; -54..-6 dBFS fills the column
+        // Bars: instant attack, optional hold, then a steady fall in dB
+        var peakFall = Math.Pow(10, -elapsedSeconds * tuning.PeakFallDbPerSecond / 20);
+        (peakLeft, peakHeldLeft) = FollowPeak(maxLeft, peakLeft, peakHeldLeft, peakFall, elapsedSeconds, tuning.PeakHoldMs / 1000);
+        (peakRight, peakHeldRight) = FollowPeak(maxRight, peakRight, peakHeldRight, peakFall, elapsedSeconds, tuning.PeakHoldMs / 1000);
+        // Spectrum: Hann-windowed FFT of the mono mix. A full-scale sine peaks at |X| = N/4, so 20·log10(|X|·4/N) is the band's level in dBFS; floor..ceiling fills the column
         var real = new double[FftSize]; var imaginary = new double[FftSize];
         for (var frame = 0; frame < FftSize; frame++) real[frame] = (samples[frame * 2] + samples[frame * 2 + 1]) / 65536.0 * (0.5 - 0.5 * Math.Cos(2 * Math.PI * frame / (FftSize - 1)));
         Fft(real, imaginary);
-        var bandFollow = 1 - Math.Exp(-elapsedSeconds / 0.25); // instant rise, ~250 ms fall like the hardware
+        var bandFollow = 1 - Math.Exp(-elapsedSeconds / Math.Max(0.02, tuning.SpectrumFallMs / 1000)); // instant rise, ~250 ms fall like the hardware
         for (var band = 0; band < BandCount; band++)
         {
             int firstBin = Math.Max(1, (int)(bandEdges[band] * FftSize / rate)), lastBin = Math.Min(FftSize / 2 - 1, Math.Max(firstBin, (int)(bandEdges[band + 1] * FftSize / rate)));
             double energy = 0;
             for (var bin = firstBin; bin <= lastBin; bin++) energy = Math.Max(energy, real[bin] * real[bin] + imaginary[bin] * imaginary[bin]);
-            var level = Math.Clamp((10 * Math.Log10(energy * 16.0 / ((double)FftSize * FftSize) + 1e-12) + 54) / 48, 0, 1);
+            var tilt = tuning.SpectrumTiltDbPerOctave * Math.Log2(Math.Sqrt(bandEdges[band] * bandEdges[band + 1]) / 1000); // pivots at 1 kHz
+            var span = Math.Max(6, tuning.SpectrumCeilingDbfs - tuning.SpectrumFloorDbfs);
+            var level = Math.Clamp((10 * Math.Log10(energy * 16.0 / ((double)FftSize * FftSize) + 1e-12) + tilt - tuning.SpectrumFloorDbfs) / span, 0, 1);
             bandLevels[band] = level > bandLevels[band] ? level : bandLevels[band] + (level - bandLevels[band]) * bandFollow;
         }
         var silent = !live && vuLeft < 1e-4 && vuRight < 1e-4 && peakLeft < 1e-3 && peakRight < 1e-3 && bandLevels.All(level => level < 0.01);
         if (silent && sentSilence) return;
         sentSilence = silent;
         LevelsReady?.Invoke(JsonSerializer.Serialize(new { type = "levels", vu = new[] { Decibels(vuLeft), Decibels(vuRight) }, peak = new[] { Math.Round(peakLeft, 3), Math.Round(peakRight, 3) }, bands = bandLevels.Select(level => Math.Round(level, 3)) }));
+    }
+
+    static (double level, double held) FollowPeak(double current, double level, double held, double fall, double elapsedSeconds, double holdSeconds)
+    {
+        if (current >= level) return (current, 0);
+        held += elapsedSeconds;
+        return held < holdSeconds ? (level, held) : (Math.Max(current, level * fall), held);
     }
 
     static double Decibels(double amplitude) => Math.Round(20 * Math.Log10(amplitude + 1e-9), 1);

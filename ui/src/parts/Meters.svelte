@@ -9,14 +9,14 @@
   let now = $state(Date.now())
   $effect(() => { const ticker = setInterval(() => now = Date.now(), 500); return () => clearInterval(ticker) })
   const active = $derived(now - app.levels.at < 1500 && app.levels.vu.some(decibels => decibels > -60))
-  // 0 VU = -18 dBFS RMS (the usual digital alignment); below -20 VU the needle sinks to its rest
+  // 0 VU = the reference RMS level (Settings › Meters, -18 dBFS by default); below -20 VU the needle sinks to its rest
   const needleAngle = (decibelsFs: number, rest: number) => {
-    const vu = decibelsFs + 18
+    const vu = decibelsFs - app.meterSettings.referenceDbfs
     if (vu <= scaleMarks[0][0]) return rest + (scaleMarks[0][1] - rest) * Math.max(0, Math.min(1, (vu + 30) / 10))
     for (let mark = 1; mark < scaleMarks.length; mark++) if (vu <= scaleMarks[mark][0]) { const [lowDb, lowAngle] = scaleMarks[mark - 1], [highDb, highAngle] = scaleMarks[mark]; return lowAngle + (highAngle - lowAngle) * (vu - lowDb) / (highDb - lowDb) }
     return Math.min(52, scaleMarks[scaleMarks.length - 1][1] + (vu - 3) * 4)
   }
-  const barLevel = (amplitude: number) => Math.max(0, Math.min(1, (20 * Math.log10(amplitude + 1e-9) + 48) / 48))
+  const barLevel = (amplitude: number) => Math.max(0, Math.min(1, (20 * Math.log10(amplitude + 1e-9) + app.meterSettings.barRangeDb) / app.meterSettings.barRangeDb))
   const meterStyles = ['vu', 'oledvu', 'oled']
   const toggle = () => { ui.meterStyle = meterStyles[(meterStyles.indexOf(ui.meterStyle) + 1) % meterStyles.length]; writeSetting('meterStyle', ui.meterStyle) }
   const gradientId = `vu-lamp-${meterCount++}`

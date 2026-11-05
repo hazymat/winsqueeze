@@ -35,6 +35,20 @@ public class AudioSettings
     public string FallbackDeviceHostApi { get; set; } = "";
 }
 
+// Meter tuning (Settings › Meters), applied live
+public class MeterSettings
+{
+    public double ReferenceDbfs { get; set; } = -18; // RMS level that reads 0 VU
+    public double VuIntegrationMs { get; set; } = 300; // needle ballistics
+    public double BarRangeDb { get; set; } = 48; // bar meters span -range..0 dBFS
+    public double PeakHoldMs { get; set; } = 0; // bars hold their peak this long before falling
+    public double PeakFallDbPerSecond { get; set; } = 30;
+    public double SpectrumFloorDbfs { get; set; } = -54;
+    public double SpectrumCeilingDbfs { get; set; } = -6;
+    public double SpectrumTiltDbPerOctave { get; set; } = 0; // lifts the treble bands; 3 dB/octave makes pink noise read flat
+    public double SpectrumFallMs { get; set; } = 250;
+}
+
 public class LibrarySettings
 {
     public string AlbumSource { get; set; } = "folders"; // folders | tags
@@ -75,6 +89,7 @@ public class AppSettings
 {
     public GeneralSettings General { get; set; } = new();
     public AudioSettings Audio { get; set; } = new();
+    public MeterSettings Meters { get; set; } = new();
     public LibrarySettings Library { get; set; } = new();
     public List<ServerProfile> Profiles { get; set; } = new();
     public string DefaultProfileId { get; set; } = "";

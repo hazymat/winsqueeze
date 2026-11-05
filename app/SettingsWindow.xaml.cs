@@ -19,7 +19,7 @@ public partial class SettingsWindow : Window
     public SettingsWindow()
     {
         InitializeComponent();
-        WireGeneralTab(); WireServersTab(); WireAudioTab(); WireLibraryTab(); WireBrowsingTab(); WireAppearanceTab(); WireShortcutsAndNotifications(); WireAboutTab();
+        WireGeneralTab(); WireServersTab(); WireAudioTab(); WireLibraryTab(); WireBrowsingTab(); WireAppearanceTab(); WireMetersTab(); WireShortcutsAndNotifications(); WireAboutTab();
         App.DevicesChanged += LoadDevices;
         App.StatusChanged += ShowPlayerStatus;
         Closed += (sender, args) => { App.DevicesChanged -= LoadDevices; App.StatusChanged -= ShowPlayerStatus; };
@@ -303,6 +303,38 @@ public partial class SettingsWindow : Window
         glassBox.IsChecked = general.Glass; framelessBox.IsChecked = general.Frameless;
         glassBox.Click += (sender, args) => { general.Glass = glassBox.IsChecked == true; Settings.Save(); App.ApplyWindowStyle(); };
         framelessBox.Click += (sender, args) => { general.Frameless = framelessBox.IsChecked == true; Settings.Save(); App.ApplyWindowStyle(); };
+    }
+
+    // Meters: one slider row per setting, saved and pushed as it moves
+    void WireMetersTab()
+    {
+        void AddRow(string label, string help, double minimum, double maximum, double step, Func<MeterSettings, double> read, Action<MeterSettings, double> write, string unit)
+        {
+            var valueText = new TextBlock { Width = 90, TextAlignment = TextAlignment.Right, VerticalAlignment = VerticalAlignment.Center };
+            var slider = new Slider { Minimum = minimum, Maximum = maximum, TickFrequency = step, IsSnapToTickEnabled = true, Value = read(Settings.Meters), Width = 260, VerticalAlignment = VerticalAlignment.Center };
+            void Show() => valueText.Text = $"{slider.Value:0.#} {unit}";
+            Show();
+            slider.ValueChanged += (sender, args) => { write(Settings.Meters, slider.Value); Show(); Settings.Save(); App.ApplyMeters(); };
+            var row = new StackPanel { Orientation = Orientation.Horizontal };
+            row.Children.Add(new TextBlock { Text = label, Width = 170, VerticalAlignment = VerticalAlignment.Center }); row.Children.Add(slider); row.Children.Add(valueText);
+            metersPanel.Children.Add(row);
+            metersPanel.Children.Add(new TextBlock { Text = help, Style = (Style)FindResource("Quiet"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 10) });
+        }
+        void Build()
+        {
+            metersPanel.Children.Clear();
+            AddRow("0 VU reference", "The RMS level that reads 0 on the VU meters. Higher (e.g. −14) makes the needles read lower; −18 is the usual digital alignment.", -24, -8, 1, meters => meters.ReferenceDbfs, (meters, value) => meters.ReferenceDbfs = value, "dBFS");
+            AddRow("VU ballistics", "How quickly the needles follow the music. 300 ms is a classic VU.", 50, 1000, 10, meters => meters.VuIntegrationMs, (meters, value) => meters.VuIntegrationMs = value, "ms");
+            AddRow("Bar range", "How many dB below full scale the bar meters show.", 24, 72, 6, meters => meters.BarRangeDb, (meters, value) => meters.BarRangeDb = value, "dB");
+            AddRow("Peak hold", "How long the bars hold their peak before falling.", 0, 2000, 50, meters => meters.PeakHoldMs, (meters, value) => meters.PeakHoldMs = value, "ms");
+            AddRow("Peak fall", "How fast the bars fall back.", 5, 90, 5, meters => meters.PeakFallDbPerSecond, (meters, value) => meters.PeakFallDbPerSecond = value, "dB/s");
+            AddRow("Spectrum floor", "Level where a spectrum column starts to light.", -90, -24, 1, meters => meters.SpectrumFloorDbfs, (meters, value) => meters.SpectrumFloorDbfs = value, "dBFS");
+            AddRow("Spectrum top", "Level that fills a spectrum column.", -30, 0, 1, meters => meters.SpectrumCeilingDbfs, (meters, value) => meters.SpectrumCeilingDbfs = value, "dBFS");
+            AddRow("Spectrum tilt", "Lifts the treble columns (around 1 kHz). Music has less energy up high; 3 dB/octave makes it read evenly.", 0, 6, 0.5, meters => meters.SpectrumTiltDbPerOctave, (meters, value) => meters.SpectrumTiltDbPerOctave = value, "dB/oct");
+            AddRow("Spectrum fall", "How fast the spectrum columns fall back.", 50, 1000, 10, meters => meters.SpectrumFallMs, (meters, value) => meters.SpectrumFallMs = value, "ms");
+        }
+        Build();
+        metersResetButton.Click += (sender, args) => { Settings.Meters = new MeterSettings(); Settings.Save(); App.ApplyMeters(); Build(); };
     }
 
     void WireAboutTab()

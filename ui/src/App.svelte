@@ -60,6 +60,7 @@
   onShellMessage('indexUpdated', () => app.indexVersion++)
   onShellMessage('newPlaylist', () => { if (!playlist.open) newPlaylist(); else playlist.collapsed = false })
   onShellMessage('levels', message => receiveLevels(message.vu, message.peak, message.bands))
+  onShellMessage('meterSettings', message => app.meterSettings = { referenceDbfs: message.referenceDbfs, barRangeDb: message.barRangeDb })
   // The skin is chosen in Settings › Appearance and applied live; cached locally so the next start paints in it straight away
   onShellMessage('skin', message => { ui.skin = message.skin || 'auto'; ui.coverAccent = !!message.coverAccent; writeSetting('skin', ui.skin); writeSetting('coverAccent', ui.coverAccent ? '1' : '') })
   onShellMessage('window', message => app.window = { glass: !!message.glass, frameless: !!message.frameless, maximised: !!message.maximised })

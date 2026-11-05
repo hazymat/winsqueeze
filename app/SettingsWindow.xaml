@@ -137,6 +137,15 @@
         <TextBlock Style="{StaticResource Quiet}" Margin="0,12,0,0" TextWrapping="Wrap" Text="Meter style: click the meters in Now playing to cycle VU, OLED VU and bars." />
       </StackPanel>
     </TabItem>
+    <TabItem Header="Meters" x:Name="metersTab">
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="16">
+          <TextBlock Style="{StaticResource Quiet}" TextWrapping="Wrap" Margin="0,0,0,12" Text="All meters read the exact samples sent to your DAC (with hardware volume on, that's the full-level signal, before the device's volume). Changes show live." />
+          <StackPanel x:Name="metersPanel" />
+          <Button x:Name="metersResetButton" Content="Reset to defaults" HorizontalAlignment="Left" Padding="10,3" Margin="0,8,0,0" />
+        </StackPanel>
+      </ScrollViewer>
+    </TabItem>
     <TabItem Header="Shortcuts" x:Name="shortcutsTab">
       <StackPanel Margin="16">
         <TextBlock Text="In the window" FontWeight="SemiBold" />
