@@ -9,10 +9,10 @@ namespace WinSqueeze.Audio;
 public sealed class DeviceVolume
 {
     string? endpointId;
-    int lastVolume = -1;
+    volatile int lastVolume = -1;
     readonly object applyLock = new();
     MMDeviceEnumerator? watchEnumerator; MMDevice? watchedDevice;
-    System.Threading.Timer? externalTimer; int pendingExternal;
+    System.Threading.Timer? externalTimer; volatile int pendingExternal;
     public event Action<int>? ExternalChange; // server-scale volume (negative = muted) set from Windows, not by us
 
     // True when this device can take volume in hardware
@@ -32,9 +32,10 @@ public sealed class DeviceVolume
             }
             if (endpointId != null)
             {
+                // Created on a pool (MTA) thread, so Windows calls back on its own threads and never needs the UI thread
                 StopWatching();
-                watchEnumerator = new MMDeviceEnumerator(); watchedDevice = watchEnumerator.GetDevice(endpointId);
-                watchedDevice.AudioEndpointVolume.OnVolumeNotification += OnWindowsVolume;
+                var watchId = endpointId;
+                Task.Run(() => { try { watchEnumerator = new MMDeviceEnumerator(); watchedDevice = watchEnumerator.GetDevice(watchId); watchedDevice.AudioEndpointVolume.OnVolumeNotification += OnWindowsVolume; } catch (Exception error) { CrashReporter.Write("Hardware volume watch failed", error, false); } }).Wait(2000);
             }
         }
         catch (Exception error) { endpointId = null; CrashReporter.Write("Hardware volume attach failed", error, false); }
@@ -53,13 +54,11 @@ public sealed class DeviceVolume
     void OnWindowsVolume(AudioVolumeNotificationData data)
     {
         var volume = (int)Math.Round(data.MasterVolume * 100); if (data.Muted) volume = -Math.Max(volume, 1);
-        lock (applyLock)
-        {
-            if (endpointId == null || volume == lastVolume) return;
-            lastVolume = volume; pendingExternal = volume;
-            externalTimer ??= new System.Threading.Timer(_ => { int settled; lock (applyLock) settled = pendingExternal; ExternalChange?.Invoke(settled); });
-            externalTimer.Change(150, System.Threading.Timeout.Infinite);
-        }
+        // Never takes applyLock: Windows can deliver this while our own Apply is still inside the volume call, and waiting here would hang the app
+        if (endpointId == null || volume == lastVolume) return;
+        lastVolume = volume; pendingExternal = volume;
+        externalTimer ??= new System.Threading.Timer(_ => ExternalChange?.Invoke(pendingExternal));
+        externalTimer.Change(150, System.Threading.Timeout.Infinite);
     }
     public bool Active => endpointId != null;
 
@@ -75,6 +74,7 @@ public sealed class DeviceVolume
                 using var enumerator = new MMDeviceEnumerator();
                 using var device = enumerator.GetDevice(endpointId);
                 var endpointVolume = device.AudioEndpointVolume;
+                lastVolume = serverVolume; // before the change, so its echo from Windows is recognised as ours
                 endpointVolume.Mute = serverVolume < 0;
                 if (serverVolume >= 0) endpointVolume.MasterVolumeLevelScalar = Math.Clamp(serverVolume / 100f, 0, 1);
                 lastVolume = serverVolume; return true;
