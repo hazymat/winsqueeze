@@ -149,6 +149,7 @@ public partial class App : Application
     [System.Runtime.InteropServices.DllImport("shell32.dll")] static extern void SHChangeNotify(int eventId, uint flags, IntPtr item1, IntPtr item2);
     void RefreshIconsAfterUpdate()
     {
+        versionBeforeThisRun = Settings.General.LastRunVersion;
         if (Settings.General.LastRunVersion == Updater.CurrentVersion) return;
         Settings.General.LastRunVersion = Updater.CurrentVersion; Settings.Save();
         try { SHChangeNotify(0x08000000 /*SHCNE_ASSOCCHANGED*/, 0, IntPtr.Zero, IntPtr.Zero); System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("ie4uinit.exe", "-show") { CreateNoWindow = true, UseShellExecute = false })?.Dispose(); } catch { }
@@ -158,13 +159,12 @@ public partial class App : Application
     public void ApplySkin() => mainWindow.PushSkin();
     // After an update: the release notes of every version since the one that last ran (including skipped ones)
     bool whatsNewChecked;
+    string versionBeforeThisRun = "";
     public async Task ShowWhatsNewAsync()
     {
         if (whatsNewChecked) return;
         whatsNewChecked = true;
-        string previousVersion = Settings.General.LastRunVersion, currentVersion = Updater.CurrentVersion;
-        if (previousVersion == currentVersion) return;
-        Settings.General.LastRunVersion = currentVersion; Settings.Save();
+        string previousVersion = versionBeforeThisRun, currentVersion = Updater.CurrentVersion;
         if (previousVersion == "" || !AppUpdater.IsNewer(currentVersion, previousVersion)) return;
         try
         {

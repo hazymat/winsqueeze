@@ -86,7 +86,6 @@ public class GeneralSettings
     public OtherSqueezeliteAction OtherSqueezelite { get; set; } = OtherSqueezeliteAction.Ask;
     public bool AutoUpdate { get; set; } = true;
     public Dictionary<string, double[]> ModeSizes { get; set; } = new();
-    public string LastRunVersion { get; set; } = ""; // for "What's new" after an update
     public string UpdateChannel { get; set; } = "dev"; // stable | dev; dev until the first stable release
     public bool Glass { get; set; } = true; // Windows 11 acrylic backdrop behind a see-through UI
     // No title bar or standard border by default; the UI draws its own drag strip and buttons (stored as ShowTitleBar so older "Frameless": false files get the new default)
