@@ -15,7 +15,11 @@
   const arc = (fromAngle: number, toAngle: number, radius: number) => { const [startX, startY] = point(fromAngle, radius); const [endX, endY] = point(toAngle, radius); return `M${startX} ${startY} A${radius} ${radius} 0 0 1 ${endX} ${endY}` }
   const restAngle = -54
   // OLED VU: one even scale line; above it, a tick per mark and dense detents across the 0..+3 zone (like the Transporter display)
-  const detentAngles = Array.from({ length: 18 }, (unused, index) => 21 + index * 25 / 17)
+  // Its pivot sits just below the display, closer than the analogue meter's, so the scale is a wider arc and the resting needle lies flatter
+  const oledPivotY = 78, oledSpread = 1.25, oledRadius = 42, oledRestAngle = -68
+  const oledPoint = (angle: number, radius: number) => [pivotX + radius * Math.sin(angle * oledSpread * Math.PI / 180), oledPivotY - radius * Math.cos(angle * oledSpread * Math.PI / 180)]
+  const oledArc = (fromAngle: number, toAngle: number, radius: number) => { const [startX, startY] = oledPoint(fromAngle, radius); const [endX, endY] = oledPoint(toAngle, radius); return `M${startX} ${startY} A${radius} ${radius} 0 0 1 ${endX} ${endY}` }
+  const detentAngles = Array.from({ length: 16 }, (unused, index) => 21 + index * 25 / 15)
 </script>
 
 <button class="meters {size}" class:idle={!active} onclick={toggle} title={active ? 'Click to switch meter style' : 'Level meters (waiting for level data from Squeezelite). Click to switch style.'}>
@@ -53,19 +57,19 @@
         <defs><filter id={gradientId + '-glow'} x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="1.4" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter></defs>
         <rect x="0" y="0" width="120" height="72" rx="5" class="glass" />
         <g filter="url(#{gradientId}-glow)" class="display">
-          <path d={arc(-48, 46, 50)} class="oled-line" />
-          {#each detentAngles as angle}{@const [detentX1, detentY1] = point(angle, 50)}{@const [detentX2, detentY2] = point(angle, 55)}<line x1={detentX1} y1={detentY1} x2={detentX2} y2={detentY2} class="oled-tick detent" />{/each}
+          <path d={oledArc(-48, 46, oledRadius)} class="oled-line" />
+          {#each detentAngles as angle}{@const [detentX1, detentY1] = oledPoint(angle, oledRadius)}{@const [detentX2, detentY2] = oledPoint(angle, oledRadius + 4.5)}<line x1={detentX1} y1={detentY1} x2={detentX2} y2={detentY2} class="oled-tick detent" />{/each}
           {#each scaleMarks as [decibels, angle]}
-            {@const [innerX, innerY] = point(angle, 50)}{@const [outerX, outerY] = point(angle, 54)}{@const [labelX, labelY] = point(angle, 61)}
-            <line x1={innerX} y1={innerY} x2={outerX} y2={outerY} class="oled-tick" />
+            {@const [innerX, innerY] = oledPoint(angle, oledRadius)}{@const [outerX, outerY] = oledPoint(angle, oledRadius + 3.5)}{@const [labelX, labelY] = oledPoint(angle, oledRadius + 10)}
+            {#if decibels < 0}<line x1={innerX} y1={innerY} x2={outerX} y2={outerY} class="oled-tick" />{/if}
             {#if decibels !== -2 && decibels !== -1 && decibels !== 1}<text x={labelX} y={labelY} class="oled-number">{Math.abs(decibels)}</text>{/if}
           {/each}
           <text x="14" y="15" class="oled-number">−</text><text x="108" y="15" class="oled-number">+</text>
           <text x="60" y="52" class="oled-label">VU</text>
-          <g clip-path="url(#{gradientId}-clip)"><line x1={pivotX} y1={pivotY} x2={pivotX} y2={pivotY - 58} class="oled-needle" transform="rotate({restAngle} {pivotX} {pivotY})" /></g>
+          <g clip-path="url(#{gradientId}-oled-clip)"><line x1={pivotX} y1={oledPivotY} x2={pivotX} y2={oledPivotY - 48} class="oled-needle" transform="rotate({oledRestAngle} {pivotX} {oledPivotY})" /></g>
         </g>
         <text x="60" y="64" class="oled-channel">{channel}</text>
-        <defs><clipPath id={gradientId + '-clip'}><rect x="5" y="5" width="110" height="55" /></clipPath></defs>
+        <defs><clipPath id={gradientId + '-oled-clip'}><rect x="5" y="5" width="110" height="61" /></clipPath></defs>
       </svg>
     {/each}
   {:else}
