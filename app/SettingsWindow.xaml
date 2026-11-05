@@ -1,5 +1,5 @@
 <Window x:Class="WinSqueeze.SettingsWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="WinSqueeze Settings" Width="760" Height="560" MinWidth="620" MinHeight="460" WindowStartupLocation="CenterScreen">
+        Title="WinSqueeze Settings" Icon="Assets/WinSqueeze.ico" Width="760" Height="560" MinWidth="620" MinHeight="460" WindowStartupLocation="CenterScreen">
   <Window.Resources>
     <Style TargetType="TextBlock" x:Key="Label"><Setter Property="Margin" Value="0,10,0,3" /></Style>
     <Style TargetType="TextBlock" x:Key="Quiet"><Setter Property="Foreground" Value="#666" /><Setter Property="TextWrapping" Value="Wrap" /><Setter Property="Margin" Value="0,4,0,0" /></Style>
@@ -18,7 +18,12 @@
           <ComboBoxItem Content="Always stop it" Tag="Stop" />
           <ComboBoxItem Content="Leave it running" Tag="Leave" />
         </ComboBox>
-        <TextBlock Style="{StaticResource Quiet}" Text="Minimise to tray, remember window position and language arrive with the window modes in Phase 5." Margin="0,16,0,0" />
+        <TextBlock Text="Settings file" FontWeight="SemiBold" Margin="0,20,0,4" />
+        <StackPanel Orientation="Horizontal">
+          <Button x:Name="exportSettingsButton" Content="Export settings…" />
+          <Button x:Name="importSettingsButton" Content="Import settings…" />
+        </StackPanel>
+        <TextBlock x:Name="settingsFileText" Style="{StaticResource Quiet}" Text="Exports everything except passwords, as a JSON file you can keep or copy to another PC." />
       </StackPanel>
     </TabItem>
     <TabItem Header="Servers" x:Name="serversTab">

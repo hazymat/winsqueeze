@@ -40,6 +40,20 @@ public partial class SettingsWindow : Window
         startWithWindowsBox.Click += (sender, args) => { Settings.General.StartWithWindows = startWithWindowsBox.IsChecked == true; StartupRegistration.Apply(Settings.General.StartWithWindows); Settings.Save(); };
         startMinimisedBox.Click += (sender, args) => { Settings.General.StartMinimised = startMinimisedBox.IsChecked == true; Settings.Save(); };
         closeHidesBox.Click += (sender, args) => { Settings.General.CloseHidesToTray = closeHidesBox.IsChecked == true; Settings.Save(); };
+        exportSettingsButton.Click += (sender, args) =>
+        {
+            var saveDialog = new Microsoft.Win32.SaveFileDialog { FileName = $"WinSqueeze-settings-{DateTime.Now:yyyy-MM-dd}.json", Filter = "WinSqueeze settings (*.json)|*.json" };
+            if (saveDialog.ShowDialog(this) != true) return;
+            System.IO.File.WriteAllText(saveDialog.FileName, Settings.ExportJson());
+            settingsFileText.Text = $"Exported to {saveDialog.FileName} (passwords left out).";
+        };
+        importSettingsButton.Click += async (sender, args) =>
+        {
+            var openDialog = new Microsoft.Win32.OpenFileDialog { Filter = "WinSqueeze settings (*.json)|*.json" };
+            if (openDialog.ShowDialog(this) != true) return;
+            try { await App.ReplaceSettingsAsync(AppSettings.Import(System.IO.File.ReadAllText(openDialog.FileName), Settings)); Close(); App.OpenSettings("General"); }
+            catch (Exception importError) { settingsFileText.Text = $"Could not import: {importError.Message}"; }
+        };
         otherSqueezeliteCombo.SelectedItem = otherSqueezeliteCombo.Items.Cast<ComboBoxItem>().First(item => (string)item.Tag == Settings.General.OtherSqueezelite.ToString());
         otherSqueezeliteCombo.SelectionChanged += (sender, args) => { if (otherSqueezeliteCombo.SelectedItem is ComboBoxItem chosen) { Settings.General.OtherSqueezelite = Enum.Parse<OtherSqueezeliteAction>((string)chosen.Tag); Settings.Save(); } };
     }

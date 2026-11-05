@@ -34,6 +34,14 @@ public class AudioSettings
     public string FallbackDeviceHostApi { get; set; } = "";
 }
 
+public class LibrarySettings
+{
+    public string AlbumSource { get; set; } = "folders"; // folders | tags
+    public string ContributorGrouping { get; set; } = "any"; // any | albumartist
+    public string NameSeparators { get; set; } = ", ; & / feat. with and";
+    public int RefreshMinutes { get; set; } = 5;
+}
+
 public class GeneralSettings
 {
     public bool StartWithWindows { get; set; }
@@ -51,6 +59,7 @@ public class AppSettings
 {
     public GeneralSettings General { get; set; } = new();
     public AudioSettings Audio { get; set; } = new();
+    public LibrarySettings Library { get; set; } = new();
     public List<ServerProfile> Profiles { get; set; } = new();
     public string DefaultProfileId { get; set; } = "";
     public string PlayerMac { get; set; } = ""; // own stable MAC so we never collide with another Squeezelite on this PC
@@ -61,6 +70,9 @@ public class AppSettings
 
     public static AppSettings Load()
     {
+        // Settings from the first test builds lived in %LOCALAPPDATA%\WinSqueeze
+        var legacySettings = Path.Combine(AppPaths.LegacyDataFolder, "settings.json");
+        if (!AppPaths.IsPortable && !File.Exists(AppPaths.SettingsFile) && File.Exists(legacySettings)) { Directory.CreateDirectory(AppPaths.DataFolder); File.Copy(legacySettings, AppPaths.SettingsFile); }
         AppSettings settings;
         try { settings = File.Exists(AppPaths.SettingsFile) ? JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(AppPaths.SettingsFile), jsonOptions) ?? new() : new(); }
         catch { settings = new(); }
@@ -74,6 +86,25 @@ public class AppSettings
         var tempFile = AppPaths.SettingsFile + ".tmp";
         File.WriteAllText(tempFile, JsonSerializer.Serialize(this, jsonOptions));
         File.Move(tempFile, AppPaths.SettingsFile, true);
+    }
+
+    // Export: everything except passwords and this PC's player identity
+    public string ExportJson()
+    {
+        var exported = JsonSerializer.Deserialize<AppSettings>(JsonSerializer.Serialize(this, jsonOptions), jsonOptions)!;
+        exported.PlayerMac = "";
+        foreach (var profile in exported.Profiles) profile.ProtectedPassword = "";
+        return JsonSerializer.Serialize(exported, jsonOptions);
+    }
+
+    // Import keeps this PC's player identity and any saved password for a matching profile
+    public static AppSettings Import(string importJson, AppSettings current)
+    {
+        var imported = JsonSerializer.Deserialize<AppSettings>(importJson, jsonOptions) ?? throw new InvalidDataException("Not a WinSqueeze settings file.");
+        imported.PlayerMac = current.PlayerMac;
+        foreach (var profile in imported.Profiles) profile.ProtectedPassword = current.Profiles.FirstOrDefault(existing => existing.Id == profile.Id)?.ProtectedPassword ?? "";
+        imported.General.CloseToTrayTipShown = current.General.CloseToTrayTipShown;
+        return imported;
     }
 
     // Locally administered unicast MAC (02:...)

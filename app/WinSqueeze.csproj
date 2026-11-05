@@ -13,11 +13,17 @@
     <SelfContained>true</SelfContained>
     <Version>0.1.0</Version>
     <StartupObject>WinSqueeze.Program</StartupObject>
+    <ApplicationIcon>Assets\WinSqueeze.ico</ApplicationIcon>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <DebugType>none</DebugType>
+    <!-- Portable build: one exe, everything else embedded and unpacked on first run -->
+    <DefineConstants Condition="'$(WinSqueezePortable)'=='true'">$(DefineConstants);PORTABLE</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2792.45" />
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
     <PackageReference Include="Velopack" Version="0.0.1298" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.11" />
   </ItemGroup>
   <ItemGroup>
     <!-- Custom Main so Velopack can handle install/update hooks before WPF starts -->
@@ -32,6 +38,9 @@
   <ItemGroup>
     <!-- Pinned Squeezelite and its licence, copied next to the exe -->
     <None Include="..\vendor\squeezelite\squeezelite-ffmpeg-x64.exe;..\vendor\squeezelite\LICENSE;..\vendor\squeezelite\SOURCE.md" Link="squeezelite\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <!-- VC++ runtime for Squeezelite, dropped in by CI (app-local deployment) -->
+    <None Include="..\vendor\squeezelite\vcruntime140.dll" Condition="Exists('..\vendor\squeezelite\vcruntime140.dll')" Link="squeezelite\vcruntime140.dll" CopyToOutputDirectory="PreserveNewest" />
+    <Resource Include="Assets\WinSqueeze.ico" />
     <!-- Built web UI (npm run build in /ui) -->
     <None Include="wwwroot\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

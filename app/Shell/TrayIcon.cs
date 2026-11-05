@@ -1,5 +1,4 @@
 using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 namespace WinSqueeze.Shell;
 
@@ -57,21 +56,10 @@ public sealed class TrayIcon : IDisposable
 
     public void ShowTip(string title, string text) => notifyIcon.ShowBalloonTip(5000, title, text, ToolTipIcon.Info);
 
-    // Placeholder icon drawn at runtime until the real one lands in Phase 5
     static Icon CreateIcon()
     {
-        using var iconBitmap = new Bitmap(32, 32);
-        using (var canvas = Graphics.FromImage(iconBitmap))
-        {
-            canvas.SmoothingMode = SmoothingMode.AntiAlias;
-            canvas.Clear(Color.Transparent);
-            using var discBrush = new SolidBrush(Color.FromArgb(79, 195, 247));
-            canvas.FillEllipse(discBrush, 1, 1, 30, 30);
-            using var letterFont = new Font("Segoe UI", 16, System.Drawing.FontStyle.Bold, GraphicsUnit.Pixel);
-            using var letterFormat = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
-            canvas.DrawString("W", letterFont, Brushes.Black, new RectangleF(0, 1, 32, 32), letterFormat);
-        }
-        return Icon.FromHandle(iconBitmap.GetHicon());
+        using var iconStream = System.Windows.Application.GetResourceStream(new Uri("pack://application:,,,/Assets/WinSqueeze.ico")).Stream;
+        return new Icon(iconStream, SystemInformation.SmallIconSize);
     }
 
     public void Dispose() { notifyIcon.Visible = false; notifyIcon.Dispose(); }

@@ -1,8 +1,11 @@
+using System.Diagnostics;
+using System.IO;
 using System.Net.Http;
 using System.Text.Json;
 using System.Windows.Threading;
 using Velopack;
 using Velopack.Sources;
+using WinSqueeze.Settings;
 namespace WinSqueeze.Shell;
 
 public record ReleaseEntry(string Tag, string Version, string Title, bool IsDev, DateTime Published, string Notes, string Url, string DiscussionUrl);
@@ -18,12 +21,15 @@ public sealed class AppUpdater
     bool checking;
 
     public string StatusText { get; private set; } = "";
-    public string ReadyVersion => readyUpdate?.TargetFullRelease.Version.ToString() ?? "";
+    string portableStagedPath = "", portableReadyVersion = "";
+    public string ReadyVersion => readyUpdate?.TargetFullRelease.Version.ToString() ?? portableReadyVersion;
     public event Action? Changed;
     App App => App.Instance;
 
-    public string CurrentVersion => SafeManager(App.Settings.General.UpdateChannel)?.CurrentVersion?.ToString() ?? typeof(App).Assembly.GetName().Version?.ToString(3) ?? "?";
-    public bool IsInstalled => SafeManager(App.Settings.General.UpdateChannel)?.IsInstalled == true;
+    static string AssemblyVersion => typeof(App).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
+    public string CurrentVersion => AppPaths.IsPortable ? AssemblyVersion : SafeManager(App.Settings.General.UpdateChannel)?.CurrentVersion?.ToString() ?? AssemblyVersion;
+    // Portable copies update themselves; installed copies through Velopack
+    public bool IsInstalled => AppPaths.IsPortable || SafeManager(App.Settings.General.UpdateChannel)?.IsInstalled == true;
 
     public void Start()
     {
@@ -47,6 +53,7 @@ public sealed class AppUpdater
         checking = true;
         try
         {
+            if (AppPaths.IsPortable) { await CheckPortableAsync(); return; }
             var updateManager = CreateManager(App.Settings.General.UpdateChannel);
             if (!updateManager.IsInstalled) { SetStatus("Updates work once WinSqueeze is installed with Setup.exe (this copy is running from a zip)."); return; }
             SetStatus("Checking for updates…");
@@ -65,6 +72,7 @@ public sealed class AppUpdater
     // Relaunches into the staged version, telling it where playback was so it can carry on
     public async Task RestartToUpdateAsync()
     {
+        if (portableStagedPath != "") { await SwapPortableAndRestartAsync(portableStagedPath); return; }
         if (readyManager == null || readyUpdate == null) return;
         var restartArguments = await App.ResumeArgumentsAsync();
         App.PrepareForRestart();
@@ -75,6 +83,7 @@ public sealed class AppUpdater
     {
         try
         {
+            if (AppPaths.IsPortable) { SetStatus($"Downloading {release.Version}…"); await SwapPortableAndRestartAsync(await DownloadPortableAsync(release.Tag)); return; }
             SetStatus($"Downloading {release.Version}…");
             var switchManager = CreateManager(release.IsDev ? "dev" : "stable", release.Tag);
             var switchUpdate = await switchManager.CheckForUpdatesAsync();
@@ -102,6 +111,45 @@ public sealed class AppUpdater
         }
         return releases;
     }
+
+    // ---- Portable single-file exe: download the release's exe next to this one, swap on restart ----
+    async Task CheckPortableAsync()
+    {
+        SetStatus("Checking for updates…");
+        var latest = (await ListReleasesAsync(App.Settings.General.UpdateChannel == "dev")).FirstOrDefault();
+        if (latest == null || !Version.TryParse(latest.Version, out var latestVersion) || latestVersion <= Version.Parse(AssemblyVersion)) { SetStatus($"Up to date ({AssemblyVersion}). Checked {DateTime.Now:HH:mm}."); return; }
+        SetStatus($"Downloading {latest.Version}…");
+        portableStagedPath = await DownloadPortableAsync(latest.Tag);
+        portableReadyVersion = latest.Version;
+        SetStatus($"WinSqueeze {ReadyVersion} is downloaded and ready. Restart to update.");
+        App.ShowTip("Update ready", $"WinSqueeze {ReadyVersion} is ready. Click Restart to update in the window or Settings › About.");
+    }
+
+    static async Task<string> DownloadPortableAsync(string releaseTag)
+    {
+        var stagedPath = AppPaths.ExePath + ".update";
+        using var download = await githubClient.GetAsync($"{RepoUrl}/releases/download/{releaseTag}/WinSqueeze-Portable.exe", HttpCompletionOption.ResponseHeadersRead);
+        download.EnsureSuccessStatusCode();
+        await using (var stagedFile = File.Create(stagedPath)) await download.Content.CopyToAsync(stagedFile);
+        return stagedPath;
+    }
+
+    // Windows lets a running exe be renamed, so: current -> .old, staged -> current, start it, exit
+    async Task SwapPortableAndRestartAsync(string stagedPath)
+    {
+        var restartArguments = await App.ResumeArgumentsAsync();
+        var oldPath = AppPaths.ExePath + ".old";
+        if (File.Exists(oldPath)) File.Delete(oldPath);
+        File.Move(AppPaths.ExePath, oldPath);
+        File.Move(stagedPath, AppPaths.ExePath);
+        App.PrepareForRestart();
+        var restartInfo = new ProcessStartInfo(AppPaths.ExePath) { UseShellExecute = false, WorkingDirectory = AppPaths.ExeFolder };
+        foreach (var argument in restartArguments) restartInfo.ArgumentList.Add(argument);
+        Process.Start(restartInfo);
+        App.Shutdown();
+    }
+
+    public static void CleanUpAfterPortableUpdate() { try { File.Delete(AppPaths.ExePath + ".old"); File.Delete(AppPaths.ExePath + ".update"); } catch { } }
 
     void SetStatus(string newStatus) { StatusText = newStatus; Changed?.Invoke(); }
 

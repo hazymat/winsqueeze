@@ -231,7 +231,7 @@ A separate Settings window with tabs, in standard Windows style. Changes apply i
 
 | Tab | Settings |
 | --- | --- |
-| General | Start with Windows; start minimised to tray; other Squeezelite at launch (ask / always stop / leave); minimise to tray when minimised; close (X) hides to tray / quits; remember window position; language |
+| General | Settings export / import (JSON; everything except passwords and other secrets); Start with Windows; start minimised to tray; other Squeezelite at launch (ask / always stop / leave); minimise to tray when minimised; close (X) hides to tray / quits; remember window position; language |
 | Servers | Server finder (auto-discovery); profiles list (name, address, port, optional username/password); default profile; test connection |
 | Audio | Output device; driver type; exclusive mode on/off; volume mode (fixed / digital); player name (defaults to the computer name); extra Squeezelite arguments (advanced); fidelity warnings |
 | Library & cache | Album source (tags / folders); contributor grouping (any credit / album artist text only); name separators; refresh interval; Refresh now; Rebuild cache; cache size and location; clear art cache |
@@ -246,8 +246,11 @@ A separate Settings window with tabs, in standard Windows style. Changes apply i
 
 ## Install, updates and licensing
 
-- **Installer:** per-user, no admin rights, from GitHub Releases. Installs to `%LOCALAPPDATA%\Programs\WinSqueeze`, adds Start menu entry, optional Start with Windows.
-- **Portable zip:** same app, runs from any folder; settings and cache stored next to the exe when a `portable.txt` marker is present.
+- **Two downloads, each a single file:**
+  - **Portable:** `WinSqueeze-Portable.exe`, one self-contained 64-bit exe with the web UI and Squeezelite embedded (unpacked to the data folder on first run). Settings and cache live next to the exe in a `WinSqueeze-data` folder. It updates itself in place (download, swap on restart).
+  - **Installer:** `WinSqueeze-Setup.exe`, per-user, no admin rights. Installs to `%LOCALAPPDATA%\WinSqueeze`, adds a Start menu entry, optional Start with Windows, and updates through Velopack. Its only advantage is not having to remember where the portable exe lives.
+- **Code signing:** releases are signed so Windows trusts the publisher. Preferred: SignPath Foundation (free for open-source projects, signs from GitHub Actions). Fallback: Azure Trusted Signing. SmartScreen reputation still builds over the first weeks of downloads.
+- **Icon:** a custom app icon in the Frosted Dark style (tray, taskbar, installer, exe).
 - **Prerequisites:** Windows 10 21H2+ / Windows 11, x64. WebView2 runtime (bootstrapped by the installer if missing). .NET 8 bundled self-contained.
 - **Updates:** see Updates and versions below.
 - **Repo:** GitHub repository `winsqueeze`, private during development and public from the first release, with `/app` (C# shell), `/ui` (web front end) and `/vendor/squeezelite` (pinned binary + licence + source link).
@@ -285,4 +288,4 @@ Updating should be effortless, and is how the author tests every build.
 3. **Browse UI:** WebView2 front end with sidebar, Artists, Albums, Genres, Composers, Performers, Folders, Favourites, search (including folder-grouped results), album view.
 4. **Transport, queue and playlist builder:** bottom bar, expanded now-playing, queue editing, playlist builder, player switcher, media keys, SMTC, taskbar buttons.
 5. **Look:** Frosted Dark and Frosted Light skins, skin switching, VU and OLED meters, display readout, window modes including Mini, multi-monitor handling. Then the Squeezebox Classic and Hi-fi Amber skins.
-6. **Ship:** installer, portable zip, update check, licences, README.
+6. **Ship:** installer, single-file portable exe, icon, code signing, update check, settings export/import, licences, README.

@@ -30,12 +30,19 @@ jobs:
           # Tags vX.Y.Z are stable releases; every push to main is a dev build
           if ("${{ github.ref_type }}" -eq "tag") { $version = "${{ github.ref_name }}".TrimStart("v"); $channel = "stable" } else { $version = "0.1.${{ github.run_number }}"; $channel = "dev" }
           "version=$version" >> $env:GITHUB_OUTPUT; "channel=$channel" >> $env:GITHUB_OUTPUT
-      - run: dotnet publish app/WinSqueeze.csproj -c Release -o publish/WinSqueeze -p:Version=${{ steps.version.outputs.version }}
       - name: Add VC++ runtime for Squeezelite
         shell: pwsh
-        run: Copy-Item "$env:SystemRoot\System32\vcruntime140.dll" publish/WinSqueeze/squeezelite/
+        run: Copy-Item "$env:SystemRoot\System32\vcruntime140.dll" vendor/squeezelite/
+      - name: Publish installer build and single-file portable exe
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          dotnet publish app/WinSqueeze.csproj -c Release -o publish/WinSqueeze -p:Version=$version
+          dotnet publish app/WinSqueeze.csproj -c Release -o publish/portable -p:Version=$version -p:WinSqueezePortable=true -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -p:EnableCompressionInSingleFile=true
+          New-Item -ItemType Directory -Force downloads | Out-Null
+          Copy-Item publish/portable/WinSqueeze.exe downloads/WinSqueeze-Portable.exe
       - uses: actions/upload-artifact@v4
-        with: { name: WinSqueeze-win-x64, path: publish/WinSqueeze }
+        with: { name: WinSqueeze-Portable, path: downloads/WinSqueeze-Portable.exe }
       - name: Package and publish release
         if: github.event_name != 'pull_request'
         shell: pwsh
@@ -46,10 +53,12 @@ jobs:
           dotnet tool install -g vpk --version 0.0.1298
           vpk download github --repoUrl $env:REPO_URL --channel $channel --token $env:GH_TOKEN -o releases  # previous release, for delta updates
           $global:LASTEXITCODE = 0
-          vpk pack --packId WinSqueeze --packVersion $version --packDir publish/WinSqueeze --mainExe WinSqueeze.exe --packTitle WinSqueeze --channel $channel -o releases
+          vpk pack --packId WinSqueeze --packVersion $version --packDir publish/WinSqueeze --mainExe WinSqueeze.exe --packTitle WinSqueeze --icon app/Assets/WinSqueeze.ico --channel $channel -o releases
           $preFlag = @(); if ($channel -eq "dev") { $preFlag = @("--pre") }
           $title = if ($channel -eq "dev") { "WinSqueeze $version (dev)" } else { "WinSqueeze $version" }
           vpk upload github --repoUrl $env:REPO_URL --channel $channel --token $env:GH_TOKEN -o releases --publish --tag "v$version" --releaseName $title @preFlag
+          Copy-Item (Get-ChildItem releases -Filter *Setup.exe | Select-Object -First 1).FullName downloads/WinSqueeze-Setup.exe
+          gh release upload "v$version" downloads/WinSqueeze-Portable.exe downloads/WinSqueeze-Setup.exe --clobber
           git log -1 --pretty=%B | Out-File notes.txt
           gh release edit "v$version" --notes-file notes.txt
           # One discussion per release for comments (needs Discussions enabled)

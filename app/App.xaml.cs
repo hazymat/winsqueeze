@@ -19,6 +19,7 @@ public partial class App : Application
     public bool IsQuitting { get; private set; }
     public event Action? DevicesChanged;
     public event Action? StatusChanged;
+    public event Action? LibraryChanged;
 
     MainWindow mainWindow = null!;
     TrayIcon trayIcon = null!;
@@ -34,6 +35,7 @@ public partial class App : Application
         showWindowSignal = new EventWaitHandle(false, EventResetMode.AutoReset, "WinSqueeze.ShowWindow");
         if (!isFirstInstance) { showWindowSignal.Set(); Shutdown(); return; } // second launch just shows the running app
         ThreadPool.RegisterWaitForSingleObject(showWindowSignal, (state, timedOut) => Dispatcher.BeginInvoke(ShowMainWindow), null, -1, false);
+        if (AppPaths.IsPortable) AppUpdater.CleanUpAfterPortableUpdate();
         Settings = AppSettings.Load();
         mainWindow = new MainWindow();
         trayIcon = new TrayIcon();
@@ -198,6 +200,15 @@ public partial class App : Application
         version = Updater.CurrentVersion,
         updateReady = Updater.ReadyVersion
     });
+
+    public async Task ReplaceSettingsAsync(AppSettings importedSettings)
+    {
+        Settings = importedSettings;
+        Settings.Save();
+        StartupRegistration.Apply(Settings.General.StartWithWindows);
+        await StartPlayerAsync(false);
+        LibraryChanged?.Invoke();
+    }
 
     public void ShowMainWindow() { mainWindow.Show(); if (mainWindow.WindowState == WindowState.Minimized) mainWindow.WindowState = WindowState.Normal; mainWindow.Activate(); }
     public void ToggleMainWindow() { if (mainWindow.IsVisible && mainWindow.WindowState != WindowState.Minimized) mainWindow.Hide(); else ShowMainWindow(); }
