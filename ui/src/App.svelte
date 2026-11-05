@@ -86,7 +86,7 @@
   let systemDark = $state(prefersDark.matches)
   prefersDark.addEventListener('change', () => systemDark = prefersDark.matches)
   $effect(() => { document.documentElement.dataset.skin = ui.skin; sendToShell({ type: 'theme', dark: ui.skin === 'auto' ? systemDark : ui.skin !== 'light' }) })
-  $effect(() => { document.documentElement.classList.toggle('mini-mode', mini) })
+  $effect(() => { document.documentElement.classList.toggle('mini-mode', mini); document.documentElement.classList.toggle('maximised', app.window.maximised) })
   $effect(() => { document.documentElement.classList.toggle('glass', app.window.glass); document.documentElement.classList.toggle('frameless', app.window.frameless) })
   // Selected text: Ctrl+C or right-click › Copy (the browser's own menu is off)
   let copyMenu = $state<{ left: number; top: number } | null>(null)

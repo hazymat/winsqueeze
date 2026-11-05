@@ -56,7 +56,7 @@ public partial class MainWindow : Window
     {
         var environment = await CoreWebView2Environment.CreateAsync(null, Path.Combine(AppPaths.DataFolder, "WebView2"));
         await webView.EnsureCoreWebView2Async(environment);
-        webView.DefaultBackgroundColor = glassActive ? System.Drawing.Color.Transparent : System.Drawing.Color.FromArgb(16, 17, 20);
+        webView.DefaultBackgroundColor = glassActive || App.Settings.General.Frameless ? System.Drawing.Color.Transparent : System.Drawing.Color.FromArgb(16, 17, 20); // frameless: the page rounds its own corners inside the border
         webView.CoreWebView2.SetVirtualHostNameToFolderMapping(uiHost, Path.Combine(AppContext.BaseDirectory, "wwwroot"), CoreWebView2HostResourceAccessKind.DenyCors);
         App.Library.AttachArtHandler(webView.CoreWebView2);
         webView.CoreWebView2.WebMessageReceived += async (sender, args) => await OnUiMessageAsync(args.WebMessageAsJson);
@@ -219,7 +219,7 @@ public partial class MainWindow : Window
         var hwndSource = HwndSource.FromHwnd(windowHandle);
         if (hwndSource?.CompositionTarget != null) hwndSource.CompositionTarget.BackgroundColor = glassActive ? Colors.Transparent : Color.FromRgb(16, 17, 20);
         Background = glassActive ? Brushes.Transparent : new SolidColorBrush(Color.FromRgb(16, 17, 20));
-        if (webView.CoreWebView2 != null) webView.DefaultBackgroundColor = glassActive ? System.Drawing.Color.Transparent : System.Drawing.Color.FromArgb(16, 17, 20);
+        if (webView.CoreWebView2 != null) webView.DefaultBackgroundColor = glassActive || App.Settings.General.Frameless ? System.Drawing.Color.Transparent : System.Drawing.Color.FromArgb(16, 17, 20); // frameless: the page rounds its own corners inside the border
         UpdateFrameMargin();
         PushWindowState();
     }
