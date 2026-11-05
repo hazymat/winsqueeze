@@ -240,7 +240,7 @@ public partial class MainWindow : Window
     void OnFirstActivation() { if (firstActivationSeen) return; firstActivationSeen = true; LookLog("activated"); ApplyWindowStyle(); PushSkin(); }
     // look.log (data folder): the startup sequence of glass, theme and edge colour, kept short, for diagnosing that black window
     static readonly DateTime lookLogStart = DateTime.Now;
-    static void LookLog(string line)
+    void LookLog(string line)
     {
         try
         {
@@ -251,12 +251,12 @@ public partial class MainWindow : Window
         catch { }
     }
     [DllImport("user32.dll")] static extern IntPtr DefWindowProc(IntPtr windowHandle, int messageId, IntPtr wParam, IntPtr lParam);
-    public void RefreshInactiveGlass() { var windowHandle = new WindowInteropHelper(this).Handle; if (windowHandle != IntPtr.Zero && !IsActive) DefWindowProc(windowHandle, 0x0086, App.Settings.General.GlassWhenInactive && glassActive ? (IntPtr)1 : IntPtr.Zero, IntPtr.Zero); }
+    public void RefreshInactiveGlass() { var windowHandle = new WindowInteropHelper(this).Handle; if (windowHandle != IntPtr.Zero && !IsActive) DefWindowProc(windowHandle, 0x0086, App.Settings.General.GlassWhenInactive && glassActive ? (IntPtr)1 : IntPtr.Zero, (IntPtr)(-1)); }
     IntPtr ThemeMessageHook(IntPtr windowHandle, int messageId, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
         // Windows draws the backdrop solid while the frame looks inactive; telling it the frame is still active keeps the glass (Appearance setting)
         const int WM_NCACTIVATE = 0x0086;
-        if (messageId == WM_NCACTIVATE && wParam == IntPtr.Zero && glassActive && App.Settings.General.GlassWhenInactive) { handled = true; return DefWindowProc(windowHandle, messageId, (IntPtr)1, lParam); }
+        if (messageId == WM_NCACTIVATE && wParam == IntPtr.Zero && glassActive && App.Settings.General.GlassWhenInactive) { handled = true; return DefWindowProc(windowHandle, messageId, (IntPtr)1, (IntPtr)(-1)); } // -1: don't paint a native caption over ours
         const int WM_SETTINGCHANGE = 0x001A, WM_THEMECHANGED = 0x031A, WM_DWMCOMPOSITIONCHANGED = 0x031E, WM_DWMCOLORIZATIONCOLORCHANGED = 0x0320;
         if (messageId is WM_SETTINGCHANGE or WM_THEMECHANGED or WM_DWMCOMPOSITIONCHANGED or WM_DWMCOLORIZATIONCOLORCHANGED && !restyleQueued && DateTime.UtcNow - lastRestyle > TimeSpan.FromSeconds(2)) // never loops on our own restyle
         {
