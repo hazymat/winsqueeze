@@ -20,8 +20,18 @@
   const mini = $derived(width < 420 && height < 260)
   const vertical = $derived(!mini && width <= 900)
   const folderMode = $derived(app.librarySettings.AlbumSource !== 'tags')
-  const sections = $derived([['queue', 'Now playing', 'queue'], ['favourites', 'Favourites', 'favourites'], ['playlists', 'Playlists', 'playlists'], ['artists', 'Artists', 'artists'], ['genres', 'Genres', 'genres'], ['composers', 'Composers', 'composers'], ['performers', 'Performers', 'performers'], ['folders', folderMode ? 'Folders' : 'Albums', folderMode ? 'folders' : 'albums']] as [string, string, any][])
-  // Sidebar customisation: every section shows by default; hidden ones are remembered per PC
+  const allSections = $derived([['queue', 'Now playing', 'queue'], ['favourites', 'Favourites', 'favourites'], ['playlists', 'Playlists', 'playlists'], ['artists', 'Artists', 'artists'], ['genres', 'Genres', 'genres'], ['composers', 'Composers', 'composers'], ['performers', 'Performers', 'performers'], ['folders', folderMode ? 'Folders' : 'Albums', folderMode ? 'folders' : 'albums']] as [string, string, any][])
+  // Sidebar and bottom-bar customisation (one shared setting): every section shows by default; order and hidden ones are remembered per PC
+  let sectionOrder = $state<string[]>(JSON.parse(readSetting('sectionOrder', '[]')))
+  const sections = $derived(allSections.slice().sort((first, second) => rank(first[0]) - rank(second[0])))
+  const rank = (key: string) => { const position = sectionOrder.indexOf(key); return position < 0 ? 100 + allSections.findIndex(section => section[0] === key) : position }
+  let draggedSection = $state<string | null>(null)
+  function dropSection(targetKey: string) {
+    if (!draggedSection || draggedSection === targetKey) return
+    const keys = sections.map(section => section[0]).filter(key => key !== draggedSection)
+    keys.splice(keys.indexOf(targetKey), 0, draggedSection)
+    sectionOrder = keys; writeSetting('sectionOrder', JSON.stringify(keys)); draggedSection = null
+  }
   let hiddenSections = $state<string[]>(JSON.parse(readSetting('hiddenSections', '[]')))
   let customising = $state(false)
   const toggleSection = (key: string) => { hiddenSections = hiddenSections.includes(key) ? hiddenSections.filter(hidden => hidden !== key) : hiddenSections.concat([key]); writeSetting('hiddenSections', JSON.stringify(hiddenSections)) }
@@ -79,13 +89,13 @@
         <div class="brand" role="presentation" onmousedown={dragWindow}>WinSqueeze</div>
         {#each customising ? sections : visibleSections as [key, label, glyph] (key)}
           {#if customising}
-            <label class="section customise"><input type="checkbox" checked={!hiddenSections.includes(key)} onchange={() => toggleSection(key)} /><span class="glyph"><Icon name={glyph} /></span>{label}</label>
+            <label class="section customise" draggable="true" ondragstart={() => draggedSection = key} ondragover={(event) => event.preventDefault()} ondrop={() => dropSection(key)} title="Drag to reorder"><span class="grip">⋮⋮</span><input type="checkbox" checked={!hiddenSections.includes(key)} onchange={() => toggleSection(key)} /><span class="glyph"><Icon name={glyph} /></span>{label}</label>
           {:else}
             <button class="section" class:on={nav.section === key && !everything} onclick={() => openSection(key)}><span class="glyph"><Icon name={glyph} /></span>{label}</button>
           {/if}
-          {#if key === 'queue'}<div class="divider"></div>{/if}
+          {#if !customising && key === visibleSections[0][0]}<div class="divider"></div>{/if}
         {/each}
-        <button class="customise-toggle" onclick={() => customising = !customising}>{customising ? 'Done' : 'Customise sidebar'}</button>
+        <button class="customise-toggle" onclick={() => customising = !customising}>{customising ? 'Done (drag to reorder, tick to show)' : 'Customise sidebar'}</button>
         <button class="section new" onclick={() => playlist.open ? (playlist.collapsed = false) : newPlaylist()}><span class="glyph"><Icon name="plus" /></span>New playlist</button>
         <div class="spacer"></div>
         {#if app.library.total && app.library.done < app.library.total}<div class="sync" title={app.library.text}><div class="bar" style:width={`${(app.library.done / app.library.total) * 100}%`}></div></div>{/if}
@@ -167,7 +177,7 @@
   .section { display: flex; align-items: center; gap: 10px; background: none; border: 0; color: var(--fg); padding: 8px 10px; border-radius: 8px; cursor: pointer; font: inherit; text-align: left; }
   .section:hover { background: var(--hover); }
   .section.on { background: var(--accent-soft); color: var(--accent); }
-  .customise { cursor: default; } .customise input { margin: 0 -4px 0 0; accent-color: var(--accent); }
+  .customise { cursor: grab; } .grip { color: var(--fg-quiet); font-size: 10px; margin-right: -6px; } .customise input { margin: 0 -4px 0 0; accent-color: var(--accent); }
   .customise-toggle { align-self: flex-start; background: none; border: 0; color: var(--fg-quiet); font: inherit; font-size: 11px; padding: 4px 10px; cursor: pointer; opacity: 0.7; }
   .customise-toggle:hover { opacity: 1; color: var(--accent); }
   .divider { height: 1px; background: var(--line); margin: 8px 10px; }
