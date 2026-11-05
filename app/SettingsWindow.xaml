@@ -131,7 +131,26 @@
       <StackPanel Margin="16">
         <TextBlock Style="{StaticResource Label}" Text="Skin (changes the main window as you pick)" />
         <ComboBox x:Name="skinBox" Width="260" HorizontalAlignment="Left" Margin="0,0,0,14" />
-        <CheckBox x:Name="coverAccentBox" Content="Accent colour from the playing album's cover (frosted skins)" Margin="0,0,0,8" />
+        <TextBlock Style="{StaticResource Label}" Text="Accent colour" />
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+          <Border x:Name="accentSwatch" Width="28" Height="22" CornerRadius="4" BorderBrush="#40FFFFFF" BorderThickness="1" Margin="0,0,8,0" />
+          <Button x:Name="accentChooseButton" Content="Choose…" Padding="10,2" Margin="0,0,6,0" />
+          <Button x:Name="accentResetButton" Content="Reset to default blue" Padding="10,2" />
+        </StackPanel>
+        <CheckBox x:Name="coverAccentBox" Content="Or take it from the playing album's cover (frosted skins)" Margin="0,0,0,14" />
+        <TextBlock Style="{StaticResource Label}" Text="Glass (frosted skins with glass on)" />
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+          <TextBlock Text="Transparency" Width="100" VerticalAlignment="Center" />
+          <Slider x:Name="glassTransparencySlider" Minimum="0" Maximum="100" Width="220" IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center" />
+          <TextBlock x:Name="glassTransparencyText" Width="70" Margin="8,0,0,0" VerticalAlignment="Center" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+          <TextBlock Text="Tint" Width="100" VerticalAlignment="Center" />
+          <Slider x:Name="glassTintSlider" Minimum="0" Maximum="360" Width="220" IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center" />
+          <Border x:Name="glassTintSwatch" Width="22" Height="16" CornerRadius="3" Margin="8,0,0,0" BorderBrush="#40FFFFFF" BorderThickness="1" />
+          <TextBlock x:Name="glassTintText" Width="60" Margin="6,0,0,0" VerticalAlignment="Center" />
+        </StackPanel>
+        <Button x:Name="glassResetButton" Content="Reset glass to default" HorizontalAlignment="Left" Padding="10,2" Margin="100,2,0,14" />
         <CheckBox x:Name="glassBox" Content="Glass: let the desktop show through the window, frosted (Windows 11)" />
         <CheckBox x:Name="framelessBox" Content="Frameless window (default): no title bar or standard border. Drag from the top strip, resize from the edges. Untick for the standard Windows title bar." Margin="0,8,0,0" />
         <TextBlock Style="{StaticResource Quiet}" Margin="0,12,0,0" TextWrapping="Wrap" Text="Meter style: click the meters in Now playing to cycle VU, OLED VU and bars." />

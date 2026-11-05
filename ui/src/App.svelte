@@ -64,23 +64,38 @@
   onShellMessage('levels', message => receiveLevels(message.vu, message.peak, message.bands))
   onShellMessage('meterSettings', message => app.meterSettings = { referenceDbfs: message.referenceDbfs, spectrumFloorDbfs: message.spectrumFloorDbfs, spectrumCeilingDbfs: message.spectrumCeilingDbfs })
   // The skin is chosen in Settings › Appearance and applied live; cached locally so the next start paints in it straight away
-  onShellMessage('skin', message => { ui.skin = message.skin || 'auto'; ui.coverAccent = !!message.coverAccent; writeSetting('skin', ui.skin); writeSetting('coverAccent', ui.coverAccent ? '1' : '') })
+  onShellMessage('skin', message => {
+    ui.skin = message.skin || 'auto'; ui.coverAccent = !!message.coverAccent; ui.accent = message.accent ?? ''; ui.glassTransparency = message.glassTransparency ?? -1; ui.glassTintHue = message.glassTintHue ?? 0
+    writeSetting('skin', ui.skin); writeSetting('coverAccent', ui.coverAccent ? '1' : ''); writeSetting('accent', ui.accent); writeSetting('glassTransparency', String(ui.glassTransparency)); writeSetting('glassTintHue', String(ui.glassTintHue))
+  })
   onShellMessage('window', message => app.window = { glass: !!message.glass, frameless: !!message.frameless, maximised: !!message.maximised })
   onShellMessage('settings', message => { if (message.library) app.librarySettings = message.library })
   sendToShell({ type: 'ready' })
   // Restore an unsaved playlist draft from last time
   request({ type: 'loadDraft' }).then(draft => { if (draft?.items) newPlaylist(draft.name ?? 'Untitled playlist', draft.items) })
 
-  // Accent from the playing cover, in the frosted skins only (classic and amber keep their hardware colours)
+  // Accent (Settings › Appearance): the playing cover's colour when that's on (frosted skins), else the chosen colour, else the skin's own blue
   const coverId = $derived(currentTrack()?.coverid ?? '')
+  function applyAccent(accent: string) {
+    const rootStyle = document.documentElement.style
+    if (!accent) { for (const name of ['--accent', '--accent-soft', '--on-accent']) rootStyle.removeProperty(name); return }
+    const channels = accent.startsWith('#') ? [1, 3, 5].map(start => parseInt(accent.slice(start, start + 2), 16)) : (accent.match(/\d+/g) ?? []).slice(0, 3).map(Number)
+    rootStyle.setProperty('--accent', `rgb(${channels.join(', ')})`); rootStyle.setProperty('--accent-soft', `rgba(${channels.join(', ')}, 0.15)`)
+    // Text on the accent: dark on light accents, white on dark ones
+    rootStyle.setProperty('--on-accent', 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2] > 150 ? '#06141c' : '#ffffff')
+  }
   $effect(() => {
-    const cover = coverId, skin = ui.skin, rootStyle = document.documentElement.style
-    if (!cover || !ui.coverAccent || !['auto', 'dark', 'light'].includes(skin)) { rootStyle.removeProperty('--accent'); rootStyle.removeProperty('--accent-soft'); return }
-    accentFromCover(artUrl(cover, 120)).then(accent => {
-      if (cover !== coverId) return
-      if (!accent) { rootStyle.removeProperty('--accent'); rootStyle.removeProperty('--accent-soft'); return }
-      rootStyle.setProperty('--accent', accent); rootStyle.setProperty('--accent-soft', accent.replace('rgb(', 'rgba(').replace(')', ', 0.15)'))
-    })
+    const cover = coverId, chosen = ui.accent
+    if (!cover || !ui.coverAccent || !['auto', 'dark', 'light'].includes(ui.skin)) { applyAccent(chosen); return }
+    accentFromCover(artUrl(cover, 120)).then(accent => { if (cover === coverId) applyAccent(accent || chosen) })
+  })
+  // Glass tint (frosted skins with glass): transparency and hue from Appearance; the mini player keeps its lighter share of the tint
+  $effect(() => {
+    const rootStyle = document.documentElement.style, light = ui.skin === 'light' || (ui.skin === 'auto' && !systemDark)
+    if (!['auto', 'dark', 'light'].includes(ui.skin) || (ui.glassTransparency < 0 && !ui.glassTintHue)) { rootStyle.removeProperty('--glass-tint'); rootStyle.removeProperty('--glass-tint-mini'); return }
+    const opacity = ui.glassTransparency < 0 ? (light ? 0.42 : 0.38) : 1 - ui.glassTransparency / 100
+    const colour = ui.glassTintHue ? (light ? `hsl(${ui.glassTintHue} 45% 92%` : `hsl(${ui.glassTintHue} 40% 12%`) : (light ? 'rgb(242 245 250' : 'rgb(12 14 19')
+    rootStyle.setProperty('--glass-tint', `${colour} / ${opacity.toFixed(2)})`); rootStyle.setProperty('--glass-tint-mini', `${colour} / ${(opacity * 0.37).toFixed(2)})`)
   })
   // Skins (SPEC.md › Skins): the skin is a data attribute; tokens.css holds the variables
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)')
@@ -88,7 +103,7 @@
   prefersDark.addEventListener('change', () => systemDark = prefersDark.matches)
   $effect(() => { document.documentElement.dataset.skin = ui.skin; sendToShell({ type: 'theme', dark: ui.skin === 'auto' ? systemDark : ui.skin !== 'light' }) })
   // Tell the shell the page's edge colour, so the frameless border matches it exactly (after the classes and skin have applied)
-  $effect(() => { ui.skin; app.window.glass; app.window.frameless; mini; requestAnimationFrame(() => sendToShell({ type: 'edgeColour', colour: getComputedStyle(document.body).backgroundColor })) })
+  $effect(() => { ui.skin; ui.glassTransparency; ui.glassTintHue; app.window.glass; app.window.frameless; mini; requestAnimationFrame(() => sendToShell({ type: 'edgeColour', colour: getComputedStyle(document.body).backgroundColor })) })
   $effect(() => { document.documentElement.classList.toggle('mini-mode', mini); document.documentElement.classList.toggle('maximised', app.window.maximised) })
   $effect(() => { document.documentElement.classList.toggle('glass', app.window.glass); document.documentElement.classList.toggle('frameless', app.window.frameless) })
   // Selected text: Ctrl+C or right-click › Copy (the browser's own menu is off)
@@ -277,8 +292,8 @@
   .pin-top.on { opacity: 1; color: var(--accent); background: var(--accent-soft); transform: none; } /* upright and lit when pinned */
   .mini-shell { height: 100vh; background: var(--glass); position: relative; }
   /* Mini on glass: a light tint so the desktop shows through Windows' blur, plus a fine frosted grain */
-  :global(:root.glass.mini-mode body) { background: rgba(12, 14, 19, 0.14); }
-  :global(:root.glass[data-skin="light"].mini-mode body) { background: rgba(245, 247, 250, 0.2); }
+  :global(:root.glass.mini-mode body) { background: var(--glass-tint-mini, rgba(12, 14, 19, 0.14)); }
+  :global(:root.glass[data-skin="light"].mini-mode body) { background: var(--glass-tint-mini, rgba(245, 247, 250, 0.2)); }
   :global(:root.glass) .mini-shell { background: transparent; }
   :global(:root.glass) .mini-shell::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0.07; mix-blend-mode: overlay; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)'/%3E%3C/svg%3E"); }
   :global(:root.glass) .mini-shell :global(.transport) { background: transparent; backdrop-filter: none; }

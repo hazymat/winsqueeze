@@ -298,6 +298,29 @@ public partial class SettingsWindow : Window
         skinBox.ItemsSource = skinNames.Select(skin => new ComboBoxItem { Content = skin.Item2, Tag = skin.Item1 }).ToList();
         skinBox.SelectedItem = ((List<ComboBoxItem>)skinBox.ItemsSource).FirstOrDefault(item => (string)item.Tag == general.Skin) ?? ((List<ComboBoxItem>)skinBox.ItemsSource)[0];
         skinBox.SelectionChanged += (sender, args) => { if (skinBox.SelectedItem is ComboBoxItem { Tag: string skin }) { general.Skin = skin; Settings.Save(); App.ApplySkin(); } };
+        // Accent: a chosen colour (or the skin's blue), and optionally the playing cover's on top
+        void ShowAccent() => accentSwatch.Background = general.AccentColour == "" ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x5c, 0xcf, 0xff)) : new System.Windows.Media.BrushConverter().ConvertFromString(general.AccentColour) as System.Windows.Media.Brush;
+        ShowAccent();
+        accentChooseButton.Click += (sender, args) =>
+        {
+            using var colourDialog = new System.Windows.Forms.ColorDialog { FullOpen = true, AnyColor = true };
+            if (general.AccentColour != "") colourDialog.Color = System.Drawing.ColorTranslator.FromHtml(general.AccentColour);
+            if (colourDialog.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
+            general.AccentColour = $"#{colourDialog.Color.R:x2}{colourDialog.Color.G:x2}{colourDialog.Color.B:x2}"; Settings.Save(); App.ApplySkin(); ShowAccent();
+        };
+        accentResetButton.Click += (sender, args) => { general.AccentColour = ""; Settings.Save(); App.ApplySkin(); ShowAccent(); };
+        // Glass: how see-through the tint is, and its hue (0 = neutral); both preview live
+        void ShowGlass()
+        {
+            glassTransparencyText.Text = general.GlassTransparency < 0 ? $"{(int)glassTransparencySlider.Value}% (default)" : $"{general.GlassTransparency}%";
+            glassTintText.Text = general.GlassTintHue == 0 ? "Neutral" : $"{general.GlassTintHue}°";
+            glassTintSwatch.Background = new System.Windows.Media.SolidColorBrush(general.GlassTintHue == 0 ? System.Windows.Media.Color.FromRgb(30, 32, 38) : HueColour(general.GlassTintHue));
+        }
+        bool fillingGlass = true;
+        glassTransparencySlider.Value = general.GlassTransparency < 0 ? 62 : general.GlassTransparency; glassTintSlider.Value = general.GlassTintHue; fillingGlass = false; ShowGlass();
+        glassTransparencySlider.ValueChanged += (sender, args) => { if (fillingGlass) return; general.GlassTransparency = (int)glassTransparencySlider.Value; Settings.Save(); App.ApplySkin(); ShowGlass(); };
+        glassTintSlider.ValueChanged += (sender, args) => { if (fillingGlass) return; general.GlassTintHue = (int)glassTintSlider.Value; Settings.Save(); App.ApplySkin(); ShowGlass(); };
+        glassResetButton.Click += (sender, args) => { general.GlassTransparency = -1; general.GlassTintHue = 0; fillingGlass = true; glassTransparencySlider.Value = 62; glassTintSlider.Value = 0; fillingGlass = false; Settings.Save(); App.ApplySkin(); ShowGlass(); };
         coverAccentBox.IsChecked = general.CoverAccent;
         coverAccentBox.Click += (sender, args) => { general.CoverAccent = coverAccentBox.IsChecked == true; Settings.Save(); App.ApplySkin(); };
         glassBox.IsChecked = general.Glass; framelessBox.IsChecked = general.Frameless;
@@ -332,6 +355,14 @@ public partial class SettingsWindow : Window
         }
         Build();
         metersResetButton.Click += (sender, args) => { Settings.Meters = new MeterSettings(); Settings.Save(); App.ApplyMeters(); Build(); };
+    }
+
+    // A mid, fairly saturated colour for a hue, for the tint swatch
+    static System.Windows.Media.Color HueColour(int hue)
+    {
+        double chroma = 0.45, section = hue / 60.0, second = chroma * (1 - Math.Abs(section % 2 - 1)), lightness = 0.3 - chroma / 2;
+        var (red, green, blue) = section < 1 ? (chroma, second, 0.0) : section < 2 ? (second, chroma, 0.0) : section < 3 ? (0.0, chroma, second) : section < 4 ? (0.0, second, chroma) : section < 5 ? (second, 0.0, chroma) : (chroma, 0.0, second);
+        return System.Windows.Media.Color.FromRgb((byte)((red + lightness) * 255), (byte)((green + lightness) * 255), (byte)((blue + lightness) * 255));
     }
 
     void WireAboutTab()
