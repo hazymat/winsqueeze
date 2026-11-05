@@ -204,7 +204,7 @@
   .preamp-legend { margin-top: 6px; }
   .preamp { position: relative; width: 26px; height: 54px; display: flex; justify-content: center; cursor: ns-resize; touch-action: none; }
   .preamp .slot { top: 0; bottom: 0; } .preamp.auto { opacity: 0.55; cursor: default; }
-  .knob.small { width: 14px; height: 12px; margin-top: -6px; }
+  .knob.small { height: 14px; margin-top: -7px; }
   .clip { font-size: 7.5px; letter-spacing: 1px; padding: 1px 4px; border-radius: 2px; color: rgba(255, 80, 60, 0.35); border: 1px solid rgba(255, 80, 60, 0.2); }
   .clip.on { color: #fff1ec; background: #e0321e; border-color: #ff6a4d; box-shadow: 0 0 8px rgba(255, 60, 30, 0.8); }
   .power { width: 46px; height: 46px; border-radius: 3px; cursor: pointer; border: 1px solid #000; background: linear-gradient(160deg, #2a2a2d, #141416 60%, #0e0e10); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09), inset 0 -2px 3px rgba(0, 0, 0, 0.7), 0 2px 4px rgba(0, 0, 0, 0.6); transition: transform 60ms; }
@@ -218,9 +218,10 @@
   .tick { position: absolute; left: 0; right: 0; height: 1px; background: rgba(201, 168, 92, 0.28); } .tick.major { height: 2px; margin-top: -0.5px; background: rgba(201, 168, 92, 0.55); }
   .fader { flex: 1; position: relative; display: flex; justify-content: center; border-radius: 3px; }
   .fader.hovered { background: linear-gradient(180deg, rgba(201, 168, 92, 0.05), rgba(201, 168, 92, 0.12), rgba(201, 168, 92, 0.05)); box-shadow: 0 0 0 1px rgba(201, 168, 92, 0.18); }
-  .slot { position: absolute; top: -4px; bottom: -4px; width: 3px; border-radius: 2px; background: #000; box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.04); }
-  .knob { position: absolute; width: min(14px, 70%); height: 22px; margin-top: -11px; border-radius: 2px; background: linear-gradient(180deg, #303033 0%, #1a1a1c 45%, #0f0f10 55%, #232325 100%); box-shadow: 0 2px 3px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.12); }
-  .knob::after { content: ""; position: absolute; left: 2px; right: 2px; top: 50%; height: 1px; background: rgba(255, 255, 255, 0.55); }
+  /* A wide black channel with the cap riding inside it */
+  .slot { position: absolute; top: -6px; bottom: -6px; width: 12px; border-radius: 2px; background: linear-gradient(90deg, #000, #070708 50%, #000); box-shadow: inset 0 2px 3px #000, inset 1px 0 0 rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.05), 0 1px 0 rgba(255, 255, 255, 0.06); }
+  /* Moulded cap: a finger dip across the middle instead of a painted line */
+  .knob { position: absolute; width: 10px; height: 26px; margin-top: -13px; border-radius: 1.5px; background: linear-gradient(180deg, #3a3a3d 0%, #26262a 18%, #1b1b1e 38%, #0c0c0d 47%, #050505 50%, #2a2a2e 53%, #1d1d20 64%, #141416 84%, #0d0d0e 100%); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 -1px 0 rgba(0, 0, 0, 0.9), inset 1px 0 0 rgba(255, 255, 255, 0.05), inset -1px 0 0 rgba(0, 0, 0, 0.6), 0 3px 4px rgba(0, 0, 0, 0.85); }
   .labels { display: flex; font-size: 8.5px; letter-spacing: 0.3px; } .labels span { flex: 1; text-align: center; white-space: nowrap; overflow: hidden; }
   .scale { display: flex; flex-direction: column; justify-content: space-between; font-size: 8px; margin: 1px 0 16px; text-align: right; min-width: 16px; line-height: 1; }
   .centre { flex: 0 0 auto; width: max(270px, calc((100vh - 112px) * 2)); /* the analyser frame keeps the hardware's ~2:1, whatever the window width; the fader banks absorb the rest */ display: flex; flex-direction: column; gap: 5px; }
