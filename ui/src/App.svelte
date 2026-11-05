@@ -2,6 +2,7 @@
   import { sendToShell, onShellMessage, request, command, artUrl } from './bridge'
   import { app, nav, ui, playlist, openSection, back, currentView, newPlaylist, undoToast, toast, receiveLevels, writeSetting, readSetting, currentTrack } from './state.svelte'
   import TransportBar from './parts/TransportBar.svelte'
+  import WhatsNew from './parts/WhatsNew.svelte'
   import NowPlaying from './parts/NowPlaying.svelte'
   import PlaylistPanel from './parts/PlaylistPanel.svelte'
   import PeopleList from './views/PeopleList.svelte'
@@ -60,7 +61,7 @@
   onShellMessage('indexUpdated', () => app.indexVersion++)
   onShellMessage('newPlaylist', () => { if (!playlist.open) newPlaylist(); else playlist.collapsed = false })
   onShellMessage('levels', message => receiveLevels(message.vu, message.peak, message.bands))
-  onShellMessage('meterSettings', message => app.meterSettings = { referenceDbfs: message.referenceDbfs, barRangeDb: message.barRangeDb })
+  onShellMessage('meterSettings', message => app.meterSettings = { referenceDbfs: message.referenceDbfs, spectrumFloorDbfs: message.spectrumFloorDbfs, spectrumCeilingDbfs: message.spectrumCeilingDbfs })
   // The skin is chosen in Settings › Appearance and applied live; cached locally so the next start paints in it straight away
   onShellMessage('skin', message => { ui.skin = message.skin || 'auto'; ui.coverAccent = !!message.coverAccent; writeSetting('skin', ui.skin); writeSetting('coverAccent', ui.coverAccent ? '1' : '') })
   onShellMessage('window', message => app.window = { glass: !!message.glass, frameless: !!message.frameless, maximised: !!message.maximised })
@@ -120,6 +121,7 @@
 </script>
 
 <svelte:window bind:innerWidth={width} bind:innerHeight={height} onkeydown={onKey} onmouseup={(event) => { if (event.button === 3 && nav.stack.length) back() }} oncontextmenu={onContextMenu} onpointerdown={(event) => { if (copyMenu && !(event.target as HTMLElement).closest('.copy-menu')) copyMenu = null }} />
+<WhatsNew />
 {#if copyMenu}<div class="copy-menu" style:left="{copyMenu.left}px" style:top="{copyMenu.top}px"><button onclick={copySelection}>Copy</button></div>{/if}
 
 {#if mini}

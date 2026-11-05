@@ -1,0 +1,7 @@
+<Window x:Class="WinSqueeze.EqualiserWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        Title="WinSqueeze equaliser" Icon="Assets/WinSqueeze.ico" Width="980" Height="330" MinWidth="620" MinHeight="250" Background="#0b0b0c"
+        WindowStyle="None" ShowInTaskbar="False" ResizeMode="CanResize">
+  <WindowChrome.WindowChrome><WindowChrome CaptionHeight="0" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="6" UseAeroCaptionButtons="False" /></WindowChrome.WindowChrome>
+  <wv2:WebView2 x:Name="webView" />
+</Window>

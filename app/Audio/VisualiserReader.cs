@@ -8,9 +8,13 @@ namespace WinSqueeze.Audio;
 // VU levels (RMS with ~300 ms ballistics, in dB), peak levels for the bar graph, and 8 spectrum bands, ~60 times a second. Looks back by the output latency so meters match what you hear.
 public sealed class VisualiserReader : IDisposable
 {
-    const int HeaderBytes = 32, FftSize = 1024, BandCount = 8;
+    const int HeaderBytes = 32, FftSize = 1024, BandCount = 8, AnalyserSize = 4096; // the EQ window's analyser looks at a longer window for its low octaves
     static readonly double[] bandEdges = { 40, 100, 250, 600, 1200, 2500, 5000, 10000, 18000 }; // Hz, roughly log-spaced like the hardware's bands
     public event Action<string>? LevelsReady;
+    public event Action<string>? AnalyserReady; // 10 octave bands per channel for the EQ window, while it's open
+    public volatile bool AnalyserWanted;
+    public int SampleRate { get; private set; }
+    int analyserFrame;
     Thread? worker;
     volatile bool running;
     string mapName = "";
@@ -34,7 +38,7 @@ public sealed class VisualiserReader : IDisposable
     void Run()
     {
         MemoryMappedFile? sharedFile = null; MemoryMappedViewAccessor? view = null;
-        var samples = new short[FftSize * 2];
+        var samples = new short[AnalyserSize * 2];
         var lastTick = Environment.TickCount64;
         while (running)
         {
@@ -62,7 +66,9 @@ public sealed class VisualiserReader : IDisposable
                     if (view.ReadInt32(0) == sequenceBefore) break;
                 }
                 if (!live) Array.Clear(samples);
+                if (rate > 0) SampleRate = rate;
                 Analyse(samples, rate > 0 ? rate : 44100, elapsedSeconds, live);
+                if (AnalyserWanted && ++analyserFrame % 2 == 0) AnalyseOctaves(samples, rate > 0 ? rate : 44100); // ~30 a second is plenty
             }
             catch (Exception) { view?.Dispose(); sharedFile?.Dispose(); view = null; sharedFile = null; Thread.Sleep(1000); }
         }
@@ -72,23 +78,24 @@ public sealed class VisualiserReader : IDisposable
     void Analyse(short[] samples, int rate, double elapsedSeconds, bool live)
     {
         // VU: RMS over the newest ~50 ms, integrated with a 300 ms time constant
+        const int newest = AnalyserSize - FftSize; // frame where the newest FftSize frames start
         var rmsFrames = Math.Min(FftSize, rate / 20);
         double sumLeft = 0, sumRight = 0, maxLeft = 0, maxRight = 0;
         for (var frame = FftSize - rmsFrames; frame < FftSize; frame++)
         {
-            double left = samples[frame * 2] / 32768.0, right = samples[frame * 2 + 1] / 32768.0;
+            double left = samples[(newest + frame) * 2] / 32768.0, right = samples[(newest + frame) * 2 + 1] / 32768.0;
             sumLeft += left * left; sumRight += right * right; maxLeft = Math.Max(maxLeft, Math.Abs(left)); maxRight = Math.Max(maxRight, Math.Abs(right));
         }
         var tuning = Tuning;
         var vuFollow = 1 - Math.Exp(-elapsedSeconds / Math.Max(0.02, tuning.VuIntegrationMs / 1000));
         vuLeft += (Math.Sqrt(sumLeft / rmsFrames) - vuLeft) * vuFollow; vuRight += (Math.Sqrt(sumRight / rmsFrames) - vuRight) * vuFollow;
         // Bars: instant attack, optional hold, then a steady fall in dB
-        var peakFall = Math.Pow(10, -elapsedSeconds * tuning.PeakFallDbPerSecond / 20);
-        (peakLeft, peakHeldLeft) = FollowPeak(maxLeft, peakLeft, peakHeldLeft, peakFall, elapsedSeconds, tuning.PeakHoldMs / 1000);
-        (peakRight, peakHeldRight) = FollowPeak(maxRight, peakRight, peakHeldRight, peakFall, elapsedSeconds, tuning.PeakHoldMs / 1000);
+        var peakFall = Math.Pow(10, -elapsedSeconds * 30 / 20);
+        (peakLeft, peakHeldLeft) = FollowPeak(maxLeft, peakLeft, peakHeldLeft, peakFall, elapsedSeconds, 0);
+        (peakRight, peakHeldRight) = FollowPeak(maxRight, peakRight, peakHeldRight, peakFall, elapsedSeconds, 0);
         // Spectrum: Hann-windowed FFT of the mono mix. A full-scale sine peaks at |X| = N/4, so 20·log10(|X|·4/N) is the band's level in dBFS; floor..ceiling fills the column
         var real = new double[FftSize]; var imaginary = new double[FftSize];
-        for (var frame = 0; frame < FftSize; frame++) real[frame] = (samples[frame * 2] + samples[frame * 2 + 1]) / 65536.0 * (0.5 - 0.5 * Math.Cos(2 * Math.PI * frame / (FftSize - 1)));
+        for (var frame = 0; frame < FftSize; frame++) real[frame] = (samples[(newest + frame) * 2] + samples[(newest + frame) * 2 + 1]) / 65536.0 * (0.5 - 0.5 * Math.Cos(2 * Math.PI * frame / (FftSize - 1)));
         Fft(real, imaginary);
         var bandFollow = 1 - Math.Exp(-elapsedSeconds / Math.Max(0.02, tuning.SpectrumFallMs / 1000)); // instant rise, ~250 ms fall like the hardware
         for (var band = 0; band < BandCount; band++)
@@ -105,6 +112,28 @@ public sealed class VisualiserReader : IDisposable
         if (silent && sentSilence) return;
         sentSilence = silent;
         LevelsReady?.Invoke(JsonSerializer.Serialize(new { type = "levels", vu = new[] { Decibels(vuLeft), Decibels(vuRight) }, peak = new[] { Math.Round(peakLeft, 3), Math.Round(peakRight, 3) }, bands = bandLevels.Select(level => Math.Round(level, 3)) }));
+    }
+
+    // EQ analyser: per channel, the energy in each octave band 31.5 Hz–16 kHz as dBFS (raw; the window applies its own decay)
+    static readonly double[] octaveCentres = { 31.5, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000 };
+    void AnalyseOctaves(short[] samples, int rate)
+    {
+        var levels = new double[2][];
+        for (var channel = 0; channel < 2; channel++)
+        {
+            var real = new double[AnalyserSize]; var imaginary = new double[AnalyserSize];
+            for (var frame = 0; frame < AnalyserSize; frame++) real[frame] = samples[frame * 2 + channel] / 32768.0 * (0.5 - 0.5 * Math.Cos(2 * Math.PI * frame / (AnalyserSize - 1)));
+            Fft(real, imaginary);
+            levels[channel] = octaveCentres.Select(centre =>
+            {
+                int firstBin = Math.Max(1, (int)Math.Round(centre / Math.Sqrt(2) * AnalyserSize / rate)), lastBin = Math.Min(AnalyserSize / 2 - 1, Math.Max(firstBin, (int)Math.Round(centre * Math.Sqrt(2) * AnalyserSize / rate)));
+                double energy = 0;
+                for (var bin = firstBin; bin <= lastBin; bin++) energy += real[bin] * real[bin] + imaginary[bin] * imaginary[bin];
+                // A full-scale sine sums to (N/4)² × 1.5 (Hann) across its bins
+                return Math.Round(10 * Math.Log10(energy * 16.0 / (1.5 * AnalyserSize * AnalyserSize) + 1e-12), 1);
+            }).ToArray();
+        }
+        AnalyserReady?.Invoke(JsonSerializer.Serialize(new { type = "eqLevels", left = levels[0], right = levels[1] }));
     }
 
     static (double level, double held) FollowPeak(double current, double level, double held, double fall, double elapsedSeconds, double holdSeconds)

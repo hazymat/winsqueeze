@@ -19,6 +19,8 @@ public partial class App : Application
     public LibraryService Library { get; } = new();
     public MediaControls? Media { get; private set; }
     public VisualiserReader Visualiser { get; } = new();
+    public Equaliser Equaliser { get; } = new();
+    EqualiserWindow? equaliserWindow;
     public DeviceVolume DeviceVolume { get; } = new();
     public List<OutputDevice> Devices { get; private set; } = new();
     public bool UsingFallbackDevice { get; private set; }
@@ -154,6 +156,31 @@ public partial class App : Application
 
     public void ApplyWindowStyle() => mainWindow.ApplyWindowStyle();
     public void ApplySkin() => mainWindow.PushSkin();
+    // After an update: the release notes of every version since the one that last ran (including skipped ones)
+    bool whatsNewChecked;
+    public async Task ShowWhatsNewAsync()
+    {
+        if (whatsNewChecked) return;
+        whatsNewChecked = true;
+        string previousVersion = Settings.General.LastRunVersion, currentVersion = Updater.CurrentVersion;
+        if (previousVersion == currentVersion) return;
+        Settings.General.LastRunVersion = currentVersion; Settings.Save();
+        if (previousVersion == "" || !AppUpdater.IsNewer(currentVersion, previousVersion)) return;
+        try
+        {
+            var releases = (await Updater.ListReleasesAsync(true)).Where(release => AppUpdater.IsNewer(release.Version, previousVersion) && !AppUpdater.IsNewer(release.Version, currentVersion)).OrderByDescending(release => Version.Parse(release.Version)).ToList();
+            if (releases.Count > 0) mainWindow.PushWhatsNew(previousVersion, currentVersion, releases);
+        }
+        catch (Exception error) { CrashReporter.Write("What's new: release notes unavailable", error, false); }
+    }
+
+    public void RaiseStatusChanged() => StatusChanged?.Invoke();
+    // The EQ floats beside the main window (docks to its edges); opening again brings it forward
+    public void OpenEqualiser()
+    {
+        if (equaliserWindow == null) { equaliserWindow = new EqualiserWindow(mainWindow); equaliserWindow.Closed += (sender, args) => equaliserWindow = null; }
+        equaliserWindow.Show(); equaliserWindow.Activate();
+    }
     public void ApplyMeters() { Visualiser.Tuning = Settings.Meters; mainWindow.PushMeterSettings(); }
 
     public async Task<string[]> ResumeArgumentsAsync()
@@ -246,6 +273,8 @@ public partial class App : Application
         Player.Start(profile, outputDevice, Settings.Audio, Settings.PlayerMac, hardwareVolume);
         Visualiser.Tuning = Settings.Meters;
         if (SqueezeliteHost.SupportsVisualiser) Visualiser.Start(Settings.PlayerMac, Settings.Audio.LatencyMs);
+        Equaliser.Tuning = Settings.Equaliser; Equaliser.CurrentRate = () => Visualiser.SampleRate;
+        if (SqueezeliteHost.SupportsEqualiser) Equaliser.Start(Settings.PlayerMac);
         if (resumeState.mode == "play") await ResumeAtAsync(resumeState.seconds);
     }
 
@@ -306,6 +335,8 @@ public partial class App : Application
         device = Player.Device?.Name ?? "",
         driver = Player.Device?.Driver ?? "",
         exclusive = Player.ExclusiveActive,
+        hardwareVolume = DeviceVolume.Active,
+        eqActive = Settings.Equaliser.Enabled && SqueezeliteHost.SupportsEqualiser,
         sampleRate = Player.OutputSampleRate,
         fallback = UsingFallbackDevice,
         version = Updater.CurrentVersion,

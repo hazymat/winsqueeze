@@ -62,6 +62,7 @@ public sealed partial class SqueezeliteHost : IDisposable
     // Only our own build has the Windows visualiser export; an unknown -v would make another build exit
     static string? helpText;
     public static bool SupportsVisualiser => (helpText ??= ReadHelpText()).Contains("VISEXPORT");
+    public static bool SupportsEqualiser => (helpText ??= ReadHelpText()).Contains("WINEQ"); // rides on -v
     public static bool SupportsFixedVolume => (helpText ??= ReadHelpText()).Contains("-F ");
     static string ReadHelpText()
     {

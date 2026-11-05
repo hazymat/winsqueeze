@@ -40,13 +40,29 @@ public class MeterSettings
 {
     public double ReferenceDbfs { get; set; } = -18; // RMS level that reads 0 VU
     public double VuIntegrationMs { get; set; } = 300; // needle ballistics
-    public double BarRangeDb { get; set; } = 48; // bar meters span -range..0 dBFS
-    public double PeakHoldMs { get; set; } = 0; // bars hold their peak this long before falling
-    public double PeakFallDbPerSecond { get; set; } = 30;
     public double SpectrumFloorDbfs { get; set; } = -54;
     public double SpectrumCeilingDbfs { get; set; } = -6;
     public double SpectrumTiltDbPerOctave { get; set; } = 0; // lifts the treble bands; 3 dB/octave makes pink noise read flat
     public double SpectrumFallMs { get; set; } = 250;
+}
+
+// Graphic equaliser and its window (SPEC.md › Equaliser)
+public class EqualiserSettings
+{
+    public bool Enabled { get; set; } = false; // off = bit-perfect
+    public int BandCount { get; set; } = 10; // 10, 7 or 3
+    public string Character { get; set; } = "vintage"; // "vintage" (proportional Q, like the analogue units) or "precise" (constant Q)
+    public bool Linked { get; set; } = true; // one curve for both channels
+    public Dictionary<string, double[]> Gains { get; set; } = new(); // "10L", "10R", "7L"... in dB
+    public string Display { get; set; } = "sum"; // analyser: "sum" (L+R) or "split" (L/R)
+    public string Decay { get; set; } = "fast";
+    public string EditMode { get; set; } = "draw"; // "draw" sweeps across faders, "single" moves one
+    public double WindowLeft { get; set; } = double.NaN;
+    public double WindowTop { get; set; } = double.NaN;
+    public double WindowWidth { get; set; } = 980;
+    public double WindowHeight { get; set; } = 330;
+    public string DockSide { get; set; } = ""; // "", "left", "right", "top", "bottom" of the main window
+    public int DockOffset { get; set; } // pixels along that edge
 }
 
 public class LibrarySettings
@@ -70,6 +86,7 @@ public class GeneralSettings
     public OtherSqueezeliteAction OtherSqueezelite { get; set; } = OtherSqueezeliteAction.Ask;
     public bool AutoUpdate { get; set; } = true;
     public Dictionary<string, double[]> ModeSizes { get; set; } = new();
+    public string LastRunVersion { get; set; } = ""; // for "What's new" after an update
     public string UpdateChannel { get; set; } = "dev"; // stable | dev; dev until the first stable release
     public bool Glass { get; set; } = true; // Windows 11 acrylic backdrop behind a see-through UI
     // No title bar or standard border by default; the UI draws its own drag strip and buttons (stored as ShowTitleBar so older "Frameless": false files get the new default)
@@ -90,6 +107,7 @@ public class AppSettings
     public GeneralSettings General { get; set; } = new();
     public AudioSettings Audio { get; set; } = new();
     public MeterSettings Meters { get; set; } = new();
+    public EqualiserSettings Equaliser { get; set; } = new();
     public LibrarySettings Library { get; set; } = new();
     public List<ServerProfile> Profiles { get; set; } = new();
     public string DefaultProfileId { get; set; } = "";

@@ -3,7 +3,7 @@
 </script>
 <script lang="ts">
   import { app, ui, meters, writeSetting } from '../state.svelte'
-  import PixelMeter from './PixelMeter.svelte'
+  import Analyser from './Analyser.svelte'
   // Live from our Squeezelite build's sample export; with no audio the needles rest below -20 and the lamp dims
   let { size = 'small' }: { size?: 'small' | 'large' } = $props()
   let now = $state(Date.now())
@@ -16,8 +16,10 @@
     for (let mark = 1; mark < scaleMarks.length; mark++) if (vu <= scaleMarks[mark][0]) { const [lowDb, lowAngle] = scaleMarks[mark - 1], [highDb, highAngle] = scaleMarks[mark]; return lowAngle + (highAngle - lowAngle) * (vu - lowDb) / (highDb - lowDb) }
     return Math.min(52, scaleMarks[scaleMarks.length - 1][1] + (vu - 3) * 4)
   }
-  const barLevel = (amplitude: number) => Math.max(0, Math.min(1, (20 * Math.log10(amplitude + 1e-9) + app.meterSettings.barRangeDb) / app.meterSettings.barRangeDb))
+  // Spectrum scale marks in dBFS, top to bottom, from Settings › Meters
+  const spectrumScale = $derived(Array.from({ length: 5 }, (unused, index) => String(Math.round(app.meterSettings.spectrumCeilingDbfs - index * (app.meterSettings.spectrumCeilingDbfs - app.meterSettings.spectrumFloorDbfs) / 4))))
   const meterStyles = ['vu', 'oledvu', 'oled']
+  const bandLabels = ['63', '160', '400', '850', '1.7k', '3.5k', '7k', '13k'] // centres of the 8 spectrum bands (Hz)
   const toggle = () => { ui.meterStyle = meterStyles[(meterStyles.indexOf(ui.meterStyle) + 1) % meterStyles.length]; writeSetting('meterStyle', ui.meterStyle) }
   const gradientId = `vu-lamp-${meterCount++}`
   // Classic VU scale: dB mark -> needle angle (degrees from vertical), pivot sits below the face like a real meter
@@ -68,6 +70,7 @@
       <!-- Cropped to the scale: the panel holds just the arc, numbers, needle and channel, centred top to bottom -->
       <svg viewBox="0 17 120 54" class="vu oledvu" aria-hidden="true">
         <defs><filter id={gradientId + '-glow'} x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="1.4" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter></defs>
+        <defs><linearGradient id="oled-glass-sheen" x1="0" y1="0" x2="0.35" y2="1"><stop offset="0" stop-color="rgba(255,255,255,0.10)" /><stop offset="0.45" stop-color="rgba(255,255,255,0.02)" /><stop offset="1" stop-color="rgba(0,0,0,0.12)" /></linearGradient></defs>
         <rect x="0" y="17" width="120" height="54" rx="5" class="glass" />
         <g filter="url(#{gradientId}-glow)" class="display">
           <path d={oledArc(-48, 46, oledRadius)} class="oled-line" />
@@ -85,7 +88,8 @@
       </svg>
     {/each}
   {:else}
-    <div class="oled"><div class="channels"><span>L</span><span>R</span></div><PixelMeter orientation="horizontal" levels={meters.peak.map(barLevel)} width={size === 'large' ? 300 : 110} height={size === 'large' ? 38 : 18} /></div>
+    <!-- Spectrum analyser (the third style; stored as 'oled' so earlier choices carry over) -->
+    <div class="spectrum">{#if size === 'large'}<Analyser levels={meters.bands} labels={bandLabels} scale={spectrumScale} />{:else}<Analyser levels={meters.bands} compact={true} />{/if}</div>
   {/if}
 </button>
 
@@ -108,7 +112,9 @@
   .channel { fill: rgba(29, 26, 20, 0.55); font-size: 6px; text-anchor: middle; font-family: var(--font-display); }
   .needle { stroke: #111; stroke-width: 0.9; } /* ballistics in the shell, easing per frame in state.svelte.ts */
   .pivot-cover { fill: #15161a; }
-  .glass { fill: #030507; stroke: #1c1f24; stroke-width: 1; }
+  /* OLED VU: a frosted glass pane over whatever is behind, with a fine top-lit edge */
+  .glass { fill: url(#oled-glass-sheen); stroke: rgba(255, 255, 255, 0.16); stroke-width: 0.6; }
+  .oledvu { border-radius: 6px; backdrop-filter: blur(10px) saturate(1.3); background: rgba(8, 14, 22, 0.28); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 4px 14px rgba(0, 0, 0, 0.25); }
   .oled-line { fill: none; stroke: #3fb8ff; stroke-width: 1.4; }
   .oled-tick { stroke: #3fb8ff; stroke-width: 0.9; } .oled-tick.detent { stroke-width: 0.8; }
   .oled-number { fill: #4cc0ff; font-size: 6px; text-anchor: middle; dominant-baseline: middle; font-family: "Segoe UI", Arial, sans-serif; }
@@ -116,7 +122,7 @@
   .oled-needle { stroke: #d8f4ff; stroke-width: 1; }
   .oled-channel { fill: rgba(76, 192, 255, 0.35); font-size: 5px; text-anchor: middle; font-family: var(--font-display); }
   .idle .display { opacity: 0.55; }
-  .oled { display: flex; gap: 6px; align-items: center; background: #040607; padding: 6px 8px; border-radius: 6px; }
-  .channels { display: flex; flex-direction: column; justify-content: space-between; align-self: stretch; font-family: var(--font-display); font-size: 9px; color: var(--readout); }
-  .large .channels { font-size: 12px; }
+  .spectrum { display: flex; } .large .spectrum { width: 300px; height: 120px; } .small .spectrum { width: 64px; height: 29px; }
+  .spectrum :global(.analyser) { flex: 1; }
+  .oledvu :is(.oled-line, .oled-tick, .oled-number, .oled-label, .oled-needle) { filter: drop-shadow(0 0 1.2px rgba(63, 184, 255, 0.7)); }
 </style>

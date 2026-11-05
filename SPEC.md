@@ -147,7 +147,7 @@ Building a playlist works like opening a case: start it, browse anywhere while i
 
 - The bar never drops transport controls at narrow widths. Lower-priority items collapse first, in this order: format readout, player switcher, seek times, volume slider (becomes an icon popover).
 - Clicking the art or title opens the **expanded now-playing view**: large art over a blurred-art backdrop, full metadata (composer, performers, album, year), signal path readout, large meters, and the queue alongside.
-- **Meters** are driven by the real playback level of the bundled Squeezelite (see Risks). For other players, they show a muted idle state. Three styles, cycled by clicking the meters: analogue **VU needles**, **OLED VU** (needle meters drawn as a glowing display) or **OLED bar graph**. **Settings › Meters** tunes them live: 0 VU reference (default −18 dBFS), VU ballistics, bar range, peak hold and fall, spectrum floor/top, tilt and fall.
+- **Meters** are driven by the real playback level of the bundled Squeezelite (see Risks). For other players, they show a muted idle state. Three styles, cycled by clicking the meters: analogue **VU needles**, **OLED VU** (needle meters drawn as a glowing display) or a **spectrum analyser** (segmented cyan columns in a recessed glass window, matching the EQ). **Settings › Meters** tunes them live: 0 VU reference (default −18 dBFS), VU ballistics, spectrum floor/top, tilt and fall.
 - **Signal readout:** format, sample rate, bit depth, and a "bit-perfect" badge when the whole chain is untouched.
 
 ## Playback and fidelity
@@ -163,6 +163,16 @@ Fidelity is a headline feature, not an afterthought. Playback always goes throug
 7. **Signal path on screen:** source format → decoder → output mode → device rate, with the bit-perfect badge.
 
 Bandwidth note: CD-quality FLAC needs about 1–1.5 Mbps, hi-res 24/96 about 3–5 Mbps; fine for typical VPN links.
+
+## Equaliser
+
+- Opened by clicking the transport's spectrum analyser. Its own window, styled like a classic hi-fi graphic EQ: black brushed panel, gold legends, a fader bank per channel (±10 dB), a recessed cyan analyser between them (10 octave bands, L+R or L/R display, fast or slow decay), and a smoked-glass reflection over the front.
+- **Bands:** 10 (octaves 31.5 Hz–16 kHz), 7 (63 Hz–16 kHz, 1⅓-octave spacing) or 3 (bass shelf 100 Hz, mid 1 kHz, treble shelf 8 kHz).
+- **Character:** Vintage (default) models an analogue gyrator EQ: bands are broad at gentle settings and narrow to about an octave at full boost. Precise keeps a constant Q.
+- **Stereo:** linked (one curve, both banks move together) or L/R independently, with copy L→R and R→L. Reset sets the current band layout flat.
+- **Editing:** Draw (default) sweeps across the faders and each one jumps to the pointer; Single moves only the fader you grabbed. Shift swaps the mode while held. Hovering highlights the fader and shows its frequency and gain; double-click returns it to 0 dB; the wheel steps 0.5 dB.
+- **Processing:** inside our Squeezelite, before volume (biquads from WinSqueeze via shared memory, redesigned for each sample rate). A preamp keeps the loudest point of the curve at 0 dBFS. The big square button bypasses it completely: bypass is bit-perfect and the readout's badge reflects it.
+- **Docking:** the window snaps magnetically to any edge of the main window and then moves with it; dragging it away undocks it. It keeps its own size whatever the main window's mode.
 
 ## Output device selection
 

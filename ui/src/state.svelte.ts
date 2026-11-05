@@ -8,7 +8,7 @@ export const app = $state({
   library: { text: '', done: 0, total: 0 }, librarySettings: { AlbumSource: 'folders', ContributorGrouping: 'any' } as any, indexVersion: 0, receivedAt: 0,
   // Meter data from Squeezelite (~30 a second while playing): VU in dBFS, peak amplitude 0..1, spectrum bands 0..1
   levels: { vu: [-90, -90], peak: [0, 0], bands: [0, 0, 0, 0, 0, 0, 0, 0], at: 0 },
-  meterSettings: { referenceDbfs: -18, barRangeDb: 48 }, // Settings › Meters
+  meterSettings: { referenceDbfs: -18, spectrumFloorDbfs: -54, spectrumCeilingDbfs: -6 }, // Settings › Meters
   window: { glass: false, frameless: false, maximised: false }
 })
 // Where you were browsing survives restarts (and updates)

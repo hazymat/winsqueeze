@@ -83,7 +83,7 @@ public sealed class AppUpdater
         return client;
     }
 
-    static bool IsNewer(string candidate, string current) => Version.TryParse(candidate, out var candidateVersion) && Version.TryParse(current, out var currentVersion) && candidateVersion > currentVersion;
+    public static bool IsNewer(string candidate, string current) => Version.TryParse(candidate, out var candidateVersion) && Version.TryParse(current, out var currentVersion) && candidateVersion > currentVersion;
 
     static UpdateManager? SafeManager(string channel) { try { return CreateManager(channel); } catch { return null; } }
 

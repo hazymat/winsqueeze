@@ -90,7 +90,7 @@ public partial class MainWindow : Window
         {
             switch (Text(message, "type"))
             {
-                case "ready": PushSkin(); PushMeterSettings(); PushWindowState(); Push(App.StatusJson()); PushLibraryStatus(); Push(JsonSerializer.Serialize(new { type = "settings", library = App.Settings.Library })); break;
+                case "ready": PushSkin(); PushMeterSettings(); _ = App.ShowWhatsNewAsync(); PushWindowState(); Push(App.StatusJson()); PushLibraryStatus(); Push(JsonSerializer.Serialize(new { type = "settings", library = App.Settings.Library })); break;
                 case "openSettings": App.OpenSettings(Text(message, "tab")); break;
                 case "quit": App.Quit(); break;
                 case "applyUpdate": await App.Updater.RestartToUpdateAsync(); break;
@@ -131,6 +131,7 @@ public partial class MainWindow : Window
                     break;
                 case "loadDraft": ReplyRaw(message, File.Exists(Shell.PlayerSession.DraftPath) ? File.ReadAllText(Shell.PlayerSession.DraftPath) : "null"); break;
                 case "saveDraft": Directory.CreateDirectory(AppPaths.DataFolder); if (Text(message, "draft") == "null") File.Delete(Shell.PlayerSession.DraftPath); else File.WriteAllText(Shell.PlayerSession.DraftPath, message.GetProperty("draft").GetRawText()); break;
+                case "openEq": App.OpenEqualiser(); break;
                 case "dragWindow": ReleaseCapture(); SendMessage(new WindowInteropHelper(this).Handle, 0xA1 /*WM_NCLBUTTONDOWN*/, (IntPtr)2 /*HTCAPTION*/, IntPtr.Zero); webView.Focus(); break; // the drag loop returns on mouse-up; give the page keyboard focus back so Ctrl+C reaches it
                 case "windowControl":
                     switch (Text(message, "action")) { case "minimise": WindowState = WindowState.Minimized; break; case "maximise": WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized; break; case "close": Close(); break; }
@@ -262,7 +263,8 @@ public partial class MainWindow : Window
     }
 
     public void PushSkin() => Push(JsonSerializer.Serialize(new { type = "skin", skin = App.Settings.General.Skin, coverAccent = App.Settings.General.CoverAccent }));
-    public void PushMeterSettings() => Push(JsonSerializer.Serialize(new { type = "meterSettings", referenceDbfs = App.Settings.Meters.ReferenceDbfs, barRangeDb = App.Settings.Meters.BarRangeDb }));
+    public void PushWhatsNew(string fromVersion, string toVersion, List<ReleaseEntry> releases) => Push(JsonSerializer.Serialize(new { type = "whatsNew", fromVersion, toVersion, releases = releases.Select(release => new { version = release.Version, date = release.Published.ToString("d MMM"), notes = release.Notes, url = release.Url }) }));
+    public void PushMeterSettings() => Push(JsonSerializer.Serialize(new { type = "meterSettings", referenceDbfs = App.Settings.Meters.ReferenceDbfs, spectrumFloorDbfs = App.Settings.Meters.SpectrumFloorDbfs, spectrumCeilingDbfs = App.Settings.Meters.SpectrumCeilingDbfs }));
     void PushWindowState() => Push(JsonSerializer.Serialize(new { type = "window", glass = glassActive, frameless = App.Settings.General.Frameless, maximised = WindowState == WindowState.Maximized }));
 
     void OnPreviousThumb(object sender, EventArgs args) => _ = App.Session.RequestAsync(true, "playlist", "index", "-1");

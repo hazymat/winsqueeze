@@ -17,6 +17,7 @@ jobs:
       REPO_URL: https://github.com/${{ github.repository }}
     steps:
       - uses: actions/checkout@v4
+        with: { fetch-depth: 0 } # full history, for release notes since the previous release
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm, cache-dependency-path: ui/package-lock.json }
       - run: npm ci
@@ -63,7 +64,13 @@ jobs:
           gh release upload "v$version" downloads/WinSqueeze-Portable.exe downloads/WinSqueeze-Setup.exe --clobber
           # Keep just the two downloads plus the updater's own feed files
           foreach ($duplicate in (Get-ChildItem releases | Where-Object { ($_.Name -like "*-Setup.exe" -or $_.Name -like "*-Portable.zip") -and $_.Name -ne "WinSqueeze-Setup.exe" })) { gh release delete-asset "v$version" $duplicate.Name --yes }
-          git log -1 --pretty=%B | Out-File notes.txt
+          # Notes: every change since the previous release (one line each, written for users), skipping the bot's player builds
+          $previousTag = gh api "repos/$env:GITHUB_REPOSITORY/releases?per_page=5" --jq ('[.[] | select(.tag_name != "v' + $version + '")][0].tag_name')
+          $previousSha = if ($previousTag) { gh api "repos/$env:GITHUB_REPOSITORY/commits/$previousTag" --jq .sha } else { "" }
+          $notes = if ($previousSha) { git log "$previousSha..HEAD" --no-merges --perl-regexp --author='^((?!github-actions).)*$' --pretty="- %s" } else { "" }
+          if (-not $notes) { $notes = git log -1 --pretty=%B }
+          $global:LASTEXITCODE = 0
+          $notes | Out-File notes.txt
           gh release edit "v$version" --notes-file notes.txt
           # One discussion per release for comments (needs Discussions enabled)
           gh release edit "v$version" --discussion-category "Announcements"
