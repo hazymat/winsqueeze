@@ -9,11 +9,11 @@
   const outputRate = $derived(Number(app.status?.sampleRate ?? 0))
   const volume = $derived(Number(app.nowPlaying?.['mixer volume'] ?? 100))
   const lossless = $derived(['FLAC', 'ALAC', 'WAV', 'AIF', 'AIFF', 'PCM'].includes(codec))
-  const bitPerfect = $derived(ownPlayer && app.status?.exclusive && lossless && sourceRate > 0 && sourceRate === outputRate && volume >= 100)
+  const bitPerfect = $derived(ownPlayer && app.status?.exclusive && lossless && sourceRate > 0 && sourceRate === outputRate && (volume >= 100 || app.status?.hardwareVolume) && !app.status?.eqActive) // hardware volume and a bypassed EQ keep the samples untouched
 </script>
 
 {#if track}
-  <div class="readout" title={ownPlayer ? (bitPerfect ? 'Bit-perfect: lossless source, native rate, exclusive output, full volume' : volume < 100 && app.status?.exclusive ? 'Not bit-perfect: player volume below 100 is applied digitally' : 'Signal path') : 'Another player'}>
+  <div class="readout" title={ownPlayer ? (bitPerfect ? 'Bit-perfect: lossless source, native rate, exclusive output, untouched samples' : app.status?.eqActive ? 'Not bit-perfect: the equaliser is on' : volume < 100 && !app.status?.hardwareVolume && app.status?.exclusive ? 'Not bit-perfect: player volume below 100 is applied digitally' : 'Signal path') : 'Another player'}>
     <span>{codec}{bits ? ` ${bits}` : ''}{sourceRate ? `/${formatRate(sourceRate).replace(' kHz', '')}` : ''}</span>
     {#if ownPlayer && app.status?.state === 'Running'}<span class="arrow">→</span><span>{app.status.exclusive ? 'WASAPI EXCL' : 'SHARED'}</span>{#if outputRate}<span class="arrow">→</span><span>{formatRate(outputRate)}</span>{/if}{/if}
     {#if bitPerfect}<span class="badge">BIT-PERFECT</span>{/if}
