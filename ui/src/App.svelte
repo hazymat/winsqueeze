@@ -86,6 +86,7 @@
   let systemDark = $state(prefersDark.matches)
   prefersDark.addEventListener('change', () => systemDark = prefersDark.matches)
   $effect(() => { document.documentElement.dataset.skin = ui.skin; sendToShell({ type: 'theme', dark: ui.skin === 'auto' ? systemDark : ui.skin !== 'light' }) })
+  $effect(() => { document.documentElement.classList.toggle('mini-mode', mini) })
   $effect(() => { document.documentElement.classList.toggle('glass', app.window.glass); document.documentElement.classList.toggle('frameless', app.window.frameless) })
   // Selected text: Ctrl+C or right-click › Copy (the browser's own menu is off)
   let copyMenu = $state<{ left: number; top: number } | null>(null)
@@ -262,7 +263,16 @@
   .tabbar button.on { color: var(--accent); }
   .tab-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
   @media (max-width: 480px) { .tab-label { display: none; } .tabbar .glyph { font-size: 18px; } }
-  .mini-shell { height: 100vh; background: var(--glass); }
+  .mini-shell { height: 100vh; background: var(--glass); position: relative; }
+  /* Mini on glass: a light tint so the desktop shows through Windows' blur, plus a fine frosted grain */
+  :global(:root.glass.mini-mode body) { background: rgba(12, 14, 19, 0.14); }
+  :global(:root.glass[data-skin="light"].mini-mode body) { background: rgba(245, 247, 250, 0.2); }
+  :global(:root.glass) .mini-shell { background: transparent; }
+  :global(:root.glass) .mini-shell::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0.07; mix-blend-mode: overlay; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)'/%3E%3C/svg%3E"); }
+  :global(:root.glass) .mini-shell :global(.transport) { background: transparent; backdrop-filter: none; }
+  .mini-shell :global(.transport-host) { position: relative; z-index: 1; } /* above the grain */
+  :global(:root.glass) .mini-shell :global(.text) { text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45); }
+  :global(:root.glass[data-skin="light"]) .mini-shell :global(.text) { text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6); }
   .copy-menu { position: fixed; z-index: 100; background: var(--panel-solid); border: 1px solid var(--line); border-radius: 8px; padding: 4px; box-shadow: 0 8px 24px var(--shadow); }
   .copy-menu button { display: block; min-width: 90px; text-align: left; background: none; border: 0; color: var(--fg); font: inherit; padding: 6px 10px; border-radius: 5px; cursor: pointer; }
   .copy-menu button:hover { background: var(--hover); }
