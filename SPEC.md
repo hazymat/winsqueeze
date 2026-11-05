@@ -238,7 +238,7 @@ A separate Settings window with tabs, in standard Windows style. Changes apply i
 | Appearance | Skin; auto-switch rule (follow Windows / schedule / fixed); light and dark skin pair; meter style (VU needle / OLED bars); album list default (grid / list); accent from cover art on/off; reduce transparency |
 | Shortcuts | Rebind in-app shortcuts; enable global hotkeys; media keys on/off |
 | Notifications | Track-change toasts; device missing alerts |
-| About | Version; check for updates; licences (Squeezelite GPL notice and source link); logs folder |
+| About | Version; update channel (stable / dev); version switcher with per-version comments; check now; auto-update on/off; licences (Squeezelite GPL notice and source link); logs folder |
 
 **Server finder:** uses Lyrion's UDP discovery on port 3483 to list servers on the local network, showing name, address and version. Manual address entry for VPN or other subnets.
 
@@ -249,11 +249,23 @@ A separate Settings window with tabs, in standard Windows style. Changes apply i
 - **Installer:** per-user, no admin rights, from GitHub Releases. Installs to `%LOCALAPPDATA%\Programs\WinSqueeze`, adds Start menu entry, optional Start with Windows.
 - **Portable zip:** same app, runs from any folder; settings and cache stored next to the exe when a `portable.txt` marker is present.
 - **Prerequisites:** Windows 10 21H2+ / Windows 11, x64. WebView2 runtime (bootstrapped by the installer if missing). .NET 8 bundled self-contained.
-- **Updates:** checks GitHub Releases on launch (setting to disable). Asks before downloading; never installs silently.
+- **Updates:** see Updates and versions below.
 - **Repo:** GitHub repository `winsqueeze`, private during development and public from the first release, with `/app` (C# shell), `/ui` (web front end) and `/vendor/squeezelite` (pinned binary + licence + source link).
 - **Licensing:** Squeezelite is GPLv3. Ship its licence and a link to its exact source with every release; WinSqueeze itself released under GPLv3.
 
-## Risks to verify and build phases
+## Updates and versions
+
+Updating should be effortless, and is how the author tests every build.
+
+- **Updater:** Velopack, which installs per user, downloads in the background, stages the new version and applies it on restart. The same packages serve the installer and the portable zip.
+- **Checking:** on launch and every 15 minutes, a conditional request (ETag) to GitHub Releases, so checks cost nothing when there is no change. True push would need a server; polling gets an update within minutes of a build.
+- **Seamless apply:** a found update is downloaded and staged silently. A small, calm notice ("WinSqueeze 0.4 is ready. Restart to update") appears in the window and as a tray balloon. One click relaunches into the new version, resuming playback. Nothing is installed without that click, and auto-download can be turned off.
+- **Channels:** every push to `main` is published as a *dev* pre-release, and deliberate releases go out on *stable*. Users choose a channel in Settings › About; the default is stable.
+- **Version switcher:** Settings › About lists available versions (releases and, on the dev channel, dev builds) with date and notes. Picking one downloads it and relaunches into it, downgrades included.
+- **Comments per version:** each release has its own GitHub Discussion (not an Issue). From the version switcher a user can read and add comments for that version. Posting signs into GitHub once using the device-code flow (a short code entered on github.com), then posts to that release's discussion under the user's own name. Anonymous comments would need a small relay server and are out of scope for now.
+- **Repo:** in-app updates need the release assets to be public.
+
+
 
 **Verify before building on them:**
 
