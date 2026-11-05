@@ -1,6 +1,6 @@
 <script lang="ts">
   import { sendToShell, onShellMessage, request, command, artUrl } from './bridge'
-  import { app, nav, ui, playlist, openSection, back, currentView, newPlaylist, undoToast, toast, writeSetting, readSetting, currentTrack } from './state.svelte'
+  import { app, nav, ui, playlist, openSection, back, currentView, newPlaylist, undoToast, toast, receiveLevels, writeSetting, readSetting, currentTrack } from './state.svelte'
   import TransportBar from './parts/TransportBar.svelte'
   import NowPlaying from './parts/NowPlaying.svelte'
   import PlaylistPanel from './parts/PlaylistPanel.svelte'
@@ -59,7 +59,7 @@
   onShellMessage('library', message => app.library = { text: message.text ?? '', done: message.done ?? 0, total: message.total ?? 0 })
   onShellMessage('indexUpdated', () => app.indexVersion++)
   onShellMessage('newPlaylist', () => { if (!playlist.open) newPlaylist(); else playlist.collapsed = false })
-  onShellMessage('levels', message => app.levels = { vu: message.vu, peak: message.peak, bands: message.bands, at: Date.now() })
+  onShellMessage('levels', message => receiveLevels(message.vu, message.peak, message.bands))
   // The skin is chosen in Settings › Appearance and applied live; cached locally so the next start paints in it straight away
   onShellMessage('skin', message => { ui.skin = message.skin || 'auto'; ui.coverAccent = !!message.coverAccent; writeSetting('skin', ui.skin); writeSetting('coverAccent', ui.coverAccent ? '1' : '') })
   onShellMessage('window', message => app.window = { glass: !!message.glass, frameless: !!message.frameless, maximised: !!message.maximised })

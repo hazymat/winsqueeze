@@ -4,7 +4,7 @@ using System.Text.Json;
 namespace WinSqueeze.Audio;
 
 // Reads the samples our Squeezelite build shares (-v, see vendor/squeezelite/src/output_vis_win.c) and turns them into meter data ~30 times a second:
-// VU levels (RMS with ~300 ms ballistics, in dB), peak levels for the bar graph, and 8 spectrum bands. Looks back by the output latency so meters match what you hear.
+// VU levels (RMS with ~300 ms ballistics, in dB), peak levels for the bar graph, and 8 spectrum bands, ~60 times a second. Looks back by the output latency so meters match what you hear.
 public sealed class VisualiserReader : IDisposable
 {
     const int HeaderBytes = 32, FftSize = 1024, BandCount = 8;
@@ -35,7 +35,7 @@ public sealed class VisualiserReader : IDisposable
         var lastTick = Environment.TickCount64;
         while (running)
         {
-            Thread.Sleep(33);
+            Thread.Sleep(10); // the Windows timer rounds this up to one ~15.6 ms tick: about 60 updates a second
             try
             {
                 if (view == null) { try { sharedFile = MemoryMappedFile.OpenExisting(mapName, MemoryMappedFileRights.Read); view = sharedFile.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read); } catch (FileNotFoundException) { Thread.Sleep(1000); continue; } }
@@ -81,17 +81,17 @@ public sealed class VisualiserReader : IDisposable
         // Bars: instant attack, ~1.5 s fall from full scale (in dB terms)
         var peakFall = Math.Pow(10, -elapsedSeconds * 30 / 20);
         peakLeft = Math.Max(maxLeft, peakLeft * peakFall); peakRight = Math.Max(maxRight, peakRight * peakFall);
-        // Spectrum: Hann-windowed FFT of the mono mix, band energy in dB mapped to 0..1 over a 60 dB range
+        // Spectrum: Hann-windowed FFT of the mono mix. A full-scale sine peaks at |X| = N/4, so 20·log10(|X|·4/N) is the band's level in dBFS; -54..-6 dBFS fills the column
         var real = new double[FftSize]; var imaginary = new double[FftSize];
         for (var frame = 0; frame < FftSize; frame++) real[frame] = (samples[frame * 2] + samples[frame * 2 + 1]) / 65536.0 * (0.5 - 0.5 * Math.Cos(2 * Math.PI * frame / (FftSize - 1)));
         Fft(real, imaginary);
-        var bandFollow = 1 - Math.Exp(-elapsedSeconds / 0.12);
+        var bandFollow = 1 - Math.Exp(-elapsedSeconds / 0.25); // instant rise, ~250 ms fall like the hardware
         for (var band = 0; band < BandCount; band++)
         {
             int firstBin = Math.Max(1, (int)(bandEdges[band] * FftSize / rate)), lastBin = Math.Min(FftSize / 2 - 1, Math.Max(firstBin, (int)(bandEdges[band + 1] * FftSize / rate)));
             double energy = 0;
             for (var bin = firstBin; bin <= lastBin; bin++) energy = Math.Max(energy, real[bin] * real[bin] + imaginary[bin] * imaginary[bin]);
-            var level = Math.Clamp((10 * Math.Log10(energy * 4 / FftSize + 1e-12) + 66) / 60, 0, 1);
+            var level = Math.Clamp((10 * Math.Log10(energy * 16.0 / ((double)FftSize * FftSize) + 1e-12) + 54) / 48, 0, 1);
             bandLevels[band] = level > bandLevels[band] ? level : bandLevels[band] + (level - bandLevels[band]) * bandFollow;
         }
         var silent = !live && vuLeft < 1e-4 && vuRight < 1e-4 && peakLeft < 1e-3 && peakRight < 1e-3 && bandLevels.All(level => level < 0.01);

@@ -63,3 +63,20 @@ export async function albumItems(albumKey: string): Promise<PlaylistItem[]> {
 
 export const formatTime = (seconds: number) => { if (!seconds || seconds < 0) return '0:00'; const whole = Math.floor(seconds); const hours = Math.floor(whole / 3600); const minutes = Math.floor((whole % 3600) / 60); const secs = String(whole % 60).padStart(2, '0'); return hours ? `${hours}:${String(minutes).padStart(2, '0')}:${secs}` : `${minutes}:${secs}` }
 export const formatRate = (rate: number) => rate ? `${(rate / 1000).toFixed(rate % 1000 ? 1 : 0)} kHz` : ''
+
+// What the meters draw: eased towards the latest levels on every display frame, so needles and bars glide between the shell's ~60 updates a second
+export const meters = $state({ vu: [-90, -90], peak: [0, 0], bands: [0, 0, 0, 0, 0, 0, 0, 0] })
+let meterFrame = 0, meterLastTime = 0
+export function receiveLevels(vu: number[], peak: number[], bands: number[]) {
+  app.levels = { vu, peak, bands, at: Date.now() }
+  if (!meterFrame) { meterLastTime = performance.now(); meterFrame = requestAnimationFrame(easeMeters) }
+}
+function easeMeters(time: number) {
+  const follow = 1 - Math.exp(-(time - meterLastTime) / 35); meterLastTime = time
+  const ease = (shown: number[], target: number[]) => target.map((value, index) => (shown[index] ?? value) + (value - (shown[index] ?? value)) * follow)
+  meters.vu = ease(meters.vu, Date.now() - app.levels.at > 1000 ? [-90, -90] : app.levels.vu)
+  meters.peak = ease(meters.peak, Date.now() - app.levels.at > 1000 ? [0, 0] : app.levels.peak)
+  meters.bands = ease(meters.bands, Date.now() - app.levels.at > 1000 ? meters.bands.map(() => 0) : app.levels.bands)
+  const resting = Date.now() - app.levels.at > 1000 && meters.vu.every(value => value < -80) && meters.peak.every(value => value < 0.001) && meters.bands.every(value => value < 0.005)
+  meterFrame = resting ? 0 : requestAnimationFrame(easeMeters)
+}

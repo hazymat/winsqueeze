@@ -1,6 +1,6 @@
 <script lang="ts">
   import { command, sendToShell, artUrl } from '../bridge'
-  import { app, ui, nav, openSection, currentTrack, formatTime } from '../state.svelte'
+  import { app, ui, meters, nav, openSection, currentTrack, formatTime } from '../state.svelte'
   import PixelMeter from './PixelMeter.svelte'
   import Readout from './Readout.svelte'
   import Icon from './Icon.svelte'
@@ -51,7 +51,7 @@
   </div>
   <div class="right">
     <div class="readout-slot"><Readout /></div>
-    <div class="pixel-meter" title="Spectrum"><PixelMeter orientation="spectrum" width={40} height={30} levels={app.levels.bands} /></div>
+    <div class="pixel-meter" title="Spectrum"><PixelMeter orientation="spectrum" width={40} height={30} levels={meters.bands} /></div>
     <div class="volume">
       <input type="range" min="0" max="100" value={volume} oninput={dragVolume} onchange={releaseVolume} aria-label="Volume" />
       <button class="volume-icon" onclick={() => volumeOpen = !volumeOpen} aria-label="Volume"><Icon name="volume" /></button>
