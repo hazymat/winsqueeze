@@ -112,6 +112,16 @@ public partial class MainWindow : Window
                     await App.Session.SavePlaylistAsync(Text(message, "name"), orderedUrls, message.TryGetProperty("favourite", out var favourite) && favourite.GetBoolean());
                     Reply(message, new { ok = true });
                     break;
+                case "addToSavedPlaylist":
+                    var savedPlaylistId = Text(message, "playlistId");
+                    var addQueries = App.Library.Queries;
+                    var addIdsJson = message.GetProperty("ids").GetRawText();
+                    var addRows = await Task.Run(() => (List<Dictionary<string, object?>>)addQueries.Run("trackUrls", JsonDocument.Parse(JsonSerializer.Serialize(new { ids = addIdsJson })).RootElement));
+                    var addUrlById = addRows.ToDictionary(row => Convert.ToInt64(row["id"]), row => (string)row["url"]!);
+                    var countBefore = Server.LyrionClient.ReadInt(await App.Session.RequestAsync(false, "playlists", "tracks", 0, 0, $"playlist_id:{savedPlaylistId}"), "count");
+                    foreach (var trackId in Ids(message.GetProperty("ids")).Where(addUrlById.ContainsKey)) await App.Session.RequestAsync(false, "playlists", "edit", "cmd:add", $"playlist_id:{savedPlaylistId}", $"url:{addUrlById[trackId]}");
+                    Reply(message, new { before = countBefore });
+                    break;
                 case "loadDraft": ReplyRaw(message, File.Exists(Shell.PlayerSession.DraftPath) ? File.ReadAllText(Shell.PlayerSession.DraftPath) : "null"); break;
                 case "saveDraft": Directory.CreateDirectory(AppPaths.DataFolder); if (Text(message, "draft") == "null") File.Delete(Shell.PlayerSession.DraftPath); else File.WriteAllText(Shell.PlayerSession.DraftPath, message.GetProperty("draft").GetRawText()); break;
                 case "dragWindow": ReleaseCapture(); SendMessage(new WindowInteropHelper(this).Handle, 0xA1 /*WM_NCLBUTTONDOWN*/, (IntPtr)2 /*HTCAPTION*/, IntPtr.Zero); break;

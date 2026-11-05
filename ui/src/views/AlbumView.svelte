@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { selectable } from '../lib/selectable.svelte'
+  import { browseActions } from '../lib/browseActions'
   import { query, sendToShell, live, artUrl } from '../bridge'
   import { app, openView, playlist, addToPlaylist, inPlaylist, formatTime, toast } from '../state.svelte'
   let { albumKey }: { albumKey: string } = $props()
@@ -39,11 +41,12 @@
       </div>
     </div>
   </div>
+  <div use:selectable={{ scope: 'album:' + albumKey, noun: 'track', actions: browseActions('track') }}>
   {#each discs as [discNo, tracks] (discNo)}
     {#if discs.length > 1}<h4>Disc {discNo}</h4>{/if}
     <div class="tracks">
       {#each tracks as track (track.id)}
-        <div class="track" role="button" tabindex="0" ondblclick={() => playAlbum('load', trackIndex(track))} onkeydown={(event) => event.key === 'Enter' && playAlbum('load', trackIndex(track))} oncontextmenu={(event) => { event.preventDefault(); menuFor = track.id }}>
+        <div class="track" role="button" tabindex="0" ondblclick={() => playAlbum('load', trackIndex(track))} onkeydown={(event) => event.key === 'Enter' && playAlbum('load', trackIndex(track))} data-select-key={String(track.id)}>
           <button class="number" onclick={() => playAlbum('load', trackIndex(track))} aria-label="Play from here"><span class="digit">{track.number || ''}</span><span class="arrow">▶</span></button>
           <div class="text">
             <div class="title">{track.title}{#if playlist.open && inPlaylist(track.id)}<span class="added"> ✓</span>{/if}</div>
@@ -51,9 +54,9 @@
           </div>
           <span class="duration">{formatTime(track.duration)}</span>
           {#if playlist.open}<button class="icon" onclick={() => addToPlaylist([item(track)], track.title)} aria-label="Add to playlist">＋</button>{/if}
-          <button class="icon" onclick={() => menuFor = menuFor === track.id ? null : track.id} aria-label="More">⋯</button>
+          <button class="icon no-hold" onclick={() => menuFor = menuFor === track.id ? null : track.id} aria-label="More">⋯</button>
           {#if menuFor === track.id}
-            <div class="menu" role="menu">
+            <div class="menu no-hold" role="menu">
               <button onclick={() => { sendToShell({ type: 'playTracks', ids: [track.id], mode: 'insert' }); menuFor = null; toast('Playing next') }}>Play next</button>
               <button onclick={() => { sendToShell({ type: 'playTracks', ids: [track.id], mode: 'add' }); menuFor = null; toast('Added to queue') }}>Add to queue</button>
               <button onclick={() => goTo('artist', track.artist || album.artist)}>Go to artist</button>
@@ -66,6 +69,7 @@
       {/each}
     </div>
   {/each}
+  </div>
 {/if}
 
 <svelte:window onclick={(event) => { if (!(event.target as HTMLElement).closest('.menu, .icon')) menuFor = null }} />

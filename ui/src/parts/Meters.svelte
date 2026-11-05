@@ -3,6 +3,7 @@
 </script>
 <script lang="ts">
   import { ui, writeSetting } from '../state.svelte'
+  import PixelMeter from './PixelMeter.svelte'
   // Squeezelite on Windows has no level output yet (SPEC.md › Risks), so the needles rest at -20 with the lamp dimmed
   let { size = 'small', active = false }: { size?: 'small' | 'large'; active?: boolean } = $props()
   const meterStyles = ['vu', 'oledvu', 'oled']
@@ -73,9 +74,7 @@
       </svg>
     {/each}
   {:else}
-    <div class="oled">
-      {#each ['L', 'R'] as channel}<div class="bar"><span class="ch">{channel}</span>{#each Array(16) as _, segment}<span class="segment" class:hot={segment >= 13}></span>{/each}</div>{/each}
-    </div>
+    <div class="oled"><div class="channels"><span>L</span><span>R</span></div><PixelMeter orientation="horizontal" width={size === 'large' ? 300 : 110} height={size === 'large' ? 38 : 18} /></div>
   {/if}
 </button>
 
@@ -105,10 +104,7 @@
   .oled-needle { stroke: #d8f4ff; stroke-width: 1; transition: transform 300ms ease-out; }
   .oled-channel { fill: rgba(76, 192, 255, 0.35); font-size: 5px; text-anchor: middle; font-family: var(--font-display); }
   .idle .display { opacity: 0.55; }
-  .oled { display: flex; flex-direction: column; gap: 3px; background: #050607; padding: 4px 6px; border-radius: 4px; }
-  .bar { display: flex; gap: 2px; align-items: center; }
-  .ch { font-family: var(--font-display); font-size: 8px; color: var(--readout); width: 8px; }
-  .segment { width: 4px; height: 7px; background: rgba(94, 231, 255, 0.12); border-radius: 1px; }
-  .segment.hot { background: rgba(255, 90, 70, 0.15); }
-  .large .segment { width: 9px; height: 16px; } .large .ch { font-size: 12px; width: 14px; }
+  .oled { display: flex; gap: 6px; align-items: center; background: #040607; padding: 6px 8px; border-radius: 6px; }
+  .channels { display: flex; flex-direction: column; justify-content: space-between; align-self: stretch; font-family: var(--font-display); font-size: 9px; color: var(--readout); }
+  .large .channels { font-size: 12px; }
 </style>

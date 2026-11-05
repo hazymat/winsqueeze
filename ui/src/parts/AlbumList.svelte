@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { selectable } from '../lib/selectable.svelte'
+  import { browseActions } from '../lib/browseActions'
   import AlbumCard from './AlbumCard.svelte'
   import { readSetting, writeSetting, ui } from '../state.svelte'
   let { albums, section = 'albums', heading = '' }: { albums: any[]; section?: string; heading?: string } = $props()
@@ -14,8 +16,8 @@
     <span class="count">{shown.length} {shown.length === 1 ? 'album' : 'albums'}</span>
     <div class="toggle"><button class:on={layout === 'grid'} onclick={() => setLayout('grid')} aria-label="Grid">▦</button><button class:on={layout === 'list'} onclick={() => setLayout('list')} aria-label="List">☰</button></div>
   </div>
-  <div class={layout === 'grid' ? 'grid' : 'rows'}>
-    {#each shown as album (album.key)}<AlbumCard {album} {layout} />{/each}
+  <div class={layout === 'grid' ? 'grid' : 'rows'} use:selectable={{ scope: 'albums:' + section + ':' + heading, noun: 'album', actions: browseActions('album') }}>
+    {#each shown as album (album.key)}<div class="select-wrap" data-select-key={album.key}><AlbumCard {album} {layout} /></div>{/each}
   </div>
 {/if}
 

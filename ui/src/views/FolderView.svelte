@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { selectable } from '../lib/selectable.svelte'
+  import { browseActions } from '../lib/browseActions'
   import { query, artUrl } from '../bridge'
   import { app, ui, openView } from '../state.svelte'
   import AlbumView from './AlbumView.svelte'
@@ -13,9 +15,9 @@
   <AlbumView albumKey={folder.albumKey} />
 {:else}
   <h2>{folder.name ?? 'Folders'}</h2>
-  <div class="folders">
+  <div class="folders" use:selectable={{ scope: 'folder:' + folderKey, noun: 'folder', actions: browseActions('folder') }}>
     {#each shown as child (child.key)}
-      <button class="folder" onclick={() => openView({ kind: 'folder', key: String(child.key), title: child.name })}>
+      <button class="folder" data-select-key={String(child.key)} onclick={() => openView({ kind: 'folder', key: String(child.key), title: child.name })}>
         {#if child.cover}<img src={artUrl(child.cover, 80)} alt="" loading="lazy" />{:else}<span class="icon">{child.subfolders ? '📁' : '♪'}</span>{/if}
         <span class="text"><span class="name">{child.name}</span><span class="meta">{child.subfolders ? `${child.subfolders} folders` : ''}{child.subfolders && child.tracks ? ' · ' : ''}{child.tracks ? `${child.tracks} tracks` : ''}{child.artist ? ` · ${child.artist}` : ''}</span></span>
       </button>

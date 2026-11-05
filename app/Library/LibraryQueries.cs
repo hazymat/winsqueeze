@@ -50,6 +50,7 @@ public sealed class LibraryQueries
             "albumTrackIds" => Query(connection, "SELECT track_id AS id FROM album_tracks WHERE album_key=$key ORDER BY disc_no, track_no", ("$key", Text("key"))).Select(row => row["id"]).ToList(),
             "trackUrls" => Query(connection, "SELECT id, url FROM tracks WHERE id IN (SELECT value FROM json_each($ids))", ("$ids", Text("ids"))),
             "search" => Search(connection, Text("text")),
+            "trackItems" => TrackItems(connection, queryParameters.ValueKind == JsonValueKind.Object && queryParameters.TryGetProperty("items", out var itemList) && itemList.ValueKind == JsonValueKind.Array ? itemList : default),
             _ => new { error = $"Unknown query {queryName}" }
         });
     }
@@ -67,6 +68,34 @@ public sealed class LibraryQueries
     List<Dictionary<string, object?>> AlbumsByCredit(SqliteConnection connection, string partNorm, string[] credits, string sort) =>
         Query(connection, $"SELECT DISTINCT {albumColumns} FROM albums a JOIN album_credits c ON c.album_key=a.key WHERE a.source=$source AND c.part_norm=$part AND c.credit IN (SELECT value FROM json_each($credits)) ORDER BY {AlbumOrder(sort)}",
             ("$source", albumSource), ("$part", partNorm), ("$credits", JsonSerializer.Serialize(credits)));
+
+    // Selection actions: any chosen rows (albums, people, genres, folders, tracks) as one ordered, de-duplicated track list
+    const string trackColumns = "t.id, t.title, COALESCE(NULLIF(t.track_artist,''), t.album_artist, '') AS artist, t.duration";
+    List<Dictionary<string, object?>> AlbumTracks(SqliteConnection connection, string albumKey, string extraCondition = "", params (string name, object? value)[] extraParameters) =>
+        Query(connection, $"SELECT {trackColumns} FROM album_tracks at JOIN tracks t ON t.id=at.track_id WHERE at.album_key=$key {extraCondition} ORDER BY at.disc_no, at.track_no", new[] { ("$key", (object?)albumKey) }.Concat(extraParameters).ToArray());
+    object TrackItems(SqliteConnection connection, JsonElement items)
+    {
+        var tracks = new List<Dictionary<string, object?>>();
+        if (items.ValueKind != JsonValueKind.Array) return tracks;
+        IEnumerable<string> AlbumKeys(List<Dictionary<string, object?>> albums) => albums.Select(album => (string)album["key"]!);
+        foreach (var item in items.EnumerateArray())
+        {
+            var kind = item.TryGetProperty("kind", out var kindValue) ? kindValue.GetString() ?? "" : "";
+            var key = item.TryGetProperty("key", out var keyValue) ? keyValue.ToString() : "";
+            switch (kind)
+            {
+                case "album": tracks.AddRange(AlbumTracks(connection, key)); break;
+                case "artist": var ownAlbums = AlbumsByCredit(connection, key, new[] { "own" }, ""); foreach (var albumKey in AlbumKeys(ownAlbums.Count > 0 ? ownAlbums : AlbumsByCredit(connection, key, new[] { "with", "track" }, ""))) tracks.AddRange(AlbumTracks(connection, albumKey)); break;
+                case "composer": foreach (var albumKey in AlbumKeys(AlbumsByCredit(connection, key, new[] { "composer" }, ""))) tracks.AddRange(AlbumTracks(connection, albumKey, "AND EXISTS (SELECT 1 FROM track_contributors tc JOIN contributor_parts cp ON cp.contributor_id=tc.contributor_id WHERE tc.track_id=t.id AND tc.role='composer' AND cp.part_norm=$part)", ("$part", key))); break;
+                case "performer": foreach (var albumKey in AlbumKeys(AlbumsByCredit(connection, key, new[] { "conductor", "band", "track" }, ""))) tracks.AddRange(AlbumTracks(connection, albumKey)); break;
+                case "genre": tracks.AddRange(Query(connection, $"SELECT {trackColumns} FROM track_genres tg JOIN tracks t ON t.id=tg.track_id JOIN album_tracks at ON at.track_id=t.id JOIN albums a ON a.key=at.album_key AND a.source=$source WHERE tg.genre_id=$key ORDER BY a.artist_norm, a.year, a.title_norm, at.disc_no, at.track_no", ("$source", albumSource), ("$key", key))); break;
+                case "folder": tracks.AddRange(Query(connection, $"SELECT {trackColumns} FROM tracks t JOIN folders f ON f.id=t.folder_id WHERE f.id=$id OR f.path LIKE (SELECT path FROM folders WHERE id=$id) || '/%' ORDER BY f.path, t.disc_no, t.track_no", ("$id", key))); break;
+                case "track": tracks.AddRange(Query(connection, $"SELECT {trackColumns} FROM tracks t WHERE t.id=$id", ("$id", key))); break;
+            }
+        }
+        var seen = new HashSet<long>();
+        return tracks.Where(track => seen.Add(Convert.ToInt64(track["id"]))).ToList();
+    }
 
     object Folder(SqliteConnection connection, string folderKey)
     {

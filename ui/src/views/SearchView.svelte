@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { selectable } from '../lib/selectable.svelte'
+  import { browseActions } from '../lib/browseActions'
   import { query, sendToShell, artUrl } from '../bridge'
   import { app, ui, openView, playlist, addToPlaylist, inPlaylist, formatTime } from '../state.svelte'
   import AlbumList from '../parts/AlbumList.svelte'
@@ -18,6 +20,7 @@
 {#if (results.albums ?? []).length}<AlbumList albums={results.albums.map((hit: any) => ({ key: hit.key, title: hit.name, artist: hit.detail }))} section="search" heading={folderMode ? 'Folders' : 'Albums'} />{/if}
 {#if (results.trackGroups ?? []).length}
   <h3>Tracks{folderMode ? ', by folder' : ''}</h3>
+  <div use:selectable={{ scope: 'search:tracks', noun: 'track', actions: browseActions('track') }}>
   {#each results.trackGroups as group (group.album.key)}
     <div class="group">
       <button class="group-head" onclick={() => openView({ kind: 'album', key: group.album.key, title: group.album.title })}>
@@ -25,7 +28,7 @@
         <span><strong>{group.album.title}</strong><span class="quiet"> · {group.album.artist}{group.album.year ? ` · ${group.album.year}` : ''}</span></span>
       </button>
       {#each group.tracks as track (track.id)}
-        <div class="track">
+        <div class="track" data-select-key={String(track.id)}>
           <button class="title" onclick={() => sendToShell({ type: 'playTracks', ids: [track.id], mode: 'load' })}>{track.title}{#if track.composer}<span class="quiet"> · {track.composer}</span>{/if}</button>
           <span class="quiet">{formatTime(track.duration)}</span>
           {#if playlist.open}<button class="add" onclick={() => addToPlaylist([{ id: track.id, title: track.title, artist: track.artist ?? '', duration: track.duration }], track.title)}>{inPlaylist(track.id) ? '✓' : '＋'}</button>{/if}
@@ -33,6 +36,7 @@
       {/each}
     </div>
   {/each}
+  </div>
 {/if}
 {#if ui.search.length >= 2 && !personGroups.length && !(results.albums ?? []).length && !(results.trackGroups ?? []).length}<p class="quiet">No matches for “{ui.search}”.</p>{/if}
 

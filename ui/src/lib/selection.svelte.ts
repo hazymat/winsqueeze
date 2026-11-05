@@ -1,7 +1,8 @@
 // Choosing several rows (after Sift's list kit): press and hold a row, or Ctrl/Shift+click, and the action bar
 // (built into the layout above the transport, ActionStrip.svelte) offers what can be done with them.
 // One list at a time owns the selection (its scope). Delete runs the action keyed 'Delete'; Esc clears.
-export type SelectionAction = { label: string; key?: string; danger?: boolean; single?: boolean; run: (keys: string[]) => void | Promise<void> }
+export type MenuChoice = { label: string; detail?: string; run: () => void | Promise<void> }
+export type SelectionAction = { label: string; key?: string; danger?: boolean; single?: boolean; run?: (keys: string[]) => void | Promise<void>; menu?: (keys: string[]) => Promise<MenuChoice[]> }
 export const selection = $state({ scope: '', keys: [] as string[], anchor: '', actions: [] as SelectionAction[], noun: 'item' })
 
 export const isSelected = (scope: string, key: string) => selection.scope === scope && selection.keys.includes(key)
@@ -31,11 +32,11 @@ export function rowClick(event: MouseEvent, scope: string, key: string, allKeys:
   }
   return false
 }
-export async function runAction(action: SelectionAction) { const keys = selection.keys.slice(); clearSelection(); await action.run(keys) }
+export async function runAction(action: SelectionAction) { const keys = selection.keys.slice(); clearSelection(); await action.run?.(keys) }
 
 addEventListener('keydown', (event: KeyboardEvent) => {
   if (!selection.keys.length || (event.target as HTMLElement)?.matches?.('input, textarea, select')) return
   if (event.key === 'Escape') { event.preventDefault(); clearSelection(); return }
   const action = selection.actions.find(candidate => candidate.key === event.key || (event.key === 'Backspace' && candidate.key === 'Delete'))
-  if (action && !(action.single && selection.keys.length > 1)) { event.preventDefault(); runAction(action) }
+  if (action?.run && !(action.single && selection.keys.length > 1)) { event.preventDefault(); runAction(action) }
 })

@@ -2,6 +2,8 @@
   import { live, artUrl } from '../bridge'
   import { app, ui, openView, toast, formatTime, newPlaylist } from '../state.svelte'
   import { sortable, planMoves, blockOrder } from '../lib/sortable'
+  import { selectable } from '../lib/selectable.svelte'
+  import { browseActions } from '../lib/browseActions'
   import { isSelected, rowClick, selectOnHold, selection, type SelectionAction } from '../lib/selection.svelte'
   // Lyrion's saved playlists, read live (small, and other controllers change them)
   let { playlistId = '', title = '' }: { playlistId?: string; title?: string } = $props()
@@ -62,12 +64,14 @@
 {:else}
   <h2>Playlists</h2>
   {#if !loading && !items.length}<p class="quiet">No saved playlists on the server yet. Use New playlist to make one.</p>{/if}
+  <div use:selectable={{ scope: 'playlists', noun: 'playlist', actions: browseActions('playlist') }}>
   {#each shown as item (item.id)}
-    <div class="row">
+    <div class="row" data-select-key={String(item.id)}>
       <button class="main" onclick={() => openView({ kind: 'playlist', key: String(item.id), title: item.playlist })}><span class="glyph">☰</span><span class="text"><span>{item.playlist}</span></span></button>
       <button class="ghost" onclick={() => play(String(item.id), item.playlist)}>Play</button>
     </div>
   {/each}
+  </div>
 {/if}
 
 <style>

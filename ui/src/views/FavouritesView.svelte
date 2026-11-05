@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { selectable } from '../lib/selectable.svelte'
+  import type { SelectionAction } from '../lib/selection.svelte'
   import { live, artUrl } from '../bridge'
   import { app, ui, openView, toast } from '../state.svelte'
   let { itemId = '' }: { itemId?: string } = $props()
@@ -14,14 +16,33 @@
     else { await live(['favorites', 'playlist', 'play', `item_id:${item.id}`], true); toast(`Playing ${item.name}`) }
   }
   async function remove(item: any) { await live(['favorites', 'delete', `item_id:${item.id}`]); toast(`Removed ${item.name} from favourites`); load() }
+  // Choosing favourites: Lyrion plays them itself (they can be folders, streams or playlists)
+  const byId = (keys: string[]) => keys.map(key => items.find(item => String(item.id) === key)).filter(Boolean)
+  async function queueFavourites(keys: string[], mode: 'play' | 'insert' | 'add') {
+    const chosen = byId(keys)
+    for (const [position, item] of chosen.entries()) await live(['favorites', 'playlist', mode === 'play' && position > 0 ? 'add' : mode, `item_id:${item.id}`], true)
+    toast(mode === 'play' ? `Playing ${chosen.length === 1 ? chosen[0].name : chosen.length + ' favourites'}` : mode === 'insert' ? 'Playing next' : 'Added to Now playing')
+  }
+  async function removeFavourites(keys: string[]) {
+    const chosen = byId(keys)
+    for (const item of chosen.slice().sort((first, second) => String(second.id).localeCompare(String(first.id)))) await live(['favorites', 'delete', `item_id:${item.id}`])
+    load()
+    toast(chosen.length === 1 ? `Removed ${chosen[0].name} from favourites` : `Removed ${chosen.length} favourites`, async () => { for (const item of chosen) if (item.url) await live(['favorites', 'add', `url:${item.url}`, `title:${item.name}`]); load() })
+  }
+  const favouriteActions: SelectionAction[] = [
+    { label: 'Play now', key: 'Enter', run: keys => queueFavourites(keys, 'play') },
+    { label: 'Play next', run: keys => queueFavourites(keys, 'insert') },
+    { label: 'Add to end', run: keys => queueFavourites(keys, 'add') },
+    { label: 'Remove from favourites', key: 'Delete', danger: true, run: removeFavourites }
+  ]
   const image = (item: any) => item.image ? (String(item.image).startsWith('http') ? item.image : '') : ''
 </script>
 
 {#if !itemId}<h2>Favourites</h2>{/if}
 {#if loading}<p class="quiet">Loading…</p>{:else if !items.length}<p class="quiet">No favourites yet. Star an album to add it.</p>{/if}
-<div class="favourites">
+<div class="favourites" use:selectable={{ scope: 'favourites:' + itemId, noun: 'favourite', actions: favouriteActions }}>
   {#each shown as item (item.id)}
-    <div class="favourite">
+    <div class="favourite" data-select-key={String(item.id)}>
       <button class="main" onclick={() => activate(item)}>
         {#if image(item)}<img src={image(item)} alt="" loading="lazy" />{:else}<span class="glyph">{item.hasitems && !item.isaudio ? '📁' : item.type === 'audio' ? '📻' : '★'}</span>{/if}
         <span class="name">{item.name}</span>

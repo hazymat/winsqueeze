@@ -1,7 +1,7 @@
 <script lang="ts">
   import { command, sendToShell, artUrl } from '../bridge'
   import { app, ui, nav, openSection, currentTrack, formatTime } from '../state.svelte'
-  import Meters from './Meters.svelte'
+  import PixelMeter from './PixelMeter.svelte'
   import Readout from './Readout.svelte'
   import Icon from './Icon.svelte'
   import PlayerPicker from './PlayerPicker.svelte'
@@ -52,7 +52,7 @@
   </div>
   <div class="right">
     <div class="readout-slot"><Readout /></div>
-    <Meters active={false} />
+    <div class="pixel-meter" title="Spectrum (waiting for audio data from Squeezelite)"><PixelMeter orientation="spectrum" width={40} height={30} levels={Array(12).fill(0)} /></div>
     <div class="players"><PlayerPicker /></div>
     {#if ownSelected && app.status?.device}<button class="device" onclick={() => sendToShell({ type: 'openSettings', tab: 'Audio' })} title={`Output: ${app.status.device}`}><Icon name="speaker" size={15} /><span class="device-name">{app.status.device}</span></button>{/if}
     <div class="volume">
@@ -83,6 +83,7 @@
   .seek { flex: 1; height: 5px; background: var(--track); border-radius: 3px; cursor: pointer; position: relative; }
   .seek:hover { height: 7px; }
   .fill { height: 100%; background: var(--accent); border-radius: 3px; }
+  .pixel-meter { padding: 3px 5px; background: #040607; border-radius: 4px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06); }
   .right { display: flex; align-items: center; justify-content: flex-end; gap: 10px; min-width: 0; }
   .device { background: none; border: 0; color: var(--fg-quiet); cursor: pointer; font-size: 12px; max-width: 140px; display: flex; align-items: center; gap: 5px; white-space: nowrap; overflow: hidden; }
   .device-name { overflow: hidden; text-overflow: ellipsis; }

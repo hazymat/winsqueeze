@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { selectable } from '../lib/selectable.svelte'
+  import { browseActions } from '../lib/browseActions'
   import { query } from '../bridge'
   import { app, ui, openView } from '../state.svelte'
   let { kind }: { kind: 'artists' | 'composers' | 'performers' | 'genres' } = $props()
@@ -16,9 +18,9 @@
   <div class="chips">{#each Object.keys(roleNames) as roleKey}<button class:on={role === roleKey} onclick={() => role = roleKey}>{roleNames[roleKey]}</button>{/each}</div>
 {/if}
 {#if !rows.length}<p class="quiet">{app.library.text || 'Nothing here yet. The library is still syncing, or the server has none.'}</p>{/if}
-<div class="people">
+<div class="people" use:selectable={{ scope: 'people:' + kind, noun: viewKind ?? 'item', actions: browseActions(viewKind ?? 'artist') }}>
   {#each shown as row (row.key + (row.role ?? ''))}
-    <button class="person" onclick={() => openView({ kind: viewKind, key: String(row.key), title: row.name })}>
+    <button class="person" data-select-key={String(row.key)} onclick={() => openView({ kind: viewKind, key: String(row.key), title: row.name })}>
       <span class="name">{row.name}</span>
       <span class="meta">{row.role && kind === 'performers' && !role ? row.role + ' · ' : ''}{row.albums ?? row.tracks ?? ''}{row.albums != null ? (row.albums === 1 ? ' album' : ' albums') : row.tracks != null ? ' tracks' : ''}</span>
     </button>
