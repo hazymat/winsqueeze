@@ -187,7 +187,7 @@
       <StackPanel Margin="16">
         <CheckBox x:Name="recordButtonBox" Content="Show a record button while a radio station or other live stream plays" Margin="0" />
         <CheckBox x:Name="recordSplitBox" Content="Start a new file whenever the station announces a new song" />
-        <TextBlock Style="{StaticResource Label}" Text="Save recordings in (one folder per station)" Margin="0,14,0,3" />
+        <TextBlock Style="{StaticResource Label}" Text="Save recordings in (one folder per recording)" Margin="0,14,0,3" />
         <DockPanel>
           <Button x:Name="openRecordFolderButton" DockPanel.Dock="Right" Content="Open" Margin="8,0,0,0" />
           <Button x:Name="chooseRecordFolderButton" DockPanel.Dock="Right" Content="Choose…" Margin="8,0,0,0" />
