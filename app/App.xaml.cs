@@ -157,6 +157,7 @@ public partial class App : Application
 
     public void ApplyWindowStyle() => mainWindow.ApplyWindowStyle();
     public void ApplySkin() => mainWindow.PushSkin();
+    public void RefreshInactiveGlass() => mainWindow.RefreshInactiveGlass();
     // After an update: the release notes of every version since the one that last ran (including skipped ones)
     bool whatsNewChecked;
     string versionBeforeThisRun = "";

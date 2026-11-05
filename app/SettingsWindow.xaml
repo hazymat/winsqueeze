@@ -151,7 +151,8 @@
           <Border x:Name="glassTintSwatch" Width="22" Height="16" CornerRadius="3" Margin="8,0,0,0" BorderBrush="#40FFFFFF" BorderThickness="1" />
           <TextBlock x:Name="glassTintText" Width="60" Margin="6,0,0,0" VerticalAlignment="Center" />
         </StackPanel>
-        <Button x:Name="glassResetButton" Content="Reset glass to default" HorizontalAlignment="Left" Padding="10,2" Margin="100,2,0,14" />
+        <Button x:Name="glassResetButton" Content="Reset glass to default" HorizontalAlignment="Left" Padding="10,2" Margin="100,2,0,8" />
+        <CheckBox x:Name="glassInactiveBox" Content="Keep the glass when WinSqueeze isn't the active window" Margin="0,0,0,14" />
         <CheckBox x:Name="glassBox" Content="Glass: let the desktop show through the window, frosted (Windows 11)" />
         <CheckBox x:Name="framelessBox" Content="Frameless window (default): no title bar or standard border. Drag from the top strip, resize from the edges. Untick for the standard Windows title bar." Margin="0,8,0,0" />
         <TextBlock Style="{StaticResource Quiet}" Margin="0,12,0,0" TextWrapping="Wrap" Text="Meter style: click the meters in Now playing to cycle VU, OLED VU and bars." />

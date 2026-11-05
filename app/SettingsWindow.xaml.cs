@@ -321,6 +321,8 @@ public partial class SettingsWindow : Window
         glassTransparencySlider.ValueChanged += (sender, args) => { if (fillingGlass) return; general.GlassTransparency = (int)glassTransparencySlider.Value; Settings.Save(); App.ApplySkin(); ShowGlass(); };
         glassTintSlider.ValueChanged += (sender, args) => { if (fillingGlass) return; general.GlassTintHue = (int)glassTintSlider.Value; Settings.Save(); App.ApplySkin(); ShowGlass(); };
         glassResetButton.Click += (sender, args) => { general.GlassTransparency = -1; general.GlassTintHue = 0; fillingGlass = true; glassTransparencySlider.Value = 62; glassTintSlider.Value = 0; fillingGlass = false; Settings.Save(); App.ApplySkin(); ShowGlass(); };
+        glassInactiveBox.IsChecked = general.GlassWhenInactive;
+        glassInactiveBox.Click += (sender, args) => { general.GlassWhenInactive = glassInactiveBox.IsChecked == true; Settings.Save(); App.RefreshInactiveGlass(); };
         coverBackdropBox.IsChecked = general.CoverBackdrop;
         coverBackdropBox.Click += (sender, args) => { general.CoverBackdrop = coverBackdropBox.IsChecked == true; Settings.Save(); App.ApplySkin(); };
         coverAccentBox.IsChecked = general.CoverAccent;

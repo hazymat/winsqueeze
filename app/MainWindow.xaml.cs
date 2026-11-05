@@ -25,7 +25,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         Loaded += async (sender, args) => await InitWebViewAsync();
-        SourceInitialized += (sender, args) => { ApplyWindowStyle(); HwndSource.FromHwnd(new WindowInteropHelper(this).Handle)?.AddHook(ThemeMessageHook); };
+        SourceInitialized += (sender, args) => ApplyWindowStyle();
         StateChanged += (sender, args) => { UpdateFrameMargin(); PushWindowState(); };
         IsVisibleChanged += (sender, args) => App.Session.SetVisible(IsVisible);
         App.StatusChanged += () => Push(App.StatusJson());
@@ -224,14 +224,21 @@ public partial class MainWindow : Window
         Background = general.Frameless && edgeColour != null ? new SolidColorBrush(edgeColour.Value) : glassActive ? Brushes.Transparent : new SolidColorBrush(Color.FromRgb(16, 17, 20));
         if (webView.CoreWebView2 != null) webView.DefaultBackgroundColor = glassActive || App.Settings.General.Frameless ? System.Drawing.Color.Transparent : System.Drawing.Color.FromArgb(16, 17, 20); // frameless: the page rounds its own corners inside the border
         UpdateFrameMargin();
+        // Our hook goes (back) in front of WindowChrome's, which was just re-created and would otherwise answer WM_NCACTIVATE first
+        if (hwndSource != null) { hwndSource.RemoveHook(ThemeMessageHook); hwndSource.AddHook(ThemeMessageHook); }
         PushWindowState();
     }
 
     // Windows can drop the acrylic backdrop and frame extension when the theme or composition changes; the icon refresh after an update
     // broadcasts exactly that, which left the window black. Re-apply the look whenever one arrives (batched, once things settle)
     bool restyleQueued; DateTime lastRestyle;
+    [DllImport("user32.dll")] static extern IntPtr DefWindowProc(IntPtr windowHandle, int messageId, IntPtr wParam, IntPtr lParam);
+    public void RefreshInactiveGlass() { var windowHandle = new WindowInteropHelper(this).Handle; if (windowHandle != IntPtr.Zero && !IsActive) DefWindowProc(windowHandle, 0x0086, App.Settings.General.GlassWhenInactive && glassActive ? (IntPtr)1 : IntPtr.Zero, IntPtr.Zero); }
     IntPtr ThemeMessageHook(IntPtr windowHandle, int messageId, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
+        // Windows draws the backdrop solid while the frame looks inactive; telling it the frame is still active keeps the glass (Appearance setting)
+        const int WM_NCACTIVATE = 0x0086;
+        if (messageId == WM_NCACTIVATE && wParam == IntPtr.Zero && glassActive && App.Settings.General.GlassWhenInactive) { handled = true; return DefWindowProc(windowHandle, messageId, (IntPtr)1, lParam); }
         const int WM_SETTINGCHANGE = 0x001A, WM_THEMECHANGED = 0x031A, WM_DWMCOMPOSITIONCHANGED = 0x031E, WM_DWMCOLORIZATIONCOLORCHANGED = 0x0320;
         if (messageId is WM_SETTINGCHANGE or WM_THEMECHANGED or WM_DWMCOMPOSITIONCHANGED or WM_DWMCOLORIZATIONCOLORCHANGED && !restyleQueued && DateTime.UtcNow - lastRestyle > TimeSpan.FromSeconds(2)) // never loops on our own restyle
         {
