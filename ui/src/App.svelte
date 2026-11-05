@@ -60,7 +60,7 @@
   onShellMessage('newPlaylist', () => { if (!playlist.open) newPlaylist(); else playlist.collapsed = false })
   onShellMessage('levels', message => app.levels = { vu: message.vu, peak: message.peak, bands: message.bands, at: Date.now() })
   // The skin is chosen in Settings › Appearance and applied live; cached locally so the next start paints in it straight away
-  onShellMessage('skin', message => { ui.skin = message.skin || 'auto'; writeSetting('skin', ui.skin) })
+  onShellMessage('skin', message => { ui.skin = message.skin || 'auto'; ui.coverAccent = !!message.coverAccent; writeSetting('skin', ui.skin); writeSetting('coverAccent', ui.coverAccent ? '1' : '') })
   onShellMessage('window', message => app.window = { glass: !!message.glass, frameless: !!message.frameless, maximised: !!message.maximised })
   onShellMessage('settings', message => { if (message.library) app.librarySettings = message.library })
   sendToShell({ type: 'ready' })
@@ -71,7 +71,7 @@
   const coverId = $derived(currentTrack()?.coverid ?? '')
   $effect(() => {
     const cover = coverId, skin = ui.skin, rootStyle = document.documentElement.style
-    if (!cover || !['auto', 'dark', 'light'].includes(skin)) { rootStyle.removeProperty('--accent'); rootStyle.removeProperty('--accent-soft'); return }
+    if (!cover || !ui.coverAccent || !['auto', 'dark', 'light'].includes(skin)) { rootStyle.removeProperty('--accent'); rootStyle.removeProperty('--accent-soft'); return }
     accentFromCover(artUrl(cover, 120)).then(accent => {
       if (cover !== coverId) return
       if (!accent) { rootStyle.removeProperty('--accent'); rootStyle.removeProperty('--accent-soft'); return }

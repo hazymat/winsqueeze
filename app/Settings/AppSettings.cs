@@ -63,7 +63,8 @@ public class GeneralSettings
     public bool GlobalHotkeys { get; set; } // Ctrl+Alt+Space / Left / Right / Up / Down work from any app (off by default)
     public bool TrackToasts { get; set; } // a notification on each new track (off by default)
     public Dictionary<string, double[]> WindowBounds { get; set; } = new(); // per monitor layout: left, top, width, height, maximised
-    public string Skin { get; set; } = "auto"; // auto | dark | light | classic | amber (SPEC.md › Skins)
+    public string Skin { get; set; } = "auto";
+    public bool CoverAccent { get; set; } // accent colour taken from the playing cover (off by default) // auto | dark | light | classic | amber (SPEC.md › Skins)
     [JsonIgnore] public bool Frameless { get => !ShowTitleBar; set => ShowTitleBar = !value; }
     public string LastRunVersion { get; set; } = "";
 }

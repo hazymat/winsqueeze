@@ -131,6 +131,7 @@
       <StackPanel Margin="16">
         <TextBlock Style="{StaticResource Label}" Text="Skin (changes the main window as you pick)" />
         <ComboBox x:Name="skinBox" Width="260" HorizontalAlignment="Left" Margin="0,0,0,14" />
+        <CheckBox x:Name="coverAccentBox" Content="Accent colour from the playing album's cover (frosted skins)" Margin="0,0,0,8" />
         <CheckBox x:Name="glassBox" Content="Glass: let the desktop show through the window, frosted (Windows 11)" />
         <CheckBox x:Name="framelessBox" Content="Frameless window (default): no title bar or standard border. Drag from the top strip, resize from the edges. Untick for the standard Windows title bar." Margin="0,8,0,0" />
         <TextBlock Style="{StaticResource Quiet}" Margin="0,12,0,0" TextWrapping="Wrap" Text="Meter style: click the meters in Now playing to cycle VU, OLED VU and bars." />
