@@ -26,6 +26,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         Loaded += async (sender, args) => await InitWebViewAsync();
         SourceInitialized += (sender, args) => ApplyWindowStyle();
+        Activated += (sender, args) => OnFirstActivation();
         StateChanged += (sender, args) => { UpdateFrameMargin(); PushWindowState(); };
         IsVisibleChanged += (sender, args) => App.Session.SetVisible(IsVisible);
         App.StatusChanged += () => Push(App.StatusJson());
@@ -90,7 +91,7 @@ public partial class MainWindow : Window
         {
             switch (Text(message, "type"))
             {
-                case "ready": PushSkin(); PushMeterSettings(); _ = App.ShowWhatsNewAsync(); PushWindowState(); Push(App.StatusJson()); PushLibraryStatus(); Push(JsonSerializer.Serialize(new { type = "settings", library = App.Settings.Library })); break;
+                case "ready": LookLog("ready"); _ = ReapplyLookSoonAsync(); PushSkin(); PushMeterSettings(); _ = App.ShowWhatsNewAsync(); PushWindowState(); Push(App.StatusJson()); PushLibraryStatus(); Push(JsonSerializer.Serialize(new { type = "settings", library = App.Settings.Library })); break;
                 case "openSettings": App.OpenSettings(Text(message, "tab")); break;
                 case "quit": App.Quit(); break;
                 case "applyUpdate": await App.Updater.RestartToUpdateAsync(); break;
@@ -132,7 +133,7 @@ public partial class MainWindow : Window
                 case "loadDraft": ReplyRaw(message, File.Exists(Shell.PlayerSession.DraftPath) ? File.ReadAllText(Shell.PlayerSession.DraftPath) : "null"); break;
                 case "saveDraft": Directory.CreateDirectory(AppPaths.DataFolder); if (Text(message, "draft") == "null") File.Delete(Shell.PlayerSession.DraftPath); else File.WriteAllText(Shell.PlayerSession.DraftPath, message.GetProperty("draft").GetRawText()); break;
                 case "openEq": App.OpenEqualiser(); break;
-                case "edgeColour": SetEdgeColour(Text(message, "colour")); break;
+                case "edgeColour": LookLog("edge " + Text(message, "colour")); SetEdgeColour(Text(message, "colour")); break;
                 // Frameless: the page asks Windows to resize from an edge, as if the native frame were grabbed
                 case "resizeWindow": if (resizeHitCodes.TryGetValue(Text(message, "edge"), out var hitCode)) { ReleaseCapture(); SendMessage(new WindowInteropHelper(this).Handle, 0xA1 /*WM_NCLBUTTONDOWN*/, (IntPtr)hitCode, IntPtr.Zero); } break;
                 case "dragWindow": ReleaseCapture(); SendMessage(new WindowInteropHelper(this).Handle, 0xA1 /*WM_NCLBUTTONDOWN*/, (IntPtr)2 /*HTCAPTION*/, IntPtr.Zero); webView.Focus(); break; // the drag loop returns on mouse-up; give the page keyboard focus back so Ctrl+C reaches it
@@ -223,6 +224,7 @@ public partial class MainWindow : Window
         if (hwndSource?.CompositionTarget != null) hwndSource.CompositionTarget.BackgroundColor = glassActive ? Colors.Transparent : Color.FromRgb(16, 17, 20);
         Background = general.Frameless && edgeColour != null ? new SolidColorBrush(edgeColour.Value) : glassActive ? Brushes.Transparent : new SolidColorBrush(Color.FromRgb(16, 17, 20));
         if (webView.CoreWebView2 != null) webView.DefaultBackgroundColor = glassActive || App.Settings.General.Frameless ? System.Drawing.Color.Transparent : System.Drawing.Color.FromArgb(16, 17, 20); // frameless: the page rounds its own corners inside the border
+        LookLog($"style glass={glassActive} wanted={general.Glass} frameless={general.Frameless} dark={darkTheme} edge={edgeColour}");
         UpdateFrameMargin();
         // Our hook goes (back) in front of WindowChrome's, which was just re-created and would otherwise answer WM_NCACTIVATE first
         if (hwndSource != null) { hwndSource.RemoveHook(ThemeMessageHook); hwndSource.AddHook(ThemeMessageHook); }
@@ -232,6 +234,22 @@ public partial class MainWindow : Window
     // Windows can drop the acrylic backdrop and frame extension when the theme or composition changes; the icon refresh after an update
     // broadcasts exactly that, which left the window black. Re-apply the look whenever one arrives (batched, once things settle)
     bool restyleQueued; DateTime lastRestyle;
+    // Safety net for the window going solid black after an update: re-apply the whole look once things settle, and again on the first activation
+    bool firstActivationSeen;
+    async Task ReapplyLookSoonAsync() { await Task.Delay(1500); LookLog("reapply"); ApplyWindowStyle(); PushSkin(); }
+    void OnFirstActivation() { if (firstActivationSeen) return; firstActivationSeen = true; LookLog("activated"); ApplyWindowStyle(); PushSkin(); }
+    // look.log (data folder): the startup sequence of glass, theme and edge colour, kept short, for diagnosing that black window
+    static readonly DateTime lookLogStart = DateTime.Now;
+    static void LookLog(string line)
+    {
+        try
+        {
+            var path = Path.Combine(AppPaths.DataFolder, "look.log");
+            if (File.Exists(path) && new FileInfo(path).Length > 64_000) File.Delete(path);
+            File.AppendAllText(path, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} +{(DateTime.Now - lookLogStart).TotalSeconds:0.0}s v{App.Updater.CurrentVersion} {line}{Environment.NewLine}");
+        }
+        catch { }
+    }
     [DllImport("user32.dll")] static extern IntPtr DefWindowProc(IntPtr windowHandle, int messageId, IntPtr wParam, IntPtr lParam);
     public void RefreshInactiveGlass() { var windowHandle = new WindowInteropHelper(this).Handle; if (windowHandle != IntPtr.Zero && !IsActive) DefWindowProc(windowHandle, 0x0086, App.Settings.General.GlassWhenInactive && glassActive ? (IntPtr)1 : IntPtr.Zero, IntPtr.Zero); }
     IntPtr ThemeMessageHook(IntPtr windowHandle, int messageId, IntPtr wParam, IntPtr lParam, ref bool handled)
@@ -243,7 +261,7 @@ public partial class MainWindow : Window
         if (messageId is WM_SETTINGCHANGE or WM_THEMECHANGED or WM_DWMCOMPOSITIONCHANGED or WM_DWMCOLORIZATIONCOLORCHANGED && !restyleQueued && DateTime.UtcNow - lastRestyle > TimeSpan.FromSeconds(2)) // never loops on our own restyle
         {
             restyleQueued = true;
-            Dispatcher.BeginInvoke(async () => { await Task.Delay(400); restyleQueued = false; lastRestyle = DateTime.UtcNow; ApplyWindowStyle(); PushSkin(); }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+            Dispatcher.BeginInvoke(async () => { await Task.Delay(400); restyleQueued = false; LookLog($"theme message 0x{messageId:X}"); lastRestyle = DateTime.UtcNow; ApplyWindowStyle(); PushSkin(); }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
         }
         return IntPtr.Zero;
     }

@@ -65,7 +65,7 @@
   onShellMessage('meterSettings', message => app.meterSettings = { referenceDbfs: message.referenceDbfs, spectrumFloorDbfs: message.spectrumFloorDbfs, spectrumCeilingDbfs: message.spectrumCeilingDbfs })
   // The skin is chosen in Settings › Appearance and applied live; cached locally so the next start paints in it straight away
   onShellMessage('skin', message => {
-    ui.skin = message.skin || 'auto'; ui.coverAccent = !!message.coverAccent; ui.coverBackdrop = message.coverBackdrop !== false; ui.accent = message.accent ?? ''; ui.glassTransparency = message.glassTransparency ?? -1; ui.glassTintHue = message.glassTintHue ?? 0
+    ui.skin = message.skin || 'auto'; ui.coverAccent = !!message.coverAccent; ui.coverBackdrop = message.coverBackdrop !== false; ui.accent = message.accent ?? ''; ui.glassTransparency = message.glassTransparency ?? -1; ui.glassTintHue = message.glassTintHue ?? 0; ui.lookVersion++ // every skin message repaints the glass, even when nothing changed
     writeSetting('skin', ui.skin); writeSetting('coverAccent', ui.coverAccent ? '1' : ''); writeSetting('coverBackdrop', ui.coverBackdrop ? '1' : '0'); writeSetting('accent', ui.accent); writeSetting('glassTransparency', String(ui.glassTransparency)); writeSetting('glassTintHue', String(ui.glassTintHue))
   })
   onShellMessage('window', message => app.window = { glass: !!message.glass, frameless: !!message.frameless, maximised: !!message.maximised })
@@ -92,10 +92,14 @@
   // Glass tint (frosted skins with glass): transparency and hue from Appearance; the mini player keeps its lighter share of the tint
   $effect(() => {
     const rootStyle = document.documentElement.style, light = ui.skin === 'light' || (ui.skin === 'auto' && !systemDark)
-    if (!['auto', 'dark', 'light'].includes(ui.skin) || (ui.glassTransparency < 0 && !ui.glassTintHue)) { rootStyle.removeProperty('--glass-tint'); rootStyle.removeProperty('--glass-tint-mini'); return }
+    ui.lookVersion
+    if (!['auto', 'dark', 'light'].includes(ui.skin)) { rootStyle.removeProperty('--glass-tint'); rootStyle.removeProperty('--glass-tint-mini'); return }
+    const defaultTint = ui.glassTransparency < 0 && !ui.glassTintHue
     const opacity = ui.glassTransparency < 0 ? (light ? 0.42 : 0.38) : 1 - ui.glassTransparency / 100
     const colour = ui.glassTintHue ? (light ? `hsl(${ui.glassTintHue} 45% 92%` : `hsl(${ui.glassTintHue} 40% 12%`) : (light ? 'rgb(242 245 250' : 'rgb(12 14 19')
-    rootStyle.setProperty('--glass-tint', `${colour} / ${opacity.toFixed(2)})`); rootStyle.setProperty('--glass-tint-mini', `${colour} / ${(opacity * 0.37).toFixed(2)})`)
+    // A nudge then the real value next frame forces a fresh paint of the glass (a stale solid frame after an update only cleared when the value changed)
+    rootStyle.setProperty('--glass-tint', `${colour} / ${(opacity + 0.004).toFixed(3)})`)
+    requestAnimationFrame(() => { if (defaultTint) { rootStyle.removeProperty('--glass-tint'); rootStyle.removeProperty('--glass-tint-mini'); return } rootStyle.setProperty('--glass-tint', `${colour} / ${opacity.toFixed(2)})`); rootStyle.setProperty('--glass-tint-mini', `${colour} / ${(opacity * 0.37).toFixed(2)})`) })
   })
   // Skins (SPEC.md › Skins): the skin is a data attribute; tokens.css holds the variables
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)')
@@ -103,7 +107,7 @@
   prefersDark.addEventListener('change', () => systemDark = prefersDark.matches)
   $effect(() => { document.documentElement.dataset.skin = ui.skin; sendToShell({ type: 'theme', dark: ui.skin === 'auto' ? systemDark : ui.skin !== 'light' }) })
   // Tell the shell the page's edge colour, so the frameless border matches it exactly (after the classes and skin have applied)
-  $effect(() => { ui.skin; ui.glassTransparency; ui.glassTintHue; app.window.glass; app.window.frameless; mini; requestAnimationFrame(() => sendToShell({ type: 'edgeColour', colour: getComputedStyle(document.body).backgroundColor })) })
+  $effect(() => { ui.skin; ui.glassTransparency; ui.glassTintHue; ui.lookVersion; systemDark; app.window.glass; app.window.frameless; mini; requestAnimationFrame(() => sendToShell({ type: 'edgeColour', colour: getComputedStyle(document.body).backgroundColor })) })
   let miniUpdateOpen = $state(false)
   $effect(() => { document.documentElement.classList.toggle('mini-mode', mini); document.documentElement.classList.toggle('maximised', app.window.maximised) })
   $effect(() => { document.documentElement.classList.toggle('glass', app.window.glass); document.documentElement.classList.toggle('frameless', app.window.frameless) })
