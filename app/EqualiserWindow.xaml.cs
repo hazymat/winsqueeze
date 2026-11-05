@@ -13,7 +13,7 @@ namespace WinSqueeze;
 // window and then moves with it; dragging it away undocks it.
 public partial class EqualiserWindow : Window
 {
-    const int SnapPixels = 20;
+    const int SnapPixels = 20, SizeSnapPixels = 12;
     bool webViewReady;
     App App => App.Instance;
     EqualiserSettings Tuning => App.Settings.Equaliser;
@@ -103,7 +103,7 @@ public partial class EqualiserWindow : Window
     // While dragged: pull the window flush against any main-window edge it comes within SnapPixels of (and line the ends up when close)
     IntPtr WindowMessageHook(IntPtr windowHandle, int messageId, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
-        const int WM_MOVING = 0x0216, WM_EXITSIZEMOVE = 0x0232;
+        const int WM_MOVING = 0x0216, WM_SIZING = 0x0214, WM_EXITSIZEMOVE = 0x0232;
         if (messageId == WM_MOVING && Owner.IsVisible)
         {
             var moving = Marshal.PtrToStructure<Rect32>(lParam);
@@ -119,6 +119,21 @@ public partial class EqualiserWindow : Window
             if (Math.Abs(moving.Left - main.Left) < SnapPixels) moving.Left = main.Left; else if (Math.Abs(moving.Left + width - main.Right) < SnapPixels) moving.Left = main.Right - width;
             moving.Right = moving.Left + width; moving.Bottom = moving.Top + height;
             Marshal.StructureToPtr(moving, lParam, false);
+            handled = true; return (IntPtr)1;
+        }
+        // While resized when docked: an edge being dragged snaps to the main window's matching edge, so width or height matches and the ends line up
+        if (messageId == WM_SIZING && Tuning.DockSide != "" && Owner.IsVisible)
+        {
+            var sizing = Marshal.PtrToStructure<Rect32>(lParam);
+            GetWindowRect(MainHandle, out var main);
+            var dpi = System.Windows.Media.VisualTreeHelper.GetDpi(this);
+            int minimumWidth = (int)(MinWidth * dpi.DpiScaleX), minimumHeight = (int)(MinHeight * dpi.DpiScaleY), edge = (int)wParam;
+            bool leftEdge = edge is 1 or 4 or 7, rightEdge = edge is 2 or 5 or 8, topEdge = edge is 3 or 4 or 5, bottomEdge = edge is 6 or 7 or 8;
+            if (leftEdge && Math.Abs(sizing.Left - main.Left) < SizeSnapPixels && sizing.Right - main.Left >= minimumWidth) sizing.Left = main.Left;
+            if (rightEdge && Math.Abs(sizing.Right - main.Right) < SizeSnapPixels && main.Right - sizing.Left >= minimumWidth) sizing.Right = main.Right;
+            if (topEdge && Math.Abs(sizing.Top - main.Top) < SizeSnapPixels && sizing.Bottom - main.Top >= minimumHeight) sizing.Top = main.Top;
+            if (bottomEdge && Math.Abs(sizing.Bottom - main.Bottom) < SizeSnapPixels && main.Bottom - sizing.Top >= minimumHeight) sizing.Bottom = main.Bottom;
+            Marshal.StructureToPtr(sizing, lParam, false);
             handled = true; return (IntPtr)1;
         }
         if (messageId == WM_EXITSIZEMOVE) { UpdateDock(); SaveBounds(); }
