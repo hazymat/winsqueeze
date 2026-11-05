@@ -13,7 +13,7 @@
 
 <div class="picker">
   <button class="current" onclick={() => open = !open} aria-haspopup="listbox" aria-expanded={open} title="Choose player">
-    <Icon name="speaker" size={14} /><span class="name">{selected?.name ?? 'Player'}</span><span class="chevron">⌃</span>
+    <Icon name="speaker" size={12} /><span class="name">{selected?.name ?? 'Player'}</span><span class="chevron">⌃</span>
   </button>
   {#if open}
     <div class="menu" role="listbox">
@@ -31,9 +31,9 @@
 
 <style>
   .picker { position: relative; }
-  .current { display: flex; align-items: center; gap: 6px; max-width: 160px; background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; font: inherit; font-size: 12px; cursor: pointer; }
+  .current { display: flex; align-items: center; gap: 6px; width: 100%; height: 24px; background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 7px; padding: 0 8px; font: inherit; font-size: 11.5px; cursor: pointer; }
   .current:hover { background: var(--hover); }
-  .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .name { flex: 1; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .chevron { font-size: 9px; color: var(--fg-quiet); }
   .menu { position: absolute; bottom: calc(100% + 8px); right: 0; min-width: 230px; max-height: 50vh; overflow-y: auto; z-index: 40; padding: 6px; background: var(--panel-solid); backdrop-filter: blur(24px) saturate(1.5); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 16px 40px var(--shadow); }
   .menu button { display: flex; align-items: center; gap: 10px; width: 100%; background: none; border: 0; color: var(--fg); font: inherit; text-align: left; padding: 7px 10px; border-radius: 8px; cursor: pointer; }

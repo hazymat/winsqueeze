@@ -41,6 +41,9 @@ public class LibrarySettings
     public string NameSeparators { get; set; } = ", ; & / feat. with and";
     public int RefreshMinutes { get; set; } = 5;
     public bool HideOwnComposers { get; set; } = true; // composers list leaves out songwriters credited only on their own albums
+    // Second-level browsing: groupings offered in each view's Group menu, and each area's starting grouping (SPEC.md › Browsing)
+    public List<string> BrowseGroupings { get; set; } = new() { "artist", "year", "decade", "added", "format", "initial" };
+    public Dictionary<string, string> DefaultGrouping { get; set; } = new() { ["genre"] = "artist", ["artist"] = "none", ["composer"] = "artist", ["performer"] = "artist", ["albums"] = "none" };
 }
 
 public class GeneralSettings
@@ -54,7 +57,9 @@ public class GeneralSettings
     public Dictionary<string, double[]> ModeSizes { get; set; } = new();
     public string UpdateChannel { get; set; } = "dev"; // stable | dev; dev until the first stable release
     public bool Glass { get; set; } = true; // Windows 11 acrylic backdrop behind a see-through UI
-    public bool Frameless { get; set; } // no title bar or standard border; the UI draws its own drag strip and buttons
+    // No title bar or standard border by default; the UI draws its own drag strip and buttons (stored as ShowTitleBar so older "Frameless": false files get the new default)
+    public bool ShowTitleBar { get; set; }
+    [JsonIgnore] public bool Frameless { get => !ShowTitleBar; set => ShowTitleBar = !value; }
     public string LastRunVersion { get; set; } = "";
 }
 

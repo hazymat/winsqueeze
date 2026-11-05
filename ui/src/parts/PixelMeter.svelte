@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte'
   // Pixel-exact level bars drawn on a canvas at the screen's real pixel density, so every segment and gap is the same width.
   //   vertical: two upright L/R bars made of 1-pixel scan lines, like the Squeezebox 2/3 display (transport bar)
   //   spectrum: Squeezebox-style frequency bands (one column per band, scan-line shading, floating peak markers)
@@ -9,10 +10,13 @@
   // Floating peak markers: each jumps to a new maximum, holds ~0.8 s, then falls slowly
   let peaks = $state<number[]>([])
   const heldUntil: number[] = []
-  let frame = 0
+  let frame = 0, lastLevelsKey = ''
   $effect(() => {
-    const now = performance.now()
-    peaks = levels.map((level, channel) => { const peak = peaks[channel] ?? 0; if (level >= peak) { heldUntil[channel] = now + 800; return level } return peak })
+    const now = performance.now(), currentLevels = levels, levelsKey = currentLevels.join(',')
+    if (levelsKey === lastLevelsKey) return // a fresh array with the same values (e.g. an inline prop) changes nothing
+    lastLevelsKey = levelsKey
+    // Only new levels drive this; reading peaks untracked keeps the effect from re-running on its own write
+    untrack(() => { peaks = currentLevels.map((level, channel) => { const peak = peaks[channel] ?? 0; if (level >= peak) { heldUntil[channel] = now + 800; return level } return peak }) })
     if (!frame && peaks.some(peak => peak > 0)) frame = requestAnimationFrame(fall)
   })
   function fall(time: number) {

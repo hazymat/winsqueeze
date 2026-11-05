@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte'
   import { selectable } from '../lib/selectable.svelte'
   import type { SelectionAction } from '../lib/selection.svelte'
   import { live, artUrl } from '../bridge'
@@ -7,8 +8,10 @@
   let items = $state<any[]>([])
   let loading = $state(true)
   // Lyrion's own favourites, read live (they are small and change from other controllers)
-  async function load() { loading = true; const result = await live(['favorites', 'items', 0, 500, 'want_url:1'].concat(itemId ? [`item_id:${itemId}`] : [])); items = result?.loop_loop ?? []; loading = false }
-  $effect(() => { itemId; app.status?.server; load() })
+  async function load() { const result = await live(['favorites', 'items', 0, 500, 'want_url:1'].concat(itemId ? [`item_id:${itemId}`] : [])); items = result?.loop_loop ?? []; loading = false }
+  // Reload only when the folder or the server really changes, not on every status push (which made the list flicker)
+  const serverName = $derived(String(app.status?.server ?? ''))
+  $effect(() => { itemId; serverName; untrack(load) })
   const plain = (text: string) => (text ?? '').toLowerCase()
   const shown = $derived(ui.search.length >= 2 ? items.filter(item => plain(item.name).includes(plain(ui.search))) : items)
   async function activate(item: any) {

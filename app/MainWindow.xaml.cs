@@ -10,6 +10,7 @@ using System.Windows.Shell;
 using Microsoft.Web.WebView2.Core;
 using WinSqueeze.Library;
 using WinSqueeze.Settings;
+using WinSqueeze.Shell;
 namespace WinSqueeze;
 
 public partial class MainWindow : Window
@@ -60,6 +61,8 @@ public partial class MainWindow : Window
         webView.CoreWebView2.Settings.IsStatusBarEnabled = false;
         webView.CoreWebView2.Settings.AreBrowserAcceleratorKeysEnabled = false; // the UI owns Ctrl+F, Ctrl+N etc.
         webView.CoreWebView2.NavigationCompleted += (sender, args) => webViewReady = true;
+        // The page's renderer can die (out of memory, GPU reset): log it and reload rather than leave a blank window
+        webView.CoreWebView2.ProcessFailed += (sender, args) => { CrashReporter.Write($"WebView2 process failed: {args.ProcessFailedKind} ({args.Reason})", null); if (args.ProcessFailedKind is CoreWebView2ProcessFailedKind.RenderProcessExited or CoreWebView2ProcessFailedKind.RenderProcessUnresponsive) webView.CoreWebView2.Reload(); };
         webView.CoreWebView2.Navigate($"https://{uiHost}/index.html");
     }
 
@@ -79,6 +82,7 @@ public partial class MainWindow : Window
         using var messageDocument = JsonDocument.Parse(messageJson);
         var message = messageDocument.RootElement.Clone();
         webViewReady = true; // the page can post 'ready' before NavigationCompleted fires
+        CrashReporter.Note("UI message " + (message.TryGetProperty("type", out var messageType) ? messageType.GetString() : "?"));
         try
         {
             switch (Text(message, "type"))
@@ -135,6 +139,28 @@ public partial class MainWindow : Window
             }
         }
         catch (Exception bridgeError) { if (message.TryGetProperty("id", out _)) Reply(message, new { error = bridgeError.Message }); }
+    }
+
+    // Window state and bounds handed to the relaunched version after an update
+    public string DescribeForRestart()
+    {
+        var shownState = !IsVisible ? "hidden" : WindowState == WindowState.Maximized ? "maximised" : WindowState == WindowState.Minimized ? "minimised" : "normal";
+        var bounds = WindowState == WindowState.Normal ? new Rect(Left, Top, Width, Height) : RestoreBounds;
+        return string.Join(",", new object[] { shownState, bounds.Left, bounds.Top, bounds.Width, bounds.Height }.Select(part => Convert.ToString(part, System.Globalization.CultureInfo.InvariantCulture)));
+    }
+
+    public void RestoreFromArgument(string argument)
+    {
+        var parts = argument.Split(',');
+        var numbers = parts.Skip(1).Select(part => double.TryParse(part, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var number) ? number : double.NaN).ToArray();
+        if (numbers.Length == 4 && numbers.All(number => !double.IsNaN(number) && !double.IsInfinity(number)) && numbers[2] > 100 && numbers[3] > 100)
+        {
+            WindowStartupLocation = WindowStartupLocation.Manual;
+            Left = numbers[0]; Top = numbers[1]; Width = numbers[2]; Height = numbers[3];
+        }
+        if (parts[0] == "hidden") return;
+        Show();
+        if (parts[0] == "maximised") WindowState = WindowState.Maximized; else if (parts[0] == "minimised") WindowState = WindowState.Minimized;
     }
 
     void SetWindowMode(string mode)

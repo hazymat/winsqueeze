@@ -115,10 +115,21 @@
         <TextBlock x:Name="libraryStatusText" Style="{StaticResource Quiet}" />
       </StackPanel>
     </TabItem>
+    <TabItem Header="Browsing" x:Name="browsingTab">
+      <StackPanel Margin="16">
+        <TextBlock Text="Group by options offered at the top of each view" FontWeight="SemiBold" />
+        <WrapPanel x:Name="groupingChoicesPanel" Margin="0,6,0,0" />
+        <TextBlock Text="Starting grouping for each area (change it any time from the view's Group menu)" FontWeight="SemiBold" Margin="0,18,0,0" />
+        <Grid x:Name="defaultGroupingGrid" Margin="0,6,0,0">
+          <Grid.ColumnDefinitions><ColumnDefinition Width="120" /><ColumnDefinition Width="200" /></Grid.ColumnDefinitions>
+        </Grid>
+        <TextBlock Style="{StaticResource Quiet}" Margin="0,12,0,0" TextWrapping="Wrap" Text="Sort and View (Large, Compact or List) are remembered per area from the toolbar in the main window." />
+      </StackPanel>
+    </TabItem>
     <TabItem Header="Appearance" x:Name="appearanceTab">
       <StackPanel Margin="16">
         <CheckBox x:Name="glassBox" Content="Glass: let the desktop show through the window, frosted (Windows 11)" />
-        <CheckBox x:Name="framelessBox" Content="Frameless window: no title bar or standard border (drag from the top strip, resize from the edges)" Margin="0,8,0,0" />
+        <CheckBox x:Name="framelessBox" Content="Frameless window (default): no title bar or standard border. Drag from the top strip, resize from the edges. Untick for the standard Windows title bar." Margin="0,8,0,0" />
         <TextBlock Style="{StaticResource Quiet}" Margin="0,12,0,0" TextWrapping="Wrap" Text="Skins are picked in the main window (bottom of the sidebar). Meter style: click the meters to cycle VU, OLED VU and OLED bars." />
       </StackPanel>
     </TabItem>

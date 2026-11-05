@@ -1,14 +1,14 @@
 <script lang="ts">
   import { artUrl, sendToShell } from '../bridge'
   import { openView, playlist, addToPlaylist, albumItems } from '../state.svelte'
-  let { album, layout = 'grid' }: { album: any; layout?: string } = $props()
+  let { album, layout = 'grid', compact = false }: { album: any; layout?: string; compact?: boolean } = $props()
   const open = () => openView({ kind: 'album', key: album.key, title: album.title })
   const play = (event: Event) => { event.stopPropagation(); sendToShell({ type: 'playAlbum', key: album.key, mode: 'load' }) }
   const add = async (event: Event) => { event.stopPropagation(); addToPlaylist(await albumItems(album.key), album.title) }
 </script>
 
 {#if layout === 'grid'}
-  <div class="card" role="button" tabindex="0" onclick={open} onkeydown={(event) => event.key === 'Enter' && open()}>
+  <div class="card" class:compact role="button" tabindex="0" onclick={open} onkeydown={(event) => event.key === 'Enter' && open()}>
     <div class="art">
       {#if album.cover}<img src={artUrl(album.cover, 300)} alt="" loading="lazy" crossorigin="anonymous" />{:else}<div class="no-art">♪</div>{/if}
       <button class="play" onclick={play} aria-label="Play">▶</button>
@@ -37,6 +37,9 @@
   .card:hover .play, .card:hover .add, .card:focus-visible .play { opacity: 1; }
   .title { margin-top: 8px; font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .sub { color: var(--fg-quiet); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .compact .art { border-radius: 7px; box-shadow: 0 2px 8px var(--shadow); }
+  .compact .title { margin-top: 5px; font-size: 11.5px; } .compact .sub { font-size: 10.5px; }
+  .compact .play, .compact .add { width: 30px; height: 30px; bottom: 6px; font-size: 11px; } .compact .play { right: 6px; } .compact .add { right: 40px; }
   .row { display: flex; align-items: center; gap: 12px; padding: 6px 8px; border-radius: 8px; cursor: pointer; }
   .row:hover { background: var(--hover); }
   .row img { width: 44px; height: 44px; border-radius: 6px; object-fit: cover; }

@@ -30,7 +30,10 @@ public sealed partial class SqueezeliteHost : IDisposable
         var startInfo = new ProcessStartInfo(AppPaths.SqueezeliteExe) { CreateNoWindow = true, UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, WorkingDirectory = AppPaths.SqueezeliteFolder };
         // -s takes the slimproto host (port 3483), not the web port
         foreach (var argument in new[] { "-s", profile.Host, "-n", audio.PlayerName, "-m", playerMac, "-o", device.SqueezeliteId, "-a", $"{audio.LatencyMs}:{(audio.Exclusive && device.SupportsExclusive ? 1 : 0)}", "-d", "output=info" }) startInfo.ArgumentList.Add(argument);
-        foreach (var extraArgument in SplitArguments(audio.ExtraArguments)) startInfo.ArgumentList.Add(extraArgument);
+        var extraArguments = SplitArguments(audio.ExtraArguments).ToList();
+        // Resample only tracks the device can't take natively (e.g. 22.05 kHz radio in exclusive mode); without it Squeezelite retries the open forever
+        if (!extraArguments.Any(argument => argument is "-R" or "-u")) foreach (var argument in new[] { "-R", "hE" }) startInfo.ArgumentList.Add(argument);
+        foreach (var extraArgument in extraArguments) startInfo.ArgumentList.Add(extraArgument);
         logWriter = new StreamWriter(Path.Combine(AppPaths.LogsFolder, "squeezelite.log"), false) { AutoFlush = true };
         logWriter.WriteLine($"[{DateTime.Now:O}] start: {string.Join(" ", startInfo.ArgumentList.Select(argument => argument.Contains(' ') ? $"\"{argument}\"" : argument))}");
         stopping = false;
@@ -54,15 +57,19 @@ public sealed partial class SqueezeliteHost : IDisposable
 
     public void SetWaiting(string message) { Stop(); SetStatus(PlayerState.WaitingForDevice, message); }
 
+    long logSecond, linesThisSecond, droppedLines;
     void OnLogLine(string? logLine)
     {
         if (logLine == null) return;
-        try { logWriter?.WriteLine(logLine); } catch (ObjectDisposedException) { }
+        // A retry loop can log ~100 lines a second: keep the first 50 of each second so the log stays readable and small
+        var thisSecond = Environment.TickCount64 / 1000;
+        if (thisSecond != logSecond) { if (droppedLines > 0) try { logWriter?.WriteLine($"(… {droppedLines} repeated lines skipped)"); } catch (ObjectDisposedException) { } logSecond = thisSecond; linesThisSecond = 0; droppedLines = 0; }
+        if (++linesThisSecond <= 50) try { logWriter?.WriteLine(logLine); } catch (ObjectDisposedException) { } else droppedLines++;
         var openedMatch = OpenedDeviceRegex().Match(logLine);
         if (logLine.Contains("opening WASAPI device in exclusive mode")) ExclusiveActive = true;
-        else if (openedMatch.Success) { OutputSampleRate = int.Parse(openedMatch.Groups[2].Value); StatusChanged?.Invoke(); }
+        else if (openedMatch.Success) { OutputSampleRate = int.Parse(openedMatch.Groups[2].Value); if (State == PlayerState.Failed) SetStatus(PlayerState.Running, $"Playing to {openedMatch.Groups[1].Value}"); else StatusChanged?.Invoke(); }
         else if (logLine.Contains("AUDCLNT_E_EXCLUSIVE_MODE_NOT_ALLOWED")) SetStatus(PlayerState.Failed, "Windows blocks exclusive mode for this device. Tick \"Allow applications to take exclusive control\" in Sound settings › device › Advanced.");
-        else if (logLine.Contains("Invalid sample rate")) SetStatus(PlayerState.Failed, "The device rejected the track's sample rate. In shared mode the rate must match the Windows mixer.");
+        else if (logLine.Contains("Invalid sample rate")) SetStatus(PlayerState.Failed, "The device rejected this track's sample rate. Remove any -R override from Extra arguments so WinSqueeze can resample it.");
     }
 
     void OnExited()
@@ -71,7 +78,8 @@ public sealed partial class SqueezeliteHost : IDisposable
         SetStatus(PlayerState.Failed, $"Squeezelite exited (code {squeezeliteProcess?.ExitCode}). See logs\\squeezelite.log.");
     }
 
-    void SetStatus(PlayerState newState, string newText) { State = newState; StatusText = newText; StatusChanged?.Invoke(); }
+    // Repeats are dropped: a failing device can log the same error dozens of times a second
+    void SetStatus(PlayerState newState, string newText) { if (newState == State && newText == StatusText) return; State = newState; StatusText = newText; StatusChanged?.Invoke(); }
 
     // Splits "extra arguments" respecting double quotes
     static IEnumerable<string> SplitArguments(string argumentText)

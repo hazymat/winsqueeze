@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte'
   import { live, artUrl } from '../bridge'
   import { app, ui, openView, toast, formatTime, newPlaylist } from '../state.svelte'
   import { sortable, planMoves, blockOrder } from '../lib/sortable'
@@ -15,7 +16,8 @@
     items = (playlistId ? result?.playlisttracks_loop : result?.playlists_loop) ?? []
     loading = false
   }
-  $effect(() => { playlistId; app.status?.server; load() })
+  const serverName = $derived(String(app.status?.server ?? ''))
+  $effect(() => { playlistId; serverName; untrack(load) })
   const plain = (text: string) => (text ?? '').toLowerCase()
   const shown = $derived(ui.search.length >= 2 ? items.filter(item => plain(item.playlist ?? item.title).includes(plain(ui.search))) : items)
   const totalSeconds = $derived(items.reduce((total, item) => total + Number(item.duration || 0), 0))

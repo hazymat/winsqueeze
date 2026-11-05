@@ -40,17 +40,22 @@ public partial class App : Application
         if (!isFirstInstance) { showWindowSignal.Set(); Shutdown(); return; } // second launch just shows the running app
         ThreadPool.RegisterWaitForSingleObject(showWindowSignal, (state, timedOut) => Dispatcher.BeginInvoke(ShowMainWindow), null, -1, false);
         if (AppPaths.IsPortable) AppUpdater.CleanUpAfterPortableUpdate();
+        CrashReporter.Install(this);
         Settings = AppSettings.Load();
         mainWindow = new MainWindow();
         trayIcon = new TrayIcon();
         Player.StatusChanged += () => Dispatcher.BeginInvoke(OnPlayerStatusChanged);
         HwndSource.FromHwnd(new WindowInteropHelper(mainWindow).EnsureHandle()).AddHook(WindowMessageHook);
         deviceChangeTimer.Tick += async (sender, args) => { deviceChangeTimer.Stop(); await OnDevicesChangedAsync(); };
-        if (!(Settings.General.StartMinimised || startupArgs.Args.Contains("--minimised"))) mainWindow.Show();
+        // A restart for an update brings the window back exactly as it was (--window=normal|maximised|minimised|hidden,left,top,width,height); otherwise the start-minimised setting applies
+        var windowArgument = startupArgs.Args.FirstOrDefault(argument => argument.StartsWith("--window="));
+        if (windowArgument != null) mainWindow.RestoreFromArgument(windowArgument["--window=".Length..]);
+        else if (!(Settings.General.StartMinimised || startupArgs.Args.Contains("--minimised"))) mainWindow.Show();
         if (Settings.ActiveProfile is not { Host.Length: > 0 }) OpenSettings("Servers");
         Updater.Changed += () => Dispatcher.BeginInvoke(() => StatusChanged?.Invoke());
         Updater.Start();
         RefreshIconsAfterUpdate();
+        if (CrashReporter.TakeUnseenReport()) ShowTip("WinSqueeze had a problem last time", "It crashed or stopped responding. Details are in Settings › About › Open logs (crash.log).");
         try { Media = new MediaControls(); } catch { } // SMTC needs Windows 10 1903+
         Session.StatusUpdated += () => { if (Settings.ActiveProfile is { } profile) Media?.Update(Session.LastStatus, $"http://{profile.Host}:{profile.Port}"); trayIcon.RefreshNowPlaying(Session.LastStatus); };
         Session.Start();
@@ -77,7 +82,9 @@ public partial class App : Application
     public async Task<string[]> ResumeArgumentsAsync()
     {
         (string mode, double seconds) playbackState = Player.State == PlayerState.Running ? await ReadPlaybackStateAsync() : ("", 0);
-        return playbackState.mode == "play" ? new[] { "--resume=" + playbackState.seconds.ToString(System.Globalization.CultureInfo.InvariantCulture) } : Array.Empty<string>();
+        var restartArguments = new List<string> { "--window=" + mainWindow.DescribeForRestart() };
+        if (playbackState.mode == "play") restartArguments.Add("--resume=" + playbackState.seconds.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        return restartArguments.ToArray();
     }
 
     // Stops Squeezelite and releases the single-instance lock so the new version can start straight away

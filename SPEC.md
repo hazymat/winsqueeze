@@ -108,7 +108,13 @@ Sidebar sections, in this order: Favourites, Artists, Genres, Composers, Perform
 - Accent- and case-insensitive, matching from the start of any word ("jarr" finds Keith Jarrett).
 - Typing in an artist search immediately shows that artist's albums underneath the best match.
 
-**Album lists:** cover grid by default, switchable to a compact list, remembered per section. Sorted by album artist then year; sort options for title, year and date added.
+**Album lists (second-level browsing):** a toolbar at the top right of every album view with three glass dropdowns, each remembered per area:
+
+- **Sort:** album artist (then year), title, year, recently added.
+- **Group:** none, album artist, year, decade, date added (month), format, first letter. Defaults: Genres and Composers and Performers by album artist; Artists and Albums ungrouped (an artist keeps "Albums" and "Also appears on", grouped inside each).
+- **View:** Large covers (default), Compact (small covers), List.
+
+Settings › Browsing chooses which groupings the Group menu offers and each area's starting grouping.
 
 ## Album view, queue and favourites
 
@@ -150,7 +156,7 @@ Fidelity is a headline feature, not an afterthought. Playback always goes throug
 
 1. **Lossless end to end.** The server sends original files in their native format (FLAC, ALAC, WAV, AIFF, hi-res). Squeezelite decodes locally. No MP3 transcoding.
 2. **Bypass the Windows mixer.** Default output is the device's WASAPI endpoint in exclusive mode, giving bit-perfect output with no other system sounds mixed in. Falls back to shared mode with a visible warning if exclusive isn't available.
-3. **Native sample rates.** 44.1, 48, 88.2, 96, 176.4 and 192 kHz pass straight through; the DAC switches rate per track. No resampling by default.
+3. **Native sample rates.** 44.1, 48, 88.2, 96, 176.4 and 192 kHz pass straight through; the DAC switches rate per track. Only rates the device can't take (e.g. 22.05 kHz internet radio in exclusive mode) are resampled (Squeezelite `-R hE`), so they play instead of failing.
 4. **Volume:** default fixed full-level output, with volume handled at the DAC or amp. Where the device has hardware volume (e.g. the DragonFly), WinSqueeze's volume control drives the Windows endpoint volume, which stays bit-perfect even in exclusive mode. Optional Squeezelite digital volume, clearly labelled as not bit-perfect.
 5. **Server-side check (read-only).** Read the player's bitrate-limit and transcoding prefs from the server. If anything would force transcoding, show a warning explaining which server setting to change. Never change it.
 6. **Gapless** playback preserved (native Squeezelite behaviour).
@@ -224,6 +230,10 @@ Chosen direction: **Frosted Dark**, frosted glass meets Squeezebox hardware. iOS
 - Track-change toast notifications: available, off by default.
 
 **Keyboard shortcuts (rebindable in settings):** Space play/pause; Ctrl+Left/Right previous/next; Ctrl+Up/Down volume; Ctrl+F search; Ctrl+N new playlist; Ctrl+1/2/3 window mode; Ctrl+, settings; Ctrl+Q quit. Optional global hotkeys, off by default.
+
+## Diagnostics
+
+Unhandled errors, background task errors, WebView2 renderer failures and UI-thread freezes over 8 seconds (hang watchdog) are written to `logs\crash.log` with the version and the last shell activity. The next launch shows a tip pointing to it. Squeezelite's log keeps at most 50 lines a second, so a retry loop can't flood it.
 
 ## Settings and servers
 

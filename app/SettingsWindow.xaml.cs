@@ -19,7 +19,7 @@ public partial class SettingsWindow : Window
     public SettingsWindow()
     {
         InitializeComponent();
-        WireGeneralTab(); WireServersTab(); WireAudioTab(); WireLibraryTab(); WireAppearanceTab(); WireAboutTab();
+        WireGeneralTab(); WireServersTab(); WireAudioTab(); WireLibraryTab(); WireBrowsingTab(); WireAppearanceTab(); WireAboutTab();
         App.DevicesChanged += LoadDevices;
         App.StatusChanged += ShowPlayerStatus;
         Closed += (sender, args) => { App.DevicesChanged -= LoadDevices; App.StatusChanged -= ShowPlayerStatus; };
@@ -28,7 +28,7 @@ public partial class SettingsWindow : Window
 
     public void SelectTab(string tabName)
     {
-        var tabByName = new Dictionary<string, TabItem> { ["General"] = generalTab, ["Servers"] = serversTab, ["Audio"] = audioTab, ["Library"] = libraryTab, ["About"] = aboutTab };
+        var tabByName = new Dictionary<string, TabItem> { ["General"] = generalTab, ["Servers"] = serversTab, ["Audio"] = audioTab, ["Library"] = libraryTab, ["Browsing"] = browsingTab, ["About"] = aboutTab };
         if (tabByName.TryGetValue(tabName, out var selectedTab)) settingsTabs.SelectedItem = selectedTab;
     }
 
@@ -232,6 +232,47 @@ public partial class SettingsWindow : Window
     {
         if (App.Library.ProgressText != "") { libraryStatusText.Text = App.Library.ProgressTotal > 0 ? $"{App.Library.ProgressText}: {App.Library.ProgressDone:N0} of {App.Library.ProgressTotal:N0}" : App.Library.ProgressText; return; }
         try { libraryStatusText.Text = $"Cache size {App.Library.CacheBytes() / 1048576.0:0.#} MB. Stored in {AppPaths.DataFolder}."; } catch { libraryStatusText.Text = ""; }
+    }
+
+    static readonly (string value, string label)[] groupingNames = { ("none", "None"), ("artist", "Album artist"), ("year", "Year"), ("decade", "Decade"), ("added", "Date added"), ("format", "Format"), ("initial", "First letter") };
+    static readonly (string area, string label)[] browseAreas = { ("genre", "Genres"), ("artist", "Artists"), ("composer", "Composers"), ("performer", "Performers"), ("albums", "Albums") };
+
+    void WireBrowsingTab()
+    {
+        var library = Settings.Library;
+        var areaBoxes = new List<(string area, ComboBox box)>();
+        var filling = false; // refilling the menus fires SelectionChanged; only a user's pick is saved
+        void SaveAndPush() { Settings.Save(); App.NotifyLibraryChanged(); }
+        // Each area's menu lists None plus the offered groupings
+        void FillAreaBoxes()
+        {
+            filling = true;
+            foreach (var (area, box) in areaBoxes)
+            {
+                var current = library.DefaultGrouping.TryGetValue(area, out var chosen) ? chosen : "none";
+                box.ItemsSource = groupingNames.Where(name => name.value == "none" || library.BrowseGroupings.Contains(name.value)).Select(name => new ComboBoxItem { Content = name.label, Tag = name.value }).ToList();
+                box.SelectedItem = ((List<ComboBoxItem>)box.ItemsSource).FirstOrDefault(item => (string)item.Tag == current) ?? ((List<ComboBoxItem>)box.ItemsSource)[0];
+            }
+            filling = false;
+        }
+        foreach (var (value, label) in groupingNames.Skip(1))
+        {
+            var choiceBox = new CheckBox { Content = label, IsChecked = library.BrowseGroupings.Contains(value), Margin = new Thickness(0, 4, 16, 0) };
+            choiceBox.Click += (sender, args) => { library.BrowseGroupings.Remove(value); if (choiceBox.IsChecked == true) library.BrowseGroupings.Add(value); FillAreaBoxes(); SaveAndPush(); };
+            groupingChoicesPanel.Children.Add(choiceBox);
+        }
+        foreach (var (area, label) in browseAreas)
+        {
+            defaultGroupingGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            var row = defaultGroupingGrid.RowDefinitions.Count - 1;
+            var areaLabel = new TextBlock { Text = label, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 4, 0, 0) };
+            var areaBox = new ComboBox { Margin = new Thickness(0, 4, 0, 0) };
+            Grid.SetRow(areaLabel, row); Grid.SetRow(areaBox, row); Grid.SetColumn(areaBox, 1);
+            defaultGroupingGrid.Children.Add(areaLabel); defaultGroupingGrid.Children.Add(areaBox);
+            areaBoxes.Add((area, areaBox));
+        }
+        FillAreaBoxes();
+        foreach (var (area, box) in areaBoxes) box.SelectionChanged += (sender, args) => { if (!filling && box.SelectedItem is ComboBoxItem { Tag: string value }) { library.DefaultGrouping[area] = value; SaveAndPush(); } };
     }
 
     void WireAppearanceTab()

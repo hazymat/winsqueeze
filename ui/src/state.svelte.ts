@@ -8,7 +8,10 @@ export const app = $state({
   library: { text: '', done: 0, total: 0 }, librarySettings: { AlbumSource: 'folders', ContributorGrouping: 'any' } as any, indexVersion: 0, receivedAt: 0,
   window: { glass: false, frameless: false, maximised: false }
 })
-export const nav = $state({ section: 'artists', stack: [] as View[] })
+// Where you were browsing survives restarts (and updates)
+const savedNav = (() => { try { return JSON.parse(readSetting('nav', '')) } catch { return null } })()
+export const nav = $state({ section: (savedNav?.section ?? 'artists') as string, stack: (savedNav?.stack ?? []) as View[] })
+$effect.root(() => { $effect(() => { writeSetting('nav', JSON.stringify({ section: nav.section, stack: nav.stack })) }) })
 export const ui = $state({ search: '', scope: 'list' as 'list' | 'everything', expanded: false, meterStyle: readSetting('meterStyle', 'vu'), skin: readSetting('skin', 'auto'), pinned: false, toast: null as null | { text: string; undo?: () => void; ms: number; id: number } })
 export const playlist = $state({ open: false, collapsed: false, name: 'Untitled playlist', items: [] as PlaylistItem[], history: [] as number[] })
 
