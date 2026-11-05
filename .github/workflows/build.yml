@@ -78,7 +78,14 @@ jobs:
           vpk pack --packId WinSqueeze --packVersion $version --packDir publish/WinSqueeze --mainExe WinSqueeze.exe --packTitle WinSqueeze --icon app/Assets/WinSqueeze.ico --channel $channel --releaseNotes notes.txt -o releases
           $preFlag = @(); if ($channel -eq "dev") { $preFlag = @("--pre") }
           $title = if ($channel -eq "dev") { "WinSqueeze $version (dev)" } else { "WinSqueeze $version" }
-          vpk upload github --repoUrl $env:REPO_URL --channel $channel --token $env:GH_TOKEN -o releases --publish --tag "v$version" --releaseName $title @preFlag
+          gh release view "v$version" --json tagName 2>$null | Out-Null; $releaseExists = $LASTEXITCODE -eq 0; $global:LASTEXITCODE = 0
+          if ($releaseExists -and $channel -eq "stable") {
+            # Promoting an existing dev build: add the stable feed beside the dev one (file names carry the channel) and make it a normal release
+            $feedFiles = @("releases/releases.stable.json") + (Get-ChildItem releases -Filter "WinSqueeze-$version-stable-*.nupkg" | ForEach-Object { $_.FullName })
+            gh release upload "v$version" @feedFiles --clobber
+            gh release edit "v$version" --prerelease=false --latest --title $title
+          } else { vpk upload github --repoUrl $env:REPO_URL --channel $channel --token $env:GH_TOKEN -o releases --publish --tag "v$version" --releaseName $title @preFlag }
+          if ($LASTEXITCODE -ne 0) { throw "Publishing the release failed" }
           Copy-Item (Get-ChildItem releases -Filter *Setup.exe | Select-Object -First 1).FullName downloads/WinSqueeze-Setup.exe
           gh release upload "v$version" downloads/WinSqueeze-Portable.exe downloads/WinSqueeze-Setup.exe --clobber
           # Keep just the two downloads plus the updater's own feed files
