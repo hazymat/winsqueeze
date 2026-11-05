@@ -89,10 +89,14 @@ public partial class App : Application
     }
 
     // The server's volume for this PC's player goes to the device (only while this player is the one being polled)
+    bool hardwareVolumeFailed;
     void ApplyDeviceVolume(JsonElement status)
     {
         if (!DeviceVolume.Active || Session.SelectedPlayerId != "" || status.ValueKind != JsonValueKind.Object) return;
-        if (int.TryParse(LyrionClient.ReadString(status, "mixer volume"), out var serverVolume)) DeviceVolume.Apply(serverVolume);
+        if (!int.TryParse(LyrionClient.ReadString(status, "mixer volume"), out var serverVolume) || DeviceVolume.Apply(serverVolume)) return;
+        // The endpoint won't take volume: restart Squeezelite with its own (digital) volume for the rest of this run
+        hardwareVolumeFailed = true; DeviceVolume.Detach();
+        Dispatcher.InvokeAsync(() => StartPlayerAsync(true));
     }
 
     // ---- Tray actions ----
@@ -236,7 +240,7 @@ public partial class App : Application
         }
         (string mode, double seconds) resumeState = ("", 0);
         if (resumePosition && Player.State == PlayerState.Running) resumeState = await ReadPlaybackStateAsync();
-        var hardwareVolume = Settings.Audio.HardwareVolume && SqueezeliteHost.SupportsFixedVolume && DeviceVolume.Attach(outputDevice.Name);
+        var hardwareVolume = Settings.Audio.HardwareVolume && !hardwareVolumeFailed && SqueezeliteHost.SupportsFixedVolume && DeviceVolume.Attach(outputDevice.Name);
         if (!hardwareVolume) DeviceVolume.Detach();
         Player.Start(profile, outputDevice, Settings.Audio, Settings.PlayerMac, hardwareVolume);
         if (SqueezeliteHost.SupportsVisualiser) Visualiser.Start(Settings.PlayerMac, Settings.Audio.LatencyMs);
