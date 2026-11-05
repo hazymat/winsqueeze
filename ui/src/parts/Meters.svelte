@@ -14,8 +14,8 @@
   const point = (angle: number, radius: number) => [pivotX + radius * Math.sin(angle * Math.PI / 180), pivotY - radius * Math.cos(angle * Math.PI / 180)]
   const arc = (fromAngle: number, toAngle: number, radius: number) => { const [startX, startY] = point(fromAngle, radius); const [endX, endY] = point(toAngle, radius); return `M${startX} ${startY} A${radius} ${radius} 0 0 1 ${endX} ${endY}` }
   const restAngle = -54
-  // OLED VU: the scale is a band that widens towards +3, like the Transporter display
-  const band = (fromAngle: number, toAngle: number, fromWidth: number, toWidth: number) => { const [innerStartX, innerStartY] = point(fromAngle, 50); const [innerEndX, innerEndY] = point(toAngle, 50); const [outerEndX, outerEndY] = point(toAngle, 50 + toWidth); const [outerStartX, outerStartY] = point(fromAngle, 50 + fromWidth); return `M${innerStartX} ${innerStartY} A50 50 0 0 1 ${innerEndX} ${innerEndY} L${outerEndX} ${outerEndY} A${50 + toWidth} ${50 + toWidth} 0 0 0 ${outerStartX} ${outerStartY} Z` }
+  // OLED VU: one even scale line; above it, a tick per mark and dense detents across the 0..+3 zone (like the Transporter display)
+  const detentAngles = Array.from({ length: 18 }, (unused, index) => 21 + index * 25 / 17)
 </script>
 
 <button class="meters {size}" class:idle={!active} onclick={toggle} title={active ? 'Click to switch meter style' : 'Level meters (waiting for level data from Squeezelite). Click to switch style.'}>
@@ -53,10 +53,10 @@
         <defs><filter id={gradientId + '-glow'} x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="1.4" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter></defs>
         <rect x="0" y="0" width="120" height="72" rx="5" class="glass" />
         <g filter="url(#{gradientId}-glow)" class="display">
-          <path d={band(-48, 21, 1, 3.2)} class="oled-band" />
-          <path d={band(21, 46, 3.2, 6)} class="oled-band hot" />
+          <path d={arc(-48, 46, 50)} class="oled-line" />
+          {#each detentAngles as angle}{@const [detentX1, detentY1] = point(angle, 50)}{@const [detentX2, detentY2] = point(angle, 55)}<line x1={detentX1} y1={detentY1} x2={detentX2} y2={detentY2} class="oled-tick detent" />{/each}
           {#each scaleMarks as [decibels, angle]}
-            {@const [innerX, innerY] = point(angle, 47.5)}{@const [outerX, outerY] = point(angle, 50)}{@const [labelX, labelY] = point(angle, 61)}
+            {@const [innerX, innerY] = point(angle, 50)}{@const [outerX, outerY] = point(angle, 54)}{@const [labelX, labelY] = point(angle, 61)}
             <line x1={innerX} y1={innerY} x2={outerX} y2={outerY} class="oled-tick" />
             {#if decibels !== -2 && decibels !== -1 && decibels !== 1}<text x={labelX} y={labelY} class="oled-number">{Math.abs(decibels)}</text>{/if}
           {/each}
@@ -94,8 +94,8 @@
   .needle { stroke: #111; stroke-width: 0.9; transition: transform 300ms ease-out; }
   .pivot-cover { fill: #15161a; }
   .glass { fill: #030507; stroke: #1c1f24; stroke-width: 1; }
-  .oled-band { fill: #3fb8ff; } .oled-band.hot { fill: #6fd2ff; }
-  .oled-tick { stroke: #3fb8ff; stroke-width: 0.9; }
+  .oled-line { fill: none; stroke: #3fb8ff; stroke-width: 1.4; }
+  .oled-tick { stroke: #3fb8ff; stroke-width: 0.9; } .oled-tick.detent { stroke-width: 0.8; }
   .oled-number { fill: #4cc0ff; font-size: 6px; text-anchor: middle; dominant-baseline: middle; font-family: "Segoe UI", Arial, sans-serif; }
   .oled-label { fill: #4cc0ff; font-size: 7.5px; font-weight: 700; text-anchor: middle; font-family: "Segoe UI", Arial, sans-serif; letter-spacing: 0.5px; }
   .oled-needle { stroke: #d8f4ff; stroke-width: 1; transition: transform 300ms ease-out; }
