@@ -104,6 +104,7 @@
   $effect(() => { document.documentElement.dataset.skin = ui.skin; sendToShell({ type: 'theme', dark: ui.skin === 'auto' ? systemDark : ui.skin !== 'light' }) })
   // Tell the shell the page's edge colour, so the frameless border matches it exactly (after the classes and skin have applied)
   $effect(() => { ui.skin; ui.glassTransparency; ui.glassTintHue; app.window.glass; app.window.frameless; mini; requestAnimationFrame(() => sendToShell({ type: 'edgeColour', colour: getComputedStyle(document.body).backgroundColor })) })
+  let miniUpdateOpen = $state(false)
   $effect(() => { document.documentElement.classList.toggle('mini-mode', mini); document.documentElement.classList.toggle('maximised', app.window.maximised) })
   $effect(() => { document.documentElement.classList.toggle('glass', app.window.glass); document.documentElement.classList.toggle('frameless', app.window.frameless) })
   // Selected text: Ctrl+C or right-click › Copy (the browser's own menu is off)
@@ -146,7 +147,14 @@
 {#if copyMenu}<div class="copy-menu" style:left="{copyMenu.left}px" style:top="{copyMenu.top}px"><button onclick={copySelection}>Copy</button></div>{/if}
 
 {#if mini}
-  <div class="mini-shell" role="presentation" onmousedown={dragWindow}><TransportBar mini={true} /></div>
+  <div class="mini-shell" role="presentation" onmousedown={dragWindow}>
+    <TransportBar mini={true} />
+    <!-- Update ready: a pulsing dot in the corner; clicking it slides the restart notice down over the player -->
+    {#if app.status?.updateReady}
+      <button class="update-dot" onclick={() => miniUpdateOpen = !miniUpdateOpen} aria-label="Update ready" title="WinSqueeze {app.status.updateReady} is ready"></button>
+      <div class="mini-update" class:open={miniUpdateOpen}><span>Version {app.status.updateReady} is ready</span><button class="primary" onclick={() => sendToShell({ type: 'applyUpdate' })}>Restart to update</button><button class="ghost" onclick={() => miniUpdateOpen = false} aria-label="Later">×</button></div>
+    {/if}
+  </div>
 {:else}
   <div class="shell" class:vertical>
     {#if !vertical}
@@ -290,6 +298,12 @@
   .pin-top { display: grid; place-items: center; width: 34px; height: 30px; margin-left: auto; background: none; border: 0; border-radius: 6px; color: var(--fg); opacity: 0.45; cursor: pointer; transform: rotate(45deg); transition: opacity 120ms, transform 120ms, background 120ms; }
   .pin-top:hover { opacity: 0.8; background: var(--hover); }
   .pin-top.on { opacity: 1; color: var(--accent); background: var(--accent-soft); transform: none; } /* upright and lit when pinned */
+  .update-dot { position: absolute; top: 5px; right: 5px; z-index: 3; width: 9px; height: 9px; padding: 0; border: 0; border-radius: 50%; background: var(--accent); cursor: pointer; animation: update-pulse 1.8s ease-in-out infinite; }
+  .update-dot::before { content: ""; position: absolute; inset: -6px; border-radius: 50%; } /* bigger hit area */
+  @keyframes update-pulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 70%, transparent); } 60% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--accent) 0%, transparent); } }
+  .mini-update { position: absolute; left: 0; right: 0; top: 0; z-index: 4; display: flex; align-items: center; gap: 10px; padding: 10px 12px; font-size: 13px; background: color-mix(in srgb, var(--accent-soft) 60%, rgba(14, 16, 22, 0.92)); backdrop-filter: blur(18px); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35); transform: translateY(-110%); transition: transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+  .mini-update.open { transform: translateY(0); }
+  .mini-update span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .mini-shell { height: 100vh; background: var(--glass); position: relative; }
   /* Mini on glass: a light tint so the desktop shows through Windows' blur, plus a fine frosted grain */
   :global(:root.glass.mini-mode body) { background: var(--glass-tint-mini, rgba(12, 14, 19, 0.14)); }
