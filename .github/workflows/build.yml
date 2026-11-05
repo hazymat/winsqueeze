@@ -29,9 +29,16 @@ jobs:
       - name: Version and channel
         id: version
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Tags vX.Y.Z are stable releases; every push to main is a dev build
-          if ("${{ github.ref_type }}" -eq "tag") { $version = "${{ github.ref_name }}".TrimStart("v"); $channel = "stable" } else { $version = "0.1.${{ github.run_number }}"; $channel = "dev" }
+          # Tags vX.Y.Z are stable releases; every push to main is a dev build numbered just above the latest stable (1.0.0 -> 1.1.<run>), so dev is always ahead
+          if ("${{ github.ref_type }}" -eq "tag") { $version = "${{ github.ref_name }}".TrimStart("v"); $channel = "stable" }
+          else {
+            $stableTag = gh api "repos/${{ github.repository }}/releases/latest" --jq .tag_name 2>$null; $global:LASTEXITCODE = 0
+            $stable = if ($stableTag) { [version]$stableTag.TrimStart("v") } else { $null }
+            $version = if ($stable) { "$($stable.Major).$($stable.Minor + 1).${{ github.run_number }}" } else { "0.1.${{ github.run_number }}" }; $channel = "dev"
+          }
           "version=$version" >> $env:GITHUB_OUTPUT; "channel=$channel" >> $env:GITHUB_OUTPUT
       - name: Add VC++ runtime for Squeezelite
         shell: pwsh
@@ -61,6 +68,8 @@ jobs:
           $previousSha = if ($previousTag) { gh api "repos/$env:GITHUB_REPOSITORY/commits/$previousTag" --jq .sha } else { "" }
           $notes = if ($previousSha) { git log "$previousSha..HEAD" --no-merges --perl-regexp --author='^((?!github-actions).)*$' --pretty="- %s" } else { "" }
           if (-not $notes) { $notes = git log -1 --pretty=%B }
+          # A stable release takes its notes from the tag's own message when it has one (a written summary of the release)
+          if ($channel -eq "stable") { git fetch --force origin "+refs/tags/v${version}:refs/tags/v${version}" 2>$null; $tagNotes = git tag -l --format='%(contents)' "v$version"; if ("$tagNotes".Trim()) { $notes = $tagNotes } }
           $global:LASTEXITCODE = 0
           $notes | Out-File notes.txt -Encoding utf8
           vpk pack --packId WinSqueeze --packVersion $version --packDir publish/WinSqueeze --mainExe WinSqueeze.exe --packTitle WinSqueeze --icon app/Assets/WinSqueeze.ico --channel $channel --releaseNotes notes.txt -o releases

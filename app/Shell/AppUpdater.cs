@@ -66,8 +66,9 @@ public sealed class AppUpdater
             using var feedResponse = await webClient.SendAsync(feedRequest);
             if (feedResponse.StatusCode == System.Net.HttpStatusCode.NotModified) return feedTag;
             feedResponse.EnsureSuccessStatusCode();
-            var feedMatch = System.Text.RegularExpressions.Regex.Match(await feedResponse.Content.ReadAsStringAsync(), @"/releases/tag/([^""<>\s]+)");
-            feedEtag = feedResponse.Headers.ETag?.ToString() ?? ""; feedTag = feedMatch.Success ? Uri.UnescapeDataString(feedMatch.Groups[1].Value) : "";
+            // Highest version in the feed (a stable release can be the newest entry, but dev builds are numbered above it)
+            var feedTags = System.Text.RegularExpressions.Regex.Matches(await feedResponse.Content.ReadAsStringAsync(), @"/releases/tag/([^""<>\s]+)").Select(match => Uri.UnescapeDataString(match.Groups[1].Value)).Distinct();
+            feedEtag = feedResponse.Headers.ETag?.ToString() ?? ""; feedTag = feedTags.Where(tag => Version.TryParse(tag.TrimStart('v'), out _)).OrderByDescending(tag => Version.Parse(tag.TrimStart('v'))).FirstOrDefault() ?? "";
             return feedTag;
         }
         using var latestResponse = await webClient.GetAsync($"{RepoUrl}/releases/latest");
