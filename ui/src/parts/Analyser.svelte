@@ -26,8 +26,12 @@
     window.addEventListener('resize', sizeCanvas)
     return () => { observer.disconnect(); window.removeEventListener('resize', sizeCanvas) }
   })
+  // Peak hold: a floating segment marks each bar's recent top, holds ~0.8 s, then drifts down; peakTick keeps it falling after the music stops
+  const peakHoldMs = 800, peakFallPerSecond = 0.9 // in bar heights per second
+  let peakLevels: number[] = [], peakHeldAt: number[] = [], peakDrawnAt = 0, peakTick = $state(0), peakFrame = 0
+  $effect(() => () => cancelAnimationFrame(peakFrame))
   $effect(() => {
-    layoutVersion; const context = canvasElement?.getContext('2d')
+    layoutVersion; peakTick; const context = canvasElement?.getContext('2d')
     if (!context || !columnsElement || !canvasElement!.height) return
     const canvasWidth = canvasElement!.width, canvasHeight = canvasElement!.height, columnsRect = columnsElement.getBoundingClientRect()
     const devicePerCss = canvasHeight / columnsElement.clientHeight, gapPixels = Math.max(1, Math.round(devicePerCss * 0.6))
@@ -39,16 +43,25 @@
     const columnElements = Array.from(columnsElement.querySelectorAll<HTMLElement>('.column')), columnStarts = columnElements.map(column => toPixels(column.getBoundingClientRect().left))
     const columnPitch = columnStarts.length > 1 ? columnStarts[1] - columnStarts[0] : canvasWidth, pitchScale = Math.max(1, Math.round(columnPitch)) / columnPitch
     const firstStart = Math.round(canvasWidth / 2 + (columnStarts[0] - canvasWidth / 2) * pitchScale)
-    let barIndex = 0, barWidthPixels = 0
+    let barIndex = 0, barWidthPixels = 0, peaksFloating = false
+    const now = performance.now(), sinceDrawn = Math.min(0.25, (now - (peakDrawnAt || now)) / 1000); peakDrawnAt = now
     columnElements.forEach((column, columnIndex) => column.querySelectorAll<HTMLElement>('.bar').forEach(bar => {
-      const barRect = bar.getBoundingClientRect(), lit = litCount(barLevels[barIndex++] ?? 0)
+      const level = barLevels[barIndex] ?? 0, barRect = bar.getBoundingClientRect(), lit = litCount(level)
+      if (!(level < (peakLevels[barIndex] ?? 0))) { peakLevels[barIndex] = level; peakHeldAt[barIndex] = now }
+      else if (now - peakHeldAt[barIndex] > peakHoldMs) peakLevels[barIndex] = Math.max(level, peakLevels[barIndex] - peakFallPerSecond * sinceDrawn)
+      const peakSegment = litCount(peakLevels[barIndex++]) - 1
+      if (peakSegment >= lit) peaksFloating = true
       barWidthPixels ||= Math.max(1, Math.round(barRect.width / columnsRect.width * canvasWidth))
       const leftPixels = firstStart + Math.round((columnStarts[columnIndex] - columnStarts[0]) * pitchScale) + Math.round((toPixels(barRect.left) - columnStarts[columnIndex]) * pitchScale)
       for (let segmentIndex = 0; segmentIndex < segments; segmentIndex++) {
-        context.fillStyle = segmentIndex < lit ? onColour : offColour
+        // Lit segments brighten up the scale (dim at the bottom, full at the top); the peak cap is always full brightness
+        const isPeak = segmentIndex === peakSegment && peakSegment > 0, isLit = segmentIndex < lit || isPeak
+        context.fillStyle = isLit ? onColour : offColour; context.globalAlpha = isLit && !isPeak ? 0.5 + 0.5 * segmentIndex / Math.max(1, segments - 1) : 1
         context.fillRect(leftPixels, canvasHeight - segmentIndex * pitchPixels - segmentPixels, barWidthPixels, segmentPixels)
       }
     }))
+    context.globalAlpha = 1
+    cancelAnimationFrame(peakFrame); if (peaksFloating) peakFrame = requestAnimationFrame(() => peakTick++)
   })
 </script>
 
