@@ -38,6 +38,8 @@ public class AudioSettings
 public class MeterSettings
 {
     public bool AutoReference { get; set; } = true; // 0 VU follows the music's loudness
+    public bool FollowEq { get; set; } = true; // meters show the sound after the EQ
+    public bool FollowVolume { get; set; } // meters drop with WinSqueeze's volume (off: they show the music at full level)
     public double ReferenceDbfs { get; set; } = -18; // RMS level that reads 0 VU when not automatic
     public double VuIntegrationMs { get; set; } = 300; // needle ballistics
     public double SpectrumFallMs { get; set; } = 250;

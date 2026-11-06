@@ -760,6 +760,7 @@ s32_t to_gain(float f);
 // output_vis.c
 #if VISEXPORT
 void _vis_export(struct buffer *outputbuf, struct outputstate *output, frames_t out_frames, bool silence);
+void vis_capture(s32_t *samples, frames_t frames, s32_t replay_gain, bool post_eq);
 void output_vis_init(log_level level, u8_t *mac);
 void vis_stop(void);
 #else

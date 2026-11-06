@@ -47,7 +47,7 @@ public sealed class VisualiserReader : IDisposable
                 if (view == null) { try { sharedFile = MemoryMappedFile.OpenExisting(mapName, MemoryMappedFileRights.Read); view = sharedFile.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read); } catch (FileNotFoundException) { Thread.Sleep(1000); continue; } }
                 var now = Environment.TickCount64; var elapsedSeconds = (now - lastTick) / 1000.0; lastTick = now;
                 // Seqlock read: retry if the writer was mid-update
-                int bufferSize = 0, rate = 0; bool live = false;
+                int bufferSize = 0, rate = 0; bool live = false; double volumeGain = 1;
                 for (var attempt = 0; attempt < 4; attempt++)
                 {
                     var sequenceBefore = view.ReadInt32(0);
@@ -60,11 +60,15 @@ public sealed class VisualiserReader : IDisposable
                     var endIndex = ((writeIndex - Math.Min(latencySamples, bufferSize - samples.Length)) % bufferSize + bufferSize) % bufferSize & ~1;
                     var startIndex = ((endIndex - samples.Length) % bufferSize + bufferSize) % bufferSize;
                     var firstPart = Math.Min(samples.Length, bufferSize - startIndex);
-                    view.ReadArray(HeaderBytes + startIndex * 2L, samples, 0, firstPart);
-                    if (firstPart < samples.Length) view.ReadArray(HeaderBytes, samples, firstPart, samples.Length - firstPart);
+                    // Ring after the EQ (default) or, when the meters shouldn't follow the EQ, the one before it (older builds have only the first)
+                    var ringOffset = !Tuning.FollowEq && view.Capacity >= HeaderBytes + bufferSize * 4L ? HeaderBytes + bufferSize * 2L : HeaderBytes;
+                    view.ReadArray(ringOffset + startIndex * 2L, samples, 0, firstPart);
+                    if (firstPart < samples.Length) view.ReadArray(ringOffset, samples, firstPart, samples.Length - firstPart);
+                    volumeGain = Tuning.FollowVolume ? view.ReadUInt32(20) / 65536.0 : 1; // the rings are before the volume
                     if (view.ReadInt32(0) == sequenceBefore) break;
                 }
                 if (!live) Array.Clear(samples);
+                else if (volumeGain < 1) for (var index = 0; index < samples.Length; index++) samples[index] = (short)(samples[index] * volumeGain);
                 if (rate > 0) SampleRate = rate;
                 var octaves = AnalyseOctaves(samples, rate > 0 ? rate : 44100);
                 Analyse(samples, rate > 0 ? rate : 44100, octaves, elapsedSeconds, live);
@@ -109,13 +113,14 @@ public sealed class VisualiserReader : IDisposable
 
     // Per channel, the energy in each octave band 31.5 Hz–16 kHz as dBFS (raw; the EQ window applies its own decay)
     static readonly double[] octaveCentres = { 31.5, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000 };
+    static readonly double[] analyserWindow = Enumerable.Range(0, AnalyserSize).Select(frame => 0.5 - 0.5 * Math.Cos(2 * Math.PI * frame / (AnalyserSize - 1))).ToArray(); // Hann, computed once
     static double[][] AnalyseOctaves(short[] samples, int rate)
     {
         var levels = new double[2][];
         for (var channel = 0; channel < 2; channel++)
         {
             var real = new double[AnalyserSize]; var imaginary = new double[AnalyserSize];
-            for (var frame = 0; frame < AnalyserSize; frame++) real[frame] = samples[frame * 2 + channel] / 32768.0 * (0.5 - 0.5 * Math.Cos(2 * Math.PI * frame / (AnalyserSize - 1)));
+            for (var frame = 0; frame < AnalyserSize; frame++) real[frame] = samples[frame * 2 + channel] / 32768.0 * analyserWindow[frame];
             Fft(real, imaginary);
             levels[channel] = octaveCentres.Select(centre =>
             {
@@ -138,10 +143,13 @@ public sealed class VisualiserReader : IDisposable
 
     static double Decibels(double amplitude) => Math.Round(20 * Math.Log10(amplitude + 1e-9), 1);
 
-    // In-place radix-2 FFT
+    // In-place radix-2 FFT; the twiddle factors are computed once per size (trig every frame cost enough to slow the meters)
+    static readonly Dictionary<int, (double[] cosines, double[] sines)> twiddles = new();
     static void Fft(double[] real, double[] imaginary)
     {
         var count = real.Length;
+        (double[] cosines, double[] sines) table;
+        lock (twiddles) if (!twiddles.TryGetValue(count, out table)) twiddles[count] = table = (Enumerable.Range(0, count / 2).Select(step => Math.Cos(-2 * Math.PI * step / count)).ToArray(), Enumerable.Range(0, count / 2).Select(step => Math.Sin(-2 * Math.PI * step / count)).ToArray());
         for (int index = 1, reversed = 0; index < count; index++)
         {
             var bit = count >> 1;
@@ -151,11 +159,11 @@ public sealed class VisualiserReader : IDisposable
         }
         for (var length = 2; length <= count; length <<= 1)
         {
-            var angle = -2 * Math.PI / length;
+            var stride = count / length;
             for (var start = 0; start < count; start += length)
                 for (var offset = 0; offset < length / 2; offset++)
                 {
-                    double twiddleReal = Math.Cos(angle * offset), twiddleImaginary = Math.Sin(angle * offset);
+                    double twiddleReal = table.cosines[offset * stride], twiddleImaginary = table.sines[offset * stride];
                     int even = start + offset, odd = even + length / 2;
                     double oddReal = real[odd] * twiddleReal - imaginary[odd] * twiddleImaginary, oddImaginary = real[odd] * twiddleImaginary + imaginary[odd] * twiddleReal;
                     real[odd] = real[even] - oddReal; imaginary[odd] = imaginary[even] - oddImaginary; real[even] += oddReal; imaginary[even] += oddImaginary;

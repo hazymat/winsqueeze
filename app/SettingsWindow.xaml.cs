@@ -355,6 +355,14 @@ public partial class SettingsWindow : Window
             var autoBox = new CheckBox { Content = "Automatic 0 VU (follows each song's loudness, so loud recordings don't pin the needles)", IsChecked = Settings.Meters.AutoReference, Margin = new Thickness(0, 0, 0, 10) };
             autoBox.Click += (sender, args) => { Settings.Meters.AutoReference = autoBox.IsChecked == true; Settings.Save(); App.ApplyMeters(); };
             metersPanel.Children.Add(autoBox);
+            void AddCheck(string label, Func<MeterSettings, bool> read, Action<MeterSettings, bool> write)
+            {
+                var checkBox = new CheckBox { Content = label, IsChecked = read(Settings.Meters), Margin = new Thickness(0, 0, 0, 10) };
+                checkBox.Click += (sender, args) => { write(Settings.Meters, checkBox.IsChecked == true); Settings.Save(); App.ApplyMeters(); };
+                metersPanel.Children.Add(checkBox);
+            }
+            AddCheck("Meters and analysers show the sound after the EQ", meters => meters.FollowEq, (meters, value) => meters.FollowEq = value);
+            AddCheck("Meters and analysers drop with WinSqueeze's volume (off: they show the music at full level)", meters => meters.FollowVolume, (meters, value) => meters.FollowVolume = value);
             AddRow("0 VU reference", "When automatic is off: the RMS level that reads 0 on the VU meters. Higher (e.g. −14) makes the needles read lower; −18 is the usual digital alignment.", -24, -8, 1, meters => meters.ReferenceDbfs, (meters, value) => meters.ReferenceDbfs = value, "dBFS");
             AddRow("VU ballistics", "How quickly the needles follow the music. 300 ms is a classic VU.", 50, 1000, 10, meters => meters.VuIntegrationMs, (meters, value) => meters.VuIntegrationMs = value, "ms");
             AddRow("Spectrum fall", "How fast the spectrum columns fall back.", 50, 1000, 10, meters => meters.SpectrumFallMs, (meters, value) => meters.SpectrumFallMs = value, "ms");

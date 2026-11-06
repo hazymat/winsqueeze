@@ -470,7 +470,9 @@ static int _write_frames(frames_t out_frames, bool silence, s32_t gainL, s32_t g
 #endif
 		{
 			rec_capture((s32_t *)outputbuf->readp, out_frames, output.current_sample_rate); // WinSqueeze recorder: the decoded audio, before EQ and volume
+			vis_capture((s32_t *)outputbuf->readp, out_frames, output.current_replay_gain, false); // WinSqueeze meters: before the EQ
 			eq_process((s32_t *)outputbuf->readp, out_frames, output.current_sample_rate); // WinSqueeze graphic equaliser, before volume
+			vis_capture((s32_t *)outputbuf->readp, out_frames, output.current_replay_gain, true); // and after it, before the volume
 		}
 #endif
 
