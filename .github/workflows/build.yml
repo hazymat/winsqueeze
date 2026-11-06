@@ -76,7 +76,8 @@ jobs:
           if ($channel -eq "stable" -and (Test-Path "docs/releases/$version.md")) { $notes = Get-Content "docs/releases/$version.md" }
           $global:LASTEXITCODE = 0
           $notes | Out-File notes.txt -Encoding utf8
-          vpk pack --packId WinSqueeze --packVersion $version --packDir publish/WinSqueeze --mainExe WinSqueeze.exe --packTitle WinSqueeze --icon app/Assets/WinSqueeze.ico --channel $channel --releaseNotes notes.txt -o releases
+          ($notes -replace '&', '&amp;' -replace '<', '&lt;') | Out-File notes-vpk.txt -Encoding utf8 # Velopack parses the notes as XML
+          vpk pack --packId WinSqueeze --packVersion $version --packDir publish/WinSqueeze --mainExe WinSqueeze.exe --packTitle WinSqueeze --icon app/Assets/WinSqueeze.ico --channel $channel --releaseNotes notes-vpk.txt -o releases
           $preFlag = @(); if ($channel -eq "dev") { $preFlag = @("--pre") }
           $title = if ($channel -eq "dev") { "WinSqueeze $version (dev)" } else { "WinSqueeze $version" }
           gh release view "v$version" --json tagName 2>$null | Out-Null; $releaseExists = $LASTEXITCODE -eq 0; $global:LASTEXITCODE = 0
