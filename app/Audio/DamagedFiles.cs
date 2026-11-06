@@ -5,17 +5,16 @@ using WinSqueeze.Settings;
 namespace WinSqueeze.Audio;
 
 // Damaged files (SPEC.md › Damaged files): Squeezelite logs every decode error. Each error is tied to the track being decoded,
-// warned about, skipped if it keeps happening, and remembered so lists can mark it and Settings can list it for restoring
+// warned about once, and remembered so lists can mark it and Settings can list it for restoring
 public sealed class DamagedFiles
 {
-    public sealed class DamagedFile { public long Id { get; set; } public string Url { get; set; } = ""; public string Title { get; set; } = ""; public string Artist { get; set; } = ""; public string Album { get; set; } = ""; public int Errors { get; set; } public bool Unplayable { get; set; } public DateTime LastSeen { get; set; } public string Path => Uri.UnescapeDataString(Url.StartsWith("file://") ? Url["file://".Length..] : Url); }
-    sealed class DecodeRecord { public bool PlayedNext; public List<DateTime> ErrorTimes = new(); public bool Fatal, Skipped, Announced; public Task<DamagedFile?>? Lookup; }
+    public sealed class DamagedFile { public long Id { get; set; } public string Url { get; set; } = ""; public string Title { get; set; } = ""; public string Artist { get; set; } = ""; public string Album { get; set; } = ""; public int Errors { get; set; } public string FirstError { get; set; } = ""; public bool Unplayable { get; set; } public DateTime LastSeen { get; set; } public string Path => Uri.UnescapeDataString(Url.StartsWith("file://") ? Url["file://".Length..] : Url); }
+    sealed class DecodeRecord { public bool PlayedNext; public List<DateTime> ErrorTimes = new(); public bool Fatal, Announced; public string FirstError = ""; public Task<DamagedFile?>? Lookup; }
 
     public List<DamagedFile> Files { get; private set; } = new();
     public event Action<DamagedFile, string>? Found; // the file and what happened: "damaged", "skipped" or "unplayable"
     public event Action? Changed;
     public Func<object[], Task<JsonElement>> PlayerRequest = command => Task.FromResult(default(JsonElement)); // a command for this PC's own player
-    const int SkipErrors = 3; static readonly TimeSpan SkipWindow = TimeSpan.FromSeconds(10);
     static string StorePath => System.IO.Path.Combine(AppPaths.DataFolder, "damaged-files.json");
     static readonly string[] errorMarkers = { "flac error:", "mad_frame_decode error", "ov_read error", "avformat_open_input:", "avformat_find_stream_info:" };
 
@@ -54,10 +53,11 @@ public sealed class DamagedFiles
             record.ErrorTimes.Add(now);
         }
         flushed = false;
+        if (record.FirstError == "") { var marker = errorMarkers.Append("decode error").Select(errorMarker => logLine.IndexOf(errorMarker)).Where(index => index >= 0).DefaultIfEmpty(0).Min(); record.FirstError = logLine[marker..].Trim(); } // e.g. "flac error: FLAC__STREAM_DECODER_ERROR_STATUS_LOST_SYNC"
         _ = CheckAsync(decodeCount);
     }
 
-    // Warn once per track, skip the track playing now if errors keep coming, remember it
+    // Warn once per track and remember it. Never skips: Squeezelite resyncs past bad frames and plays the rest of the file
     async Task CheckAsync(int decodeNumber)
     {
         if (!decodes.TryGetValue(decodeNumber, out var record) || (record.ErrorTimes.Count == 0 && !record.Fatal)) return;
@@ -66,17 +66,11 @@ public sealed class DamagedFiles
         if (damagedFile == null) return;
         var isNew = !Files.Contains(damagedFile); var becameUnplayable = record.Fatal && !damagedFile.Unplayable;
         damagedFile.Errors = Math.Max(damagedFile.Errors, record.ErrorTimes.Count); damagedFile.Unplayable |= record.Fatal; damagedFile.LastSeen = DateTime.Now;
+        if (damagedFile.FirstError == "") damagedFile.FirstError = record.FirstError;
         if (isNew) Files.Insert(0, damagedFile);
         if (isNew || becameUnplayable) Save(); // not on every error: a badly damaged file logs hundreds
         if (decodeNumber != playingDecode && !record.Fatal) return; // announced when it starts playing
-        var recentErrors = record.ErrorTimes.Count(errorTime => DateTime.Now - errorTime < SkipWindow);
-        if (decodeNumber == playingDecode && !record.Skipped && !record.Fatal && (recentErrors >= SkipErrors || (record.ErrorTimes.Count >= SkipErrors && !record.Announced)))
-        {
-            record.Skipped = record.Announced = true;
-            try { await PlayerRequest(new object[] { "playlist", "index", "+1" }); } catch { }
-            Save(); Found?.Invoke(damagedFile, "skipped");
-        }
-        else if (!record.Announced) { record.Announced = true; Save(); Found?.Invoke(damagedFile, record.Fatal ? "unplayable" : "damaged"); }
+        if (!record.Announced) { record.Announced = true; Save(); Found?.Invoke(damagedFile, record.Fatal ? "unplayable" : "damaged"); }
     }
 
     // Which track: the one playing, or (decoding ahead) the one after it. Only library files count, not radio or other streams

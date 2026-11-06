@@ -322,7 +322,7 @@ public partial class SettingsWindow : Window
         Closed += (sender, args) => App.Library.Changed -= ShowLibraryStatus;
         ShowLibraryStatus();
         // Damaged files: one per line, worst first, with the server's path so they can be found and replaced
-        void ShowDamagedFiles() => damagedFilesBox.Text = App.Damaged.Files.Count == 0 ? "None found yet." : string.Join(Environment.NewLine, App.Damaged.Files.OrderByDescending(damagedFile => damagedFile.Unplayable).ThenByDescending(damagedFile => damagedFile.Errors).Select(damagedFile => $"{(damagedFile.Unplayable ? "unplayable" : $"{damagedFile.Errors} errors")}  {damagedFile.Path}"));
+        void ShowDamagedFiles() => damagedFilesBox.Text = App.Damaged.Files.Count == 0 ? "None found yet." : string.Join(Environment.NewLine, App.Damaged.Files.OrderByDescending(damagedFile => damagedFile.Unplayable).ThenByDescending(damagedFile => damagedFile.Errors).Select(damagedFile => $"{(damagedFile.Unplayable ? "unplayable" : $"{damagedFile.Errors} errors")}  {damagedFile.Path}{(damagedFile.FirstError == "" ? "" : "  (" + damagedFile.FirstError + ")")}"));
         void OnDamagedChanged() => Dispatcher.BeginInvoke(ShowDamagedFiles);
         App.Damaged.Changed += OnDamagedChanged;
         Closed += (sender, args) => App.Damaged.Changed -= OnDamagedChanged;

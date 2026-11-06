@@ -20,7 +20,7 @@
     <div class="art-column">{#if cover}<div class="art" class:stream={Number(app.nowPlaying?.remote) === 1}><img src={cover} alt="" /></div>{:else}<div class="art empty">♪</div>{/if}</div>
     <div class="meta">
       <h1>{track?.title ?? 'Nothing playing'}</h1>
-      {#if track && isDamaged(track.id)}<div class="damaged">⚠ This file is damaged, so playback may skip. <button class="link" onclick={() => sendToShell({ type: 'openSettings', tab: 'Library' })}>See damaged files</button></div>{/if}
+      {#if track && isDamaged(track.id)}<div class="damaged">⚠ This file has damaged frames; playback continues past them. <button class="link" onclick={() => sendToShell({ type: 'openSettings', tab: 'Library' })}>See damaged files</button></div>{/if}
       {#if track?.artist}<button class="link artist" onclick={() => goTo('artist', track.artist)}>{track.artist}</button>{/if}
       {#if track?.album}<div class="album"><button class="link album-link" onclick={openAlbum} title="Open the album">{track.album}</button>{track.year && track.year !== '0' ? ` · ${track.year}` : ''}</div>{/if}
       {#if track?.composer}<div class="quiet">Composer <button class="link" onclick={() => goTo('composer', track.composer)}>{track.composer}</button></div>{/if}

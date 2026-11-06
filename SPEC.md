@@ -303,7 +303,7 @@ Chosen direction: **Frosted Dark**, frosted glass meets Squeezebox hardware. iOS
 
 ## Damaged files
 
-Squeezelite logs each decode error (for example a FLAC frame it can't read). WinSqueeze ties the errors to the track they belong to (decoding runs ahead of playback, so "codec open" and "track start" log lines are matched up), and only counts library files, not radio. On the first error it says the file is damaged and may skip, and Now playing shows the same note. If 3 or more errors come within 10 seconds, it skips to the next track and says so. A file the decoder rejects outright is reported as unplayable. Damaged files are remembered (`damaged-files.json` in the data folder): track lists mark them with ⚠, and Settings › Library & cache lists their server paths, with Copy list and Clear list buttons. There is no up-front scan of the library.
+Squeezelite logs each decode error (for example a FLAC frame it can't read). WinSqueeze ties the errors to the track they belong to (decoding runs ahead of playback, so "codec open" and "track start" log lines are matched up), and only counts library files, not radio. On the first error it says the file has damaged frames and is playing past them, and Now playing shows the same note. It never skips a damaged file: the decoder resyncs past bad frames and plays as much of the file as it can. The first error message is kept with the file. A file the decoder rejects outright is reported as unplayable. Damaged files are remembered (`damaged-files.json` in the data folder): track lists mark them with ⚠, and Settings › Library & cache lists their server paths and first error, with Copy list and Clear list buttons. There is no up-front scan of the library.
 
 ## Diagnostics
 
