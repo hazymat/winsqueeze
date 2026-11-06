@@ -7,7 +7,7 @@
   const choose = (optionValue: string) => { open = false; if (optionValue !== value) onchange(optionValue) }
 </script>
 
-<svelte:window onmousedown={(event) => { if (open && !root.contains(event.target as Node)) open = false }} onkeydown={(event) => { if (open && event.key === 'Escape') { event.stopPropagation(); open = false } }} />
+<svelte:window onmousedown={(event) => { if (open && !root.contains(event.target as Node)) open = false }} onkeydown={(event) => { if (open && event.key === 'Escape') { event.preventDefault(); open = false } }} />
 
 <div class="dropdown" bind:this={root}>
   <button class="current" class:open onclick={() => open = !open} aria-haspopup="listbox" aria-expanded={open}>

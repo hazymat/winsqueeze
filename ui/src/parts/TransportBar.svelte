@@ -49,6 +49,7 @@
     return { destroy: () => { stop(); button.removeEventListener('pointerdown', start); button.removeEventListener('pointerup', stop); button.removeEventListener('pointerleave', stop); button.removeEventListener('pointercancel', stop) } }
   }
 </script>
+<svelte:window onkeydown={(event) => { if (event.key === 'Escape' && volumeOpen) { event.preventDefault(); volumeOpen = false } }} />
 
 <div class="transport-host" class:mini-host={mini}>
 <footer class="transport" class:mini onwheel={wheelVolume}>

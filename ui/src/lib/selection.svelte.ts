@@ -39,7 +39,6 @@ export async function runAction(action: SelectionAction) { const keys = selectio
 
 addEventListener('keydown', (event: KeyboardEvent) => {
   if (!selection.keys.length || (event.target as HTMLElement)?.matches?.('input, textarea, select')) return
-  if (event.key === 'Escape') { event.preventDefault(); clearSelection(); return }
   if (event.ctrlKey || event.altKey || event.metaKey) return
   const action = selection.actions.find(candidate => { const key = actionKey(candidate); return key === event.key || (key?.length === 1 && key === event.key.toUpperCase()) || (event.key === 'Backspace' && key === 'Delete') })
   if (action?.run && !(action.single && selection.keys.length > 1)) { event.preventDefault(); runAction(action) }

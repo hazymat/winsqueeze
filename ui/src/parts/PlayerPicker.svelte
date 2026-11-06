@@ -38,7 +38,7 @@
   const sleepFor = (seconds: number) => command('sleep', seconds)
 </script>
 
-<svelte:window onmousedown={(event) => { if (open && !(event.target as HTMLElement).closest('.picker')) open = false }} onkeydown={(event) => { if (event.key === 'Escape') open = false }} />
+<svelte:window onmousedown={(event) => { if (open && !(event.target as HTMLElement).closest('.picker')) open = false }} onkeydown={(event) => { if (open && event.key === 'Escape') { event.preventDefault(); open = false } }} />
 
 <div class="picker">
   <button class="current" onclick={() => open = !open} aria-haspopup="listbox" aria-expanded={open} title="Choose player">

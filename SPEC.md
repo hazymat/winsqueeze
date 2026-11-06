@@ -299,6 +299,8 @@ Chosen direction: **Frosted Dark**, frosted glass meets Squeezebox hardware. iOS
 
 **Keyboard shortcuts (rebindable in settings):** Space play/pause; Ctrl+Left/Right previous/next; Ctrl+Up/Down volume; Ctrl+F search; Ctrl+N new playlist; Ctrl+1/2/3 window mode; Ctrl+, settings; Ctrl+Q quit. Optional global hotkeys, off by default.
 
+**Esc closes one layer per press, innermost first:** an open menu, dropdown, popover or drag; then sidebar editing; info panels; full-window meters; a multi-selection; a toast; the search text; and only then goes back a level.
+
 ## Damaged files
 
 Squeezelite logs each decode error (for example a FLAC frame it can't read). WinSqueeze ties the errors to the track they belong to (decoding runs ahead of playback, so "codec open" and "track start" log lines are matched up), and only counts library files, not radio. On the first error it says the file is damaged and may skip, and Now playing shows the same note. If 3 or more errors come within 10 seconds, it skips to the next track and says so. A file the decoder rejects outright is reported as unplayable. Damaged files are remembered (`damaged-files.json` in the data folder): track lists mark them with ⚠, and Settings › Library & cache lists their server paths, with Copy list and Clear list buttons. There is no up-front scan of the library.

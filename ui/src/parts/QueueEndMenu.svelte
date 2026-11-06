@@ -18,7 +18,7 @@
   const looks: [string, string][] = [['artist', 'Same artist, then genre'], ['genre', 'Same genre'], ['anything', 'Anything in the library']]
 </script>
 
-<svelte:window onmousedown={(event) => { if (open && !root.contains(event.target as Node) && !menu?.contains(event.target as Node)) open = false }} onkeydown={(event) => { if (open && event.key === 'Escape') { event.stopPropagation(); open = false } }} />
+<svelte:window onmousedown={(event) => { if (open && !root.contains(event.target as Node) && !menu?.contains(event.target as Node)) open = false }} onkeydown={(event) => { if (open && event.key === 'Escape') { event.preventDefault(); open = false } }} />
 
 <div class="queue-end" bind:this={root}>
   <button class="current" class:open class:active={mode !== 'stop'} onclick={toggle} aria-haspopup="menu" aria-expanded={open} title="Play order, and what happens when the queue ends">

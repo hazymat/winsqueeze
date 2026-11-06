@@ -14,6 +14,7 @@
     return all.sort((first, second) => first.rank - second.rank)
   })
 </script>
+<svelte:window onkeydown={(event) => { if (event.key === 'Escape' && noticeOpen) { event.preventDefault(); noticeOpen = false } }} />
 
 {#if whatsNew && mini}
   <button class="whats-dot" class:offset onclick={() => noticeOpen = !noticeOpen} aria-label="What's new" title="Updated to {whatsNew.toVersion}: what's new"></button>
