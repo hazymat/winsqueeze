@@ -8,7 +8,7 @@
 </script>
 
 {#if check.state === 'perfect'}
-  <span class="badge perfect" title="Bit-perfect: lossless source, native rate, exclusive output, volume at 100, EQ off"><Icon name="verified" size={15} />Bit-perfect</span>
+  <span class="badge perfect" title={`Bit-perfect: the decoded audio reaches the DAC untouched (native rate, exclusive output, volume 100, EQ off)${check.lossy ? '. The source itself is lossy.' : ''}`}><Icon name="verified" size={15} />Bit-perfect</span>
 {:else if check.state}
   <button class="badge scaled" class:open={noteOpen} onclick={() => noteOpen = !noteOpen} title="Click to see why this isn't bit-perfect">{check.state === 'scaled' ? 'Scaled' : 'Not bit-perfect'}</button>
   {#if noteOpen}
