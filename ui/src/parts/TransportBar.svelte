@@ -145,16 +145,18 @@
   @container (max-width: 700px) { .time, .meter-anchor { display: none; } }
   @container (max-width: 540px) { .volume > input, .volume-number, .volume :global(.fidelity) { display: none; } .volume { justify-content: center; } .volume-icon { display: block; } .transport { grid-template-columns: 1fr auto auto; } .seek-row { display: none; } }
   /* Mini: Winamp-style strip */
-  .mini { grid-template-columns: 1fr auto; grid-template-rows: auto auto; gap: 6px 10px; padding: 10px; height: 100%; box-sizing: border-box; border: 0; }
+  .mini { grid-template-columns: fit-content(55%) minmax(0, 1fr); grid-template-rows: auto auto; gap: 6px 10px; padding: 10px; height: 100%; box-sizing: border-box; border: 0; }
   .mini .centre { grid-column: 1 / 3; grid-row: 2; flex-direction: row; }
   .mini .seek-row { display: flex; } .mini .seek-row .time { display: none; }
   .mini .volume, .mini .meter-anchor { display: none; }
   .mini .right { gap: 4px; }
   .mini .title, .mini .artist { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow-wrap: anywhere; } /* wrap into the spare height instead of truncating */
   .mini .title { line-height: 1.25; }
-  /* mini meters as big as the window allows: up to a third of the width each pair, and the height left above the transport row */
-  .mini-meters { display: flex; align-self: center; } .mini-meters :global(.meters) { gap: 6px; } .mini-meters :global(.large .vu) { width: max(44px, min(16cqw, (100cqh - 86px) * 1.66, 230px)); height: auto; }
-  .mini-meters :global(.large .panel) { width: auto; height: max(28px, min(100cqh - 86px, 34cqw / var(--aspect), 140px)); } /* whole panels: as tall as fits, their own width */
+  /* mini meters fill whatever the title and artist leave: the text column takes its natural width (wrapping past 55%), the meters get the rest of the row */
+  .mini-meters { flex: 1 1 0; min-width: 0; align-self: stretch; container-type: size; display: flex; justify-content: center; align-items: center; } .mini .right > .mini-meters { flex-shrink: 1; }
+  .mini-meters :global(.meters) { gap: 6px; } .mini-meters :global(.large .vu) { width: min((100cqw - 6px) / 2, 100cqh * 1.66, 300px); height: auto; }
+  .mini-meters :global(.large .panel) { width: auto; height: min(100cqh, 100cqw / var(--aspect), 180px); } /* whole panels: as big as fits, their own shape */
+  .mini-meters :global(.large .spectrum) { width: min(100cqw, 100cqh * 2.2, 360px); height: min(100cqh, 160px); }
   .mini-speaker { background: none; border: 0; cursor: pointer; color: var(--fg); opacity: 0.6; padding: 4px; } .mini-speaker.on, .mini-speaker:hover { opacity: 1; color: var(--accent); }
   .mini-volume input { flex: 1; accent-color: var(--accent); } .mini .mini-volume .time { display: inline; }
   @container (max-width: 480px) or (max-height: 230px) { .mini-meters { display: none; } } /* small mini player: no meters, the title and artist get the room */
