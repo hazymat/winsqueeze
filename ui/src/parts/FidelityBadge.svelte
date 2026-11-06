@@ -1,21 +1,22 @@
 <script lang="ts">
   import { fidelity } from '../lib/fidelity.svelte'
   import Icon from './Icon.svelte'
-  // Above the volume: a rosette when playback is bit-perfect, "Scaled" (click for how to fix) when the volume is below 100
+  // Above the volume: a rosette when playback is bit-perfect, "Scaled" below 100, "Not bit-perfect" otherwise (click either for why)
   const check = $derived(fidelity())
   let noteOpen = $state(false)
-  $effect(() => { if (check.state !== 'scaled') noteOpen = false })
+  $effect(() => { if (check.state === 'perfect' || !check.state) noteOpen = false })
 </script>
 
 {#if check.state === 'perfect'}
   <span class="badge perfect" title="Bit-perfect: lossless source, native rate, exclusive output, volume at 100, EQ off"><Icon name="verified" size={15} />Bit-perfect</span>
-{:else if check.state === 'scaled'}
-  <button class="badge scaled" class:open={noteOpen} onclick={() => noteOpen = !noteOpen} title="Volume scaled: click for bit-perfect playback">Scaled</button>
+{:else if check.state}
+  <button class="badge scaled" class:open={noteOpen} onclick={() => noteOpen = !noteOpen} title="Click to see why this isn't bit-perfect">{check.state === 'scaled' ? 'Scaled' : 'Not bit-perfect'}</button>
   {#if noteOpen}
     <div class="note" role="dialog">
-      <strong>Volume scaled</strong>
-      <p>WinSqueeze is turning the audio down digitally, so it isn't bit-perfect. For bit-perfect playback, set this volume to 100 and use Windows' volume (or your DAC's own knob) to control the level.</p>
-      {#if check.reasons.length}<p class="quiet">Also not bit-perfect because {check.reasons.join(', ')}.</p>{/if}
+      {#if check.state === 'scaled'}<strong>Volume scaled</strong>
+        <p>WinSqueeze is turning the audio down digitally, so it isn't bit-perfect. For bit-perfect playback, set this volume to 100 and use Windows' volume (or your DAC's own knob) to control the level.</p>
+        {#if check.reasons.length}<p class="quiet">Also not bit-perfect because {check.reasons.join(', ')}.</p>{/if}
+      {:else}<strong>Not bit-perfect</strong><p>Because {check.reasons.join(', ')}.</p>{/if}
       <button class="close" onclick={() => noteOpen = false}>OK</button>
     </div>
   {/if}

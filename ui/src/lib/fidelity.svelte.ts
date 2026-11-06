@@ -13,5 +13,5 @@ export function fidelity() {
   if (!status.exclusive) reasons.push('shared mode goes through the Windows mixer')
   else if (sourceRate > 0 && outputRate > 0 && sourceRate !== outputRate) reasons.push(`the device is running at a different rate (resampled)`)
   if (status.eqActive) reasons.push('the equaliser is on')
-  return { state: volume < 100 ? 'scaled' : reasons.length ? '' : 'perfect', reasons }
+  return { state: volume < 100 ? 'scaled' : reasons.length ? 'blocked' : 'perfect', reasons }
 }

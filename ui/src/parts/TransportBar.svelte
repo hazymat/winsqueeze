@@ -71,6 +71,7 @@
     <div class="volume">
       <FidelityBadge />
       <input type="range" min="0" max="100" value={volume} oninput={dragVolume} onchange={releaseVolume} aria-label="Volume" />
+      <span class="volume-number" class:show={draggingVolume !== null}>{volume}</span>
       <button class="volume-icon" onclick={() => volumeOpen = !volumeOpen} aria-label="Volume"><Icon name="volume" /></button>
       {#if volumeOpen}<div class="volume-pop"><input type="range" min="0" max="100" value={volume} oninput={dragVolume} onchange={releaseVolume} aria-label="Volume" /></div>{/if}
     </div>
@@ -117,6 +118,9 @@
   /* The right column sizes to its content, so it can never spill over the buttons */
   .volume { position: relative; display: flex; align-items: center; }
   .volume input { width: 90px; accent-color: var(--accent); }
+  /* the number appears under the slider while hovering or dragging */
+  .volume-number { position: absolute; left: 50%; top: calc(50% + 9px); transform: translateX(-50%); color: var(--fg-quiet); font-size: 10px; font-variant-numeric: tabular-nums; opacity: 0; transition: opacity 150ms; pointer-events: none; }
+  .volume:hover .volume-number, .volume-number.show { opacity: 1; }
   .volume-icon { display: none; background: none; border: 0; cursor: pointer; color: var(--fg); padding: 4px; }
   .volume-pop { position: absolute; bottom: 36px; right: 0; background: var(--panel-solid); border: 1px solid var(--line); border-radius: 8px; padding: 10px; box-shadow: 0 8px 24px var(--shadow); }
   .pin { background: none; border: 0; cursor: pointer; opacity: 0.5; color: var(--fg); padding: 4px; } .pin.on { opacity: 1; }
@@ -124,7 +128,7 @@
   @container (max-width: 1400px) { .readout-slot { display: none; } } /* it's in Now playing too; never let it crowd the buttons */
   @container (max-width: 900px) { .transport { grid-template-columns: minmax(0, 1fr) minmax(200px, 1.4fr) auto; } }
   @container (max-width: 700px) { .time, .pixel-meter { display: none; } }
-  @container (max-width: 540px) { .volume > input, .volume :global(.badge) { display: none; } .volume-icon { display: block; } .transport { grid-template-columns: 1fr auto auto; } .seek-row { display: none; } }
+  @container (max-width: 540px) { .volume > input, .volume-number, .volume :global(.badge) { display: none; } .volume-icon { display: block; } .transport { grid-template-columns: 1fr auto auto; } .seek-row { display: none; } }
   /* Mini: Winamp-style strip */
   .mini { grid-template-columns: 1fr auto; grid-template-rows: auto auto; gap: 6px 10px; padding: 10px; height: 100%; box-sizing: border-box; border: 0; }
   .mini .centre { grid-column: 1 / 3; grid-row: 2; flex-direction: row; }
