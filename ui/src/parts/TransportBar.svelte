@@ -48,7 +48,7 @@
     {#if track?.coverid}<img src={artUrl(track.coverid, 120)} alt="" />{:else}<span class="no-art">♪</span>{/if}
     <span class="text"><span class="title">{track?.title ?? 'Nothing playing'}</span><span class="artist" title={track?.artist ?? (ownSelected ? app.status?.message ?? '' : '')}>{track?.artist ?? (ownSelected ? app.status?.message ?? '' : '')}</span></span>
   </button>
-  {#if showRecord}<button class="record" class:on={recording.on} onclick={() => sendToShell({ type: 'toggleRecording' })} title={recording.on ? `Recording ${recordedFor}${recording.files > 1 ? ` · file ${recording.files}` : ''}. Click to stop` : 'Record this station'} aria-label={recording.on ? 'Stop recording' : 'Record'}><span class="dot"></span>{#if recording.on && !mini}<span class="rec-time">{recordedFor}</span>{/if}</button>{/if}
+  {#if showRecord}<button class="record" class:on={recording.on} onclick={() => sendToShell({ type: 'toggleRecording' })} title={recording.on ? `Recording ${recordedFor}${recording.files > 1 ? ` · file ${recording.files}` : ''}. Click to stop` : 'Record this station'} aria-label={recording.on ? 'Stop recording' : 'Record'}><span class="dot"></span>{#if recording.on && !mini}<span class="rec-time">{recordedFor}</span>{/if}</button>{#if !mini && !recording.on}<span class="record-anchor"><Hint id="transport-record" text="Click to record this station" bubble /></span>{/if}{/if}
   </div>
   <div class="centre">
     <div class="buttons">
@@ -116,6 +116,7 @@
   .right { display: flex; align-items: center; justify-content: flex-end; gap: 10px; min-width: 0; }
   .right > * { flex-shrink: 0; }
   /* The right column sizes to its content, so it can never spill over the buttons */
+  .record-anchor { position: relative; width: 0; align-self: center; margin-left: -23px; } /* the tip centres over the record dot */
   .right { align-self: stretch; } .meter-anchor { position: relative; margin: 0 auto; } /* the analyser sits midway between the seek bar and the volume */
   /* Format and Bit-perfect/Scaled stacked above the slider, which sits low, in line with the seek bar */
   .volume { position: relative; display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-end; align-self: stretch; gap: 5px; }
