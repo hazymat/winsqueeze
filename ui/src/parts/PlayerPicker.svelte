@@ -83,7 +83,7 @@
   .current:hover { background: var(--hover); }
   .name { flex: 1; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .chevron { font-size: 9px; color: var(--fg-quiet); } .chevron.down { transform: rotate(180deg); }
-  .menu { position: absolute; left: 0; min-width: 260px; max-height: 50vh; overflow-y: auto; z-index: 40; padding: 6px; background: var(--panel-solid); backdrop-filter: blur(24px) saturate(1.5); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 16px 40px var(--shadow); }
+  .menu { position: absolute; left: 0; min-width: 260px; max-height: 50vh; overflow-y: auto; z-index: 40; padding: 6px; background: linear-gradient(var(--panel-solid), var(--panel-solid)), var(--panel-solid); backdrop-filter: blur(32px) saturate(1.4); border: 1px solid var(--line); border-radius: 12px; /* two layers of the panel colour: still glass, but the sidebar and covers behind don't compete with the list */ box-shadow: 0 16px 40px var(--shadow); }
   .menu button { display: flex; align-items: center; gap: 10px; width: 100%; background: none; border: 0; color: var(--fg); font: inherit; text-align: left; padding: 7px 10px; border-radius: 8px; cursor: pointer; }
   .menu button:hover:not(:disabled) { background: var(--hover); }
   .menu button.on { background: var(--accent-soft); }
