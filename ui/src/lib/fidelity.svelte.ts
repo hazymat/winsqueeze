@@ -4,7 +4,7 @@ import { app, currentTrack } from '../state.svelte'
 export function fidelity() {
   const track = currentTrack(), status = app.status
   const ownPlayer = !app.selectedPlayer || app.selectedPlayer === app.ownPlayer
-  if (!track || !ownPlayer || status?.state !== 'Running') return { lossy: !['FLC', 'FLAC', 'ALC', 'ALAC', 'WAV', 'AIF', 'AIFF', 'PCM'].includes(codec), state: '', reasons: [] as string[] }
+  if (!track || !ownPlayer || status?.state !== 'Running') return { lossy: false, state: '', reasons: [] as string[] }
   const codec = String(track.type ?? '').toUpperCase()
   const sourceRate = Number(track.samplerate ?? 0), outputRate = Number(status.sampleRate ?? 0)
   const volume = Math.abs(Number(app.nowPlaying?.['mixer volume'] ?? 100))
