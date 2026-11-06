@@ -2,6 +2,7 @@
   import { artUrl } from '../bridge'
   import { app, currentTrack, openView, ui } from '../state.svelte'
   import Meters from './Meters.svelte'
+  import Hint from './Hint.svelte'
   import Readout from './Readout.svelte'
   import QueueView from '../views/QueueView.svelte'
   // The one Now playing view: blurred-art backdrop, big art, track details, and the queue in its own scrolling glass panel
@@ -22,7 +23,7 @@
       {#if track?.conductor}<div class="quiet">Conductor {track.conductor}</div>{/if}
       {#if track?.band}<div class="quiet">Orchestra {track.band}</div>{/if}
       <div class="readout"><Readout /></div>
-      <Meters size="large" />
+      <Meters size="large" /><Hint id="meters-clicks" text="Left-click to cycle meter visualisations. Right-click to maximise the visualisation." />
     </div>
     <div class="queue-panel"><QueueView /></div>
   </div>
