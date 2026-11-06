@@ -91,6 +91,7 @@ public class LibrarySettings
     public string NameSeparators { get; set; } = ", ; & / feat. with and";
     public int RefreshMinutes { get; set; } = 5;
     public bool HideOwnComposers { get; set; } = true; // composers list leaves out songwriters credited only on their own albums
+    public string ListGraphic { get; set; } = "none"; // top-level lists show size graphically: none | dots | bar | bold
     public string ListCounts { get; set; } = "group"; // top-level lists show: group (whatever the next view groups by) | tracks | both
     // Second-level browsing: groupings offered in each view's Group menu, and each area's starting grouping (SPEC.md › Browsing)
     public List<string> BrowseGroupings { get; set; } = new() { "artist", "year", "decade", "added", "format", "initial" };

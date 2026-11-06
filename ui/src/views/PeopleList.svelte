@@ -23,6 +23,11 @@
     const mode = app.librarySettings.ListCounts ?? 'group'
     return mode === 'tracks' ? tracks || grouped : mode === 'both' ? [grouped, tracks].filter(Boolean).join(' · ') : grouped || tracks
   }
+  // Size graphic (Settings › Library): log share of the biggest row, by tracks when only tracks are shown, else by the grouped count
+  const graphic = $derived(app.librarySettings.ListGraphic ?? 'none')
+  const sizeOf = (row: any) => { const field = (groupCounts[nextView.group] ?? ['albums'])[0]; return Number((app.librarySettings.ListCounts === 'tracks' ? row.tracks : row[field] ?? row.tracks) ?? 0) }
+  const biggest = $derived(graphic === 'none' ? 1 : rows.reduce((largest, row) => Math.max(largest, sizeOf(row)), 1))
+  const shareOf = (row: any) => Math.log(sizeOf(row) + 1) / Math.log(biggest + 1)
 </script>
 
 {#if kind === 'performers'}
@@ -31,8 +36,10 @@
 {#if !rows.length}<p class="quiet">{app.library.text || 'Nothing here yet. The library is still syncing, or the server has none.'}</p>{/if}
 <div class="people" use:selectable={{ scope: 'people:' + kind, noun: viewKind ?? 'item', actions: browseActions(viewKind ?? 'artist') }}>
   {#each shown as row (row.key + (row.role ?? ''))}
-    <button class="person" data-select-key={String(row.key)} onclick={() => openView({ kind: viewKind, key: String(row.key), title: row.name })}>
+    {@const share = graphic === 'none' ? 0 : shareOf(row)}
+    <button class="person graphic-{graphic}" style:--share={share.toFixed(3)} data-select-key={String(row.key)} onclick={() => openView({ kind: viewKind, key: String(row.key), title: row.name })}>
       <span class="name">{row.name}</span>
+      {#if graphic === 'dots'}<span class="dots">{#each [1, 2, 3, 4, 5] as dot}<i class:lit={dot <= Math.max(1, Math.round(share * 5))}></i>{/each}</span>{/if}
       <span class="meta">{row.role && kind === 'performers' && !role ? row.role + ' · ' : ''}{countText(row)}</span>
     </button>
   {/each}
@@ -47,5 +54,9 @@
   .person:hover { background: var(--hover); }
   .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .meta { color: var(--fg-quiet); font-size: 12px; white-space: nowrap; }
+  .person { position: relative; align-items: center; }
+  .dots { display: flex; gap: 3px; margin-left: auto; } .dots i { width: 5px; height: 5px; border-radius: 50%; background: color-mix(in srgb, var(--fg) 14%, transparent); } .dots i.lit { background: var(--accent); box-shadow: 0 0 5px color-mix(in srgb, var(--accent) 60%, transparent); }
+  .graphic-bar::after { content: ""; position: absolute; left: 10px; bottom: 3px; height: 2px; width: calc(var(--share) * (100% - 20px)); border-radius: 2px; background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 40%, #b48cff)); opacity: calc(0.35 + var(--share) * 0.65); }
+  .graphic-bold .name { font-weight: calc(300 + var(--share) * 400); opacity: calc(0.45 + var(--share) * 0.55); } .graphic-bold .meta { opacity: calc(0.5 + var(--share) * 0.5); }
   .quiet { color: var(--fg-quiet); }
 </style>
