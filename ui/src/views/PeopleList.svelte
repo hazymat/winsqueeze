@@ -2,19 +2,24 @@
   import { selectable } from '../lib/selectable.svelte'
   import { browseActions } from '../lib/browseActions'
   import { query } from '../bridge'
-  import { app, ui, openView } from '../state.svelte'
+  import { app, ui, openView, type CustomStep } from '../state.svelte'
   import { browseState } from '../lib/browse.svelte'
-  let { kind }: { kind: 'artists' | 'composers' | 'performers' | 'genres' } = $props()
+  // custom: one level of a custom view (SPEC.md › Custom views); rows come from its scope, and a click takes the next step
+  let { kind, custom }: { kind: 'artists' | 'composers' | 'performers' | 'genres' | 'custom'; custom?: { viewId: string; genres: string[]; filters: CustomStep[]; level: string } } = $props()
   let rows = $state<any[]>([])
   let role = $state('')
   const roleNames: Record<string, string> = { '': 'All', conductor: 'Conductors', band: 'Bands & orchestras', soloist: 'Soloists' }
-  $effect(() => { app.indexVersion; app.librarySettings.AlbumSource; query(kind, { role }).then(result => rows = Array.isArray(result) ? result : []) })
+  $effect(() => { app.indexVersion; app.librarySettings.AlbumSource; (custom ? query('customLevel', { genres: custom.genres, filters: custom.filters, level: custom.level }) : query(kind, { role })).then(result => rows = Array.isArray(result) ? result : []) })
   const plain = (text: string) => (text ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
   // Matches from the start of any word: "jarr" finds Keith Jarrett
   const shown = $derived(ui.search.length >= 2 ? rows.filter(row => plain(row.name).split(/[\s,.&/-]+/).some(word => word.startsWith(plain(ui.search)))) : rows)
-  const viewKind = { artists: 'artist', composers: 'composer', performers: 'performer', genres: 'genre' }[kind]
+  const viewKind: string = custom ? custom.level : ({ artists: 'artist', composers: 'composer', performers: 'performer', genres: 'genre' } as Record<string, string>)[kind] // keyed per kind (or custom step) by the parent
+  const stepTo = (row: any): CustomStep[] => custom!.filters.concat([{ kind: custom!.level, key: String(row.key), name: row.name }])
+  // A custom row is selected (and played) as its whole scope: the view's genres plus every step to it
+  const selectKey = (row: any) => custom ? JSON.stringify({ genres: custom.genres, filters: stepTo(row).map(step => ({ kind: step.kind, key: step.key })) }) : String(row.key)
+  const open = (row: any) => custom ? openView({ kind: 'custom', key: custom.viewId, title: row.name, filters: stepTo(row) }) : openView({ kind: viewKind, key: String(row.key), title: row.name })
   // The count matches what the next view groups by (album artists, years…), or tracks, or both (Settings › Library)
-  const nextView = browseState(viewKind) // keyed per kind by the parent
+  const nextView = custom ? { group: 'none' } : browseState(viewKind) // keyed per kind by the parent
   const groupCounts: Record<string, [string, string, string]> = { artist: ['artists', 'album artist', 'album artists'], year: ['years', 'year', 'years'], decade: ['decades', 'decade', 'decades'], format: ['formats', 'format', 'formats'] }
   const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`
   function countText(row: any) {
@@ -33,11 +38,11 @@
 {#if kind === 'performers'}
   <div class="chips">{#each Object.keys(roleNames) as roleKey}<button class:on={role === roleKey} onclick={() => role = roleKey}>{roleNames[roleKey]}</button>{/each}</div>
 {/if}
-{#if !rows.length}<p class="quiet">{app.library.text || 'Nothing here yet. The library is still syncing, or the server has none.'}</p>{/if}
-<div class="people" use:selectable={{ scope: 'people:' + kind, noun: viewKind ?? 'item', actions: browseActions(viewKind ?? 'artist') }}>
+{#if !rows.length}<p class="quiet">{app.library.text || (custom ? 'Nothing in your library matches this view. Check its genres in Custom views.' : 'Nothing here yet. The library is still syncing, or the server has none.')}</p>{/if}
+<div class="people" use:selectable={{ scope: 'people:' + kind + (custom ? custom.viewId + custom.filters.length : ''), noun: viewKind ?? 'item', actions: browseActions(custom ? 'custom' : viewKind ?? 'artist') }}>
   {#each shown as row (row.key + (row.role ?? ''))}
     {@const share = graphic === 'none' ? 0 : shareOf(row)}
-    <button class="person graphic-{graphic}" style:--share={share.toFixed(3)} data-select-key={String(row.key)} onclick={() => openView({ kind: viewKind, key: String(row.key), title: row.name })}>
+    <button class="person graphic-{graphic}" style:--share={share.toFixed(3)} data-select-key={selectKey(row)} onclick={() => open(row)}>
       <span class="name">{row.name}</span>
       {#if graphic === 'dots'}<span class="dots">{#each [1, 2, 3, 4, 5] as dot}<i class:lit={dot <= Math.max(1, Math.round(share * 5))}></i>{/each}</span>{/if}
       <span class="meta">{row.role && kind === 'performers' && !role ? row.role + ' · ' : ''}{countText(row)}</span>

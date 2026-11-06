@@ -197,6 +197,9 @@
           <Grid.ColumnDefinitions><ColumnDefinition Width="120" /><ColumnDefinition Width="200" /></Grid.ColumnDefinitions>
         </Grid>
         <TextBlock Style="{StaticResource Quiet}" Margin="0,12,0,0" TextWrapping="Wrap" Text="Sort and View (Large, Compact or List) are remembered per area from the toolbar in the main window." />
+        <TextBlock Text="Custom views" FontWeight="SemiBold" Margin="0,22,0,0" />
+        <TextBlock x:Name="customViewsText" Margin="0,6,0,0" TextWrapping="Wrap" Text="The built-in lists browse your whole library one way: pick a composer, see their albums. A custom view first narrows the library to genres you choose, then steps through the order you choose, such as Genre, then Composer, then albums. So a Classical view lists only classical composers, without the pop songwriters credited on your other albums, and lets you ask questions the built-in lists can't, like which composers you have in Choral, or which genres you have of Bach." />
+        <Button x:Name="customViewsButton" Content="Edit custom views…" HorizontalAlignment="Left" Margin="0,10,0,0" Padding="12,4" />
       </StackPanel>
       </ScrollViewer>
     </TabItem>

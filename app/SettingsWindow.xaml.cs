@@ -342,6 +342,7 @@ public partial class SettingsWindow : Window
         var areaBoxes = new List<(string area, ComboBox box)>();
         var filling = false; // refilling the menus fires SelectionChanged; only a user's pick is saved
         void SaveAndPush() { Settings.Save(); App.NotifyLibraryChanged(); }
+        customViewsButton.Click += (sender, args) => App.OpenSection("customViews");
         // Each area's menu lists None plus the offered groupings
         void FillAreaBoxes()
         {

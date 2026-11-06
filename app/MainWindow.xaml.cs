@@ -109,6 +109,7 @@ public partial class MainWindow : Window
             {
                 case "ready": _ = PushDownloadsAsync(); LookLog("ready"); _ = ReapplyLookSoonAsync(); PushSkin(); PushMeterSettings(); _ = App.ShowWhatsNewAsync(); PushWindowState(); Push(App.StatusJson()); PushLibraryStatus(); PushSettings(); PushDamaged(); break;
                 case "dismissHint": if (!App.Settings.General.DismissedHints.Contains(Text(message, "id"))) { App.Settings.General.DismissedHints.Add(Text(message, "id")); App.Settings.Save(); } break;
+                case "setCustomViews": App.Settings.Library.CustomViews = message.GetProperty("views").Deserialize<List<CustomView>>() ?? new(); App.Settings.Save(); App.NotifyLibraryChanged(); break;
                 case "openSettings": App.OpenSettings(Text(message, "tab")); break;
                 case "quit": App.Quit(); break;
                 case "applyUpdate": await App.Updater.RestartToUpdateAsync(); break;
@@ -333,6 +334,7 @@ public partial class MainWindow : Window
     // maximised windows overhang the screen, so keep that overhang clear
     void UpdateFrameMargin() => webView.Margin = App.Settings.General.Frameless && WindowState == WindowState.Maximized ? new Thickness(7) : new Thickness(0);
     public void PushNewPlaylist() => Push("{\"type\":\"newPlaylist\"}");
+    public void PushOpenSection(string section) => Push(JsonSerializer.Serialize(new { type = "openSection", section }));
 
     // ---- Multi-monitor: size and position are remembered per monitor layout, and a window left off-screen comes back ----
     static string DisplayKey => string.Join("|", System.Windows.Forms.Screen.AllScreens.Select(screen => $"{screen.Bounds.X},{screen.Bounds.Y},{screen.Bounds.Width}x{screen.Bounds.Height}").OrderBy(text => text));

@@ -96,6 +96,22 @@ public class LibrarySettings
     // Second-level browsing: groupings offered in each view's Group menu, and each area's starting grouping (SPEC.md › Browsing)
     public List<string> BrowseGroupings { get; set; } = new() { "artist", "year", "decade", "added", "format", "initial" };
     public Dictionary<string, string> DefaultGrouping { get; set; } = new() { ["genre"] = "artist", ["artist"] = "none", ["composer"] = "artist", ["performer"] = "artist", ["albums"] = "none" };
+    // Custom views (SPEC.md › Custom views): the classical demos ship switched off
+    public List<CustomView> CustomViews { get; set; } = CustomView.Demos();
+}
+
+// A browse menu of your own: limited to some genres (none = whole library), stepping through Levels (genre | composer | artist | performer), then albums
+public class CustomView
+{
+    public string Id { get; set; } = "";
+    public string Name { get; set; } = "";
+    public bool Enabled { get; set; }
+    public string Group { get; set; } = ""; // views sharing a group sit in one sidebar entry of that name
+    public List<string> Genres { get; set; } = new();
+    public List<string> Levels { get; set; } = new();
+    static readonly List<string> classicalGenres = new() { "Baroque", "Chamber Music", "Choral", "Classical", "Minimalist", "Opera", "Orchestral", "Piano Music", "String Music", "Symphony" };
+    static CustomView Demo(string id, string name, params string[] levels) => new() { Id = id, Name = name, Group = "Classical", Genres = new(classicalGenres), Levels = levels.ToList() };
+    public static List<CustomView> Demos() => new() { Demo("classical-composers", "Composers", "composer"), Demo("composers-by-genre", "Composers by genre", "genre", "composer"), Demo("genres-by-composer", "Genres by composer", "composer", "genre"), Demo("composers-by-artist", "Composers by artist", "artist", "composer") };
 }
 
 public class GeneralSettings

@@ -52,6 +52,8 @@ public sealed class LibraryQueries
             "search" => Search(connection, Text("text")),
             "trackPlace" => Query(connection, "SELECT a.key AS album, a.title AS albumTitle, (SELECT ac.part_norm FROM album_credits ac WHERE ac.album_key=a.key AND ac.credit='own' LIMIT 1) AS artist, (SELECT p.display FROM people p WHERE p.part_norm=(SELECT ac.part_norm FROM album_credits ac WHERE ac.album_key=a.key AND ac.credit='own' LIMIT 1) AND p.role='artist') AS artistName FROM album_tracks at JOIN albums a ON a.key=at.album_key AND a.source=$source WHERE at.track_id=$id LIMIT 1", ("$source", albumSource), ("$id", Text("id"))).FirstOrDefault(),
             "trackInfo" => Query(connection, "SELECT t.id, t.title, t.track_no, t.disc_no, t.duration, t.year, t.content_type, t.sample_rate, t.sample_size, t.bitrate, t.album_artist, t.track_artist, t.composer, t.url, (SELECT a.title FROM album_tracks at JOIN albums a ON a.key=at.album_key AND a.source=$source WHERE at.track_id=t.id LIMIT 1) AS album, (SELECT group_concat(g.name, ', ') FROM track_genres tg JOIN genres g ON g.id=tg.genre_id WHERE tg.track_id=t.id) AS genre FROM tracks t WHERE t.id IN (SELECT value FROM json_each($ids))", ("$source", albumSource), ("$ids", Text("ids"))),
+            "customLevel" => CustomLevel(connection, queryParameters, Text("level")),
+            "customAlbums" => new { own = Query(connection, $"WITH matched AS ({CustomTracks(queryParameters, out var albumParameters)}) SELECT DISTINCT {albumColumns} FROM albums a JOIN album_tracks at ON at.album_key=a.key JOIN matched m ON m.id=at.track_id WHERE a.source=$source ORDER BY {AlbumOrder(Text("sort"))}", albumParameters.Append(("$source", (object?)albumSource)).ToArray()) },
             "trackItems" => TrackItems(connection, queryParameters.ValueKind == JsonValueKind.Object && queryParameters.TryGetProperty("items", out var itemList) && itemList.ValueKind == JsonValueKind.Array ? itemList : default),
             _ => new { error = $"Unknown query {queryName}" }
         });
@@ -111,6 +113,47 @@ public sealed class LibraryQueries
         Query(connection, $"SELECT DISTINCT {albumColumns} FROM albums a JOIN album_credits c ON c.album_key=a.key WHERE a.source=$source AND c.part_norm=$part AND c.credit IN (SELECT value FROM json_each($credits)) ORDER BY {AlbumOrder(sort)}",
             ("$source", albumSource), ("$part", partNorm), ("$credits", JsonSerializer.Serialize(credits)));
 
+    // ---- Custom views (SPEC.md › Custom views) ----
+    // Tracks in the view's genres (none chosen = all) that match every step taken so far ({kind, key} filters), as SQL selecting t.id
+    static readonly Dictionary<string, string> creditsFor = new() { ["artist"] = "'own','with','track'", ["performer"] = "'conductor','band'" };
+    string CustomTracks(JsonElement scope, out List<(string name, object? value)> parameters)
+    {
+        parameters = new();
+        var conditions = new List<string>();
+        var genreNames = scope.ValueKind == JsonValueKind.Object && scope.TryGetProperty("genres", out var genreList) && genreList.ValueKind == JsonValueKind.Array ? genreList.EnumerateArray().Select(genre => TextNormaliser.Normalise(genre.ToString())).ToList() : new();
+        if (genreNames.Count > 0) { conditions.Add("t.id IN (SELECT tg.track_id FROM track_genres tg JOIN genres g ON g.id=tg.genre_id WHERE g.name_norm IN (SELECT value FROM json_each($scopeGenres)))"); parameters.Add(("$scopeGenres", JsonSerializer.Serialize(genreNames))); }
+        var filterList = scope.ValueKind == JsonValueKind.Object && scope.TryGetProperty("filters", out var filters) && filters.ValueKind == JsonValueKind.Array ? filters.EnumerateArray().ToList() : new();
+        for (var position = 0; position < filterList.Count; position++)
+        {
+            var filterKind = filterList[position].TryGetProperty("kind", out var kindValue) ? kindValue.GetString() ?? "" : "";
+            var filterKey = filterList[position].TryGetProperty("key", out var keyValue) ? keyValue.ToString() : "";
+            var parameterName = "$filter" + position;
+            if (filterKind == "genre") conditions.Add($"t.id IN (SELECT track_id FROM track_genres WHERE genre_id={parameterName})");
+            else if (filterKind == "composer") conditions.Add($"t.id IN (SELECT tc.track_id FROM contributor_parts cp JOIN track_contributors tc ON tc.contributor_id=cp.contributor_id AND tc.role='composer' WHERE cp.part_norm={parameterName})");
+            else if (creditsFor.TryGetValue(filterKind, out var credits)) conditions.Add($"t.id IN (SELECT at.track_id FROM album_credits ac JOIN album_tracks at ON at.album_key=ac.album_key WHERE ac.part_norm={parameterName} AND ac.credit IN ({credits}))");
+            else continue;
+            parameters.Add((parameterName, filterKind == "genre" && long.TryParse(filterKey, out var genreId) ? genreId : filterKey));
+        }
+        return "SELECT t.id FROM tracks t" + (conditions.Count > 0 ? " WHERE " + string.Join(" AND ", conditions) : "");
+    }
+
+    // One step of a custom view: the genres, composers, artists or performers among its matching tracks, with album and track counts
+    List<Dictionary<string, object?>> CustomLevel(SqliteConnection connection, JsonElement scope, string level)
+    {
+        var matched = CustomTracks(scope, out var parameters);
+        parameters.Add(("$source", albumSource));
+        var rowsBy = level switch
+        {
+            // Only the view's own genres, not other genres its tracks also carry
+            "genre" => "SELECT DISTINCT CAST(g.id AS TEXT) AS key, m.id FROM matched m JOIN track_genres tg ON tg.track_id=m.id JOIN genres g ON g.id=tg.genre_id" + (parameters.Any(parameter => parameter.name == "$scopeGenres") ? " WHERE g.name_norm IN (SELECT value FROM json_each($scopeGenres))" : ""),
+            "composer" => "SELECT DISTINCT cp.part_norm AS key, m.id FROM matched m JOIN track_contributors tc ON tc.track_id=m.id AND tc.role='composer' JOIN contributor_parts cp ON cp.contributor_id=tc.contributor_id",
+            _ => $"SELECT DISTINCT ac.part_norm AS key, m.id FROM matched m JOIN album_tracks at ON at.track_id=m.id JOIN albums a ON a.key=at.album_key AND a.source=$source JOIN album_credits ac ON ac.album_key=a.key AND ac.credit IN ({creditsFor.GetValueOrDefault(level, creditsFor["artist"])})"
+        };
+        var names = level == "genre" ? "(SELECT name FROM genres WHERE id=CAST(rk.key AS INTEGER))" : $"COALESCE((SELECT display FROM people WHERE part_norm=rk.key ORDER BY role='{(level == "performer" ? "conductor" : level)}' DESC LIMIT 1), (SELECT part_display FROM contributor_parts WHERE part_norm=rk.key LIMIT 1), rk.key)";
+        var sortName = level == "genre" ? "(SELECT name_norm FROM genres WHERE id=CAST(rk.key AS INTEGER))" : "rk.key";
+        return Query(connection, $"WITH matched AS ({matched}), rk AS (SELECT rt.key, COUNT(DISTINCT rt.id) AS tracks, COUNT(DISTINCT a.key) AS albums FROM ({rowsBy}) rt LEFT JOIN album_tracks at ON at.track_id=rt.id LEFT JOIN albums a ON a.key=at.album_key AND a.source=$source GROUP BY rt.key) SELECT rk.key, {names} AS name, rk.tracks, rk.albums FROM rk ORDER BY {sortName}", parameters.ToArray());
+    }
+
     // Selection actions: any chosen rows (albums, people, genres, folders, tracks) as one ordered, de-duplicated track list
     const string trackColumns = "t.id, t.title, COALESCE(NULLIF(t.track_artist,''), t.album_artist, '') AS artist, t.duration";
     List<Dictionary<string, object?>> AlbumTracks(SqliteConnection connection, string albumKey, string extraCondition = "", params (string name, object? value)[] extraParameters) =>
@@ -132,6 +175,8 @@ public sealed class LibraryQueries
                 case "performer": foreach (var albumKey in AlbumKeys(AlbumsByCredit(connection, key, new[] { "conductor", "band", "track" }, ""))) tracks.AddRange(AlbumTracks(connection, albumKey)); break;
                 case "genre": tracks.AddRange(Query(connection, $"SELECT {trackColumns} FROM track_genres tg JOIN tracks t ON t.id=tg.track_id JOIN album_tracks at ON at.track_id=t.id JOIN albums a ON a.key=at.album_key AND a.source=$source WHERE tg.genre_id=$key ORDER BY a.artist_norm, a.year, a.title_norm, at.disc_no, at.track_no", ("$source", albumSource), ("$key", key))); break;
                 case "folder": tracks.AddRange(Query(connection, $"SELECT {trackColumns} FROM tracks t JOIN folders f ON f.id=t.folder_id WHERE f.id=$id OR f.path LIKE (SELECT path FROM folders WHERE id=$id) || '/%' ORDER BY f.path, t.disc_no, t.track_no", ("$id", key))); break;
+                // A custom view row: key is the view's scope as JSON ({genres, filters}); its matching tracks album by album
+                case "custom": using (var scopeDocument = JsonDocument.Parse(key == "" ? "{}" : key)) { tracks.AddRange(Query(connection, $"WITH matched AS ({CustomTracks(scopeDocument.RootElement, out var scopeParameters)}) SELECT {trackColumns} FROM matched m JOIN tracks t ON t.id=m.id JOIN album_tracks at ON at.track_id=t.id JOIN albums a ON a.key=at.album_key AND a.source=$source ORDER BY a.artist_norm, a.year, a.title_norm, at.disc_no, at.track_no", scopeParameters.Append(("$source", (object?)albumSource)).ToArray())); } break;
                 case "track": tracks.AddRange(Query(connection, $"SELECT {trackColumns} FROM tracks t WHERE t.id=$id", ("$id", key))); break;
             }
         }
