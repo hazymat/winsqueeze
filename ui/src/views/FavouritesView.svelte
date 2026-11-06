@@ -4,18 +4,25 @@
   import type { SelectionAction } from '../lib/selection.svelte'
   import { live, artUrl } from '../bridge'
   import { app, ui, openView, toast, formatTime } from '../state.svelte'
+  import Icon from '../parts/Icon.svelte'
   let { itemId = '' }: { itemId?: string } = $props()
   let items = $state<any[]>([])
   let loading = $state(true)
   // Lyrion's own favourites, read live (they are small and change from other controllers)
-  async function load() { const result = await live(['favorites', 'items', 0, 500, 'want_url:1'].concat(itemId ? [`item_id:${itemId}`] : [])); items = result?.loop_loop ?? []; loading = false }
+  async function load() { const result = await live(['favorites', 'items', 0, 500, 'want_url:1'].concat(itemId ? [`item_id:${itemId}`] : [])); items = result?.loop_loop ?? []; loading = false; if (itemId) addDates() }
+  // Inside a folder (e.g. BBC Sounds episodes) only the menu form carries the date, as a second line of its text
+  async function addDates() {
+    const menu = await live(['favorites', 'items', 0, 500, 'menu:1', `item_id:${itemId}`], true)
+    const dates = new Map<string, string>((menu?.item_loop ?? []).map((entry: any) => [String(entry.params?.item_id ?? ''), String(entry.text ?? '').split('\n')[1] ?? '']))
+    if (Array.from(dates.values()).some(Boolean)) items = items.map(item => dates.get(String(item.id)) && !item.date ? Object.assign({}, item, { date: dates.get(String(item.id)) }) : item)
+  }
   // Reload only when the folder or the server really changes, not on every status push (which made the list flicker)
   const serverName = $derived(String(app.status?.server ?? ''))
   $effect(() => { itemId; serverName; untrack(load) })
   const plain = (text: string) => (text ?? '').toLowerCase()
   const shown = $derived(ui.search.length >= 2 ? items.filter(item => plain(item.name).includes(plain(ui.search))) : items)
   async function activate(item: any) {
-    if (item.hasitems && !item.isaudio) openView({ kind: 'favourites', key: item.id, title: item.name })
+    if (item.hasitems && !item.isaudio) openView({ kind: 'favourites', key: item.id, title: splitName(item)[0] })
     else { await live(['favorites', 'playlist', 'play', `item_id:${item.id}`], true); toast(`Playing ${item.name}`) }
   }
   async function remove(item: any) { await live(['favorites', 'delete', `item_id:${item.id}`]); toast(`Removed ${item.name} from favourites`); load() }
@@ -43,7 +50,9 @@
   const labels: Record<string, string> = { name: 'Name', title: 'Title', line1: 'Title', line2: 'Detail', subtitle: 'Detail', description: 'Description', date: 'Date', year: 'Year', duration: 'Length', artist: 'Artist', album: 'Album', remote_title: 'Station', type: 'Type', url: 'Address' }
   const formatValue = (key: string, value: any) => key === 'duration' && Number(value) > 0 ? formatTime(Number(value)) : String(value)
   const infoFor = (item: any) => ({ name: item.name, fields: Object.keys(item).filter(key => !['id', 'hasitems', 'isaudio', 'image', 'icon'].includes(key) && item[key] !== '' && item[key] != null && typeof item[key] !== 'object').map(key => [labels[key] ?? key, formatValue(key, item[key])] as [string, string]) })
-  const detail = (item: any) => [item.line2 ?? item.subtitle ?? '', item.date ?? '', Number(item.duration) > 0 ? formatTime(Number(item.duration)) : ''].filter(Boolean).join(' · ') || (item.description ?? '')
+  // "Programme - what it is" names (BBC Sounds) split into a title and a subtitle line
+  const splitName = (item: any) => { const name = String(item.name ?? ''), cut = name.indexOf(' - '); return cut > 0 ? [name.slice(0, cut), name.slice(cut + 3)] : [name, ''] }
+  const detail = (item: any) => [item.line2 ?? item.subtitle ?? splitName(item)[1], /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(String(item.name)) ? '' : item.date ?? '', Number(item.duration) > 0 ? formatTime(Number(item.duration)) : ''].filter(Boolean).join(' · ') || (item.description ?? '')
   const image = (item: any) => { const source = String(item.image ?? item.icon ?? ''); return source.startsWith('http') ? source : source.startsWith('/') || source.startsWith('imageproxy') || source.startsWith('html/') || source.startsWith('plugins/') ? `https://art.winsqueeze/server/${encodeURIComponent(source.replace(/^\//, ''))}` : '' }
 </script>
 
@@ -54,8 +63,8 @@
     <div class="favourite" data-select-key={String(item.id)}>
       <button class="main" onclick={() => activate(item)}>
         {#if image(item)}<img src={image(item)} alt="" loading="lazy" />{:else}<span class="glyph">{item.hasitems && !item.isaudio ? '📁' : item.type === 'audio' ? '📻' : '★'}</span>{/if}
-        <span class="text"><span class="name">{item.name}</span>{#if detail(item)}<span class="detail">{detail(item)}</span>{/if}</span>
-        <span class="kind">{item.hasitems && !item.isaudio ? 'Open' : 'Play'}</span>
+        <span class="text" title={item.name}><span class="name">{splitName(item)[0]}</span>{#if detail(item)}<span class="detail">{detail(item)}</span>{/if}</span>
+        <span class="kind" title={item.hasitems && !item.isaudio ? 'Open' : 'Play'}><Icon name={item.hasitems && !item.isaudio ? 'folders' : 'play'} size={16} /></span>
       </button>
       <button class="remove" onclick={() => remove(item)} title="Remove from favourites">★</button>
     </div>
@@ -69,9 +78,9 @@
   .favourite:hover { background: var(--hover); }
   .main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; background: none; border: 0; color: var(--fg); padding: 6px 8px; cursor: pointer; font: inherit; text-align: left; }
   .main img, .glyph { width: 40px; height: 40px; border-radius: 6px; object-fit: cover; display: grid; place-items: center; background: var(--panel-strong); flex-shrink: 0; }
-  .text { flex: 1; min-width: 0; display: flex; flex-direction: column; } .detail { color: var(--fg-quiet); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .text { flex: 1; min-width: 0; display: flex; flex-direction: column; } .detail { color: var(--fg-quiet); font-size: 12px; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; line-height: 1.3; }
   .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .kind { color: var(--fg-quiet); font-size: 12px; }
+  .kind { color: var(--fg-quiet); display: grid; place-items: center; opacity: 0.7; } .favourite:hover .kind { color: var(--accent); opacity: 1; }
   .remove { background: none; border: 0; color: var(--accent); cursor: pointer; font-size: 16px; padding: 0 10px; }
   .quiet { color: var(--fg-quiet); }
 </style>
