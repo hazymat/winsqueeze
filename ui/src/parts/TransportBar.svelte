@@ -157,7 +157,7 @@
   .mini-meters :global(.large .panel) { width: auto; height: max(28px, min(100cqh - 86px, 34cqw / var(--aspect), 140px)); } /* whole panels: as tall as fits, their own width */
   .mini-speaker { background: none; border: 0; cursor: pointer; color: var(--fg); opacity: 0.6; padding: 4px; } .mini-speaker.on, .mini-speaker:hover { opacity: 1; color: var(--accent); }
   .mini-volume input { flex: 1; accent-color: var(--accent); } .mini .mini-volume .time { display: inline; }
-  @container (max-width: 300px) { .mini-meters { display: none; } }
+  @container (max-width: 480px) or (max-height: 230px) { .mini-meters { display: none; } } /* small mini player: no meters, the title and artist get the room */
   .mini .now img, .mini .no-art { width: clamp(44px, min(100cqh - 96px, 20cqw), 150px); height: clamp(44px, min(100cqh - 96px, 20cqw), 150px); }
   .buttons button.scanning { color: var(--accent); background: var(--accent-soft); }
   .mini .buttons { gap: 6px; } .mini .buttons button { width: 30px; height: 30px; } .mini .buttons .play { width: 34px; height: 34px; }
