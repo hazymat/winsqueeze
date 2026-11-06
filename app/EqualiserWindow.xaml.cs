@@ -56,6 +56,7 @@ public partial class EqualiserWindow : Window
         webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
         webView.CoreWebView2.Settings.IsStatusBarEnabled = false;
         webView.CoreWebView2.Settings.AreBrowserAcceleratorKeysEnabled = false;
+        webView.CoreWebView2.Settings.IsZoomControlEnabled = false;
         webView.CoreWebView2.WebMessageReceived += (sender, args) => OnUiMessage(args.WebMessageAsJson);
         webView.CoreWebView2.Navigate("https://app.winsqueeze/index.html#eq");
     }

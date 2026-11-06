@@ -140,6 +140,13 @@
         </StackPanel>
         <CheckBox x:Name="coverAccentBox" Content="Or take it from the playing album's cover (frosted skins)" Margin="0,0,0,8" />
         <CheckBox x:Name="coverBackdropBox" Content="Tint Now playing with the album cover's colours" Margin="0,0,0,14" />
+        <TextBlock Style="{StaticResource Label}" Text="Size of everything in the main window" />
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+          <TextBlock Text="Scale" Width="100" VerticalAlignment="Center" />
+          <Slider x:Name="uiScaleSlider" Minimum="75" Maximum="150" Width="220" IsSnapToTickEnabled="True" TickFrequency="5" VerticalAlignment="Center" />
+          <TextBlock x:Name="uiScaleText" Width="50" Margin="8,0,0,0" VerticalAlignment="Center" />
+          <Button x:Name="uiScaleResetButton" Content="Reset to 100%" Padding="10,2" />
+        </StackPanel>
         <TextBlock Style="{StaticResource Label}" Text="Glass (frosted skins with glass on)" />
         <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
           <TextBlock Text="Transparency" Width="100" VerticalAlignment="Center" />

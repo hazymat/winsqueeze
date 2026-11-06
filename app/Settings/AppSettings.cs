@@ -115,6 +115,7 @@ public class GeneralSettings
     public bool GlobalHotkeys { get; set; } // Ctrl+Alt+Space / Left / Right / Up / Down work from any app (off by default)
     public bool TrackToasts { get; set; } // a notification on each new track (off by default)
     public Dictionary<string, double[]> WindowBounds { get; set; } = new(); // per monitor layout: left, top, width, height, maximised
+    public double UiScale { get; set; } = 1; // main window zoom (0.75..1.5), set in Appearance; Ctrl+wheel zoom is off
     public string Skin { get; set; } = "auto";
     public string AccentColour { get; set; } = ""; // #rrggbb chosen in Appearance; empty = the skin's own (blue)
     public int GlassTransparency { get; set; } = -1; // 0..100 % see-through for the glass tint; -1 = the skin's default

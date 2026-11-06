@@ -314,6 +314,10 @@ public partial class SettingsWindow : Window
             general.AccentColour = $"#{colourDialog.Color.R:x2}{colourDialog.Color.G:x2}{colourDialog.Color.B:x2}"; Settings.Save(); App.ApplySkin(); ShowAccent();
         };
         accentResetButton.Click += (sender, args) => { general.AccentColour = ""; Settings.Save(); App.ApplySkin(); ShowAccent(); };
+        // Scale of the whole main window UI (replaces Ctrl+wheel zoom)
+        uiScaleSlider.Value = Math.Round(general.UiScale * 100); uiScaleText.Text = $"{uiScaleSlider.Value}%";
+        uiScaleSlider.ValueChanged += (sender, args) => { general.UiScale = uiScaleSlider.Value / 100; uiScaleText.Text = $"{uiScaleSlider.Value}%"; Settings.Save(); App.ApplyUiScale(); };
+        uiScaleResetButton.Click += (sender, args) => uiScaleSlider.Value = 100;
         // Glass: how see-through the tint is, and its hue (0 = neutral); both preview live
         void ShowGlass()
         {

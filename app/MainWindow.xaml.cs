@@ -65,6 +65,8 @@ public partial class MainWindow : Window
         webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
         webView.CoreWebView2.Settings.IsStatusBarEnabled = false;
         webView.CoreWebView2.Settings.AreBrowserAcceleratorKeysEnabled = false; // the UI owns Ctrl+F, Ctrl+N etc.
+        webView.CoreWebView2.Settings.IsZoomControlEnabled = false; // no accidental Ctrl+wheel zoom; the scale lives in Settings › Appearance
+        ApplyUiScale();
         webView.CoreWebView2.NavigationCompleted += (sender, args) => webViewReady = true;
         // The page's renderer can die (out of memory, GPU reset): log it and reload rather than leave a blank window
         webView.CoreWebView2.ProcessFailed += (sender, args) => { CrashReporter.Write($"WebView2 process failed: {args.ProcessFailedKind} ({args.Reason})", null); if (args.ProcessFailedKind is CoreWebView2ProcessFailedKind.RenderProcessExited or CoreWebView2ProcessFailedKind.RenderProcessUnresponsive) webView.CoreWebView2.Reload(); };
@@ -337,6 +339,7 @@ public partial class MainWindow : Window
 
     public void PushSkin() => Push(JsonSerializer.Serialize(new { type = "skin", skin = App.Settings.General.Skin, coverAccent = App.Settings.General.CoverAccent, coverBackdrop = App.Settings.General.CoverBackdrop, accent = App.Settings.General.AccentColour, glassTransparency = App.Settings.General.GlassTransparency, glassTintHue = App.Settings.General.GlassTintHue }));
     public void PushWhatsNew(string fromVersion, string toVersion, List<ReleaseEntry> releases) => Push(JsonSerializer.Serialize(new { type = "whatsNew", fromVersion, toVersion, releases = releases.Select(release => new { version = release.Version, date = release.Published.ToString("d MMM"), notes = release.Notes, url = release.Url }) }));
+    public void ApplyUiScale() { if (webView.CoreWebView2 != null) webView.ZoomFactor = Math.Clamp(App.Settings.General.UiScale, 0.75, 1.5); }
     void PushSettings() => Push(JsonSerializer.Serialize(new { type = "settings", library = App.Settings.Library, playback = new { App.Settings.Playback.QueueEnd, App.Settings.Playback.ContinueAdds, App.Settings.Playback.ContinueFrom }, hints = new { hidden = App.Settings.General.HideHints, dismissed = App.Settings.General.DismissedHints } }));
     public void PushMeterSettings() => Push(JsonSerializer.Serialize(new { type = "meterSettings", referenceDbfs = App.Settings.Meters.ReferenceDbfs, autoReference = App.Settings.Meters.AutoReference }));
     void PushWindowState() => Push(JsonSerializer.Serialize(new { type = "window", glass = glassActive, frameless = App.Settings.General.Frameless, maximised = WindowState == WindowState.Maximized }));
