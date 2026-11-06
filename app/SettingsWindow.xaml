@@ -277,7 +277,7 @@
       <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel Margin="16">
         <TextBlock Text="In the window" FontWeight="SemiBold" />
-        <TextBlock Style="{StaticResource Quiet}" TextWrapping="Wrap" Margin="0,4,0,0" Text="Space play/pause · Ctrl+Left/Right previous/next · Ctrl+Up/Down volume · Ctrl+F search · Ctrl+N new playlist · Ctrl+Z undo (keeps going back) · Ctrl+Y or Ctrl+Shift+Z redo · Ctrl+1/2/3 window mode · Ctrl+, settings · Ctrl+Q quit · Esc back or clear selection" />
+        <TextBlock Style="{StaticResource Quiet}" TextWrapping="Wrap" Margin="0,4,0,0" Text="Space play/pause · Ctrl+Left/Right previous/next · Ctrl+Up/Down volume · Ctrl+F search · Ctrl+N new playlist · Ctrl+Z undo (keeps going back) · Ctrl+Y or Ctrl+Shift+Z redo · Ctrl+1/2/3 window mode · Ctrl+, settings · Ctrl+Q quit · Esc back or clear selection · With items selected: Enter play now, N play next, E add to end, I info, Del remove" />
         <TextBlock Text="Keyboard media keys" FontWeight="SemiBold" Margin="0,16,0,0" />
         <TextBlock Style="{StaticResource Quiet}" TextWrapping="Wrap" Margin="0,4,0,0" Text="Play/pause, next and previous keys control WinSqueeze through the Windows media overlay." />
         <CheckBox x:Name="globalHotkeysBox" Content="Global hotkeys: Ctrl+Alt+Space play/pause, Ctrl+Alt+Left/Right previous/next, Ctrl+Alt+Up/Down volume, from any app" Margin="0,16,0,0" />

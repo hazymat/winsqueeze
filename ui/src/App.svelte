@@ -41,7 +41,7 @@
   // The layout is section keys plus spacers ("spacer-…"); out of the box one spacer sits under the first section
   const isSpacer = (key: string) => key.startsWith('spacer-')
   // Radio and Apps arrive next to Favourites in a sidebar customised before they existed
-  function initialLayout(): string[] { const stored: string[] = JSON.parse(readSetting('sectionOrder', '[]')); if (stored.length && !stored.includes('radio')) stored.splice(stored.includes('favourites') ? stored.indexOf('favourites') + 1 : stored.length, 0, 'radio', 'apps'); if (readSetting('spacersAdded', '')) return stored; return stored.length ? stored.slice(0, 1).concat(['spacer-1'], stored.slice(1)) : ['queue', 'spacer-1'] }
+  function initialLayout(): string[] { const stored: string[] = JSON.parse(readSetting('sectionOrder', '[]')); if (stored.length && !stored.includes('radio')) stored.splice(stored.includes('favourites') ? stored.indexOf('favourites') + 1 : stored.length, 0, 'radio', 'apps'); if (readSetting('spacersAdded', '')) return stored; return stored.length ? stored.slice(0, 1).concat(['spacer-1'], stored.slice(1)) : ['queue', 'spacer-1', 'favourites', 'radio', 'spacer-2'] } // new install: Now playing | Favourites, Radio | the rest
   let layoutOrder = $state<string[]>(initialLayout())
   // Stored order first (unknown keys dropped), then any section not placed yet
   const placeable = $derived(allSections.concat(pinSections))
@@ -147,6 +147,7 @@
 
   function onKey(event: KeyboardEvent) {
     const typing = (event.target as HTMLElement)?.matches?.('input, textarea, select')
+    if (event.key === 'Escape' && customising) { event.preventDefault(); event.stopImmediatePropagation(); customising = false; heldIntoCustomise = false; return } // leave sidebar editing
     if (event.key === ' ' && !typing) { event.preventDefault(); command('pause', app.nowPlaying?.mode === 'play' ? '1' : '0') }
     else if (event.ctrlKey && event.key === 'ArrowRight') { event.preventDefault(); command('playlist', 'index', '+1') }
     else if (event.ctrlKey && event.key === 'ArrowLeft') { event.preventDefault(); command('playlist', 'index', '-1') }

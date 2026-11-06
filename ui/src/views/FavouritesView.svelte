@@ -3,7 +3,7 @@
   import { selectable } from '../lib/selectable.svelte'
   import type { SelectionAction } from '../lib/selection.svelte'
   import { live } from '../bridge'
-  import { infoFor, splitName, detail, itemImage } from '../lib/xmlBrowse'
+  import { infoFor, splitName, detail, itemImage, originLabel } from '../lib/xmlBrowse'
   import { app, ui, openView, toast } from '../state.svelte'
   import Icon from '../parts/Icon.svelte'
   let { itemId = '' }: { itemId?: string } = $props()
@@ -56,7 +56,7 @@
     <div class="favourite" data-select-key={String(item.id)}>
       <button class="main" onclick={() => activate(item)}>
         {#if itemImage(item)}<img src={itemImage(item)} alt="" loading="lazy" />{:else}<span class="glyph">{item.hasitems && !item.isaudio ? '📁' : item.type === 'audio' ? '📻' : '★'}</span>{/if}
-        <span class="text" title={item.name}><span class="name">{splitName(item)[0]}</span>{#if detail(item)}<span class="detail">{detail(item)}</span>{/if}</span>
+        <span class="text" title={item.name}><span class="name">{splitName(item)[0]}</span>{#if detail(item)}<span class="detail">{detail(item)}</span>{/if}{#if !itemId && originLabel(item)}<span class="origin">{originLabel(item)}</span>{/if}</span>
         <span class="kind" title={item.hasitems && !item.isaudio ? 'Open' : 'Play'}><Icon name={item.hasitems && !item.isaudio ? 'folders' : 'play'} size={16} /></span>
       </button>
       <button class="remove" onclick={() => remove(item)} title="Remove from favourites">★</button>
@@ -72,6 +72,7 @@
   .main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; background: none; border: 0; color: var(--fg); padding: 6px 8px; cursor: pointer; font: inherit; text-align: left; }
   .main img, .glyph { width: 40px; height: 40px; border-radius: 6px; object-fit: cover; display: grid; place-items: center; background: var(--panel-strong); flex-shrink: 0; }
   .text { flex: 1; min-width: 0; display: flex; flex-direction: column; } .detail { color: var(--fg-quiet); font-size: 12px; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; line-height: 1.3; }
+  .origin { color: var(--fg-quiet); font-size: 10.5px; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0.75; margin-top: 1px; }
   .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .kind { color: var(--fg-quiet); display: grid; place-items: center; opacity: 0.7; } .favourite:hover .kind { color: var(--accent); opacity: 1; }
   .remove { background: none; border: 0; color: var(--accent); cursor: pointer; font-size: 16px; padding: 0 10px; }

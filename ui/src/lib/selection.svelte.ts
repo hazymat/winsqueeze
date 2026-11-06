@@ -5,6 +5,9 @@ export type MenuChoice = { label: string; detail?: string; run: () => void | Pro
 export type SelectionAction = { label: string; key?: string; danger?: boolean; single?: boolean; run?: (keys: string[]) => void | Promise<void>; menu?: (keys: string[]) => Promise<MenuChoice[]> }
 export const selection = $state({ scope: '', keys: [] as string[], anchor: '', actions: [] as SelectionAction[], noun: 'item' })
 
+// Shortcuts every list shares: N play next, E add to end, I info (an action's own key wins)
+const commonKeys: Record<string, string> = { 'Play next': 'N', 'Add to end': 'E', 'Info': 'I', 'Track info': 'I' }
+export const actionKey = (action: SelectionAction) => action.key ?? commonKeys[action.label]
 export const isSelected = (scope: string, key: string) => selection.scope === scope && selection.keys.includes(key)
 export function clearSelection() { selection.scope = ''; selection.keys = []; selection.anchor = ''; selection.actions = []; const focused = document.activeElement as HTMLElement | null; if (focused?.closest?.('[data-sort-row], [data-select-key]')) focused.blur() }
 export function selectKeys(scope: string, keys: string[], actions: SelectionAction[], noun = 'item') { selection.scope = scope; selection.keys = keys; selection.anchor = keys[keys.length - 1] ?? ''; selection.actions = actions; selection.noun = noun }
@@ -37,6 +40,7 @@ export async function runAction(action: SelectionAction) { const keys = selectio
 addEventListener('keydown', (event: KeyboardEvent) => {
   if (!selection.keys.length || (event.target as HTMLElement)?.matches?.('input, textarea, select')) return
   if (event.key === 'Escape') { event.preventDefault(); clearSelection(); return }
-  const action = selection.actions.find(candidate => candidate.key === event.key || (event.key === 'Backspace' && candidate.key === 'Delete'))
+  if (event.ctrlKey || event.altKey || event.metaKey) return
+  const action = selection.actions.find(candidate => { const key = actionKey(candidate); return key === event.key || (key?.length === 1 && key === event.key.toUpperCase()) || (event.key === 'Backspace' && key === 'Delete') })
   if (action?.run && !(action.single && selection.keys.length > 1)) { event.preventDefault(); runAction(action) }
 })

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { ui, undoToast } from '../state.svelte'
-  import { selection, clearSelection, runAction, type SelectionAction, type MenuChoice } from '../lib/selection.svelte'
+  import { selection, clearSelection, runAction, actionKey, type SelectionAction, type MenuChoice } from '../lib/selection.svelte'
   // One fixed place in the layout, above the transport, for the selection's actions and for messages with Undo
   const count = $derived(selection.keys.length)
   const actions = $derived(selection.actions.filter(action => !(action.single && count > 1)))
@@ -33,7 +33,7 @@
       <span class="message inline">{ui.toast.text}</span><button class="undo inline" onclick={undoToast}>Undo<kbd>Ctrl+Z</kbd></button>
     {/if}
     <div class="actions">
-      {#each actions as action (action.label)}<button class:danger={action.danger} class:open={menu?.label === action.label} onclick={() => press(action)}>{action.label}{#if action.key}<kbd>{action.key === 'Delete' ? 'Del' : action.key}</kbd>{/if}</button>{/each}
+      {#each actions as action (action.label)}<button class:danger={action.danger} class:open={menu?.label === action.label} onclick={() => press(action)}>{action.label}{#if actionKey(action)}<kbd>{actionKey(action) === 'Delete' ? 'Del' : actionKey(action)}</kbd>{/if}</button>{/each}
       <button class="clear" onclick={clearSelection} aria-label="Clear selection">Done<kbd>Esc</kbd></button>
     </div>
   {:else if ui.toast}
