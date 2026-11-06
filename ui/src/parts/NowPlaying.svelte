@@ -1,6 +1,6 @@
 <script lang="ts">
   import { artUrl } from '../bridge'
-  import { currentTrack, openView, ui } from '../state.svelte'
+  import { app, currentTrack, openView, ui } from '../state.svelte'
   import Meters from './Meters.svelte'
   import Readout from './Readout.svelte'
   import QueueView from '../views/QueueView.svelte'
@@ -11,9 +11,9 @@
 </script>
 
 <section class="now-playing">
-  {#if cover && ui.coverBackdrop}<div class="backdrop" style:background-image={`url("${cover}")`}></div>{/if}
+  {#if cover && ui.coverBackdrop}<div class="backdrop" style:background-image={`url("${cover}")`}></div>{/if}<div class="grain" aria-hidden="true"></div>
   <div class="layout">
-    <div class="art-column">{#if cover}<img class="art" src={cover} alt="" />{:else}<div class="art empty">♪</div>{/if}</div>
+    <div class="art-column">{#if cover}<div class="art" class:stream={Number(app.nowPlaying?.remote) === 1}><img src={cover} alt="" /></div>{:else}<div class="art empty">♪</div>{/if}</div>
     <div class="meta">
       <h1>{track?.title ?? 'Nothing playing'}</h1>
       {#if track?.artist}<button class="link artist" onclick={() => goTo('artist', track.artist)}>{track.artist}</button>{/if}
@@ -30,10 +30,13 @@
 
 <style>
   .now-playing { position: relative; height: 100%; overflow: hidden; container: now-playing / size; } /* art sizes to the space actually left (cqh/cqw) */
+  .grain { position: absolute; inset: 0; pointer-events: none; opacity: 0.035; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); } /* a touch of noise breaks up banding in the blurred backdrop */
   .backdrop { position: absolute; inset: -80px; background-size: cover; background-position: center; filter: blur(70px) saturate(1.7) brightness(0.6); opacity: 0.75; pointer-events: none; }
   .layout { position: relative; height: 100%; box-sizing: border-box; display: grid; grid-template-columns: minmax(200px, 1fr) minmax(220px, 0.9fr) minmax(300px, 1.1fr); gap: 28px; padding: 28px 28px 20px; align-items: center; }
   .art-column { display: flex; justify-content: center; }
-  .art { width: 100%; max-width: min(440px, 80cqh); aspect-ratio: 1; border-radius: 12px; object-fit: cover; box-shadow: 0 24px 70px var(--shadow); }
+  .art { width: 100%; max-width: min(440px, 80cqh); aspect-ratio: 1; border-radius: 12px; overflow: hidden; box-shadow: 0 24px 70px var(--shadow); }
+  .art img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .art.stream img { transform: scale(1.04); } /* station logos and the stream placeholder carry their own square frame: crop it so only our rounded corner shows */
   .art.empty { display: grid; place-items: center; font-size: 80px; background: var(--panel-strong); }
   .meta { display: flex; flex-direction: column; gap: 6px; min-width: 0; max-height: 100%; overflow-y: auto; padding-bottom: 4px; }
   /* Meters shrink with short windows so they're never cut off */

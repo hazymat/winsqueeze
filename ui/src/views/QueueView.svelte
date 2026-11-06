@@ -82,7 +82,7 @@
 </script>
 
 <div class="head">
-  <h3>Up next</h3><span class="quiet">{queue.length} tracks · {formatTime(Math.max(remaining, 0))} left</span>
+  <h3>Up next</h3><span class="quiet">{queue.length} {queue.length === 1 ? 'track' : 'tracks'} · {formatTime(Math.max(remaining, 0))} left</span>
   <div class="tools"><QueueEndMenu /><button class="ghost" onclick={saveQueue}>Save</button><button class="ghost" onclick={startPlaylistFromQueue} title="Edit the queue as a new playlist">Edit</button><button class="ghost" onclick={clearQueue}>Clear</button></div>
 </div>
 {#if queue.length > 1}<Hint id="queue-reorder" text="Press and hold, then drag to reorder." /><Hint id="queue-multiselect" text="Press and hold without dragging to select several tracks." />{/if}
@@ -103,9 +103,10 @@
   .head { display: flex; align-items: center; gap: 4px 10px; flex-wrap: wrap; margin-bottom: 8px; container-type: inline-size; }
   h3 { margin: 0; color: var(--fg); font-size: 16px; }
   .tools { display: flex; align-items: center; gap: 6px; margin-left: auto; }
-  .tools .ghost { padding: 4px 10px; font-size: 12px; white-space: nowrap; }
+  .tools .ghost { height: 28px; box-sizing: border-box; padding: 0 11px; font-size: 12px; white-space: nowrap; border-radius: 999px; }
   /* narrow queue panel: the toolbar takes its own row, the pill drops its label */
-  @container (max-width: 420px) { .tools { margin-left: 0; width: 100%; justify-content: flex-end; } .tools :global(.queue-end .label) { display: none; } }
+  @container (max-width: 600px) { .tools { margin-left: 0; width: 100%; justify-content: flex-end; } }
+  @container (max-width: 345px) { .tools :global(.queue-end .label) { display: none; } }
   .queue { display: flex; flex-direction: column; gap: 2px; }
   .item { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 52px; background: none; border: 0; border-radius: 10px; color: var(--fg); padding: 6px 10px; cursor: pointer; font: inherit; text-align: left; }
   .item:hover { background: var(--hover); }
