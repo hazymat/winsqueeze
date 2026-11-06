@@ -3,6 +3,7 @@
   import { sendToShell, query } from '../bridge'
   import { levelNames, customViewsExplainer, saveCustomViews } from '../lib/browse.svelte'
   import { sortable } from '../lib/sortable'
+  import PageHead from '../parts/PageHead.svelte'
   // Custom views editor (SPEC.md › Custom views): every change is saved straight away, in settings (so export/import carries them)
   type CustomView = { Id: string; Name: string; Enabled: boolean; Group: string; Genres: string[]; Levels: string[] }
   let views = $state<CustomView[]>(JSON.parse(JSON.stringify(app.librarySettings.CustomViews ?? [])))
@@ -23,7 +24,7 @@
   const groupNames = $derived(Array.from(new Set(views.map(view => view.Group).filter(Boolean))))
 </script>
 
-<div class="head"><h2>Custom views</h2><button class="ghost" onclick={addView}>＋ New view</button></div>
+<PageHead title="Custom views" detail={`${views.length} ${views.length === 1 ? 'view' : 'views'}`}><button class="ghost" onclick={addView}>＋ New view</button></PageHead>
 <p class="explainer">{customViewsExplainer}</p>
 <p class="quiet">Switch a view on to add it to the sidebar. Views with the same sidebar menu appear together under one sidebar entry of that name; leave it empty to give a view its own entry. Hold a view and drag it, or use its arrows, to set its order on the menu's page; move sidebar entries with Customise sidebar.</p>
 <datalist id="custom-view-groups">{#each groupNames as groupName}<option value={groupName}></option>{/each}</datalist>
@@ -69,8 +70,6 @@
 {#if !views.length}<p class="quiet">No custom views. Make one with New view.</p>{/if}
 
 <style>
-  .head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
-  h2 { margin: 0; font-size: 24px; flex: 1; }
   .explainer { max-width: 760px; line-height: 1.5; margin: 0 0 6px; }
   .quiet { color: var(--fg-quiet); font-size: 12px; max-width: 760px; }
   .view { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-top: 12px; background: var(--panel); }

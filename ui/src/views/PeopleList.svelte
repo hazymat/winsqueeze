@@ -4,9 +4,12 @@
   import { query } from '../bridge'
   import { app, ui, openView, readSetting, writeSetting, type CustomStep } from '../state.svelte'
   import CoverMosaic from '../parts/CoverMosaic.svelte'
+  import PageHead from '../parts/PageHead.svelte'
+  import ViewModes from '../parts/ViewModes.svelte'
+  import { artUrl } from '../bridge'
   import { browseState } from '../lib/browse.svelte'
   // custom: one level of a custom view (SPEC.md › Custom views); rows come from its scope, and a click takes the next step
-  let { kind, custom }: { kind: 'artists' | 'composers' | 'performers' | 'genres' | 'custom'; custom?: { viewId: string; genres: string[]; filters: CustomStep[]; level: string } } = $props()
+  let { kind, title, detail = '', custom }: { kind: 'artists' | 'composers' | 'performers' | 'genres' | 'custom'; title: string; detail?: string; custom?: { viewId: string; genres: string[]; filters: CustomStep[]; level: string } } = $props()
   let rows = $state<any[]>([])
   let role = $state('')
   const roleNames: Record<string, string> = { '': 'All', conductor: 'Conductors', band: 'Bands & orchestras', soloist: 'Soloists' }
@@ -41,17 +44,18 @@
   const countParts = (row: any) => { const text = countText(row), space = text.indexOf(' '); return space > 0 ? [text.slice(0, space), text.slice(space)] : [text, ''] }
 </script>
 
-<div class="bar">
-  {#if kind === 'performers'}<div class="chips">{#each Object.keys(roleNames) as roleKey}<button class:on={role === roleKey} onclick={() => role = roleKey}>{roleNames[roleKey]}</button>{/each}</div>{/if}
-  <div class="layout-toggle">{#each [['list', 'List'], ['tiles', 'Tiles']] as [value, label]}<button class:on={layout === value} onclick={() => setLayout(value)}>{label}</button>{/each}</div>
-</div>
+<PageHead {title} detail={detail || (rows.length ? `${shown.length === rows.length ? rows.length : shown.length + ' of ' + rows.length}` : '')}><ViewModes mode={layout} onchange={setLayout} /></PageHead>
+{#if kind === 'performers'}<div class="chips">{#each Object.keys(roleNames) as roleKey}<button class:on={role === roleKey} onclick={() => role = roleKey}>{roleNames[roleKey]}</button>{/each}</div>{/if}
 {#if !rows.length}<p class="quiet">{app.library.text || (custom ? 'Nothing in your library matches this view. Check its genres in Custom views.' : 'Nothing here yet. The library is still syncing, or the server has none.')}</p>{/if}
-<div class="people" class:tiles={layout === 'tiles'} use:selectable={{ scope: 'people:' + kind + (custom ? custom.viewId + custom.filters.length : ''), noun: viewKind ?? 'item', actions: browseActions(custom ? 'custom' : viewKind ?? 'artist') }}>
+<div class="people" class:tiles={layout === 'tiles'} class:cards={layout === 'cards'} use:selectable={{ scope: 'people:' + kind + (custom ? custom.viewId + custom.filters.length : ''), noun: viewKind ?? 'item', actions: browseActions(custom ? 'custom' : viewKind ?? 'artist') }}>
   {#each shown as row (row.key + (row.role ?? ''))}
     {@const share = graphic === 'none' ? 0 : shareOf(row)}
     {#if layout === 'tiles'}
       {@const [count, countRest] = countParts(row)}
       <button class="tile" data-select-key={selectKey(row)} onclick={() => open(row)} title={row.name}><CoverMosaic covers={row.covers ?? []} name={row.name} /><span class="tile-name">{row.name}</span><span class="meta"><b>{count}</b>{countRest}</span></button>
+    {:else if layout === 'cards'}
+      {@const [count, countRest] = countParts(row)}
+      <button class="card-row" data-select-key={selectKey(row)} onclick={() => open(row)} title={row.name}>{#if row.covers?.length}<img src={artUrl(row.covers[0], 120)} alt="" loading="lazy" />{:else}<span class="thumb-letter">{(row.name?.trim()[0] ?? '♪').toUpperCase()}</span>{/if}<span class="card-text"><span class="card-name">{row.name}</span><span class="meta">{row.role && kind === 'performers' && !role ? row.role + ' · ' : ''}<b>{count}</b>{countRest}</span></span></button>
     {:else}
     <button class="person graphic-{graphic}" style:--share={share.toFixed(3)} data-select-key={selectKey(row)} onclick={() => open(row)}>
       <span class="name">{row.name}</span>
@@ -63,11 +67,16 @@
 </div>
 
 <style>
-  .bar { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
-  .chips { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
-  .layout-toggle { margin-left: auto; display: flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; flex: none; }
-  .layout-toggle button { border: 0; background: transparent; color: var(--fg-quiet); padding: 4px 12px; font: inherit; font-size: 12px; cursor: pointer; }
-  .layout-toggle button.on { background: var(--accent-soft); color: var(--accent); }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  /* Cards: taller glass rows with one cover on the left */
+  .people.cards { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px 14px; }
+  .card-row { display: flex; align-items: center; gap: 12px; text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; color: var(--fg); padding: 8px; cursor: pointer; font: inherit; min-width: 0; backdrop-filter: blur(8px); }
+  .card-row:hover { background: var(--panel-strong); }
+  .card-row img, .thumb-letter { width: 56px; height: 56px; border-radius: 8px; object-fit: cover; flex: none; box-shadow: 0 3px 10px var(--shadow); }
+  .thumb-letter { display: grid; place-items: center; background: color-mix(in srgb, var(--fg) 8%, transparent); color: var(--fg-quiet); font-size: 22px; font-weight: 600; }
+  .card-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .card-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card-row .meta b { color: var(--fg); }
   .people.tiles { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 18px 16px; }
   .tile { display: flex; flex-direction: column; gap: 3px; text-align: left; background: transparent; border: 0; color: var(--fg); padding: 6px; border-radius: 12px; cursor: pointer; font: inherit; min-width: 0; }
   .tile:hover { background: var(--hover); }

@@ -5,6 +5,7 @@
   import AlbumList from '../parts/AlbumList.svelte'
   import BrowseBar from '../parts/BrowseBar.svelte'
   import PinButton from '../parts/PinButton.svelte'
+  import PageHead from '../parts/PageHead.svelte'
   import { downloads } from '../lib/downloads.svelte'
   let { kind, key = '', title = '', params = {} }: { kind: string; key?: string; title?: string; params?: Record<string, unknown> } = $props()
   let result = $state<any>({ own: [], appearsOn: [] })
@@ -23,11 +24,11 @@
 </script>
 
 <div class="page-width" bind:clientWidth={pageWidth}></div>
-<div class="head">
-  <div class="titles"><h2>{title || result.name || ''}</h2>{#if albumCount}<span class="count">{albumCount} {albumCount === 1 ? 'album' : 'albums'}</span>{/if}{#if kind !== 'albums' && kind !== 'custom' && key}<PinButton view={{ kind, key, title: title || result.name || '' }} />{/if}</div>
+<PageHead title={title || result.name || ''} detail={albumCount ? `${albumCount} ${albumCount === 1 ? 'album' : 'albums'}` : ''}>
+  {#snippet titleExtra()}{#if kind !== 'albums' && kind !== 'custom' && key}<PinButton view={{ kind, key, title: title || result.name || '' }} />{/if}{/snippet}
   {#if playlist.open && (result.own ?? []).length}<button class="ghost" onclick={addAll}>＋ Add all to {playlist.name}</button>{/if}
   <BrowseBar {view} />
-</div>
+</PageHead>
 {#each sections as [sectionName, albums] (sectionName)}
   {@const groups = groupAlbums(albums, view.group)}
   {#if sectionName && groups.length > 1 || sectionName && view.group !== 'none'}<h3 class="section-name">{sectionName}</h3>{/if}
@@ -35,11 +36,6 @@
 {/each}
 
 <style>
-  /* title, count and Sort / Group / View stay pinned while the albums scroll under them */
-  .head { position: sticky; top: -4px; z-index: 6; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 -20px; padding: 8px 20px; background: var(--glass); backdrop-filter: blur(var(--blur)) saturate(1.4); border-bottom: 1px solid var(--line); }
-  .titles { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 10px; }
-  h2 { margin: 0; font-size: 24px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .count { color: var(--fg-quiet); font-size: 12px; white-space: nowrap; }
   .groups { display: flex; flex-wrap: wrap; column-gap: var(--column-gap); align-items: flex-start; }
   .page-width { height: 0; }
   .section-name { margin: 24px 0 0; font-size: 17px; }

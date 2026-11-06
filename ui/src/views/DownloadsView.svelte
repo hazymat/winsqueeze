@@ -3,6 +3,7 @@
   import { app } from '../state.svelte'
   import { downloads, cancelDownloads, formatBytes } from '../lib/downloads.svelte'
   import AlbumsOf from './AlbumsOf.svelte'
+  import PageHead from '../parts/PageHead.svelte'
   // Downloaded (SPEC.md › Offline downloads): what's still coming in sits on top (expand an album for its tracks, ✕ cancels), then the downloaded albums as a normal album grid
   let expanded = $state<string[]>([])
   const toggle = (key: string) => expanded = expanded.includes(key) ? expanded.filter(open => open !== key) : expanded.concat([key])
@@ -53,7 +54,7 @@
   <AlbumsOf kind="downloads" title="Downloaded" />
   <div class="footer quiet">{downloads.finishedTracks} {downloads.finishedTracks === 1 ? 'track' : 'tracks'} on this PC · {formatBytes(downloads.totalBytes)} · <button class="link" onclick={() => sendToShell({ type: 'openDownloads' })}>Open folder</button>{#if !app.status?.offline} · <button class="link" onclick={() => sendToShell({ type: 'goOffline' })}>Play offline</button>{/if}</div>
 {:else if !downloads.active.length}
-  <h2>Downloaded</h2>
+  <PageHead title="Downloaded" />
   <p class="quiet empty">Nothing downloaded yet. Pick albums, artists or tracks (press and hold, or Ctrl+click) and choose Download, or use Download on an album. Downloaded music plays here even when the server can't be reached.</p>
 {/if}
 

@@ -5,6 +5,7 @@
   import { queueTracks, resolveTracks } from '../lib/browseActions'
   import { history } from '../lib/history.svelte'
   import Icon from '../parts/Icon.svelte'
+  import PageHead from '../parts/PageHead.svelte'
   import type { SelectionAction } from '../lib/selection.svelte'
   type Play = { id: number, played_at: number, player: string, track_id: number | null, url: string, title: string, artist: string, album: string, cover_id: string, artwork_url: string, station: string, remote: number, duration: number }
   type Block = { kind: 'album' | 'radio' | 'hour', start: number, end: number, plays: Play[] }
@@ -58,10 +59,9 @@
   const art = (play: Play) => { const source = play.artwork_url ?? ''; if (play.remote && source) return source.startsWith('http') ? source : `https://art.winsqueeze/server/${encodeURIComponent(source.replace(/^\//, ''))}`; return Number(play.cover_id) > 0 || (play.cover_id && !/^-/.test(play.cover_id)) ? artUrl(play.cover_id, 120) : '' }
 </script>
 
-<div class="history-head">
-  <h1>History</h1>
+<PageHead title="History">
   {#if plays.length}{#if confirmClear}<span class="quiet">Clear all play history? This can’t be undone.</span><button class="ghost danger" onclick={() => { sendToShell({ type: 'historyClear' }); confirmClear = false }}>Clear</button><button class="ghost" onclick={() => confirmClear = false}>Keep</button>{:else}<button class="ghost" onclick={() => confirmClear = true}>Clear history…</button>{/if}{/if}
-</div>
+</PageHead>
 {#if !loading && !plays.length}<p class="quiet">Nothing yet. Everything you play here (albums, tracks, radio programmes) is listed by day once it has played for 20 seconds.</p>{/if}
 <div use:selectable={{ scope: 'history', noun: 'play', actions }}>
   {#each days as day (day.key)}
@@ -99,8 +99,7 @@
 </div>
 
 <style>
-  .history-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; } .history-head h1 { margin: 0 auto 0 0; font-size: 22px; }
-  .day { font-size: 15px; font-weight: 650; margin: 22px 0 8px; position: sticky; top: 0; z-index: 2; padding: 6px 0 4px; border-bottom: 1px solid var(--line); backdrop-filter: blur(14px); }
+  .day { font-size: 15px; font-weight: 650; margin: 22px 0 8px; position: sticky; top: calc(var(--page-head, 0px) - 4px); z-index: 2; padding: 6px 0 4px; border-bottom: 1px solid var(--line); backdrop-filter: blur(14px); }
   .hour { font-size: 12px; font-weight: 600; color: var(--fg-quiet); margin: 10px 0 4px; letter-spacing: 0.02em; }
   .block { margin-bottom: 6px; }
   .album-block { padding: 8px; border-radius: 10px; background: color-mix(in srgb, var(--fg) 4%, transparent); }

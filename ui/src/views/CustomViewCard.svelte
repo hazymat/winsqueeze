@@ -4,8 +4,8 @@
   import { levelNames } from '../lib/browse.svelte'
   // One custom view on its group page: a cover mosaic from inside it, its full name and steps, and its first step's biggest rows as chips that jump straight in
   import CoverMosaic from '../parts/CoverMosaic.svelte'
-  // compact: a square tile (cover mosaic, name, album count) instead of the full card
-  let { view, compact = false }: { view: any; compact?: boolean } = $props()
+  // layout: cards (the full card), tiles (a square cover mosaic, name, album count) or list (a row with a small mosaic)
+  let { view, layout = 'cards' }: { view: any; layout?: string } = $props()
   let albums = $state<any[]>([]), rows = $state<any[]>([])
   const firstLevel = $derived(view.Levels?.[0] ?? '')
   $effect(() => {
@@ -22,7 +22,9 @@
   const openRow = (row: any) => openView({ kind: 'custom', key: view.Id, title: row.name, filters: [{ kind: firstLevel, key: String(row.key), name: row.name }] })
 </script>
 
-{#if compact}
+{#if layout === 'list'}
+<button class="list-row" onclick={openWhole}><span class="thumb"><CoverMosaic covers={covers.slice(0, 4).map(album => album.cover)} name={view.Name} size={120} /></span><span class="list-text"><span class="list-name">{view.Name}</span><span class="meta">{steps}</span></span><span class="list-count"><b>{albums.length}</b> {albums.length === 1 ? 'album' : 'albums'}</span></button>
+{:else if layout === 'tiles'}
 <button class="tile" onclick={openWhole} title={steps}><CoverMosaic covers={covers.slice(0, 4).map(album => album.cover)} name={view.Name} /><span class="tile-name">{view.Name}</span><span class="meta"><b>{albums.length}</b> {albums.length === 1 ? 'album' : 'albums'}</span></button>
 {:else}
 <article class="card">
@@ -54,6 +56,12 @@
   .total { color: var(--fg-quiet); font-size: 13px; } .total b { color: var(--fg); font-size: 22px; font-weight: 700; margin-right: 2px; }
   .tile { display: flex; flex-direction: column; gap: 3px; text-align: left; background: transparent; border: 0; color: var(--fg); padding: 6px; border-radius: 12px; cursor: pointer; font: inherit; min-width: 0; }
   .tile:hover { background: var(--hover); }
+  .list-row { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; background: transparent; border: 0; border-radius: 10px; color: var(--fg); padding: 6px 8px; cursor: pointer; font: inherit; }
+  .list-row:hover { background: var(--hover); }
+  .thumb { width: 44px; flex: none; }
+  .list-text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+  .list-name { font-weight: 600; overflow-wrap: anywhere; }
+  .list-count { color: var(--fg-quiet); font-size: 12px; white-space: nowrap; } .list-count b { color: var(--fg); font-size: 15px; }
   .tile-name { margin-top: 5px; font-weight: 600; overflow-wrap: anywhere; }
   .tile .meta b { color: var(--fg); }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }

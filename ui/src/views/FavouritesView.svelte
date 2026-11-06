@@ -6,7 +6,8 @@
   import { infoFor, splitName, detail, itemImage, originLabel } from '../lib/xmlBrowse'
   import { app, ui, openView, toast } from '../state.svelte'
   import Icon from '../parts/Icon.svelte'
-  let { itemId = '' }: { itemId?: string } = $props()
+  import PageHead from '../parts/PageHead.svelte'
+  let { itemId = '', title = '' }: { itemId?: string; title?: string } = $props()
   let items = $state<any[]>([])
   let loading = $state(true)
   // Lyrion's own favourites, read live (they are small and change from other controllers)
@@ -49,7 +50,7 @@
   ]
 </script>
 
-{#if !itemId}<h2>Favourites</h2>{/if}
+<PageHead title={itemId ? title || 'Favourites' : 'Favourites'} detail={items.length ? `${items.length} ${items.length === 1 ? 'item' : 'items'}` : ''} />
 {#if loading}<p class="quiet">Loading…</p>{:else if !items.length}<p class="quiet">No favourites yet. Star an album to add it.</p>{/if}
 <div class="favourites" use:selectable={{ scope: 'favourites:' + itemId, noun: 'favourite', actions: favouriteActions }}>
   {#each shown as item (item.id)}
@@ -65,7 +66,6 @@
 </div>
 
 <style>
-  h2 { margin: 0 0 12px; font-size: 24px; }
   .favourites { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 4px 16px; }
   .favourite { display: flex; align-items: center; border-radius: 8px; }
   .favourite:hover { background: var(--hover); }

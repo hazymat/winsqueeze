@@ -1,5 +1,6 @@
 <script lang="ts">
   import PinButton from '../parts/PinButton.svelte'
+  import PageHead from '../parts/PageHead.svelte'
   import { untrack } from 'svelte'
   import { live, artUrl } from '../bridge'
   import { app, ui, openView, toast, formatTime, newPlaylist } from '../state.svelte'
@@ -55,8 +56,7 @@
 </script>
 
 {#if playlistId}
-  <div class="head"><h2>{title}</h2><span class="quiet">{items.length} tracks · {formatTime(totalSeconds)}</span><PinButton view={{ kind: 'playlist', key: playlistId, title }} />
-    <button class="primary" onclick={() => play(playlistId, title)}>Play</button><button class="ghost" onclick={edit}>Edit as new playlist</button></div>
+  <PageHead title={title ?? ''} detail={`${items.length} tracks · ${formatTime(totalSeconds)}`}>{#snippet titleExtra()}<PinButton view={{ kind: 'playlist', key: playlistId, title }} />{/snippet}<button class="primary" onclick={() => play(playlistId, title)}>Play</button><button class="ghost" onclick={edit}>Edit as new playlist</button></PageHead>
   <div class="list" use:sortable={{ onMove, onHold: index => selectOnHold(scope, String(index), actions, 'track'), group: index => selection.scope === scope && selection.keys.includes(String(index)) ? selection.keys.map(Number) : [index], enabled: ui.search.length < 2 }}>
   {#each shown as item, index (index + ':' + item.id)}
     <button data-sort-row class="row" class:selected={isSelected(scope, String(index))} onclick={(event) => { if (!rowClick(event, scope, String(index), keys, actions, 'track')) play(playlistId, title, index) }}>
@@ -67,7 +67,7 @@
   {/each}
   </div>
 {:else}
-  <h2>Playlists</h2>
+  <PageHead title="Playlists" detail={items.length ? `${items.length} saved` : ''} />
   {#if !loading && !items.length}<p class="quiet">No saved playlists on the server yet. Use New playlist to make one.</p>{/if}
   <div use:selectable={{ scope: 'playlists', noun: 'playlist', actions: listActions }}>
   {#each shown as item (item.id)}
@@ -80,8 +80,6 @@
 {/if}
 
 <style>
-  .head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
-  .head h2 { margin: 0; }
   .list { display: flex; flex-direction: column; gap: 2px; }
   .row { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; background: none; border: 0; color: var(--fg); padding: 5px 8px; border-radius: 8px; font: inherit; text-align: left; cursor: pointer; }
   .row:hover { background: var(--hover); }

@@ -7,6 +7,7 @@
   import { infoFor, splitName, detail, itemImage, isFolder } from '../lib/xmlBrowse'
   import Icon from '../parts/Icon.svelte'
   import PinButton from '../parts/PinButton.svelte'
+  import PageHead from '../parts/PageHead.svelte'
   // Radio and Apps (SPEC.md › Radio and apps): any plugin the server offers, browsed through Lyrion's shared menu format, so no plugin needs its own support.
   // Top level: kind 'radio' or 'apps' lists the server's own list. Inside: kind 'app' (key "cmd|itemId") browses; kind 'app-search' (same key) asks for words first.
   let { kind, key = '', title = '' }: { kind: string, key?: string, title?: string } = $props()
@@ -58,7 +59,7 @@
   const playable = (item: any) => item.isaudio || item.type === 'audio' || item.type === 'playlist'
 </script>
 
-<div class="titles"><h2>{heading}</h2>{#if !top && kind === 'app'}<PinButton view={{ kind, key, title }} />{/if}</div>
+<PageHead title={heading}>{#snippet titleExtra()}{#if !top && kind === 'app'}<PinButton view={{ kind, key, title }} />{/if}{/snippet}</PageHead>
 {#if kind === 'app-search'}
   <form class="search" onsubmit={(event) => { event.preventDefault(); searched = searchWords.trim(); if (searched) load() }}>
     <!-- svelte-ignore a11y_autofocus -->
@@ -92,8 +93,6 @@
 {/if}
 
 <style>
-  .titles { display: flex; align-items: center; gap: 12px; margin: 0 0 12px; min-width: 0; }
-  h2 { margin: 0; font-size: 24px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .search { display: flex; gap: 8px; margin: 0 0 14px; max-width: 520px; }
   .search input { flex: 1; min-width: 0; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line, var(--panel-strong)); background: var(--panel-strong); color: var(--fg); font: inherit; }
   .search button { padding: 8px 14px; border-radius: 8px; border: 0; background: var(--accent); color: var(--on-accent); font: inherit; cursor: pointer; } .search button:disabled { opacity: 0.5; cursor: default; }

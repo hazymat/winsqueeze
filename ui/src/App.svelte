@@ -213,8 +213,8 @@
           {/if}
         {/each}
         </div>
-        {#if customising}<button class="customise-toggle" onclick={addSpacer}>＋ Add spacer</button><button class="customise-toggle" onclick={() => { customising = false; openSection('customViews') }}>Custom views…</button>{/if}
-        <button class="customise-toggle" title="Or press and hold any item" onclick={() => { customising = !customising; heldIntoCustomise = false }}>{customising ? 'Done (drag to reorder, tick to show)' : 'Customise sidebar'}</button>
+        {#if customising}<button class="customise-toggle" onclick={addSpacer}>＋ Add spacer</button><div class="customise-actions"><button class="ghost" onclick={() => { customising = false; openSection('customViews') }}>Custom views</button><button class="primary" onclick={() => { customising = false; heldIntoCustomise = false }}>Done</button></div>
+        {:else}<button class="customise-toggle" title="Or press and hold any item" onclick={() => { customising = true; heldIntoCustomise = false }}>Customise sidebar</button>{/if}
         <button class="section new" onclick={() => playlist.open ? (playlist.collapsed = false) : newPlaylist()}><span class="glyph"><Icon name="plus" /></span>New playlist</button>
         <div class="spacer"></div>
         {#if app.library.total && app.library.done < app.library.total}<div class="sync" title={app.library.text}><div class="bar" style:width={`${(app.library.done / app.library.total) * 100}%`}></div></div>{/if}
@@ -253,7 +253,7 @@
           {#if everything}
             <SearchView />
           {:else if view.kind === 'artists' || view.kind === 'composers' || view.kind === 'performers' || view.kind === 'genres'}
-            {#key view.kind}<PeopleList kind={view.kind} />{/key}
+            {#key view.kind}<PeopleList kind={view.kind} title={({ artists: 'Artists', composers: 'Composers', performers: 'Performers', genres: 'Genres' } as Record<string, string>)[view.kind]} />{/key}
           {:else if view.kind === 'folders'}
             {#if folderMode}<FolderView />{:else}<AlbumsOf kind="albums" title="Albums" />{/if}
           {:else if view.kind === 'folder'}
@@ -267,7 +267,7 @@
           {:else if view.kind === 'customViews'}
             <CustomViewsEditor />
           {:else if view.kind === 'favourites'}
-            {#key view.key}<FavouritesView itemId={view.key ?? ''} />{/key}
+            {#key view.key}<FavouritesView itemId={view.key ?? ''} title={view.title ?? ''} />{/key}
           {:else if view.kind === 'radio' || view.kind === 'apps' || view.kind === 'app' || view.kind === 'app-search'}
             {#key view.kind + view.key}<AppsView kind={view.kind} key={view.key ?? ''} title={view.title ?? ''} />{/key}
           {:else if view.kind === 'history'}
@@ -311,6 +311,7 @@
   .customise { cursor: grab; } .grip { color: var(--fg-quiet); font-size: 10px; margin-right: -6px; } .customise input { margin: 0 -4px 0 0; accent-color: var(--accent); }
   .customise-toggle { align-self: flex-start; background: none; border: 0; color: var(--fg-quiet); font: inherit; font-size: 11px; padding: 4px 10px; cursor: pointer; opacity: 0.7; }
   .customise-toggle:hover { opacity: 1; color: var(--accent); }
+  .customise-actions { display: flex; gap: 8px; padding: 8px 10px 4px; } .customise-actions button { flex: 1; white-space: nowrap; padding: 6px 8px; }
   .sidebar-player { padding: 0 0 10px; } .sidebar-player :global(.current) { height: 30px; font-size: 12.5px; }
   .divider { height: 1px; background: var(--line); margin: 8px 10px; }
   .spacer-row { min-height: 30px; } .spacer-line { flex: 1; height: 0; border-top: 1px dashed var(--line); }

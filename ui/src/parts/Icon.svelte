@@ -1,6 +1,6 @@
 <script lang="ts">
   // Crisp transport icons as SVG: text glyphs (⏮ ▶ ⏭) render off-centre with colour fringes in WebView2
-  let { name, size = 18 }: { name: 'back' | 'history' | 'forward' | 'previous' | 'next' | 'play' | 'pause' | 'volume' | 'speaker' | 'pin' | 'favourites' | 'artists' | 'genres' | 'composers' | 'performers' | 'folders' | 'albums' | 'queue' | 'plus' | 'settings' | 'playlists' | 'verified' | 'grid-large' | 'grid-small' | 'list' | 'minimise' | 'maximise' | 'restore' | 'close' | 'download' | 'radio' | 'apps'; size?: number } = $props()
+  let { name, size = 18 }: { name: 'back' | 'history' | 'forward' | 'previous' | 'next' | 'play' | 'pause' | 'volume' | 'speaker' | 'pin' | 'favourites' | 'artists' | 'genres' | 'composers' | 'performers' | 'folders' | 'albums' | 'queue' | 'plus' | 'settings' | 'playlists' | 'verified' | 'grid-large' | 'grid-small' | 'list' | 'cards' | 'minimise' | 'maximise' | 'restore' | 'close' | 'download' | 'radio' | 'apps'; size?: number } = $props()
 </script>
 
 <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" class="icon">
@@ -28,6 +28,7 @@
   {:else if name === 'verified'}<path d="M20.20 12.00Q22.35 16.29 17.80 17.80Q16.29 22.35 12.00 20.20Q7.71 22.35 6.20 17.80Q1.65 16.29 3.80 12.00Q1.65 7.71 6.20 6.20Q7.71 1.65 12.00 3.80Q16.29 1.65 17.80 6.20Q22.35 7.71 20.20 12.00z" /><path d="M8.3 12.2l2.5 2.5 4.9-5" class="stroke tick" />
   {:else if name === 'grid-large'}<rect x="4.5" y="4.5" width="6.5" height="6.5" rx="1.3" class="stroke" /><rect x="13" y="4.5" width="6.5" height="6.5" rx="1.3" class="stroke" /><rect x="4.5" y="13" width="6.5" height="6.5" rx="1.3" class="stroke" /><rect x="13" y="13" width="6.5" height="6.5" rx="1.3" class="stroke" />
   {:else if name === 'grid-small'}{#each [5, 10.5, 16] as gridY}{#each [5, 10.5, 16] as gridX}<rect x={gridX} y={gridY} width="3.5" height="3.5" rx=".8" />{/each}{/each}
+  {:else if name === 'cards'}<rect x="4" y="4.5" width="16" height="6.5" rx="1.6" class="stroke" /><rect x="4" y="13" width="16" height="6.5" rx="1.6" class="stroke" /><rect x="6" y="6.3" width="3" height="3" rx=".5" /><rect x="6" y="14.8" width="3" height="3" rx=".5" />
   {:else if name === 'list'}<path d="M9 6.5h11M9 12h11M9 17.5h11" class="stroke" /><circle cx="5" cy="6.5" r="1.2" /><circle cx="5" cy="12" r="1.2" /><circle cx="5" cy="17.5" r="1.2" />
   {:else if name === 'minimise'}<path d="M6 12h12" class="stroke thin" />
   {:else if name === 'maximise'}<rect x="6.5" y="6.5" width="11" height="11" rx="1.5" class="stroke thin" />
