@@ -6,7 +6,7 @@
   // After an update restart: a small glass card with the notes of every version since the one you had
   let whatsNew = $state<{ fromVersion: string; toVersion: string; releases: { version: string; date: string; notes: string }[] } | null>(null)
   onShellMessage('whatsNew', message => whatsNew = { fromVersion: message.fromVersion, toVersion: message.toVersion, releases: message.releases })
-  const lines = (notes: string) => notes.split('\n').map(line => line.trim().replace(/^[-*]\s*/, '')).filter(line => line && !/^[A-Z][a-z]+(-[A-Za-z]+)+: /.test(line) && !/^(Squeezelite: rebuilt|Fix the build)/i.test(line)) // drop git trailers (Key-Name: value) and build housekeeping
+  const lines = (notes: string) => notes.split('\n').map(line => line.trim().replace(/^[-*]\s*/, '')).filter(line => line && !/^[A-Z][a-z]+(-[A-Za-z]+)+: /.test(line) && !/^(Squeezelite: rebuilt|Fix the build|Notes for the .* release)/i.test(line)) // drop git trailers (Key-Name: value) and build housekeeping
   // Biggest first: ★ marks a new feature, ▲ a noticeable improvement (set by the commit's Impact: trailer), the rest are smaller fixes; newest first within each
   const items = $derived.by(() => {
     if (!whatsNew) return []

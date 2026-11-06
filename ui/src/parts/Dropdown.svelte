@@ -11,7 +11,7 @@
 
 <div class="dropdown" bind:this={root}>
   <button class="current" class:open onclick={() => open = !open} aria-haspopup="listbox" aria-expanded={open}>
-    <span class="label">{label}</span><span class="value">{current}</span><svg class="chevron" viewBox="0 0 10 6" width="9" height="6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
+    <span class="text"><span class="label">{label}</span><span class="value">{current}</span></span><svg class="chevron" viewBox="0 0 10 6" width="9" height="6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
   </button>
   {#if open}
     <div class="menu {align}" role="listbox" aria-label={label}>
@@ -25,11 +25,11 @@
 
 <style>
   .dropdown { position: relative; }
-  .current { display: flex; flex-wrap: wrap; align-content: center; align-items: baseline; gap: 7px; height: 30px; padding: 0 10px 0 11px; background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 999px; font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap; }
+  .current { display: flex; align-items: center; gap: 7px; height: 30px; padding: 0 10px 0 11px; background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 999px; font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap; }
   .current:hover, .current.open { background: var(--hover); }
-  .label, .value { line-height: 1; } .label { color: var(--fg-quiet); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+  .text { display: inline-flex; align-items: baseline; gap: 7px; } /* label and value share a baseline; the pair is centred */ .label, .value { line-height: 1; } .label { color: var(--fg-quiet); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
   .value { font-weight: 600; }
-  .chevron { align-self: center; color: var(--fg-quiet); transition: transform 150ms; } .open .chevron { transform: rotate(180deg); }
+  .chevron { color: var(--fg-quiet); transition: transform 150ms; } .open .chevron { transform: rotate(180deg); }
   .menu { position: absolute; top: calc(100% + 6px); min-width: 180px; max-height: 60vh; overflow-y: auto; z-index: 40; padding: 6px; background: var(--panel-solid); backdrop-filter: blur(24px) saturate(1.5); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 16px 40px var(--shadow); }
   .menu.right { right: 0; } .menu.left { left: 0; }
   .menu-title { padding: 4px 10px 6px; color: var(--fg-quiet); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
