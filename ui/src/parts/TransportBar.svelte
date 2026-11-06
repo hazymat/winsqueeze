@@ -150,6 +150,8 @@
   .mini .seek-row { display: flex; } .mini .seek-row .time { display: none; }
   .mini .volume, .mini .meter-anchor { display: none; }
   .mini .right { gap: 4px; }
+  .mini .title, .mini .artist { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow-wrap: anywhere; } /* wrap into the spare height instead of truncating */
+  .mini .title { line-height: 1.25; }
   /* mini meters as big as the window allows: up to a third of the width each pair, and the height left above the transport row */
   .mini-meters { display: flex; align-self: center; } .mini-meters :global(.meters) { gap: 6px; } .mini-meters :global(.large .vu) { width: max(44px, min(16cqw, (100cqh - 86px) * 1.66, 230px)); height: auto; }
   .mini-speaker { background: none; border: 0; cursor: pointer; color: var(--fg); opacity: 0.6; padding: 4px; } .mini-speaker.on, .mini-speaker:hover { opacity: 1; color: var(--accent); }

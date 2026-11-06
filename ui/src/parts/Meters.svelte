@@ -45,6 +45,9 @@
           <radialGradient id={gradientId} cx="50%" cy="100%" r="95%" fx="50%" fy="105%">
             <stop offset="0%" class="lamp-hot" /><stop offset="38%" class="lamp-warm" /><stop offset="75%" class="lamp-mid" /><stop offset="100%" class="lamp-edge" />
           </radialGradient>
+          <!-- Bulb shading: the bezel lip shadows the top, corners fall off into the dark, the lamp lights the window's bottom edge -->
+          <linearGradient id={gradientId + '-lip'} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1a0e00" stop-opacity="0.55" /><stop offset="10%" stop-color="#1a0e00" stop-opacity="0.18" /><stop offset="28%" stop-color="#1a0e00" stop-opacity="0" /></linearGradient>
+          <radialGradient id={gradientId + '-falloff'} cx="50%" cy="92%" r="78%"><stop offset="45%" stop-color="#2a1500" stop-opacity="0" /><stop offset="80%" stop-color="#2a1500" stop-opacity="0.28" /><stop offset="100%" stop-color="#2a1500" stop-opacity="0.6" /></radialGradient>
           <clipPath id={gradientId + '-clip'}><rect x="5" y="5" width="110" height="55" /></clipPath>
         </defs>
         <rect x="0" y="0" width="120" height="72" rx="5" class="bezel" />
@@ -61,8 +64,11 @@
         <text x="16" y="22" class="vu-label">VU</text>
         <text x="105" y="57" class="sign hot">+</text><text x="14" y="57" class="sign">−</text>
         <text x="60" y="58" class="channel">{channel}</text>
+        <rect x="5" y="5" width="110" height="55" fill="url(#{gradientId}-falloff)" class="shade" /><rect x="5" y="5" width="110" height="55" fill="url(#{gradientId}-lip)" class="shade" />
         <g clip-path="url(#{gradientId}-clip)"><line x1={pivotX} y1={pivotY} x2={pivotX} y2={pivotY - 60} class="needle" transform="rotate({needleAngle(meters.vu[channelIndex] ?? -90, restAngle)} {pivotX} {pivotY})" /></g>
-        <rect x="5" y="60" width="110" height="7" class="pivot-cover" />
+        <rect x="5" y="60" width="110" height="7" class="pivot-cover" /><rect x="7" y="59.2" width="106" height="1.1" class="lit-edge" />
+        <!-- Acrylic window edge: light bends through the thick rim, a bright band with a darker inner seam -->
+        <rect x="5.7" y="5.7" width="108.6" height="60.6" rx="1.6" class="rim-glow" /><rect x="7.3" y="7.3" width="105.4" height="57.4" rx="1" class="rim-seam" /><path d="M6 6.2 H114" class="rim-catch" />
       </svg>
     {/each}
   {:else if ui.meterStyle === 'oledvu'}
@@ -98,7 +104,7 @@
   .small .vu { width: 60px; height: 36px; } .large .vu { width: 190px; height: 114px; }
   .small .oledvu { height: 27px; } .large .oledvu { height: 85.5px; }
   .bezel { fill: #15161a; stroke: #2c2e34; stroke-width: 1; }
-  .lamp-hot { stop-color: #fff6d8; } .lamp-warm { stop-color: #f6e3b0; } .lamp-mid { stop-color: #d9bf86; } .lamp-edge { stop-color: #9c8457; }
+  .lamp-hot { stop-color: #fff4d2; } .lamp-warm { stop-color: #f5dfa8; } .lamp-mid { stop-color: #d6b779; } .lamp-edge { stop-color: #8f7448; }
   .idle .lamp-hot { stop-color: #e9dcb6; } .idle .lamp-warm { stop-color: #d8c595; } .idle .lamp-mid { stop-color: #b59d6c; } .idle .lamp-edge { stop-color: #7a6744; }
   .face { stroke: rgba(0, 0, 0, 0.5); stroke-width: 0.8; }
   .scale { fill: none; stroke: #1d1a14; stroke-width: 0.9; }
@@ -111,7 +117,10 @@
   .sign { fill: #1d1a14; font-size: 8px; font-weight: 700; text-anchor: middle; font-family: Arial, sans-serif; } .sign.hot { fill: #c4291c; }
   .channel { fill: rgba(29, 26, 20, 0.55); font-size: 6px; text-anchor: middle; font-family: var(--font-display); }
   .needle { stroke: #111; stroke-width: 0.9; } /* ballistics in the shell, easing per frame in state.svelte.ts */
-  .pivot-cover { fill: #15161a; }
+  .pivot-cover { fill: #15161a; } .shade { pointer-events: none; }
+  .rim-glow { fill: none; stroke: #ffe6b4; stroke-width: 1.3; opacity: 0.4; } .rim-seam { fill: none; stroke: #3a2508; stroke-width: 0.45; opacity: 0.35; } .rim-catch { stroke: #fff8e6; stroke-width: 0.5; opacity: 0.6; }
+  .idle .rim-glow { opacity: 0.22; } .idle .rim-catch { opacity: 0.3; }
+  .lit-edge { fill: #ffe7b0; opacity: 0.75; } .idle .lit-edge { opacity: 0.35; }
   /* OLED VU: a frosted glass pane over whatever is behind, with a fine top-lit edge */
   .glass { fill: url(#oled-glass-sheen); stroke: rgba(255, 255, 255, 0.16); stroke-width: 0.6; }
   .oledvu { border-radius: 6px; backdrop-filter: blur(10px) saturate(1.3); background: rgba(8, 14, 22, 0.28); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 4px 14px rgba(0, 0, 0, 0.25); }
