@@ -15,6 +15,7 @@
   import FolderView from './views/FolderView.svelte'
   import SearchView from './views/SearchView.svelte'
   import FavouritesView from './views/FavouritesView.svelte'
+  import AppsView from './views/AppsView.svelte'
   import ActionStrip from './parts/ActionStrip.svelte'
   import Meters from './parts/Meters.svelte'
   import { sortable } from './lib/sortable'
@@ -33,13 +34,14 @@
   const mini = $derived(height < 400 || width < 460) // short or narrow windows snap to the mini player, with big meters
   const vertical = $derived(!mini && width <= 900)
   const folderMode = $derived(app.librarySettings.AlbumSource !== 'tags')
-  const allSections = $derived([['queue', 'Now playing', 'queue'], ['favourites', 'Favourites', 'favourites'], ['playlists', 'Playlists', 'playlists'], ['artists', 'Artists', 'artists'], ['genres', 'Genres', 'genres'], ['composers', 'Composers', 'composers'], ['performers', 'Performers', 'performers'], ['folders', folderMode ? 'Folders' : 'Albums', folderMode ? 'folders' : 'albums'], ['downloads', 'Downloaded', 'download'], ['history', 'History', 'history']] as [string, string, any][])
-  const pinGlyphs: Record<string, string> = { genre: 'genres', artist: 'artists', composer: 'composers', performer: 'performers', album: 'albums', folder: 'folders', playlist: 'playlists' }
+  const allSections = $derived([['queue', 'Now playing', 'queue'], ['favourites', 'Favourites', 'favourites'], ['radio', 'Radio', 'radio'], ['apps', 'Apps', 'apps'], ['playlists', 'Playlists', 'playlists'], ['artists', 'Artists', 'artists'], ['genres', 'Genres', 'genres'], ['composers', 'Composers', 'composers'], ['performers', 'Performers', 'performers'], ['folders', folderMode ? 'Folders' : 'Albums', folderMode ? 'folders' : 'albums'], ['downloads', 'Downloaded', 'download'], ['history', 'History', 'history']] as [string, string, any][])
+  const pinGlyphs: Record<string, string> = { genre: 'genres', artist: 'artists', composer: 'composers', performer: 'performers', album: 'albums', folder: 'folders', playlist: 'playlists', app: 'apps' }
   const pinSections = $derived(Object.entries(pins.views).map(([key, view]) => [key, view.title ?? '', pinGlyphs[view.kind] ?? 'pin']) as [string, string, any][])
   // Sidebar and bottom-bar customisation (one shared setting): every section shows by default; order, spacers and hidden ones are remembered per PC
   // The layout is section keys plus spacers ("spacer-…"); out of the box one spacer sits under the first section
   const isSpacer = (key: string) => key.startsWith('spacer-')
-  function initialLayout(): string[] { const stored: string[] = JSON.parse(readSetting('sectionOrder', '[]')); if (readSetting('spacersAdded', '')) return stored; return stored.length ? stored.slice(0, 1).concat(['spacer-1'], stored.slice(1)) : ['queue', 'spacer-1'] }
+  // Radio and Apps arrive next to Favourites in a sidebar customised before they existed
+  function initialLayout(): string[] { const stored: string[] = JSON.parse(readSetting('sectionOrder', '[]')); if (stored.length && !stored.includes('radio')) stored.splice(stored.includes('favourites') ? stored.indexOf('favourites') + 1 : stored.length, 0, 'radio', 'apps'); if (readSetting('spacersAdded', '')) return stored; return stored.length ? stored.slice(0, 1).concat(['spacer-1'], stored.slice(1)) : ['queue', 'spacer-1'] }
   let layoutOrder = $state<string[]>(initialLayout())
   // Stored order first (unknown keys dropped), then any section not placed yet
   const placeable = $derived(allSections.concat(pinSections))
@@ -255,6 +257,8 @@
             {#key view.kind + view.key}<AlbumsOf kind={view.kind} key={view.key} title={view.title} />{/key}
           {:else if view.kind === 'favourites'}
             {#key view.key}<FavouritesView itemId={view.key ?? ''} />{/key}
+          {:else if view.kind === 'radio' || view.kind === 'apps' || view.kind === 'app' || view.kind === 'app-search'}
+            {#key view.kind + view.key}<AppsView kind={view.kind} key={view.key ?? ''} title={view.title ?? ''} />{/key}
           {:else if view.kind === 'history'}
             <HistoryView />
           {:else if view.kind === 'downloads'}
