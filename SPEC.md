@@ -188,6 +188,18 @@ Record a radio station (or any other stream) to FLAC, for personal listening.
 - **Ends** when you click stop, the player leaves the stream for a library file or stops, or WinSqueeze quits (the file is finished cleanly). A Squeezelite restart (device change) finishes the file and carries on in a new one.
 - A toast says where the files went. The UI and Settings say recordings are for personal use only.
 
+## Offline downloads
+
+Albums (or any selection: artists, genres, folders, tracks, playlists) can be downloaded to this PC and played without the server.
+
+- **Where:** **Download** in the selection bar (any list, any number of items) and on the album page. Covers of downloaded albums carry a small badge (outlined when only some tracks are on this PC).
+- **Fetching:** the shell downloads each track's original file from Lyrion (`/music/<track id>/download`), lossless and untouched, two at a time in the order asked. A partial file resumes with an HTTP Range request; a dropped connection puts the track back in the queue and retries a minute later. The queue survives restarts. Covers are cached at every size the UI uses.
+- **Storage:** `<data folder>\Offline\<profile>\<album artist>\<album>\<disc-track title>.<ext>`, with a `downloads.db` per server profile recording each track's album, tags, size and state. Downloads follow Lyrion track ids, re-linked by file URL after a full rescan.
+- **Downloaded** (sidebar section): what's still downloading sits on top, one row per album with a progress bar and ✕ (cancel the rest of the album); expanding a row lists its tracks, each with its own ✕. Retry failed and Cancel all are in its header. Below, the downloaded albums as a normal album grid with the usual Sort / Group / View, where the selection bar offers **Remove download** (deletes the files). The footer shows tracks and size on this PC and opens the folder.
+- **Offline playback:** Squeezelite only plays what a server streams to it, so the shell carries a small offline server: it speaks slimproto to our Squeezelite on 127.0.0.1, streams the downloaded files over local HTTP and answers the player commands the UI uses (status, play, pause, seek, volume, next/previous, queue add/insert/move/delete/clear, repeat) with Lyrion-shaped replies. Playback stays bit-perfect through the same Squeezelite, EQ, meters and recording; tracks follow each other gaplessly (the next stream is sent when the decoder finishes, never before the previous track has started). Seeking is frame-exact for FLAC, sample-exact for WAV/AIFF and approximate for MP3; other formats restart from the beginning.
+- **Going offline:** automatically when five player polls in a row fail and something is downloaded (tray note "Playing offline"), or by hand from the player picker (**Play offline**). The downloaded part of the current queue carries on at the same spot. The app opens Downloaded; browsing still works from the local index, and only downloaded tracks can be queued.
+- **Going back online:** checked every 30 seconds. If nothing is playing it goes back by itself; while playing it offers "The server is back · Go online" instead of interrupting.
+
 ## Output device selection
 
 1. **Picker in the app:** a dropdown in the transport bar's device indicator, in settings (Audio tab) and in the tray menu.

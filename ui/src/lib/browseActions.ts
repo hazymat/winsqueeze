@@ -3,6 +3,7 @@
 import { query, request, live, sendToShell } from '../bridge'
 import { app, ui, toast, playlist, newPlaylist, addToPlaylist, type PlaylistItem } from '../state.svelte'
 import type { SelectionAction, MenuChoice } from './selection.svelte'
+import { downloadItems } from './downloads.svelte'
 
 export const resolveTracks = async (kind: string, keys: string[]): Promise<PlaylistItem[]> => {
   if (kind === 'playlist') { const lists = await Promise.all(keys.map(key => live(['playlists', 'tracks', 0, 2000, `playlist_id:${key}`, 'tags:a']))); return lists.flatMap(list => (list?.playlisttracks_loop ?? []).map((item: any) => ({ id: Number(item.id), title: item.title, artist: item.artist ?? '', duration: Number(item.duration || 0) }))) }
@@ -62,6 +63,7 @@ export function browseActions(kind: string): SelectionAction[] {
     { label: 'Play next', run: async keys => queueTracks(await resolveTracks(kind, keys), 'insert') },
     { label: 'Add to end', run: async keys => queueTracks(await resolveTracks(kind, keys), 'add') },
     { label: 'Add to playlist…', menu: async keys => playlistMenu(() => resolveTracks(kind, keys)) },
+    { label: 'Download', run: async keys => downloadItems(kind, keys) },
     { label: 'Track info', run: async keys => { ui.trackInfo = (await resolveTracks(kind, keys)).map(item => item.id) } }
   ]
 }
