@@ -1,7 +1,7 @@
 <script lang="ts">
   import { checkKeepPlaying } from './lib/queueEnd.svelte'
   import { noteLongTrack } from './lib/resume'
-  import { sendToShell, onShellMessage, request, command, artUrl } from './bridge'
+  import { sendToShell, onShellMessage, request, command, trackArt } from './bridge'
   import { app, nav, ui, playlist, openSection, back, forward, forwardHistory, currentView, newPlaylist, pins, togglePin, undoToast, undoLast, redoLast, history, toast, noteTrackChange, receiveLevels, writeSetting, readSetting, currentTrack } from './state.svelte'
   import TransportBar from './parts/TransportBar.svelte'
   import WhatsNew from './parts/WhatsNew.svelte'
@@ -90,7 +90,7 @@
   request({ type: 'loadDraft' }).then(draft => { if (draft?.items) newPlaylist(draft.name ?? 'Untitled playlist', draft.items) })
 
   // Accent (Settings › Appearance): the playing cover's colour when that's on (frosted skins), else the chosen colour, else the skin's own blue
-  const coverId = $derived(currentTrack()?.coverid ?? '')
+  const coverArt = $derived(trackArt(currentTrack(), 120))
   function applyAccent(accent: string) {
     const rootStyle = document.documentElement.style
     if (!accent) { for (const name of ['--accent', '--accent-soft', '--on-accent']) rootStyle.removeProperty(name); return }
@@ -100,9 +100,9 @@
     rootStyle.setProperty('--on-accent', 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2] > 150 ? '#06141c' : '#ffffff')
   }
   $effect(() => {
-    const cover = coverId, chosen = ui.accent
+    const cover = coverArt, chosen = ui.accent
     if (!cover || !ui.coverAccent || !['auto', 'dark', 'light'].includes(ui.skin)) { applyAccent(chosen); return }
-    accentFromCover(artUrl(cover, 120)).then(accent => { if (cover === coverId) applyAccent(accent || chosen) })
+    accentFromCover(cover).then(accent => { if (cover === coverArt) applyAccent(accent || chosen) })
   })
   // Glass tint (frosted skins with glass): transparency and hue from Appearance; the mini player keeps its lighter share of the tint
   $effect(() => {

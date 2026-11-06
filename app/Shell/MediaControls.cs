@@ -46,8 +46,10 @@ public sealed class MediaControls
         displayUpdater.MusicProperties.Title = LyrionClient.ReadString(currentTrack.Value, "title");
         displayUpdater.MusicProperties.Artist = LyrionClient.ReadString(currentTrack.Value, "artist");
         displayUpdater.MusicProperties.AlbumTitle = LyrionClient.ReadString(currentTrack.Value, "album");
-        var coverId = LyrionClient.ReadString(currentTrack.Value, "coverid");
-        displayUpdater.Thumbnail = coverId == "" ? null : RandomAccessStreamReference.CreateFromUri(new Uri($"{coverUrlBase}/music/{coverId}/cover_300x300_o"));
+        // Radio and other streams: artwork_url (their coverid is negative); library tracks: coverid
+        var coverId = LyrionClient.ReadString(currentTrack.Value, "coverid"); var artworkUrl = LyrionClient.ReadString(currentTrack.Value, "artwork_url");
+        var thumbnailUrl = artworkUrl != "" && (coverId == "" || coverId.StartsWith('-')) ? (artworkUrl.StartsWith("http") ? $"{coverUrlBase}/imageproxy/{Uri.EscapeDataString(artworkUrl)}/image_300x300_f" : $"{coverUrlBase}/{artworkUrl.TrimStart('/')}") : coverId != "" && !coverId.StartsWith('-') ? $"{coverUrlBase}/music/{coverId}/cover_300x300_o" : null;
+        displayUpdater.Thumbnail = thumbnailUrl == null ? null : RandomAccessStreamReference.CreateFromUri(new Uri(thumbnailUrl));
         displayUpdater.Update();
     }
 

@@ -25,3 +25,7 @@ const noArtSvg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>
 export const noArtUrl = 'data:image/svg+xml,' + encodeURIComponent(noArtSvg)
 if (typeof document !== 'undefined') document.addEventListener('error', event => { const image = event.target; if (image instanceof HTMLImageElement && image.src.startsWith('https://art.winsqueeze/')) image.src = noArtUrl }, true)
 export const artUrl = (coverId: unknown, size = 300) => coverId ? `https://art.winsqueeze/${coverId}/${size}` : ''
+// An image the server knows by path or web address (radio and app icons); outside images go through Lyrion's imageproxy, resized
+export const serverArt = (source: string, size = 300) => source ? `https://art.winsqueeze/server/${encodeURIComponent(source.startsWith('http') ? `imageproxy/${encodeURIComponent(source)}/image_${size}x${size}_f` : source.replace(/^\//, ''))}` : ''
+// A queue item's art: library tracks by coverid; radio and other streams by artwork_url (their coverid is negative and has no cover), however playback was started
+export const trackArt = (track: any, size = 300) => { const coverId = String(track?.coverid ?? ''), remoteArt = String(track?.artwork_url ?? ''); return remoteArt && (Number(track?.remote) === 1 || !coverId || coverId.startsWith('-')) ? serverArt(remoteArt, size) : coverId && !coverId.startsWith('-') ? artUrl(coverId, size) : '' }
