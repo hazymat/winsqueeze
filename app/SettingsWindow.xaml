@@ -81,6 +81,7 @@
         <TextBlock x:Name="playerStatusText" Style="{StaticResource Quiet}" />
         <CheckBox x:Name="exclusiveBox" Content="Exclusive mode (bit-perfect, bypasses the Windows mixer)" Margin="0,14,0,0" />
         <TextBlock x:Name="exclusiveNoteText" Style="{StaticResource Quiet}" Text="Shared mode only plays tracks whose sample rate matches the Windows mixer, and is not bit-perfect." />
+        <TextBlock x:Name="exclusiveWarningText" Foreground="#B26B00" TextWrapping="Wrap" Margin="0,4,0,0" Text="⚠ While WinSqueeze is playing, it has this device to itself: other apps can't play sound through it. It lets go 10 seconds after you pause or stop, or straight away when you untick this." />
         <Grid Margin="0,4,0,0">
           <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="140" /></Grid.ColumnDefinitions>
           <StackPanel><TextBlock Style="{StaticResource Label}" Text="Player name (shown on the server)" /><TextBox x:Name="playerNameBox" Margin="0,0,8,0" /></StackPanel>
