@@ -253,7 +253,7 @@
           {#if everything}
             <SearchView />
           {:else if view.kind === 'artists' || view.kind === 'composers' || view.kind === 'performers' || view.kind === 'genres'}
-            {#key view.kind}<PeopleList kind={view.kind} />{/key}
+            {#key view.kind}<PeopleList kind={view.kind} title={({ artists: 'Artists', composers: 'Composers', performers: 'Performers', genres: 'Genres' } as Record<string, string>)[view.kind]} />{/key}
           {:else if view.kind === 'folders'}
             {#if folderMode}<FolderView />{:else}<AlbumsOf kind="albums" title="Albums" />{/if}
           {:else if view.kind === 'folder'}
@@ -267,7 +267,7 @@
           {:else if view.kind === 'customViews'}
             <CustomViewsEditor />
           {:else if view.kind === 'favourites'}
-            {#key view.key}<FavouritesView itemId={view.key ?? ''} />{/key}
+            {#key view.key}<FavouritesView itemId={view.key ?? ''} title={view.title ?? ''} />{/key}
           {:else if view.kind === 'radio' || view.kind === 'apps' || view.kind === 'app' || view.kind === 'app-search'}
             {#key view.kind + view.key}<AppsView kind={view.kind} key={view.key ?? ''} title={view.title ?? ''} />{/key}
           {:else if view.kind === 'history'}

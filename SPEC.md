@@ -118,7 +118,9 @@ Sidebar sections, in this order: Favourites, Radio, Apps, Artists, Genres, Compo
 
 Settings › Browsing chooses which groupings the Group menu offers and each area's starting grouping.
 
-**List or Tiles:** Artists, Genres, Composers, Performers and every custom view step have a List / Tiles toggle (remembered per list). A tile is a square mosaic of up to four covers from inside it (newest first: one fills the square, two split it, three are one large and two small), with the name and its count in bold.
+**Page header:** every browse page (top level, second level and custom views) has a pinned title bar: a big title with its count on the left, and the page's controls and view switcher on the right. It stays in place while the page scrolls.
+
+**List, Cards or Tiles:** Artists, Genres, Composers, Performers and every custom view step switch between List, Cards and Tiles in the header (remembered per list). A card is a taller glass row with one cover (or the first letter) on the left, the name and its count in bold. A tile is a square mosaic of up to four covers from inside it (newest first: one fills the square, two split it, three are one large and two small), with the name and its count in bold.
 
 ## Custom views
 
@@ -126,7 +128,7 @@ The built-in lists browse the whole library one way: pick a composer, see their 
 
 - **A view** has a name, an on/off switch, an optional sidebar menu (shown as "Sidebar menu"; stored as Group), a genre list (empty = whole library) and up to four steps, each one of Genre, Composer, Artist (album, track or guest artist) or Performer (conductors, bands and orchestras). After the last step it shows albums, with the usual Sort, Group and View toolbar.
 - **Scope:** a track belongs to a view when it has one of the view's genres and matches every step chosen so far. Genre steps list only the view's own genres. Counts are albums and tracks within the scope. Selecting rows and playing them plays only the tracks in scope.
-- **Sidebar:** switched-on views appear in the sidebar. Views with the same sidebar menu sit in one entry of that name, which opens a page of views shown as Cards or smaller square Tiles (a toggle, remembered). Press and hold a card or tile and drag it to reorder; the order is saved (the Custom views page has the same order, with drag and arrows). Each card has a mosaic of covers from inside it, its full name and steps, its album count, and its first step's biggest rows as chips with album counts that jump straight in; a view with no group gets its own entry. They can be moved and hidden like any section.
+- **Sidebar:** switched-on views appear in the sidebar. Views with the same sidebar menu sit in one entry of that name, which opens a page of views shown as List, Cards or Tiles (the header switcher, remembered). Press and hold a card or tile and drag it to reorder; the order is saved (the Custom views page has the same order, with drag and arrows). Each card has a mosaic of covers from inside it, its full name and steps, its album count, and its first step's biggest rows as chips with album counts that jump straight in; a view with no group gets its own entry. They can be moved and hidden like any section.
 - **Editing:** a Custom views page in the main window (from Customise sidebar, from a group's page, or Settings › Browsing, which also carries the explainer above). Changes save at once, in the settings file, so settings export and import carry them.
 - **Demos**, switched off out of the box, all in group "Classical" and limited to Baroque, Chamber Music, Choral, Classical, Minimalist, Opera, Orchestral, Piano Music, String Music and Symphony: Composers (composer, then albums), Composers by genre, Genres by composer, Composers by artist.
 

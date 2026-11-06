@@ -1,5 +1,6 @@
 <script lang="ts">
   import PinButton from '../parts/PinButton.svelte'
+  import PageHead from '../parts/PageHead.svelte'
   import { selectable } from '../lib/selectable.svelte'
   import { browseActions } from '../lib/browseActions'
   import { query, artUrl } from '../bridge'
@@ -15,7 +16,7 @@
 {#if folder.albumKey && !(folder.children ?? []).some((child: any) => child.subfolders > 0 || !child.albumKey)}
   <AlbumView albumKey={folder.albumKey} />
 {:else}
-  <div class="folder-head"><h2>{folder.name ?? 'Folders'}</h2>{#if folderKey}<PinButton view={{ kind: 'folder', key: folderKey, title: folder.name ?? 'Folder' }} />{/if}</div>
+  <PageHead title={folder.name ?? 'Folders'} detail={(folder.children ?? []).length ? `${(folder.children ?? []).length} items` : ''}>{#snippet titleExtra()}{#if folderKey}<PinButton view={{ kind: 'folder', key: folderKey, title: folder.name ?? 'Folder' }} />{/if}{/snippet}</PageHead>
   <div class="folders" use:selectable={{ scope: 'folder:' + folderKey, noun: 'folder', actions: browseActions('folder') }}>
     {#each shown as child (child.key)}
       <button class="folder" data-select-key={String(child.key)} onclick={() => openView({ kind: 'folder', key: String(child.key), title: child.name })}>
@@ -27,8 +28,6 @@
 {/if}
 
 <style>
-  .folder-head { display: flex; align-items: center; gap: 12px; } .folder-head h2 { margin-right: auto; }
-  h2 { margin: 0 0 12px; font-size: 24px; }
   .folders { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 4px 16px; }
   .folder { display: flex; align-items: center; gap: 10px; background: none; border: 0; color: var(--fg); padding: 6px 8px; border-radius: 8px; cursor: pointer; text-align: left; font: inherit; min-width: 0; }
   .folder:hover { background: var(--hover); }
