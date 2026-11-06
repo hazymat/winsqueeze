@@ -69,7 +69,8 @@ jobs:
           # Notes (worked out before packing, so the release is born with them): every change since the previous release (one line each, written for users), skipping the bot's player builds
           $previousTag = gh api "repos/$env:GITHUB_REPOSITORY/releases?per_page=5" --jq ('[.[] | select(.tag_name != "v' + $version + '")][0].tag_name')
           $previousSha = if ($previousTag) { gh api "repos/$env:GITHUB_REPOSITORY/commits/$previousTag" --jq .sha } else { "" }
-          $notes = if ($previousSha) { git log "$previousSha..HEAD" --no-merges --perl-regexp --author='^((?!github-actions).)*$' --pretty="- %s" } else { "" }
+          # A commit's "Impact: feature" or "Impact: improvement" trailer marks its line with ★ or ▲, so What's new lists the biggest changes first
+          $notes = if ($previousSha) { git log "$previousSha..HEAD" --no-merges --perl-regexp --author='^((?!github-actions).)*$' --pretty="%(trailers:key=Impact,valueonly,separator=)%x1f%s" | ForEach-Object { $parts = $_ -split [char]0x1f, 2; $mark = switch -regex ($parts[0].Trim()) { '^feature' { [char]0x2605 + ' ' } '^improvement' { [char]0x25B2 + ' ' } default { '' } }; "- $mark$($parts[1])" } } else { "" }
           if (-not $notes) { $notes = git log -1 --pretty=%B }
           # A stable release takes its written summary from docs/releases/<version>.md when there is one
           if ($channel -eq "stable" -and (Test-Path "docs/releases/$version.md")) { $notes = Get-Content "docs/releases/$version.md" }
