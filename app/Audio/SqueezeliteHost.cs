@@ -34,6 +34,8 @@ public sealed partial class SqueezeliteHost : IDisposable
         var extraArguments = SplitArguments(audio.ExtraArguments).ToList();
         // Resample only tracks the device can't take natively (e.g. 22.05 kHz radio in exclusive mode); without it Squeezelite retries the open forever
         if (!extraArguments.Any(argument => argument is "-R" or "-u")) foreach (var argument in new[] { "-R", "hE" }) startInfo.ArgumentList.Add(argument);
+        // Exclusive mode: let go of the device 10 s after a pause or stop, so other apps can play without closing WinSqueeze
+        if (audio.Exclusive && device.SupportsExclusive && !extraArguments.Contains("-C")) foreach (var argument in new[] { "-C", "10" }) startInfo.ArgumentList.Add(argument);
         if (SupportsVisualiser) startInfo.ArgumentList.Add("-v"); // share played samples for the meters
         foreach (var extraArgument in extraArguments) startInfo.ArgumentList.Add(extraArgument);
         logWriter = new StreamWriter(Path.Combine(AppPaths.LogsFolder, "squeezelite.log"), false) { AutoFlush = true };

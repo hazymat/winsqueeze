@@ -160,7 +160,7 @@ public partial class SettingsWindow : Window
     // ---- Audio ----
     void WireAudioTab()
     {
-        exclusiveBox.IsChecked = Settings.Audio.Exclusive;
+        exclusiveBox.IsChecked = Settings.Audio.Exclusive; exclusiveWarningText.Visibility = Settings.Audio.Exclusive ? Visibility.Visible : Visibility.Collapsed;
         playerNameBox.Text = Settings.Audio.PlayerName;
         latencyBox.Text = Settings.Audio.LatencyMs.ToString();
         extraArgumentsBox.Text = Settings.Audio.ExtraArguments;
@@ -171,7 +171,7 @@ public partial class SettingsWindow : Window
             Settings.Audio.FallbackDeviceName = fallback == noFallback ? "" : fallback.Name; Settings.Audio.FallbackDeviceHostApi = fallback == noFallback ? "" : fallback.HostApi; Settings.Save();
         };
         refreshDevicesButton.Click += async (sender, args) => await App.RefreshDevicesAsync();
-        exclusiveBox.Click += async (sender, args) => { Settings.Audio.Exclusive = exclusiveBox.IsChecked == true; Settings.Save(); await App.StartPlayerAsync(true); };
+        exclusiveBox.Click += async (sender, args) => { Settings.Audio.Exclusive = exclusiveBox.IsChecked == true; exclusiveWarningText.Visibility = Settings.Audio.Exclusive ? Visibility.Visible : Visibility.Collapsed; Settings.Save(); await App.StartPlayerAsync(true); };
         playerNameBox.LostFocus += async (sender, args) => await SaveAudioTextAsync();
         latencyBox.LostFocus += async (sender, args) => await SaveAudioTextAsync();
         extraArgumentsBox.LostFocus += async (sender, args) => await SaveAudioTextAsync();
