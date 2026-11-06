@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { request, sendToShell } from '../bridge'
+  import { request, sendToShell, onShellMessage } from '../bridge'
   import { playlist, saveDraft, undoLastAdd, toast, formatTime } from '../state.svelte'
   import { sortable, blockOrder } from '../lib/sortable'
   import { isSelected, rowClick, selectOnHold, selection, type SelectionAction } from '../lib/selection.svelte'
@@ -20,9 +20,11 @@
   const actions: SelectionAction[] = [{ label: 'Remove', key: 'Delete', danger: true, run: remove }]
   const preview = () => sendToShell({ type: 'playTracks', ids: playlist.items.map(item => item.id), mode: 'load', start: 0 })
   function close() { playlist.open = false; playlist.items = []; playlist.history = []; saveDraft() }
+  let saveProgress = $state({ done: 0, total: 0 })
+  onShellMessage('saveProgress', message => saveProgress = { done: message.done, total: message.total })
   async function save() {
     if (!playlist.items.length || !playlist.name.trim()) return
-    saving = true
+    saving = true; saveProgress = { done: 0, total: 0 }
     const result = await request({ type: 'savePlaylist', name: playlist.name.trim(), ids: playlist.items.map(item => item.id), favourite: asFavourite })
     saving = false
     if (result?.error) { toast(`Couldn't save: ${result.error}`); return }
@@ -56,7 +58,7 @@
       <div class="actions">
         <button class="ghost" onclick={preview} disabled={!playlist.items.length}>Preview</button>
         <button class="ghost" onclick={discard}>Discard</button>
-        <button class="primary" onclick={save} disabled={saving || !playlist.items.length}>{saving ? 'Saving…' : 'Save & close'}</button>
+        <button class="primary" onclick={save} disabled={saving || !playlist.items.length}>{saving ? (saveProgress.total ? `Saving ${saveProgress.done}/${saveProgress.total}…` : 'Saving…') : 'Save & close'}</button>
       </div>
     </aside>
   {/if}

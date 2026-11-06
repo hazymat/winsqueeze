@@ -67,12 +67,12 @@ public sealed class PlayerSession
     }
 
     // Saves a Lyrion playlist (a deliberate, user-initiated write) and optionally favourites it
-    public async Task<string> SavePlaylistAsync(string playlistName, List<string> trackUrls, bool addToFavourites)
+    public async Task<string> SavePlaylistAsync(string playlistName, List<string> trackUrls, bool addToFavourites, Action<int, int>? progress = null)
     {
         var created = await RequestAsync(false, "playlists", "new", $"name:{playlistName}");
         var playlistId = LyrionClient.ReadString(created, "playlist_id");
         if (playlistId == "") throw new InvalidOperationException(LyrionClient.ReadString(created, "overwritten_playlist_id") != "" ? "A playlist with that name already exists." : "The server did not create the playlist.");
-        foreach (var trackUrl in trackUrls) await RequestAsync(false, "playlists", "edit", "cmd:add", $"playlist_id:{playlistId}", $"url:{trackUrl}");
+        await AddToPlaylistAsync(playlistId, trackUrls, progress);
         if (addToFavourites)
         {
             var playlistInfo = await RequestAsync(false, "playlists", 0, 1, $"playlist_id:{playlistId}", "tags:u");
@@ -80,6 +80,17 @@ public sealed class PlayerSession
                 foreach (var playlistItem in playlistsLoop.EnumerateArray()) await RequestAsync(false, "favorites", "add", $"url:{LyrionClient.ReadString(playlistItem, "url")}", $"title:{playlistName}");
         }
         return playlistId;
+    }
+
+    // Lyrion adds one track per request: one kept-alive connection for the lot (a new one each time made big playlists crawl), reporting progress
+    public async Task AddToPlaylistAsync(string playlistId, List<string> trackUrls, Action<int, int>? progress = null)
+    {
+        using var lyrionClient = new LyrionClient(App.Settings.ActiveProfile!);
+        for (var index = 0; index < trackUrls.Count; index++)
+        {
+            await lyrionClient.RequestAsync("", "playlists", "edit", "cmd:add", $"playlist_id:{playlistId}", $"url:{trackUrls[index]}");
+            if (index % 5 == 4 || index == trackUrls.Count - 1) progress?.Invoke(index + 1, trackUrls.Count);
+        }
     }
 
     public static string DraftPath => Path.Combine(AppPaths.DataFolder, "playlist-draft.json");

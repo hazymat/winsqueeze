@@ -134,7 +134,7 @@ public partial class MainWindow : Window
                     var urlRows = await Task.Run(() => (List<Dictionary<string, object?>>)urlQueries.Run("trackUrls", JsonDocument.Parse(JsonSerializer.Serialize(new { ids = idsJson })).RootElement));
                     var urlById = urlRows.ToDictionary(row => Convert.ToInt64(row["id"]), row => (string)row["url"]!);
                     var orderedUrls = Ids(message.GetProperty("ids")).Where(urlById.ContainsKey).Select(trackId => urlById[trackId]).ToList();
-                    await App.Session.SavePlaylistAsync(Text(message, "name"), orderedUrls, message.TryGetProperty("favourite", out var favourite) && favourite.GetBoolean());
+                    await App.Session.SavePlaylistAsync(Text(message, "name"), orderedUrls, message.TryGetProperty("favourite", out var favourite) && favourite.GetBoolean(), (done, total) => Push(JsonSerializer.Serialize(new { type = "saveProgress", done, total })));
                     Reply(message, new { ok = true });
                     break;
                 case "addToSavedPlaylist":
@@ -144,7 +144,7 @@ public partial class MainWindow : Window
                     var addRows = await Task.Run(() => (List<Dictionary<string, object?>>)addQueries.Run("trackUrls", JsonDocument.Parse(JsonSerializer.Serialize(new { ids = addIdsJson })).RootElement));
                     var addUrlById = addRows.ToDictionary(row => Convert.ToInt64(row["id"]), row => (string)row["url"]!);
                     var countBefore = Server.LyrionClient.ReadInt(await App.Session.RequestAsync(false, "playlists", "tracks", 0, 0, $"playlist_id:{savedPlaylistId}"), "count");
-                    foreach (var trackId in Ids(message.GetProperty("ids")).Where(addUrlById.ContainsKey)) await App.Session.RequestAsync(false, "playlists", "edit", "cmd:add", $"playlist_id:{savedPlaylistId}", $"url:{addUrlById[trackId]}");
+                    await App.Session.AddToPlaylistAsync(savedPlaylistId, Ids(message.GetProperty("ids")).Where(addUrlById.ContainsKey).Select(trackId => addUrlById[trackId]).ToList());
                     Reply(message, new { before = countBefore });
                     break;
                 case "loadDraft": ReplyRaw(message, File.Exists(Shell.PlayerSession.DraftPath) ? File.ReadAllText(Shell.PlayerSession.DraftPath) : "null"); break;
