@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { app, openView, openSection, type CustomStep } from '../state.svelte'
+  import { app, openView, openSection, readSetting, writeSetting, type CustomStep } from '../state.svelte'
   import PeopleList from './PeopleList.svelte'
   import AlbumsOf from './AlbumsOf.svelte'
   import { levelNames } from '../lib/browse.svelte'
@@ -12,12 +12,15 @@
   const level = $derived(definition?.Levels?.[filters.length] ?? '')
   const heading = $derived(filters.length ? filters[filters.length - 1].name : definition?.Name ?? '')
   const trail = $derived([definition?.Name ?? ''].concat(filters.map(step => step.name)).join(' › '))
+  // A group's page shows its views as Cards or smaller square Tiles, remembered per PC
+  let groupLayout = $state(readSetting('customGroupLayout', 'cards'))
+  const setGroupLayout = (value: string) => { groupLayout = value; writeSetting('customGroupLayout', value) }
   const scope = $derived({ genres: definition?.Genres ?? [], filters: filters.map(step => ({ kind: step.kind, key: step.key })) })
 </script>
 
 {#if group}
-  <div class="head"><h2>{group}</h2><button class="ghost" onclick={() => openSection('customViews')}>Edit views</button></div>
-  <div class="cards">{#each allViews.filter(each => each.Enabled && each.Group === group) as each (each.Id)}<CustomViewCard view={each} />{/each}</div>
+  <div class="head"><h2>{group}</h2><span class="grow"></span><div class="layout-toggle">{#each [['cards', 'Cards'], ['tiles', 'Tiles']] as [value, label]}<button class:on={groupLayout === value} onclick={() => setGroupLayout(value)}>{label}</button>{/each}</div><button class="ghost" onclick={() => openSection('customViews')}>Edit views</button></div>
+  <div class="cards" class:compact={groupLayout === 'tiles'}>{#each allViews.filter(each => each.Enabled && each.Group === group) as each (each.Id)}<CustomViewCard view={each} compact={groupLayout === 'tiles'} />{/each}</div>
 {:else if !definition}
   <p class="quiet">This custom view has been deleted. <button class="ghost" onclick={() => openSection('customViews')}>Custom views</button></p>
 {:else if level}
@@ -32,4 +35,9 @@
   h2 { margin: 0; font-size: 24px; }
   .trail, .quiet { color: var(--fg-quiet); font-size: 12px; }
   .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; }
+  .cards.compact { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 14px; }
+  .grow { flex: 1; }
+  .layout-toggle { display: flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; align-self: center; }
+  .layout-toggle button { border: 0; background: transparent; color: var(--fg-quiet); padding: 4px 12px; font: inherit; font-size: 12px; cursor: pointer; }
+  .layout-toggle button.on { background: var(--accent-soft); color: var(--accent); }
 </style>

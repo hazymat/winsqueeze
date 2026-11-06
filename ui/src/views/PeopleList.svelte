@@ -2,7 +2,8 @@
   import { selectable } from '../lib/selectable.svelte'
   import { browseActions } from '../lib/browseActions'
   import { query } from '../bridge'
-  import { app, ui, openView, type CustomStep } from '../state.svelte'
+  import { app, ui, openView, readSetting, writeSetting, type CustomStep } from '../state.svelte'
+  import CoverMosaic from '../parts/CoverMosaic.svelte'
   import { browseState } from '../lib/browse.svelte'
   // custom: one level of a custom view (SPEC.md › Custom views); rows come from its scope, and a click takes the next step
   let { kind, custom }: { kind: 'artists' | 'composers' | 'performers' | 'genres' | 'custom'; custom?: { viewId: string; genres: string[]; filters: CustomStep[]; level: string } } = $props()
@@ -33,25 +34,45 @@
   const sizeOf = (row: any) => { const field = (groupCounts[nextView.group] ?? ['albums'])[0]; return Number((app.librarySettings.ListCounts === 'tracks' ? row.tracks : row[field] ?? row.tracks) ?? 0) }
   const biggest = $derived(graphic === 'none' ? 1 : rows.reduce((largest, row) => Math.max(largest, sizeOf(row)), 1))
   const shareOf = (row: any) => Math.log(sizeOf(row) + 1) / Math.log(biggest + 1)
+  // List or Tiles (a cover mosaic per row), remembered per list
+  const layoutKey = 'peopleLayout.' + (custom ? 'custom' : kind)
+  let layout = $state(readSetting(layoutKey, 'list'))
+  const setLayout = (value: string) => { layout = value; writeSetting(layoutKey, value) }
+  const countParts = (row: any) => { const text = countText(row), space = text.indexOf(' '); return space > 0 ? [text.slice(0, space), text.slice(space)] : [text, ''] }
 </script>
 
-{#if kind === 'performers'}
-  <div class="chips">{#each Object.keys(roleNames) as roleKey}<button class:on={role === roleKey} onclick={() => role = roleKey}>{roleNames[roleKey]}</button>{/each}</div>
-{/if}
+<div class="bar">
+  {#if kind === 'performers'}<div class="chips">{#each Object.keys(roleNames) as roleKey}<button class:on={role === roleKey} onclick={() => role = roleKey}>{roleNames[roleKey]}</button>{/each}</div>{/if}
+  <div class="layout-toggle">{#each [['list', 'List'], ['tiles', 'Tiles']] as [value, label]}<button class:on={layout === value} onclick={() => setLayout(value)}>{label}</button>{/each}</div>
+</div>
 {#if !rows.length}<p class="quiet">{app.library.text || (custom ? 'Nothing in your library matches this view. Check its genres in Custom views.' : 'Nothing here yet. The library is still syncing, or the server has none.')}</p>{/if}
-<div class="people" use:selectable={{ scope: 'people:' + kind + (custom ? custom.viewId + custom.filters.length : ''), noun: viewKind ?? 'item', actions: browseActions(custom ? 'custom' : viewKind ?? 'artist') }}>
+<div class="people" class:tiles={layout === 'tiles'} use:selectable={{ scope: 'people:' + kind + (custom ? custom.viewId + custom.filters.length : ''), noun: viewKind ?? 'item', actions: browseActions(custom ? 'custom' : viewKind ?? 'artist') }}>
   {#each shown as row (row.key + (row.role ?? ''))}
     {@const share = graphic === 'none' ? 0 : shareOf(row)}
+    {#if layout === 'tiles'}
+      {@const [count, countRest] = countParts(row)}
+      <button class="tile" data-select-key={selectKey(row)} onclick={() => open(row)} title={row.name}><CoverMosaic covers={row.covers ?? []} name={row.name} /><span class="tile-name">{row.name}</span><span class="meta"><b>{count}</b>{countRest}</span></button>
+    {:else}
     <button class="person graphic-{graphic}" style:--share={share.toFixed(3)} data-select-key={selectKey(row)} onclick={() => open(row)}>
       <span class="name">{row.name}</span>
       {#if graphic === 'dots'}<span class="dots">{#each [1, 2, 3, 4, 5] as dot}<i class:lit={dot <= Math.max(1, Math.round(share * 5))}></i>{/each}</span>{/if}
       <span class="meta">{row.role && kind === 'performers' && !role ? row.role + ' · ' : ''}{countText(row)}</span>
     </button>
+    {/if}
   {/each}
 </div>
 
 <style>
-  .chips { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+  .bar { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
+  .layout-toggle { margin-left: auto; display: flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; flex: none; }
+  .layout-toggle button { border: 0; background: transparent; color: var(--fg-quiet); padding: 4px 12px; font: inherit; font-size: 12px; cursor: pointer; }
+  .layout-toggle button.on { background: var(--accent-soft); color: var(--accent); }
+  .people.tiles { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 18px 16px; }
+  .tile { display: flex; flex-direction: column; gap: 3px; text-align: left; background: transparent; border: 0; color: var(--fg); padding: 6px; border-radius: 12px; cursor: pointer; font: inherit; min-width: 0; }
+  .tile:hover { background: var(--hover); }
+  .tile-name { margin-top: 5px; font-weight: 600; font-size: 13px; overflow-wrap: anywhere; }
+  .tile .meta b { color: var(--fg); }
   .chips button { border: 1px solid var(--line); background: transparent; color: var(--fg); border-radius: 14px; padding: 4px 12px; cursor: pointer; font-size: 12px; }
   .chips button.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
   .people { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 2px 16px; }

@@ -104,6 +104,7 @@ public sealed class LibraryQueries
     {
         var counts = Query(connection, $"SELECT ra.key, COUNT(DISTINCT a.key) AS albums, COUNT(DISTINCT a.artist_norm) AS artists, COUNT(DISTINCT NULLIF(a.year, 0)) AS years, COUNT(DISTINCT NULLIF(a.year, 0) / 10) AS decades, COUNT(DISTINCT a.format) AS formats, SUM(a.track_count) AS tracks FROM (SELECT DISTINCT key, album_key FROM ({rowAlbumsSql})) ra JOIN albums a ON a.key=ra.album_key AND a.source=$source GROUP BY ra.key", ("$source", albumSource))
             .ToDictionary(row => Convert.ToString(row["key"])!);
+        AddCovers(connection, rows, "", rowAlbumsSql, ("$source", albumSource));
         foreach (var row in rows)
         {
             if (!counts.TryGetValue(Convert.ToString(row["key"])!, out var count)) continue;
@@ -111,6 +112,14 @@ public sealed class LibraryQueries
             if (row.Remove("genreTracks", out var genreTracks)) row["tracks"] = genreTracks; // a genre's own tracks, not every track on its albums
         }
         return rows;
+    }
+
+    // Tiles: up to four covers per row (newest albums first), from SQL giving (key, album_key) rows
+    void AddCovers(SqliteConnection connection, List<Dictionary<string, object?>> rows, string withPrefix, string keyAlbumsSql, params (string name, object? value)[] parameters)
+    {
+        var coversByKey = Query(connection, $"{withPrefix} SELECT key, group_concat(cover, '|') AS covers FROM (SELECT DISTINCT ka.key, a.cover_id AS cover, a.added FROM ({keyAlbumsSql}) ka JOIN albums a ON a.key=ka.album_key AND a.source=$source WHERE COALESCE(a.cover_id,'')<>'' ORDER BY a.added DESC) GROUP BY key", parameters)
+            .ToDictionary(row => Convert.ToString(row["key"])!, row => Convert.ToString(row["covers"]) ?? "");
+        foreach (var row in rows) row["covers"] = coversByKey.TryGetValue(Convert.ToString(row["key"])!, out var covers) ? covers.Split('|').Distinct().Take(4).ToList() : new List<string>();
     }
 
     List<Dictionary<string, object?>> AlbumsByCredit(SqliteConnection connection, string partNorm, string[] credits, string sort) =>
@@ -155,7 +164,9 @@ public sealed class LibraryQueries
         };
         var names = level == "genre" ? "(SELECT name FROM genres WHERE id=CAST(rk.key AS INTEGER))" : $"COALESCE((SELECT display FROM people WHERE part_norm=rk.key ORDER BY role='{(level == "performer" ? "conductor" : level)}' DESC LIMIT 1), (SELECT part_display FROM contributor_parts WHERE part_norm=rk.key LIMIT 1), rk.key)";
         var sortName = level == "genre" ? "(SELECT name_norm FROM genres WHERE id=CAST(rk.key AS INTEGER))" : $"COALESCE((SELECT sort_norm FROM people WHERE part_norm=rk.key ORDER BY role='{(level == "performer" ? "conductor" : level)}' DESC LIMIT 1), rk.key)";
-        return Query(connection, $"WITH matched AS ({matched}), rk AS (SELECT rt.key, COUNT(DISTINCT rt.id) AS tracks, COUNT(DISTINCT a.key) AS albums FROM ({rowsBy}) rt LEFT JOIN album_tracks at ON at.track_id=rt.id LEFT JOIN albums a ON a.key=at.album_key AND a.source=$source GROUP BY rt.key) SELECT rk.key, {names} AS name, rk.tracks, rk.albums FROM rk ORDER BY {sortName}", parameters.ToArray());
+        var levelRows = Query(connection, $"WITH matched AS ({matched}), rk AS (SELECT rt.key, COUNT(DISTINCT rt.id) AS tracks, COUNT(DISTINCT a.key) AS albums FROM ({rowsBy}) rt LEFT JOIN album_tracks at ON at.track_id=rt.id LEFT JOIN albums a ON a.key=at.album_key AND a.source=$source GROUP BY rt.key) SELECT rk.key, {names} AS name, rk.tracks, rk.albums FROM rk ORDER BY {sortName}", parameters.ToArray());
+        AddCovers(connection, levelRows, $"WITH matched AS ({matched})", $"SELECT DISTINCT rt.key, at.album_key FROM ({rowsBy}) rt JOIN album_tracks at ON at.track_id=rt.id", parameters.ToArray());
+        return levelRows;
     }
 
     // Selection actions: any chosen rows (albums, people, genres, folders, tracks) as one ordered, de-duplicated track list
