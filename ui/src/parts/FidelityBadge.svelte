@@ -9,7 +9,7 @@
 </script>
 
 {#if check.state}
-  <button class="badge" class:perfect={check.state === 'perfect'} class:scaled={check.state !== 'perfect'} class:open={noteOpen} onclick={() => noteOpen = !noteOpen} title="Click for details">{#if check.state === 'perfect'}<Icon name="verified" size={15} />Bit-perfect{:else}{check.state === 'scaled' ? 'Scaled' : 'Not bit-perfect'}{/if}</button>
+  <button class="badge" class:perfect={check.state === 'perfect'} class:scaled={check.state !== 'perfect'} class:open={noteOpen} onclick={() => noteOpen = !noteOpen} title="Click for details">{#if check.format}<span class="format">{check.format}</span>{/if}{#if check.state === 'perfect'}<Icon name="verified" size={15} />Bit-perfect{:else}{check.state === 'scaled' ? 'Scaled' : 'Not bit-perfect'}{/if}</button>
   {#if noteOpen}
     <div class="note" role="dialog">
       {#if check.state === 'perfect'}<strong>Bit-perfect</strong>
@@ -27,6 +27,7 @@
 <style>
   .badge { position: absolute; left: 50%; bottom: calc(50% + 9px); transform: translateX(-50%); display: inline-flex; align-items: center; gap: 3px; height: 16px; padding: 0 6px; border-radius: 999px; font: inherit; font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; line-height: 1; }
   .perfect { background: none; border: 0; color: var(--accent); padding-left: 0; gap: 4px; cursor: pointer; } .perfect:hover, .perfect.open { filter: brightness(1.2); }
+  .format { color: var(--fg-quiet); margin-right: 3px; font-weight: 600; }
   .scaled { background: none; border: 1px solid var(--line); color: var(--fg-quiet); cursor: pointer; }
   .scaled:hover, .scaled.open { color: var(--fg); background: var(--hover); }
   .note { position: absolute; right: 0; bottom: calc(50% + 32px); z-index: 50; width: 260px; padding: 12px 14px; background: var(--panel-solid); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 12px 32px var(--shadow); font-size: 12px; line-height: 1.45; color: var(--fg); }
