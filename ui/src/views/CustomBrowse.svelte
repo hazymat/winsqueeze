@@ -2,7 +2,8 @@
   import { app, openView, openSection, readSetting, writeSetting, type CustomStep } from '../state.svelte'
   import PeopleList from './PeopleList.svelte'
   import AlbumsOf from './AlbumsOf.svelte'
-  import { levelNames } from '../lib/browse.svelte'
+  import { levelNames, moveCustomView } from '../lib/browse.svelte'
+  import { gridSortable } from '../lib/gridSortable'
   import CustomViewCard from './CustomViewCard.svelte'
   // A custom view (SPEC.md › Custom views): each level lists the next step's rows within the view's genres; after the last step, the albums.
   // With group set, the sidebar entry shared by several views: a list of them
@@ -15,12 +16,13 @@
   // A group's page shows its views as Cards or smaller square Tiles, remembered per PC
   let groupLayout = $state(readSetting('customGroupLayout', 'cards'))
   const setGroupLayout = (value: string) => { groupLayout = value; writeSetting('customGroupLayout', value) }
+  const groupViews = $derived(allViews.filter(each => each.Enabled && each.Group === group))
   const scope = $derived({ genres: definition?.Genres ?? [], filters: filters.map(step => ({ kind: step.kind, key: step.key })) })
 </script>
 
 {#if group}
   <div class="head"><h2>{group}</h2><span class="grow"></span><div class="layout-toggle">{#each [['cards', 'Cards'], ['tiles', 'Tiles']] as [value, label]}<button class:on={groupLayout === value} onclick={() => setGroupLayout(value)}>{label}</button>{/each}</div><button class="ghost" onclick={() => openSection('customViews')}>Edit views</button></div>
-  <div class="cards" class:compact={groupLayout === 'tiles'}>{#each allViews.filter(each => each.Enabled && each.Group === group) as each (each.Id)}<CustomViewCard view={each} compact={groupLayout === 'tiles'} />{/each}</div>
+  <div class="cards" class:compact={groupLayout === 'tiles'} use:gridSortable={{ onMove: (from, to) => moveCustomView(groupViews.map(each => each.Id), from, to) }}>{#each groupViews as each (each.Id)}<div data-sort-row><CustomViewCard view={each} compact={groupLayout === 'tiles'} /></div>{/each}</div>
 {:else if !definition}
   <p class="quiet">This custom view has been deleted. <button class="ghost" onclick={() => openSection('customViews')}>Custom views</button></p>
 {:else if level}
@@ -35,6 +37,9 @@
   h2 { margin: 0; font-size: 24px; }
   .trail, .quiet { color: var(--fg-quiet); font-size: 12px; }
   .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; }
+  .cards > :global([data-sort-row]) { transition: transform 0.15s, box-shadow 0.15s; border-radius: 14px; }
+  .cards > :global(.lifted) { position: relative; z-index: 20; transition: none; box-shadow: 0 18px 40px var(--shadow); cursor: grabbing; }
+  .cards > :global(.drop-target) { outline: 2px dashed var(--accent); outline-offset: 4px; }
   .cards.compact { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 14px; }
   .grow { flex: 1; }
   .layout-toggle { display: flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; align-self: center; }
