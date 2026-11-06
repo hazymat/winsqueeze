@@ -31,7 +31,7 @@ public sealed partial class LibrarySync
         {
             using var lyrionClient = new LyrionClient(profile);
             var serverStatus = await lyrionClient.GetServerStatusAsync();
-            var signature = $"{serverStatus.LastScan}|{serverStatus.TotalSongs}|{serverStatus.TotalAlbums}|{serverStatus.TotalArtists}|{librarySettings.NameSeparators}|derive3";
+            var signature = $"{serverStatus.LastScan}|{serverStatus.TotalSongs}|{serverStatus.TotalAlbums}|{serverStatus.TotalArtists}|{librarySettings.NameSeparators}|derive4|{librarySettings.NameOrder}";
             var databasePath = DatabasePath(profile);
             if (!force && File.Exists(databasePath))
             {
@@ -210,7 +210,7 @@ public sealed partial class LibrarySync
         {
             var personKey = (TextNormaliser.Normalise(display), role);
             if (personKey.Item1 == "") return;
-            if (!people.TryGetValue(personKey, out var person)) people[personKey] = person = (display, new(), new());
+            if (!people.TryGetValue(personKey, out var person)) people[personKey] = person = (role is "composer" or "conductor" ? TextNormaliser.PersonDisplay(display, librarySettings.NameOrder) : display, new(), new());
             (albumKey.StartsWith("f:") ? person.folderAlbums : person.tagAlbums).Add(albumKey);
         }
         foreach (var (albumKey, members) in albumGroups)
@@ -254,7 +254,7 @@ public sealed partial class LibrarySync
         }
         foreach (var ((partNorm, role), person) in people)
         {
-            Execute(connection, "INSERT INTO people(part_norm,role,display,album_count,album_count_t) VALUES($part,$role,$display,$countFolders,$countTags)", ("$part", partNorm), ("$role", role), ("$display", person.display), ("$countFolders", person.folderAlbums.Count), ("$countTags", person.tagAlbums.Count));
+            Execute(connection, "INSERT INTO people(part_norm,role,display,album_count,album_count_t,sort_norm) VALUES($part,$role,$display,$countFolders,$countTags,$sort)", ("$part", partNorm), ("$role", role), ("$display", person.display), ("$sort", TextNormaliser.Normalise(person.display)), ("$countFolders", person.folderAlbums.Count), ("$countTags", person.tagAlbums.Count));
             var searchKind = role switch { "artist" => "artist", "composer" => "composer", _ => "performer" };
             if (role != "soloist") Execute(connection, "INSERT INTO search(kind,ref,source,label,detail,text) VALUES($kind,$part,'',$display,$role,$display)", ("$kind", searchKind), ("$part", partNorm), ("$display", person.display), ("$role", role));
         }

@@ -42,7 +42,7 @@ CREATE INDEX album_tracks_album ON album_tracks(album_key);
 CREATE INDEX album_tracks_track ON album_tracks(track_id);
 CREATE TABLE album_credits(album_key TEXT, part_norm TEXT, credit TEXT);
 CREATE INDEX album_credits_part ON album_credits(part_norm, credit);
-CREATE TABLE people(part_norm TEXT, role TEXT, display TEXT, album_count INTEGER, album_count_t INTEGER, PRIMARY KEY(part_norm, role));
+CREATE TABLE people(part_norm TEXT, role TEXT, display TEXT, album_count INTEGER, album_count_t INTEGER, sort_norm TEXT, PRIMARY KEY(part_norm, role));
 CREATE VIRTUAL TABLE search USING fts5(kind UNINDEXED, ref UNINDEXED, source UNINDEXED, label, detail UNINDEXED, text, tokenize='unicode61 remove_diacritics 2');
 ";
 

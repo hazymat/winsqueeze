@@ -77,7 +77,7 @@ The app builds and keeps its own SQLite index of the whole library, one database
 - **Any credit:** the name appears in a multi-name album artist (e.g. "Keith Jarrett, Gary Peacock") or as a track artist, composer, conductor or band.
 - **Album artist text only:** the name appears within the album artist field.
 
-Name matching splits on common separators (`,` `;` `&` `/` `feat.` `with` `and`) and is case- and accent-insensitive. The separator list is configurable. A name written "Surname, Forename" (one word before the comma, up to three after: "Kapustin, Nikolai", "Tchaikovsky, P.I.", "Bach, Johann Sebastian") is one person, not two, and is shown and matched as "Nikolai Kapustin".
+Name matching splits on common separators (`,` `;` `&` `/` `feat.` `with` `and`) and is case- and accent-insensitive. The separator list is configurable. A name written "Surname, Forename" (one word before the comma, up to three after: "Kapustin, Nikolai", "Tchaikovsky, P.I.", "Bach, Johann Sebastian") is one person, not two, and is matched as "Nikolai Kapustin". Settings › Library chooses how composers and conductors are shown and sorted: "Surname, Forename" (default; the last word is taken as the surname) or "Forename Surname".
 
 **Refresh:**
 

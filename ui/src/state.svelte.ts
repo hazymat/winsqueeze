@@ -26,6 +26,8 @@ export function writeSetting(name: string, value: string) { try { localStorage.s
 // Forward history, like a browser: Back keeps what it left, any new navigation clears it
 export const forwardHistory = $state({ views: [] as View[] })
 export function openSection(section: string) { nav.section = section; nav.stack = []; ui.search = ''; forwardHistory.views = [] }
+// A person named in tag text ("Kapustin, Nikolai; Bach, J.S."): the shell splits it the way the lists do and gives the first person's key
+export async function personView(kind: string, name: string): Promise<View> { const person = await query('personKey', { name }); return { kind, key: person?.key ?? name.toLowerCase(), title: person?.name ?? name } }
 export function openView(view: View) { nav.stack = nav.stack.concat([view]); ui.search = ''; forwardHistory.views = [] }
 export function back() { if (!nav.stack.length) return; forwardHistory.views = forwardHistory.views.concat([nav.stack[nav.stack.length - 1]]); nav.stack = nav.stack.slice(0, -1) }
 export function forward() { if (!forwardHistory.views.length) return; nav.stack = nav.stack.concat([forwardHistory.views[forwardHistory.views.length - 1]]); forwardHistory.views = forwardHistory.views.slice(0, -1) }

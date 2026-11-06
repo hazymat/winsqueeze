@@ -274,6 +274,8 @@ public partial class SettingsWindow : Window
         // Album source and grouping switch instantly: both are already in the index
         void SaveChoice() { library.AlbumSource = tagAlbumsRadio.IsChecked == true ? "tags" : "folders"; library.ContributorGrouping = albumArtistRadio.IsChecked == true ? "albumartist" : "any"; Settings.Save(); App.NotifyLibraryChanged(); }
         foreach (var radio in new[] { folderAlbumsRadio, tagAlbumsRadio, anyCreditRadio, albumArtistRadio }) radio.Click += (sender, args) => SaveChoice();
+        nameOrderBox.SelectedIndex = library.NameOrder == "forename" ? 1 : 0;
+        nameOrderBox.SelectionChanged += async (sender, args) => { library.NameOrder = (string)((ComboBoxItem)nameOrderBox.SelectedItem).Tag; Settings.Save(); await App.Library.RefreshAsync(true); };
         hideOwnComposersBox.IsChecked = library.HideOwnComposers;
         hideOwnComposersBox.Click += (sender, args) => { library.HideOwnComposers = hideOwnComposersBox.IsChecked == true; Settings.Save(); App.NotifyLibraryChanged(); };
         var listCountChoices = new[] { ("group", "What the view groups by (e.g. album artists)"), ("tracks", "Tracks"), ("both", "Both") };
