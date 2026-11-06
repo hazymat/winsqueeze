@@ -5,11 +5,12 @@
   import AlbumList from '../parts/AlbumList.svelte'
   import BrowseBar from '../parts/BrowseBar.svelte'
   import PinButton from '../parts/PinButton.svelte'
+  import { downloads } from '../lib/downloads.svelte'
   let { kind, key = '', title = '' }: { kind: string; key?: string; title?: string } = $props()
   let result = $state<any>({ own: [], appearsOn: [] })
   const view = browseState(kind)
-  const queryName: Record<string, string> = { artist: 'artistAlbums', composer: 'composerAlbums', performer: 'performerAlbums', genre: 'genreAlbums', albums: 'albums' }
-  $effect(() => { app.indexVersion; app.librarySettings.AlbumSource; app.librarySettings.ContributorGrouping; query(queryName[kind], { key, sort: view.sort }).then(data => result = data ?? { own: [] }) })
+  const queryName: Record<string, string> = { artist: 'artistAlbums', composer: 'composerAlbums', performer: 'performerAlbums', genre: 'genreAlbums', albums: 'albums', downloads: 'downloadedAlbums' }
+  $effect(() => { app.indexVersion; if (kind === 'downloads') downloads.finishedTracks; app.librarySettings.AlbumSource; app.librarySettings.ContributorGrouping; query(queryName[kind], { key, sort: view.sort }).then(data => result = data ?? { own: [] }) })
   // An artist keeps "Albums" and "Also appears on" as sections, with the chosen grouping inside each
   const sections = $derived(kind === 'artist' ? [['Albums', result.own ?? []], ['Also appears on', result.appearsOn ?? []]].filter(([, albums]) => (albums as any[]).length) as [string, any[]][] : [['', result.own ?? []]] as [string, any[]][])
   // Grouped grids share one column width (as auto-fill would give), so small groups can sit side by side on a row

@@ -17,31 +17,33 @@ public sealed class PlayerSession
     public JsonElement LastStatus { get; private set; }
     public event Action? StatusUpdated;
     public event Action? PlayersUpdated;
+    public event Action? ServerUnreachable; // several polls in a row failed
+    int failedPolls;
     App App => App.Instance;
     string PlayerId => SelectedPlayerId == "" ? App.Settings.PlayerMac : SelectedPlayerId;
 
     public void Start() { pollTimer.Tick += async (sender, args) => await PollAsync(); pollTimer.Start(); }
     public void SetVisible(bool windowVisible) => pollTimer.Interval = TimeSpan.FromSeconds(windowVisible ? 1 : 5);
 
-    async Task PollAsync()
+    public async Task PollAsync()
     {
         if (polling) { pollAgain = true; return; }
-        if (App.Settings.ActiveProfile is not { Host.Length: > 0 } profile) return;
+        if (App.Settings.ActiveProfile is not { Host.Length: > 0 }) return;
         polling = true;
         try
         {
-            using var lyrionClient = new LyrionClient(profile);
-            LastStatus = await lyrionClient.RequestAsync(PlayerId, "status", 0, 500, "tags:aAcdlKjJotTIrsSeNfYm");
+            LastStatus = await App.ServerRequestAsync(PlayerId, "status", 0, 500, "tags:aAcdlKjJotTIrsSeNfYm");
+            failedPolls = 0;
             LastStatusJson = LastStatus.ValueKind == JsonValueKind.Undefined ? "{}" : LastStatus.GetRawText();
             StatusUpdated?.Invoke();
             if (pollTick++ % 10 == 0)
             {
-                var players = await lyrionClient.RequestAsync("", "players", 0, 50);
+                var players = await App.ServerRequestAsync("", "players", 0, 50);
                 LastPlayersJson = players.ValueKind == JsonValueKind.Object && players.TryGetProperty("players_loop", out var playersLoop) ? playersLoop.GetRawText() : "[]";
                 PlayersUpdated?.Invoke();
             }
         }
-        catch { }
+        catch { if (++failedPolls == 5 && !App.IsOffline) ServerUnreachable?.Invoke(); }
         finally { polling = false; }
         if (pollAgain) { pollAgain = false; await PollAsync(); }
     }
@@ -50,10 +52,9 @@ public sealed class PlayerSession
     readonly SemaphoreSlim playerCommandGate = new(1, 1);
     public async Task<JsonElement> RequestAsync(bool forPlayer, params object[] command)
     {
-        using var lyrionClient = new LyrionClient(App.Settings.ActiveProfile!);
         JsonElement result;
-        if (forPlayer) { await playerCommandGate.WaitAsync(); try { result = await lyrionClient.RequestAsync(PlayerId, command); } finally { playerCommandGate.Release(); } }
-        else result = await lyrionClient.RequestAsync("", command);
+        if (forPlayer) { await playerCommandGate.WaitAsync(); try { result = await App.ServerRequestAsync(PlayerId, command); } finally { playerCommandGate.Release(); } }
+        else result = await App.ServerRequestAsync("", command);
         if (forPlayer) { await Task.Delay(150); await PollAsync(); }
         return result;
     }

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { sendToShell } from '../bridge'
   import { app } from '../state.svelte'
+  import { downloads } from '../lib/downloads.svelte'
   import Icon from './Icon.svelte'
   // Glass popover instead of the native select (whose Windows popup ignores the skin)
   // Lives at the top of the sidebar, so the menu opens downwards; this PC's output device sits under it (click: Settings › Audio)
@@ -30,6 +31,9 @@
         {/if}
       {/each}
       {#if !app.players.length}<div class="empty">No players found</div>{/if}
+      <!-- Offline: this PC plays its downloads without the server (SPEC.md › Offline downloads) -->
+      {#if app.status?.offline}<button class="output" onclick={() => { open = false; sendToShell({ type: 'goOnline' }) }} title="Reconnect to the server"><Icon name="download" size={12} /><span class="output-name">Playing offline</span><span class="output-hint">Go online</span></button>
+      {:else if downloads.finishedTracks}<button class="output" onclick={() => { open = false; sendToShell({ type: 'goOffline' }) }} title="Play downloads on this PC without the server"><Icon name="download" size={12} /><span class="output-name">Downloads only</span><span class="output-hint">Play offline</span></button>{/if}
     </div>
   {/if}
 </div>
