@@ -10,7 +10,7 @@ public sealed class PlayerSession
 {
     readonly DispatcherTimer pollTimer = new() { Interval = TimeSpan.FromSeconds(1) };
     int pollTick;
-    bool polling;
+    bool polling, pollAgain; // a poll asked for mid-poll runs straight after, so the state after the last command always arrives
     public string SelectedPlayerId { get; set; } = "";
     public string LastStatusJson { get; private set; } = "{}";
     public string LastPlayersJson { get; private set; } = "[]";
@@ -25,7 +25,8 @@ public sealed class PlayerSession
 
     async Task PollAsync()
     {
-        if (polling || App.Settings.ActiveProfile is not { Host.Length: > 0 } profile) return;
+        if (polling) { pollAgain = true; return; }
+        if (App.Settings.ActiveProfile is not { Host.Length: > 0 } profile) return;
         polling = true;
         try
         {
@@ -42,6 +43,7 @@ public sealed class PlayerSession
         }
         catch { }
         finally { polling = false; }
+        if (pollAgain) { pollAgain = false; await PollAsync(); }
     }
 
     // Player commands go one at a time, so a fast volume drag can't land out of order (a late 98 overwriting the final 100)
