@@ -6,7 +6,7 @@ namespace WinSqueeze.Shell;
 public sealed class TrayIcon : IDisposable
 {
     readonly NotifyIcon notifyIcon;
-    readonly ToolStripMenuItem outputMenu = new("Output device"), playerMenu = new("Player"), windowModeMenu = new("Window mode"), skinMenu = new("Skin");
+    readonly ToolStripMenuItem outputMenu = new("Output device"), playerMenu = new("Player"), sleepMenu = new("Sleep"), windowModeMenu = new("Window mode"), skinMenu = new("Skin");
     App App => App.Instance;
 
     public TrayIcon()
@@ -19,6 +19,7 @@ public sealed class TrayIcon : IDisposable
         trayMenu.Items.Add("New playlist", null, (sender, args) => App.NewPlaylist());
         trayMenu.Items.Add(outputMenu);
         trayMenu.Items.Add(playerMenu);
+        trayMenu.Items.Add(sleepMenu);
         trayMenu.Items.Add(windowModeMenu);
         trayMenu.Items.Add(skinMenu);
         foreach (var (mode, label) in new[] { ("desktop", "Desktop"), ("vertical", "Vertical"), ("mini", "Mini") }) windowModeMenu.DropDownItems.Add(label, null, (sender, args) => App.SetWindowMode(mode));
@@ -26,7 +27,7 @@ public sealed class TrayIcon : IDisposable
         trayMenu.Items.Add("Check for updates", null, async (sender, args) => { await App.Updater.CheckNowAsync(); if (App.Updater.ReadyVersion == "") ShowTip("WinSqueeze", App.Updater.StatusText); });
         trayMenu.Items.Add("Settings", null, (sender, args) => App.OpenSettings());
         trayMenu.Items.Add("Quit", null, (sender, args) => App.Quit());
-        trayMenu.Opening += (sender, args) => { RebuildOutputMenu(); RebuildPlayerMenu(); RebuildSkinMenu(); };
+        trayMenu.Opening += (sender, args) => { RebuildOutputMenu(); RebuildPlayerMenu(); RebuildSleepMenu(); RebuildSkinMenu(); };
         notifyIcon = new NotifyIcon { Icon = CreateIcon(), Text = "WinSqueeze", ContextMenuStrip = trayMenu, Visible = true };
         notifyIcon.MouseClick += (sender, args) => { if (args.Button == MouseButtons.Left) App.ToggleMainWindow(); };
     }
@@ -65,6 +66,19 @@ public sealed class TrayIcon : IDisposable
         }
         catch (System.Text.Json.JsonException) { }
         if (playerMenu.DropDownItems.Count == 0) playerMenu.DropDownItems.Add(new ToolStripMenuItem("No players found") { Enabled = false });
+    }
+
+    // Lyrion's sleep timer for the selected player: stops it after the time, or when this track ends
+    void RebuildSleepMenu()
+    {
+        sleepMenu.DropDownItems.Clear();
+        var status = App.Session.LastStatus;
+        var sleepLeft = Server.LyrionClient.ReadDouble(status, "will_sleep_in"); var trackLeft = Math.Ceiling(Server.LyrionClient.ReadDouble(status, "duration") - Server.LyrionClient.ReadDouble(status, "time"));
+        sleepMenu.Visible = !App.IsOffline;
+        sleepMenu.Text = sleepLeft > 0 ? $"Sleep ({Math.Ceiling(sleepLeft / 60)} min left)" : "Sleep";
+        foreach (var minutes in new[] { 15, 30, 45, 60, 90 }) sleepMenu.DropDownItems.Add($"{minutes} minutes", null, async (sender, args) => await App.Session.RequestAsync(true, "sleep", minutes * 60));
+        if (trackLeft > 0) sleepMenu.DropDownItems.Add("End of this track", null, async (sender, args) => await App.Session.RequestAsync(true, "sleep", (int)trackLeft));
+        sleepMenu.DropDownItems.Add(new ToolStripMenuItem("Off", null, async (sender, args) => await App.Session.RequestAsync(true, "sleep", 0)) { Checked = sleepLeft <= 0 });
     }
 
     void RebuildSkinMenu()

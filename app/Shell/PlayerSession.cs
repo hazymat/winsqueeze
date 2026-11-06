@@ -20,10 +20,12 @@ public sealed class PlayerSession
     public event Action? ServerUnreachable; // several polls in a row failed
     int failedPolls;
     App App => App.Instance;
-    string PlayerId => SelectedPlayerId == "" ? App.Settings.PlayerMac : SelectedPlayerId;
+    public string PlayerId => SelectedPlayerId == "" ? App.Settings.PlayerMac : SelectedPlayerId;
 
     public void Start() { pollTimer.Tick += async (sender, args) => await PollAsync(); pollTimer.Start(); }
     public void SetVisible(bool windowVisible) => pollTimer.Interval = TimeSpan.FromSeconds(windowVisible ? 1 : 5);
+
+    public async Task RefreshPlayersAsync() { pollTick = 0; await Task.Delay(300); await PollAsync(); } // power changes show at once, not on the next 10-poll round
 
     public async Task PollAsync()
     {

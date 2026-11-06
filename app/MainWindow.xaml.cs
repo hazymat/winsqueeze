@@ -153,6 +153,7 @@ public partial class MainWindow : Window
                 case "historyClear": App.History.Clear(); break;
                 case "goOffline": await App.GoOfflineAsync(false); break;
                 case "goOnline": await App.GoOnlineAsync(); break;
+                case "playerPower": await App.ServerRequestAsync(Text(message, "id"), "power", Text(message, "on")); await App.Session.RefreshPlayersAsync(); break;
                 case "selectPlayer": App.Session.SelectedPlayerId = Text(message, "id") == App.Settings.PlayerMac ? "" : Text(message, "id"); await App.Session.RequestAsync(true, "status", "-", 1); break;
                 case "savePlaylist":
                     var urlQueries = App.Library.Queries;

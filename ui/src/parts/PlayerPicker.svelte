@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { sendToShell } from '../bridge'
+  import { command, sendToShell } from '../bridge'
   import { app } from '../state.svelte'
   import { downloads } from '../lib/downloads.svelte'
   import Icon from './Icon.svelte'
@@ -10,27 +10,45 @@
   const selectedId = $derived(app.selectedPlayer || app.ownPlayer)
   const selected = $derived(app.players.find(player => player.playerid === selectedId))
   const choose = (playerId: string) => { app.selectedPlayer = playerId; sendToShell({ type: 'selectPlayer', id: playerId }); open = false }
+  // Power and sleep are Lyrion's own player commands, so other controllers see them too; the offline server has neither
+  const online = $derived(!app.status?.offline)
+  const setPower = (player: any) => { player.power = Number(player.power) ? 0 : 1; sendToShell({ type: 'playerPower', id: player.playerid, on: player.power }) }
+  const sleepLeft = $derived(Math.round(Number(app.nowPlaying?.will_sleep_in ?? 0)))
+  const trackLeft = $derived(Math.max(0, Math.ceil(Number(app.nowPlaying?.duration ?? 0) - Number(app.nowPlaying?.time ?? 0))))
+  const sleepChoices = [15, 30, 45, 60, 90]
+  const sleepFor = (seconds: number) => command('sleep', seconds)
 </script>
 
 <svelte:window onmousedown={(event) => { if (open && !(event.target as HTMLElement).closest('.picker')) open = false }} onkeydown={(event) => { if (event.key === 'Escape') open = false }} />
 
 <div class="picker">
   <button class="current" onclick={() => open = !open} aria-haspopup="listbox" aria-expanded={open} title="Choose player">
-    <Icon name="speaker" size={12} /><span class="name">{selected?.name ?? 'Player'}</span><span class="chevron" class:down={placement === 'down'}>⌃</span>
+    <Icon name="speaker" size={12} /><span class="name">{selected?.name ?? 'Player'}</span>{#if sleepLeft > 0}<span class="moon" title="Sleep timer: {Math.ceil(sleepLeft / 60)} min left">☾</span>{/if}<span class="chevron" class:down={placement === 'down'}>⌃</span>
   </button>
   {#if open}
     <div class="menu {placement}" role="listbox">
       {#each app.players as player (player.playerid)}
-        <button role="option" aria-selected={player.playerid === selectedId} class:on={player.playerid === selectedId} disabled={!player.connected} onclick={() => choose(player.playerid)}>
-          <span class="dot" class:playing={player.isplaying}></span>
-          <span class="text"><span class="player-name">{player.name}</span><span class="detail">{player.playerid === app.ownPlayer ? 'This PC' : player.modelname ?? player.model ?? ''}{player.connected ? '' : ' · offline'}</span></span>
-          {#if player.playerid === selectedId}<span class="tick">✓</span>{/if}
-        </button>
+        <div class="row">
+          <button role="option" aria-selected={player.playerid === selectedId} class:on={player.playerid === selectedId} disabled={!player.connected} onclick={() => choose(player.playerid)}>
+            <span class="dot" class:playing={player.isplaying}></span>
+            <span class="text"><span class="player-name">{player.name}</span><span class="detail">{player.playerid === app.ownPlayer ? 'This PC' : player.modelname ?? player.model ?? ''}{player.connected ? '' : ' · offline'}{player.connected && online && !Number(player.power) ? ' · off' : ''}</span></span>
+            {#if player.playerid === selectedId}<span class="tick">✓</span>{/if}
+          </button>
+          {#if player.connected && online}<button class="power" class:on={Number(player.power) === 1} onclick={() => setPower(player)} title={Number(player.power) ? 'Turn off' : 'Turn on'} aria-label="Power" aria-pressed={Number(player.power) === 1}><svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M8 2v6M4.6 4.2a5 5 0 1 0 6.8 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg></button>{/if}
+        </div>
         {#if player.playerid === app.ownPlayer && app.status?.device}
           <button class="output" onclick={() => { open = false; sendToShell({ type: 'openSettings', tab: 'Audio' }) }} title="Audio settings"><Icon name="volume" size={12} /><span class="output-name">{app.status.device}</span><span class="output-hint">Change</span></button>
         {/if}
       {/each}
       {#if !app.players.length}<div class="empty">No players found</div>{/if}
+      {#if online && selected?.connected}
+        <div class="menu-title">Sleep{sleepLeft > 0 ? ` · ${Math.ceil(sleepLeft / 60)} min left` : ''}</div>
+        <div class="sleep">
+          {#each sleepChoices as minutes (minutes)}<button class="chip" onclick={() => sleepFor(minutes * 60)} title="Stop in {minutes} minutes">{minutes} min</button>{/each}
+          {#if trackLeft > 0}<button class="chip" onclick={() => sleepFor(trackLeft)} title="Stop when this track ends">End of track</button>{/if}
+          {#if sleepLeft > 0}<button class="chip off" onclick={() => sleepFor(0)}>Off</button>{/if}
+        </div>
+      {/if}
       <!-- Offline: this PC plays its downloads without the server (SPEC.md › Offline downloads) -->
       {#if app.status?.offline}<button class="output" onclick={() => { open = false; sendToShell({ type: 'goOnline' }) }} title="Reconnect to the server"><Icon name="download" size={12} /><span class="output-name">Playing offline</span><span class="output-hint">Go online</span></button>
       {:else if downloads.finishedTracks}<button class="output" onclick={() => { open = false; sendToShell({ type: 'goOffline' }) }} title="Play downloads on this PC without the server"><Icon name="download" size={12} /><span class="output-name">Downloads only</span><span class="output-hint">Play offline</span></button>{/if}
@@ -58,5 +76,11 @@
   .menu.up { bottom: calc(100% + 8px); } .menu.down { top: calc(100% + 6px); }
   .menu button.output { margin: -2px 0 4px 17px; width: calc(100% - 17px); padding: 4px 10px; gap: 6px; font-size: 11.5px; color: var(--fg-quiet); }
   .output-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .output-hint { font-size: 10.5px; color: var(--accent); opacity: 0; } .menu button.output:hover .output-hint { opacity: 1; }
+  .row { display: flex; align-items: center; gap: 2px; } .row > button[role="option"] { flex: 1; min-width: 0; }
+  .menu button.power { width: 28px; height: 28px; flex-shrink: 0; justify-content: center; padding: 0; color: var(--fg-quiet); opacity: 0.6; } .menu button.power.on { color: #3ddc84; opacity: 1; }
+  .moon { color: var(--accent); font-size: 12px; line-height: 1; }
+  .menu-title { padding: 10px 10px 5px; color: var(--fg-quiet); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; border-top: 1px solid var(--line); margin-top: 4px; }
+  .sleep { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 8px 6px; }
+  .menu button.chip { width: auto; padding: 3px 9px; font-size: 11.5px; border: 1px solid var(--line); border-radius: 999px; } .menu button.chip.off { color: var(--accent); }
   .empty { padding: 8px 10px; color: var(--fg-quiet); font-size: 12px; }
 </style>

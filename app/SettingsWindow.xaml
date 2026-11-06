@@ -99,6 +99,37 @@
       </StackPanel>
       </ScrollViewer>
     </TabItem>
+    <TabItem Header="Playback" x:Name="playbackTab">
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel Margin="16">
+        <TextBlock x:Name="playbackPlayerText" FontWeight="SemiBold" />
+        <TextBlock Style="{StaticResource Quiet}" Text="These are the player's own settings on the server, so every controller sees the same. Choose another player at the top of the main window to change its settings." />
+        <TextBlock Style="{StaticResource Label}" Text="Between tracks" Margin="0,16,0,3" />
+        <ComboBox x:Name="transitionTypeCombo" Width="260" HorizontalAlignment="Left">
+          <ComboBoxItem Content="Nothing (gapless)" Tag="0" />
+          <ComboBoxItem Content="Crossfade" Tag="1" />
+          <ComboBoxItem Content="Fade in" Tag="2" />
+          <ComboBoxItem Content="Fade out" Tag="3" />
+          <ComboBoxItem Content="Fade out and in" Tag="4" />
+        </ComboBox>
+        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+          <TextBlock Text="Length" Width="60" VerticalAlignment="Center" />
+          <Slider x:Name="transitionDurationSlider" Minimum="0" Maximum="10" Width="200" IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center" />
+          <TextBlock x:Name="transitionDurationText" Width="60" Margin="8,0,0,0" VerticalAlignment="Center" />
+        </StackPanel>
+        <CheckBox x:Name="transitionSmartBox" Content="Smart: no crossfade between tracks of the same album" />
+        <TextBlock Style="{StaticResource Label}" Text="ReplayGain (evens out loudness using the files' ReplayGain tags)" Margin="0,16,0,3" />
+        <ComboBox x:Name="replayGainCombo" Width="260" HorizontalAlignment="Left">
+          <ComboBoxItem Content="Off" Tag="0" />
+          <ComboBoxItem Content="Track gain" Tag="1" />
+          <ComboBoxItem Content="Album gain" Tag="2" />
+          <ComboBoxItem Content="Smart (album gain for whole albums)" Tag="3" />
+        </ComboBox>
+        <TextBlock Style="{StaticResource Quiet}" Margin="0,14,0,0" Text="On this PC, crossfades, fades and ReplayGain change the samples, so playback is no longer bit-perfect while they're on. The fidelity badge says so." />
+        <TextBlock x:Name="playbackStatusText" Style="{StaticResource Quiet}" Foreground="#B26B00" />
+      </StackPanel>
+      </ScrollViewer>
+    </TabItem>
     <TabItem Header="Library &amp; cache" x:Name="libraryTab">
       <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel Margin="16">

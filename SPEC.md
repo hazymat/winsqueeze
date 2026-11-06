@@ -25,7 +25,7 @@ Why it exists:
 
 ## Goals
 
-1. **Server untouched.** Read-only use of the library API. Never write server settings, prefs or plugin state. The only commands sent are normal player control (play, pause, queue, volume) and favourites or saved playlists the user explicitly asks for.
+1. **Server untouched.** Read-only use of the library API. Never write server settings or plugin state. The only commands sent are normal player control (play, pause, queue, volume, shuffle, power, sleep), the player's own crossfade and ReplayGain prefs when the user changes them in Settings › Playback, and favourites or saved playlists the user explicitly asks for.
 2. **Self-contained playback.** Squeezelite is bundled and run hidden. Quitting the app stops it cleanly. No console windows, shortcuts or Task Manager.
 3. **Local-first.** A full local index of the library and cached cover art. Browsing and search are served from the cache and feel instant.
 4. **Slow-link friendly.** Works well over VPN or poor Wi-Fi. Only playback, control and cache deltas cross the network.
@@ -129,6 +129,8 @@ Settings › Browsing chooses which groupings the Group menu offers and each are
 
 **When the queue ends** (Up next header, remembered): Stop, Repeat all (Lyrion's repeat-all on the player), or Keep playing. Keep playing adds a whole album or about ten tracks just before the last track ends (under 20 s left), looking at the same album artist, then the playing track's genres, then anything; it skips anything queued or added by Keep playing in the last 3 days, and each top-up can be undone. Radio and remote streams are left alone.
 
+**Play order** (same Up next menu, above "When the queue ends"): In order, Shuffle tracks or Shuffle albums (Lyrion's `playlist shuffle`). No extra control: the menu's button shows a small ⤮ only while shuffle is on. Hidden offline.
+
 **Long tracks** (20 min and up) remember where you left them partway (more than a minute in and a minute from the end); playing one again carries on from there, with Undo to start from the beginning. Kept per device for the last 50 such tracks.
 
 **Favourites:** star any album, artist, folder, playlist or stream from anywhere; unstar the same way. Changes go to Lyrion's own favourites, so they stay in sync with other controllers. Only on user action.
@@ -136,6 +138,9 @@ Settings › Browsing chooses which groupings the Group menu offers and each are
 **Radio and apps:** no plugin gets its own code. Every radio and app plugin serves Lyrion's shared menu format (`<cmd> items`, the same one Favourites uses), so one browser covers them all: folders open, streams and episodes play (Play now / next / add to end via `<cmd> playlist`), search entries ask for words, and anything with an address can be added to favourites. Any app page can be pinned to the sidebar, so a much-used app gets its own entry without crowding the sidebar for people with many plugins. Radio and streams show their own artwork (`artwork_url`) wherever playback was started.
 
 **Players:** a player switcher in the transport bar. Defaults to this PC's bundled Squeezelite; any other player on the server (other Squeezeboxes in the house) can be picked and controlled the same way.
+
+- **Power:** each connected player in the switcher has an on/off button (Lyrion's `power`); a player in standby reads "off".
+- **Sleep timer:** in the switcher menu (15, 30, 45, 60, 90 min, End of track, Off) and the tray menu, for the selected player (Lyrion's `sleep`). While it runs, a small moon shows on the switcher button. Power and sleep are hidden offline.
 
 ## Playlist builder
 
@@ -262,7 +267,7 @@ Chosen direction: **Frosted Dark**, frosted glass meets Squeezebox hardware. iOS
 **Tray icon:**
 
 - Left-click: show/hide the main window.
-- Right-click menu: Play/Pause, Next, Previous, New playlist, Output device ▸, Player ▸, Window mode ▸, Skin ▸, Settings, Quit.
+- Right-click menu: Play/Pause, Next, Previous, New playlist, Output device ▸, Player ▸, Sleep ▸, Window mode ▸, Skin ▸, Settings, Quit.
 - Mouse wheel over the icon: volume.
 - Tooltip: current track and artist.
 
@@ -292,6 +297,7 @@ A separate Settings window with tabs, in standard Windows style. Changes apply i
 | General | Settings export / import (JSON; everything except passwords and other secrets); Start with Windows; start minimised to tray; other Squeezelite at launch (ask / always stop / leave); minimise to tray when minimised; close (X) hides to tray / quits; remember window position; language |
 | Servers | Server finder (auto-discovery); profiles list (name, address, port, optional username/password); default profile; test connection |
 | Audio | Output device; driver type; exclusive mode on/off; volume mode (fixed / digital); player name (defaults to the computer name); extra Squeezelite arguments (advanced); fidelity warnings |
+| Playback | For the selected player (Lyrion player prefs, written only when changed): between tracks (nothing/gapless, crossfade, fade in, fade out, fade out and in), its length, smart (no crossfade within an album); ReplayGain (off, track, album, smart). On this PC these break bit-perfect, and the fidelity badge says so |
 | Library & cache | Album source (tags / folders); contributor grouping (any credit / album artist text only); name separators; refresh interval; Refresh now; Rebuild cache; cache size and location; clear art cache |
 | Appearance | Skin; auto-switch rule (follow Windows / schedule / fixed); light and dark skin pair; meter style (VU needle / OLED VU / OLED bars); album list default (grid / list); accent from cover art on/off; reduce transparency |
 | Shortcuts | Rebind in-app shortcuts; enable global hotkeys; media keys on/off |
