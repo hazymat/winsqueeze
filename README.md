@@ -2,6 +2,8 @@
 
 WinSqueeze is a standalone Windows app that browses, controls and plays music from any Lyrion Music Server without touching the server. You launch it, browse your library, and it plays bit-perfect through your chosen output. You never open the server's web UI.
 
+**Introduction:** the [Introducing WinSqueeze](https://forums.lyrion.org/forum/user-forums/3rd-party-software/1841197-introducing-winsqueeze) post on the Lyrion forums introduces the software, with screenshots and discussion.
+
 ## A synchronising client
 
 WinSqueeze keeps a complete local mirror of the server's library (tracks, tags, contributors, folders, cover art) and keeps it in sync automatically. Every Lyrion controller we know of asks the server live for each screen. WinSqueeze browses and searches its own synced copy, so it is instant over any connection, and it can offer views the server doesn't, such as folder-grouped search. The server stays the single source of truth; WinSqueeze only ever follows it.
