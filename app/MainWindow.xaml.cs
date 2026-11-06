@@ -36,6 +36,8 @@ public partial class MainWindow : Window
         App.Library.Changed += PushLibraryStatus;
         App.Library.IndexUpdated += () => Push("{\"type\":\"indexUpdated\"}");
         App.DownloadsChanged += () => _ = PushDownloadsAsync();
+        App.Damaged.Changed += PushDamaged;
+        App.DamagedFound += (damagedFile, what) => Push(JsonSerializer.Serialize(new { type = "damagedFound", id = damagedFile.Id, title = damagedFile.Title, what }));
         // Meter data, only while the window is on screen
         App.Visualiser.LevelsReady += levelsJson => { if (webViewReady) Dispatcher.BeginInvoke(() => { if (IsVisible && WindowState != WindowState.Minimized) webView.CoreWebView2?.PostWebMessageAsJson(levelsJson); }); };
         Microsoft.Win32.SystemEvents.DisplaySettingsChanged += (sender, args) => Dispatcher.BeginInvoke(RestoreBoundsForDisplays);
@@ -87,6 +89,7 @@ public partial class MainWindow : Window
         var downloadsJson = await Task.Run(() => { var snapshot = JsonSerializer.SerializeToNode(App.Downloads.Snapshot())!; snapshot["albums"] = JsonSerializer.SerializeToNode(queries.DownloadedAlbumKeys(App.Downloads.DownloadedIds())); return snapshot.ToJsonString(); });
         Push(downloadsJson);
     }
+    void PushDamaged() => Push(JsonSerializer.Serialize(new { type = "damagedFiles", ids = App.Damaged.Files.Select(damagedFile => damagedFile.Id) }));
     void PushLibraryStatus() => Push(JsonSerializer.Serialize(new { type = "library", text = App.Library.ProgressText, done = App.Library.ProgressDone, total = App.Library.ProgressTotal }));
 
     static object[] CommandParts(JsonElement commandArray) => commandArray.EnumerateArray().Select(part => part.ValueKind == JsonValueKind.String ? (object)(part.GetString() ?? "") : part.GetRawText()).ToArray();
@@ -104,7 +107,7 @@ public partial class MainWindow : Window
         {
             switch (Text(message, "type"))
             {
-                case "ready": _ = PushDownloadsAsync(); LookLog("ready"); _ = ReapplyLookSoonAsync(); PushSkin(); PushMeterSettings(); _ = App.ShowWhatsNewAsync(); PushWindowState(); Push(App.StatusJson()); PushLibraryStatus(); PushSettings(); break;
+                case "ready": _ = PushDownloadsAsync(); LookLog("ready"); _ = ReapplyLookSoonAsync(); PushSkin(); PushMeterSettings(); _ = App.ShowWhatsNewAsync(); PushWindowState(); Push(App.StatusJson()); PushLibraryStatus(); PushSettings(); PushDamaged(); break;
                 case "dismissHint": if (!App.Settings.General.DismissedHints.Contains(Text(message, "id"))) { App.Settings.General.DismissedHints.Add(Text(message, "id")); App.Settings.Save(); } break;
                 case "openSettings": App.OpenSettings(Text(message, "tab")); break;
                 case "quit": App.Quit(); break;
