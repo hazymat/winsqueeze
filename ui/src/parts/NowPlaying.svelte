@@ -43,7 +43,9 @@
   .art.empty { display: grid; place-items: center; font-size: 80px; background: var(--panel-strong); }
   .meta { display: flex; flex-direction: column; gap: 6px; min-width: 0; max-height: 100%; overflow-y: auto; padding-bottom: 4px; }
   /* Meters shrink with short windows so they're never cut off */
-  .meta :global(.large .vu) { width: min(190px, 24vh); height: auto; } .meta :global(.large .panel) { width: min(384px, 48vh + 4px, 30vh * var(--aspect)); }
+  .meta { container-type: inline-size; overflow-x: hidden; } /* cqw below = the details column, so meters never overflow it (no sideways scrollbar at any scaling) */
+  .meta :global(.large .vu) { width: min(190px, 24vh, (100cqw - 4px) / 2); height: auto; } .meta :global(.large .panel) { width: min(384px, 48vh + 4px, 30vh * var(--aspect), 100cqw); } .meta :global(.large .spectrum) { width: min(320px, 100cqw); }
+  .readout :global(.readout) { flex-wrap: wrap; row-gap: 2px; }
   h1 { margin: 0; font-size: clamp(20px, 2.4vw, 32px); line-height: 1.15; }
   .link { background: none; border: 0; padding: 0; color: var(--fg); font: inherit; cursor: pointer; text-align: left; }
   .link.artist { font-size: 18px; }
