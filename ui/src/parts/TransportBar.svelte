@@ -110,7 +110,9 @@
   .seek { flex: 1; height: 5px; background: var(--track); border-radius: 3px; cursor: pointer; position: relative; }
   .seek:hover { height: 7px; }
   .fill { height: 100%; background: var(--accent); border-radius: 3px; }
-  .pixel-meter { display: flex; width: 54px; height: 34px; padding: 0; background: none; border: 0; cursor: pointer; border-radius: 5px; } /* the analyser opens the EQ */
+  .pixel-meter { display: flex; width: 68px; height: 40px; padding: 0; background: none; border: 0; cursor: pointer; border-radius: 5px; } /* the analyser opens the EQ */
+  /* No bezel here: the bars sit straight on the glass bar */
+  .pixel-meter :global(.frame), .pixel-meter :global(.window) { background: none; box-shadow: none; padding: 0; } .pixel-meter :global(.window::after) { display: none; }
   .pixel-meter :global(.analyser) { flex: 1; } .pixel-meter:hover { filter: brightness(1.15); }
   .right { display: flex; align-items: center; justify-content: flex-end; gap: 10px; min-width: 0; }
   .right > * { flex-shrink: 0; }

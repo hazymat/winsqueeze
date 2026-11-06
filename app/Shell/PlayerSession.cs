@@ -31,7 +31,7 @@ public sealed class PlayerSession
         try
         {
             using var lyrionClient = new LyrionClient(profile);
-            LastStatus = await lyrionClient.RequestAsync(PlayerId, "status", 0, 500, "tags:aAcdlKjJotTIrsSeN");
+            LastStatus = await lyrionClient.RequestAsync(PlayerId, "status", 0, 500, "tags:aAcdlKjJotTIrsSeNfYm");
             LastStatusJson = LastStatus.ValueKind == JsonValueKind.Undefined ? "{}" : LastStatus.GetRawText();
             StatusUpdated?.Invoke();
             if (pollTick++ % 10 == 0)
