@@ -52,6 +52,9 @@
           <radialGradient id={gradientId + channel + '-blob'} cx={channelIndex ? '28%' : '74%'} cy={channelIndex ? '62%' : '70%'} r="42%"><stop offset="0%" stop-color="#fff2cc" stop-opacity="0.32" /><stop offset="100%" stop-color="#fff2cc" stop-opacity="0" /></radialGradient>
           <filter id={gradientId + channel + '-mottle'} x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.045 0.06" numOctaves="2" seed={channelIndex ? 11 : 4} /><feColorMatrix values="0 0 0 0 0.16  0 0 0 0 0.09  0 0 0 0 0  0 0 0 1.4 -0.55" /></filter>
           <filter id={gradientId + '-inset'} x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="2.2" /></filter>
+          <filter id={gradientId + '-grain'} x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="1.6" numOctaves="2" seed={channelIndex ? 3 : 8} /><feColorMatrix values="0 0 0 0 0.2  0 0 0 0 0.13  0 0 0 0 0.05  0 0 0 1.1 -0.45" /></filter>
+          <filter id={gradientId + '-soft'} x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="0.7" /></filter>
+          <linearGradient id={gradientId + '-sheen'} x1="0" y1="0" x2="1" y2="0.6"><stop offset="0%" stop-color="#fff" stop-opacity="0" /><stop offset="30%" stop-color="#fff" stop-opacity="0.13" /><stop offset="44%" stop-color="#fff" stop-opacity="0.02" /><stop offset="58%" stop-color="#fff" stop-opacity="0" /></linearGradient>
           <clipPath id={gradientId + '-clip'}><rect x="5" y="5" width="110" height="62" rx="2" /></clipPath>
         </defs>
         <rect x="0" y="0" width="120" height="72" rx="5" class="bezel" />
@@ -77,10 +80,13 @@
         <text x="60" y="58" class="channel">{channel}</text>
         <rect x="5" y="5" width="110" height="62" fill="url(#{gradientId}{channel}-blob)" class="shade" /><rect x="5" y="5" width="110" height="62" filter="url(#{gradientId}{channel}-mottle)" class="shade mottle" />
         <rect x="5" y="5" width="110" height="62" fill="url(#{gradientId}{channel}-falloff)" class="shade" /><rect x="5" y="5" width="110" height="62" fill="url(#{gradientId}-lip)" class="shade" /><g clip-path="url(#{gradientId}-clip)"><rect x="5" y="6.6" width="110" height="62" class="shade inset" filter="url(#{gradientId}-inset)" /></g>
+        {#if size !== 'small'}<rect x="5" y="5" width="110" height="62" filter="url(#{gradientId}-grain)" class="shade grain" />
+        <g clip-path="url(#{gradientId}-clip)"><line x1={pivotX + 1.6} y1={pivotY} x2={pivotX + 1.6} y2={pivotY - 60} class="needle-shadow" filter="url(#{gradientId}-soft)" transform="rotate({needleAngle(meters.vu[channelIndex] ?? -90, restAngle)} {pivotX} {pivotY - 1.2})" /></g>{/if}
         <g clip-path="url(#{gradientId}-clip)"><line x1={pivotX} y1={pivotY} x2={pivotX} y2={pivotY - 60} class="needle" transform="rotate({needleAngle(meters.vu[channelIndex] ?? -90, restAngle)} {pivotX} {pivotY})" /></g>
         <rect x="7" y="65.6" width="106" height="1" class="lit-edge" />
         <!-- Acrylic window edge: light bends through the thick rim, a bright band with a darker inner seam -->
         <rect x="5.7" y="5.7" width="108.6" height="60.6" rx="1.6" class="rim-glow" /><rect x="7.3" y="7.3" width="105.4" height="57.4" rx="1" class="rim-seam" /><path d="M6 6.2 H114" class="rim-catch" />
+        {#if size !== 'small'}<rect x="5" y="5" width="110" height="62" rx="2" fill="url(#{gradientId}-sheen)" class="shade" />{/if}
       </svg>
     {/each}
   {:else if ui.meterStyle === 'oledvu'}
@@ -134,6 +140,7 @@
   .pilot { fill: #2b2620; stroke: #7a6646; stroke-width: 0.5; } .pilot-glint { fill: #fff; opacity: 0.45; }
   .shade { pointer-events: none; } .mottle { opacity: 0.07; }
   .rim-glow { fill: none; stroke: #ffe6b4; stroke-width: 1.3; opacity: 0.4; } .rim-seam { fill: none; stroke: #3a2508; stroke-width: 0.45; opacity: 0.35; } .rim-catch { stroke: #fff8e6; stroke-width: 0.5; opacity: 0.6; }
+  .grain { opacity: 0.45; } .needle-shadow { stroke: #2a1a05; stroke-width: 1.4; opacity: 0.22; }
   .idle .rim-glow { opacity: 0.22; } .idle .rim-catch { opacity: 0.3; }
   .lit-edge { fill: #ffe7b0; opacity: 0.75; } .idle .lit-edge { opacity: 0.35; }
   /* OLED VU: a frosted glass pane over whatever is behind, with a fine top-lit edge */
