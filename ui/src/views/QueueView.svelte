@@ -1,6 +1,7 @@
 <script lang="ts">
   import Hint from '../parts/Hint.svelte'
   import QueueEndMenu from '../parts/QueueEndMenu.svelte'
+  import { playlistUrls, refillPlaylist } from '../lib/browseActions'
   import { command, live, artUrl, request } from '../bridge'
   import { app, formatTime, toast, newPlaylist } from '../state.svelte'
   import { sortable, planMoves, blockOrder } from '../lib/sortable'
@@ -54,7 +55,17 @@
     { label: 'New playlist from these', run: positionKeys => newPlaylist('Untitled playlist', positionKeys.map(Number).sort((first, second) => first - second).map(position => queue[position]).map(item => ({ id: Number(item.id), title: item.title, artist: item.artist ?? '', duration: Number(item.duration || 0) }))) },
     { label: 'Remove', key: 'Delete', danger: true, run: remove }
   ]
-  async function saveQueue() { const name = prompt('Save the queue as a Lyrion playlist named:'); if (!name) return; await live(['playlist', 'save', name], true); toast(`Saved queue as “${name}”`) }
+  // Saving over an existing playlist keeps its old tracks, so Undo can put them back
+  async function saveQueue() {
+    const name = prompt('Save the queue as a Lyrion playlist named:'); if (!name) return
+    const existing = ((await live(['playlists', 0, 1000]))?.playlists_loop ?? []).find((savedList: any) => savedList.playlist === name)
+    const oldUrls = existing ? await playlistUrls(String(existing.id)) : null
+    const saved = await live(['playlist', 'save', name], true), savedId = String(saved?.__playlist_id ?? existing?.id ?? '')
+    toast(existing ? `Replaced “${name}” with the queue` : `Saved queue as “${name}”`, async () => {
+      if (!savedId) return
+      if (oldUrls) { await refillPlaylist(savedId, oldUrls); toast(`“${name}” is back as it was`) } else { await live(['playlists', 'delete', `playlist_id:${savedId}`]); toast(`Removed “${name}”`) }
+    }, 30000)
+  }
   const startPlaylistFromQueue = () => newPlaylist('Untitled playlist', queue.map(item => ({ id: Number(item.id), title: item.title, artist: item.artist ?? '', duration: Number(item.duration || 0) })))
   // Undo brings the queue back as it was: same tracks, same order, same track and spot
   const clearQueue = () => {

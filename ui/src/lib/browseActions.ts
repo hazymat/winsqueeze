@@ -26,6 +26,24 @@ export async function queueTracks(items: PlaylistItem[], mode: 'load' | 'insert'
   })
 }
 
+// Saved playlists: delete and overwrite keep the old tracks so Undo can put them back for a while afterwards
+export const playlistUrls = async (playlistId: string): Promise<string[]> => ((await live(['playlists', 'tracks', 0, 5000, `playlist_id:${playlistId}`, 'tags:u']))?.playlisttracks_loop ?? []).map((item: any) => item.url).filter(Boolean)
+export async function refillPlaylist(playlistId: string, urls: string[]) {
+  const count = Number((await live(['playlists', 'tracks', 0, 1, `playlist_id:${playlistId}`]))?.count ?? 0)
+  for (let index = count - 1; index >= 0; index--) await live(['playlists', 'edit', 'cmd:delete', `playlist_id:${playlistId}`, `index:${index}`])
+  for (const url of urls) await live(['playlists', 'edit', 'cmd:add', `playlist_id:${playlistId}`, `url:${url}`])
+}
+export async function deletePlaylists(keys: string[], afterwards: () => void) {
+  const saved = (await live(['playlists', 0, 1000]))?.playlists_loop ?? []
+  const backups = await Promise.all(keys.map(async key => ({ name: String(saved.find((savedList: any) => String(savedList.id) === key)?.playlist ?? 'Playlist'), urls: await playlistUrls(key) })))
+  for (const key of keys) await live(['playlists', 'delete', `playlist_id:${key}`])
+  afterwards()
+  toast(backups.length === 1 ? `Deleted “${backups[0].name}”` : `Deleted ${backups.length} playlists`, async () => {
+    for (const backup of backups) { const created = await live(['playlists', 'new', `name:${backup.name}`]); if (created?.playlist_id) await refillPlaylist(String(created.playlist_id), backup.urls) }
+    afterwards(); toast(backups.length === 1 ? `Restored “${backups[0].name}”` : 'Playlists restored')
+  }, 30000)
+}
+
 async function playlistMenu(itemsFor: () => Promise<PlaylistItem[]>): Promise<MenuChoice[]> {
   const saved = await live(['playlists', 0, 500])
   const choices: MenuChoice[] = []

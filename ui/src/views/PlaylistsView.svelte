@@ -4,7 +4,7 @@
   import { app, ui, openView, toast, formatTime, newPlaylist } from '../state.svelte'
   import { sortable, planMoves, blockOrder } from '../lib/sortable'
   import { selectable } from '../lib/selectable.svelte'
-  import { browseActions } from '../lib/browseActions'
+  import { browseActions, deletePlaylists } from '../lib/browseActions'
   import { isSelected, rowClick, selectOnHold, selection, type SelectionAction } from '../lib/selection.svelte'
   // Lyrion's saved playlists, read live (small, and other controllers change them)
   let { playlistId = '', title = '' }: { playlistId?: string; title?: string } = $props()
@@ -48,6 +48,7 @@
     { label: 'Play from here', single: true, key: 'Enter', run: indexKeys => play(playlistId, title, Number(indexKeys[0])) },
     { label: 'Remove from playlist', key: 'Delete', danger: true, run: remove }
   ]
+  const listActions = browseActions('playlist').concat([{ label: 'Delete', key: 'Delete', danger: true, run: keys => deletePlaylists(keys, load) }])
   const edit = () => newPlaylist(title, items.map(item => ({ id: Number(item.id), title: item.title, artist: item.artist ?? '', duration: Number(item.duration || 0) })))
 </script>
 
@@ -66,7 +67,7 @@
 {:else}
   <h2>Playlists</h2>
   {#if !loading && !items.length}<p class="quiet">No saved playlists on the server yet. Use New playlist to make one.</p>{/if}
-  <div use:selectable={{ scope: 'playlists', noun: 'playlist', actions: browseActions('playlist') }}>
+  <div use:selectable={{ scope: 'playlists', noun: 'playlist', actions: listActions }}>
   {#each shown as item (item.id)}
     <div class="row" data-select-key={String(item.id)}>
       <button class="main" onclick={() => openView({ kind: 'playlist', key: String(item.id), title: item.playlist })}><span class="glyph">☰</span><span class="text"><span>{item.playlist}</span></span></button>
