@@ -74,7 +74,7 @@
   let lastRecordingNote = -1
   onShellMessage('status', message => { const recording = message.recording; if (recording && lastRecordingNote >= 0 && recording.noteId > lastRecordingNote && recording.note) toast(recording.note, undefined, 10000, recording.note.includes(' in ') && recording.folder ? { action: { label: 'Open in Explorer', key: 'E', run: () => sendToShell({ type: 'openRecording' }) } } : {}); if (recording) lastRecordingNote = recording.noteId; if (message.offline && !app.status?.offline) openSection('downloads'); if (message.serverBack && !app.status?.serverBack) toast('The server is back', undefined, 15000, { action: { label: 'Go online', key: 'O', run: () => sendToShell({ type: 'goOnline' }) } }); app.status = message })
   onShellMessage('nowPlaying', message => { noteTrackChange(app.nowPlaying, message.status); noteLongTrack(app.nowPlaying, message.status); app.nowPlaying = message.status; checkKeepPlaying(message.status); app.receivedAt = Date.now() })
-  onShellMessage('players', message => { app.players = message.players ?? []; app.ownPlayer = message.own ?? ''; app.selectedPlayer = message.selected ?? app.selectedPlayer })
+  onShellMessage('players', message => { app.players = message.players ?? []; app.syncGroups = message.syncGroups ?? []; app.groupVolumes = message.groupVolumes ?? {}; app.ownPlayer = message.own ?? ''; app.selectedPlayer = message.selected ?? app.selectedPlayer })
   onShellMessage('library', message => app.library = { text: message.text ?? '', done: message.done ?? 0, total: message.total ?? 0 })
   onShellMessage('indexUpdated', () => app.indexVersion++)
   onShellMessage('newPlaylist', () => { if (!playlist.open) newPlaylist(); else playlist.collapsed = false })
