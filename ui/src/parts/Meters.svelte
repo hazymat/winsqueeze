@@ -125,10 +125,10 @@
   .lamp-hot { stop-color: #fffbf0; } .lamp-warm { stop-color: #f9efd6; } .lamp-mid { stop-color: #e4cf9f; } .lamp-edge { stop-color: #c4ab7c; }
   .idle .lamp-hot { stop-color: #efe6cf; } .idle .lamp-warm { stop-color: #e2d4b2; } .idle .lamp-mid { stop-color: #cbb68c; } .idle .lamp-edge { stop-color: #a08a62; }
   .face { stroke: rgba(0, 0, 0, 0.5); stroke-width: 0.8; }
-  .scale { fill: none; stroke: #1d1a14; stroke-width: 0.9; }
+  .scale { fill: none; stroke: #1d1a14; stroke-width: 0.9; stroke-linecap: round; }
   .red-line { fill: none; stroke: #c4291c; stroke-width: 0.9; }
   .red-band { fill: none; stroke: #c4291c; stroke-width: 3; }
-  .tick { stroke: #1d1a14; stroke-width: 0.9; } .tick.minor { stroke-width: 0.6; } .tick.hot { stroke: #c4291c; }
+  .tick { stroke: #1d1a14; stroke-width: 0.9; stroke-linecap: round; } .tick.minor { stroke-width: 0.6; } .tick.hot { stroke: #c4291c; }
   .number { fill: #1d1a14; font-size: 6.5px; text-anchor: middle; dominant-baseline: middle; font-family: "Segoe UI", Arial, sans-serif; font-weight: 600; }
   .number.hot { fill: #c4291c; }
   .vu-label { fill: #1d1a14; font-size: 9px; font-weight: 700; font-family: "Segoe UI", Arial, sans-serif; }
