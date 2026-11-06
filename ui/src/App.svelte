@@ -55,6 +55,9 @@
   const startHold = () => { clearTimeout(holdTimer); holdTimer = window.setTimeout(() => { customising = true; heldIntoCustomise = true }, 600) }
   const cancelHold = () => clearTimeout(holdTimer)
   let hiddenSections = $state<string[]>(JSON.parse(readSetting('hiddenSections', '[]')))
+  // Sections that start hidden (Customise sidebar adds them): each is hidden once, the first time this PC sees it
+  const startHidden = ['downloads', 'history'], hiddenOnce: string[] = JSON.parse(readSetting('hiddenOnce', '[]')), newlyHidden = startHidden.filter(key => !hiddenOnce.includes(key))
+  if (newlyHidden.length) { hiddenSections = hiddenSections.concat(newlyHidden.filter(key => !hiddenSections.includes(key))); writeSetting('hiddenSections', JSON.stringify(hiddenSections)); writeSetting('hiddenOnce', JSON.stringify(hiddenOnce.concat(newlyHidden))) }
   let customising = $state(false)
   const toggleSection = (key: string) => { hiddenSections = hiddenSections.includes(key) ? hiddenSections.filter(hidden => hidden !== key) : hiddenSections.concat([key]); writeSetting('hiddenSections', JSON.stringify(hiddenSections)) }
   // Shown entries: hidden sections dropped, and no spacer at the very top, the bottom or twice in a row

@@ -4,6 +4,7 @@
   import { selectable } from '../lib/selectable.svelte'
   import { queueTracks, resolveTracks } from '../lib/browseActions'
   import { history } from '../lib/history.svelte'
+  import Icon from '../parts/Icon.svelte'
   import type { SelectionAction } from '../lib/selection.svelte'
   type Play = { id: number, played_at: number, player: string, track_id: number | null, url: string, title: string, artist: string, album: string, cover_id: string, artwork_url: string, station: string, remote: number, duration: number }
   type Block = { kind: 'album' | 'radio' | 'hour', start: number, end: number, plays: Play[] }
@@ -51,7 +52,7 @@
     { label: 'Track info', run: keys => { ui.trackInfo = trackIdsOf(keys).map(Number) } },
     { label: 'Remove from history', danger: true, run: keys => sendToShell({ type: 'historyDelete', ids: keys.map(Number) }) }
   ]
-  const art = (play: Play) => play.cover_id ? artUrl(play.cover_id, 120) : play.artwork_url
+  const art = (play: Play) => { const source = play.artwork_url ?? ''; if (play.remote && source) return source.startsWith('http') ? source : `https://art.winsqueeze/server/${encodeURIComponent(source.replace(/^\//, ''))}`; return Number(play.cover_id) > 0 || (play.cover_id && !/^-/.test(play.cover_id)) ? artUrl(play.cover_id, 120) : '' }
 </script>
 
 <div class="history-head">
@@ -79,7 +80,7 @@
             <span class="time">{clock(play.played_at)}</span>
             {#if art(play)}<img src={art(play)} alt="" />{:else}<span class="no-art small">📻</span>{/if}
             <span class="text"><span class="name">{play.station || play.title}</span><span class="quiet">{play.station && play.title !== play.station ? play.title : play.artist}</span></span>
-            <span class="replay" role="button" tabindex="-1" onclick={(event) => { event.stopPropagation(); playStream(play) }} onkeydown={() => {}}>Play again</span>
+            <span class="replay" role="button" tabindex="-1" title="Play again" onclick={(event) => { event.stopPropagation(); playStream(play) }} onkeydown={() => {}}><Icon name="play" size={14} /></span>
           </button>
         </section>
       {:else}
@@ -95,7 +96,7 @@
 
 <style>
   .history-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; } .history-head h1 { margin: 0 auto 0 0; font-size: 22px; }
-  .day { font-size: 15px; font-weight: 650; margin: 22px 0 8px; position: sticky; top: 0; z-index: 2; padding: 6px 0; background: var(--bg-sticky, var(--bg)); }
+  .day { font-size: 15px; font-weight: 650; margin: 22px 0 8px; position: sticky; top: 0; z-index: 2; padding: 6px 0 4px; border-bottom: 1px solid var(--line); backdrop-filter: blur(14px); }
   .hour { font-size: 12px; font-weight: 600; color: var(--fg-quiet); margin: 10px 0 4px; letter-spacing: 0.02em; }
   .block { margin-bottom: 6px; }
   .album-block { padding: 8px; border-radius: 10px; background: color-mix(in srgb, var(--fg) 4%, transparent); }
@@ -108,7 +109,8 @@
   .play-row .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .play-row .artist { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; margin-left: auto; padding-left: 12px; max-width: 50%; }
   .radio img, .no-art.small { width: 36px; height: 36px; border-radius: 6px; object-fit: cover; }
-  .replay { margin-left: auto; font-size: 12px; color: var(--accent); padding: 4px 10px; border-radius: 12px; border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent); }
+  .replay { margin-left: auto; flex-shrink: 0; display: grid; place-items: center; width: 28px; height: 28px; color: var(--accent); border-radius: 50%; opacity: 0.55; } .play-row:hover .replay { opacity: 1; }
+  .radio .text .quiet { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; } .radio .text { flex: 1; }
   .replay:hover { background: var(--accent); color: var(--on-accent); }
   .quiet { color: var(--fg-quiet); }
   .load-more { margin: 16px 0; }
