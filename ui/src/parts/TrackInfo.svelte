@@ -2,9 +2,10 @@
   import { query } from '../bridge'
   import { ui, formatTime } from '../state.svelte'
   // Info for one or several tracks: total length, what they all share, and a per-track table for whatever differs
-  let { ids }: { ids: number[] } = $props()
+  // items: things outside the library (favourites, radio, episodes), shown as whatever fields the server gave
+  let { ids, items = null }: { ids: number[], items?: { name: string, fields: [string, string][] }[] | null } = $props()
   let tracks = $state<any[] | null>(null)
-  $effect(() => { const wanted = ids; tracks = null; query('trackInfo', { ids: wanted }).then(rows => { const byId = new Map((Array.isArray(rows) ? rows : []).map((row: any) => [Number(row.id), row])); tracks = wanted.map(id => byId.get(id)).filter(Boolean) }) })
+  $effect(() => { const wanted = ids; tracks = null; if (items) return; query('trackInfo', { ids: wanted }).then(rows => { const byId = new Map((Array.isArray(rows) ? rows : []).map((row: any) => [Number(row.id), row])); tracks = wanted.map(id => byId.get(id)).filter(Boolean) }) })
   const folderOf = (url: string) => { try { const path = decodeURIComponent(String(url ?? '').replace(/^file:\/\/\/?/, '')).replace(/\//g, '\\'); return path.slice(0, path.lastIndexOf('\\')) } catch { return '' } }
   const formats: Record<string, string> = { flc: 'FLAC', mp3: 'MP3', aac: 'AAC', mp4: 'AAC', alc: 'ALAC', wav: 'WAV', aif: 'AIFF', ogg: 'Ogg Vorbis', ops: 'Opus', wma: 'WMA', dsf: 'DSD', dff: 'DSD' }
   const fields: [string, string, (track: any) => string][] = [
@@ -20,11 +21,13 @@
   const differing = $derived((tracks ?? []).length > 1 ? fields.filter(([key, label, read]) => !tracks!.every(track => read(track) === read(tracks![0])) && tracks!.some(track => read(track))) : [])
 </script>
 
-<div class="scrim" role="presentation" onclick={() => ui.trackInfo = null}></div>
+<div class="scrim" role="presentation" onclick={() => { ui.trackInfo = null; ui.itemInfo = null }}></div>
 <div class="track-info" role="dialog" aria-label="Track info">
-  <header><div><h3>{ids.length === 1 ? 'Track info' : `${ids.length} tracks`}</h3>{#if tracks}<span class="quiet">{formatTime(totalSeconds)} total{tracks.length < ids.length ? ` · ${ids.length - tracks.length} not in the library index` : ''}</span>{/if}</div><button class="dismiss" onclick={() => ui.trackInfo = null} aria-label="Close" title="Close (Esc)">×</button></header>
+  <header><div><h3>{items ? (items.length === 1 ? 'Info' : `${items.length} items`) : ids.length === 1 ? 'Track info' : `${ids.length} tracks`}</h3>{#if tracks && !items}<span class="quiet">{formatTime(totalSeconds)} total{tracks.length < ids.length ? ` · ${ids.length - tracks.length} not in the library index` : ''}</span>{/if}</div><button class="dismiss" onclick={() => { ui.trackInfo = null; ui.itemInfo = null }} aria-label="Close" title="Close (Esc)">×</button></header>
   <div class="body">
-    {#if !tracks}<p class="quiet">Loading…</p>
+    {#if items}
+      {#each items as item}{#if items.length > 1}<h4>{item.name}</h4>{/if}<dl>{#each item.fields as [label, value]}<dt>{label}</dt><dd class:path={label === 'Address'}>{value}</dd>{/each}</dl>{/each}
+    {:else if !tracks}<p class="quiet">Loading…</p>
     {:else if !tracks.length}<p class="quiet">These tracks aren't in the library index.</p>
     {:else}
       {#if shared.length}

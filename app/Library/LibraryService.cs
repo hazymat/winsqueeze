@@ -51,6 +51,15 @@ public sealed class LibraryService
             try
             {
                 var pathParts = new Uri(args.Request.Uri).AbsolutePath.Trim('/').Split('/');
+                // https://art.winsqueeze/server/<escaped server path> -> an image the server serves itself (favourite and radio icons, imageproxy)
+                if (pathParts[0] == "server" && pathParts.Length > 1 && App.Settings.ActiveProfile is { Host.Length: > 0 } artProfile)
+                {
+                    var serverPath = Uri.UnescapeDataString(string.Join("/", pathParts.Skip(1))).TrimStart('/');
+                    using var serverResponse = await artClient.GetAsync($"http://{artProfile.Host}:{artProfile.Port}/{serverPath}");
+                    var serverBytes = serverResponse.IsSuccessStatusCode ? await serverResponse.Content.ReadAsByteArrayAsync() : null;
+                    args.Response = serverBytes == null ? webView.Environment.CreateWebResourceResponse(null, 404, "Not found", "") : webView.Environment.CreateWebResourceResponse(new MemoryStream(serverBytes), 200, "OK", $"Content-Type: {SniffType(serverBytes)}\nCache-Control: max-age=86400");
+                    return;
+                }
                 var coverId = new string(pathParts[0].Where(char.IsLetterOrDigit).ToArray());
                 var size = pathParts.Length > 1 && int.TryParse(pathParts[1], out var requestedSize) ? Math.Clamp(requestedSize, 32, 1200) : 300;
                 var artBytes = await GetArtAsync(coverId, size);
