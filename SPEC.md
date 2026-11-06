@@ -127,6 +127,8 @@ Settings › Browsing chooses which groupings the Group menu offers and each are
 
 **When the queue ends** (Up next header, remembered): Stop, Repeat all (Lyrion's repeat-all on the player), or Keep playing. Keep playing adds a whole album or about ten tracks just before the last track ends (under 20 s left), looking at the same album artist, then the playing track's genres, then anything; it skips anything queued or added by Keep playing in the last 3 days, and each top-up can be undone. Radio and remote streams are left alone.
 
+**Long tracks** (20 min and up) remember where you left them partway (more than a minute in and a minute from the end); playing one again carries on from there, with Undo to start from the beginning. Kept per device for the last 50 such tracks.
+
 **Favourites:** star any album, artist, folder, playlist or stream from anywhere; unstar the same way. Changes go to Lyrion's own favourites, so they stay in sync with other controllers. Only on user action.
 
 **Players:** a player switcher in the transport bar. Defaults to this PC's bundled Squeezelite; any other player on the server (other Squeezeboxes in the house) can be picked and controlled the same way.

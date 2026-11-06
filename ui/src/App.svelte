@@ -1,5 +1,6 @@
 <script lang="ts">
   import { checkKeepPlaying } from './lib/queueEnd.svelte'
+  import { noteLongTrack } from './lib/resume'
   import { sendToShell, onShellMessage, request, command, artUrl } from './bridge'
   import { app, nav, ui, playlist, openSection, back, forward, forwardHistory, currentView, newPlaylist, undoToast, toast, noteTrackChange, receiveLevels, writeSetting, readSetting, currentTrack } from './state.svelte'
   import TransportBar from './parts/TransportBar.svelte'
@@ -60,7 +61,7 @@
   // A finished or failed recording says where it went (only notes that arrive after startup)
   let lastRecordingNote = -1
   onShellMessage('status', message => { const recording = message.recording; if (recording && lastRecordingNote >= 0 && recording.noteId > lastRecordingNote && recording.note) toast(recording.note); if (recording) lastRecordingNote = recording.noteId; app.status = message })
-  onShellMessage('nowPlaying', message => { noteTrackChange(app.nowPlaying, message.status); app.nowPlaying = message.status; checkKeepPlaying(message.status); app.receivedAt = Date.now() })
+  onShellMessage('nowPlaying', message => { noteTrackChange(app.nowPlaying, message.status); noteLongTrack(app.nowPlaying, message.status); app.nowPlaying = message.status; checkKeepPlaying(message.status); app.receivedAt = Date.now() })
   onShellMessage('players', message => { app.players = message.players ?? []; app.ownPlayer = message.own ?? ''; app.selectedPlayer = message.selected ?? app.selectedPlayer })
   onShellMessage('library', message => app.library = { text: message.text ?? '', done: message.done ?? 0, total: message.total ?? 0 })
   onShellMessage('indexUpdated', () => app.indexVersion++)
