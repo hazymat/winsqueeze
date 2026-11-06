@@ -4,7 +4,7 @@
 <script lang="ts">
   import { app, ui, meters, writeSetting } from '../state.svelte'
   import Analyser from './Analyser.svelte'
-  import AnalogMeter, { analogThemes } from './AnalogMeter.svelte'
+  import MeterPanel, { panelThemes } from './MeterPanel.svelte'
   // Live from our Squeezelite build's sample export; with no audio the needles rest below -20 and the lamp dims
   let { size = 'small' }: { size?: 'small' | 'large' | 'full' } = $props()
   let now = $state(Date.now())
@@ -19,7 +19,7 @@
   }
   // Same octaves and scale as the EQ window's analyser
   const spectrumScale = ['30', '24', '18', '12', '6']
-  const meterStyles = ['vu', 'deck', 'orange', 'monitor', 'blue', 'green', 'amber', 'oledvu', 'oled'] // analogue faces after classic amps and decks sit between the VU and the OLED styles
+  const meterStyles = ['vu', 'deck', 'orange', 'monitor', 'blue', 'green', 'oledvu', 'oled'] // analogue faces after classic amps and decks sit between the VU and the OLED styles
   const bandLabels = ['31', '63', '125', '250', '500', '1k', '2k', '4k', '8k', '16k'] // octave centres (Hz)
   const toggle = () => { ui.meterStyle = meterStyles[(meterStyles.indexOf(ui.meterStyle) + 1) % meterStyles.length]; writeSetting('meterStyle', ui.meterStyle) }
   const gradientId = `vu-lamp-${meterCount++}`
@@ -48,14 +48,19 @@
           </radialGradient>
           <!-- Bulb shading: the bezel lip shadows the top, corners fall off into the dark, the lamp lights the window's bottom edge -->
           <linearGradient id={gradientId + '-lip'} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1a0e00" stop-opacity="0.32" /><stop offset="5%" stop-color="#1a0e00" stop-opacity="0.12" /><stop offset="12%" stop-color="#1a0e00" stop-opacity="0.02" /><stop offset="22%" stop-color="#1a0e00" stop-opacity="0" /></linearGradient>
-          <radialGradient id={gradientId + channel + '-falloff'} cx={channelIndex ? '56%' : '45%'} cy="92%" r="80%"><stop offset="45%" stop-color="#2a1500" stop-opacity="0" /><stop offset="85%" stop-color="#2a1500" stop-opacity="0.06" /><stop offset="100%" stop-color="#2a1500" stop-opacity="0.16" /></radialGradient>
+          <radialGradient id={gradientId + channel + '-falloff'} cx={channelIndex ? '56%' : '45%'} cy="92%" r="80%"><stop offset="45%" stop-color="#2a1500" stop-opacity="0" /><stop offset="70%" stop-color="#2a1500" stop-opacity="0.06" /><stop offset="100%" stop-color="#2a1500" stop-opacity="0.26" /></radialGradient>
           <!-- Real bulbs are uneven: a second softer hotspot off to one side and low-frequency mottling, different per meter -->
           <radialGradient id={gradientId + channel + '-blob'} cx={channelIndex ? '28%' : '74%'} cy={channelIndex ? '62%' : '70%'} r="42%"><stop offset="0%" stop-color="#fff2cc" stop-opacity="0.32" /><stop offset="100%" stop-color="#fff2cc" stop-opacity="0" /></radialGradient>
           <filter id={gradientId + channel + '-mottle'} x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.045 0.06" numOctaves="2" seed={channelIndex ? 11 : 4} /><feColorMatrix values="0 0 0 0 0.16  0 0 0 0 0.09  0 0 0 0 0  0 0 0 1.4 -0.55" /></filter>
           <filter id={gradientId + '-inset'} x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="2.2" /></filter>
           <filter id={gradientId + '-grain'} x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency={size === 'full' ? 6 : 1.6} numOctaves="1" seed={channelIndex ? 3 : 8} /><feColorMatrix values="0 0 0 0 0.2  0 0 0 0 0.13  0 0 0 0 0.05  0 0 0 1.1 -0.45" /></filter>
-          <filter id={gradientId + '-soft'} x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="0.7" /></filter>
+          <filter id={gradientId + '-soft'} filterUnits="userSpaceOnUse" x="0" y="0" width="120" height="72"><feGaussianBlur stdDeviation="0.7" /></filter>
           <linearGradient id={gradientId + '-sheen'} x1="0" y1="0" x2="1" y2="0.6"><stop offset="0%" stop-color="#fff" stop-opacity="0" /><stop offset="30%" stop-color="#fff" stop-opacity="0.13" /><stop offset="44%" stop-color="#fff" stop-opacity="0.02" /><stop offset="58%" stop-color="#fff" stop-opacity="0" /></linearGradient>
+          <!-- Glass: the thick edge bends light unevenly; faint smudges and dust on the pane -->
+          <filter id={gradientId + channel + '-warp'} filterUnits="userSpaceOnUse" x="0" y="0" width="120" height="72"><feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="2" seed={channelIndex ? 21 : 13} result="warp" /><feDisplacementMap in="SourceGraphic" in2="warp" scale="0.9" xChannelSelector="R" yChannelSelector="G" /></filter>
+          <filter id={gradientId + channel + '-dust'} filterUnits="userSpaceOnUse" x="5" y="5" width="110" height="62"><feTurbulence type="fractalNoise" baseFrequency={size === 'full' ? 3 : 1.2} numOctaves="1" seed={channelIndex ? 31 : 17} /><feColorMatrix values="0 0 0 0 1  0 0 0 0 0.98  0 0 0 0 0.94  0 0 0 9 -7.4" /></filter>
+          <filter id={gradientId + '-smudge'} filterUnits="userSpaceOnUse" x="0" y="0" width="120" height="72"><feGaussianBlur stdDeviation="5" /></filter>
+          <linearGradient id={gradientId + '-edge-light'} x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fff6de" stop-opacity="0.9" /><stop offset="35%" stop-color="#fff6de" stop-opacity="0.35" /><stop offset="70%" stop-color="#fff6de" stop-opacity="0.12" /><stop offset="100%" stop-color="#fff6de" stop-opacity="0.4" /></linearGradient>
           <clipPath id={gradientId + '-clip'}><rect x="5" y="5" width="110" height="62" rx="2" /></clipPath>
         </defs>
         <rect x="0" y="0" width="120" height="72" rx="5" class="bezel" />
@@ -87,11 +92,17 @@
         <rect x="7" y="65.6" width="106" height="1" class="lit-edge" />
         <!-- Acrylic window edge: light bends through the thick rim, a bright band with a darker inner seam -->
         <rect x="5.7" y="5.7" width="108.6" height="60.6" rx="1.6" class="rim-glow" /><rect x="7.3" y="7.3" width="105.4" height="57.4" rx="1" class="rim-seam" /><path d="M6 6.2 H114" class="rim-catch" />
-        {#if size !== 'small'}<rect x="5" y="5" width="110" height="62" rx="2" fill="url(#{gradientId}-sheen)" class="shade" />{/if}
+        {#if size !== 'small'}<rect x="5" y="5" width="110" height="62" rx="2" fill="url(#{gradientId}-sheen)" class="shade" />
+          <g clip-path="url(#{gradientId}-clip)" class="shade">
+            <rect x="6.3" y="6.3" width="107.4" height="59.4" rx="1.4" fill="none" stroke="url(#{gradientId}-edge-light)" stroke-width="2.4" filter="url(#{gradientId}{channel}-warp)" class="refraction" />
+            <rect x="8.4" y="8.4" width="103.2" height="55.2" rx="1" fill="none" stroke="#3a2508" stroke-width="0.35" filter="url(#{gradientId}{channel}-warp)" class="refraction-seam" />
+            <ellipse cx={channelIndex ? 88 : 30} cy={channelIndex ? 22 : 48} rx="16" ry="7" transform="rotate({channelIndex ? -18 : 24} {channelIndex ? 88 : 30} {channelIndex ? 22 : 48})" fill="#fff" filter="url(#{gradientId}-smudge)" class="smudge" />
+            <rect x="5" y="5" width="110" height="62" filter="url(#{gradientId}{channel}-dust)" class="dust" />
+          </g>{/if}
       </svg>
     {/each}
-  {:else if analogThemes[ui.meterStyle]}
-    {#each ['L', 'R'] as channel, channelIndex}<AnalogMeter theme={ui.meterStyle} level={meters.vu[channelIndex] ?? -90} reference={meters.reference} {channel} {channelIndex} {size} idle={!active} />{/each}
+  {:else if panelThemes[ui.meterStyle]}
+    <MeterPanel theme={ui.meterStyle} levels={meters.vu} reference={meters.reference} {size} idle={!active} />
   {:else if ui.meterStyle === 'oledvu'}
     {#each ['L', 'R'] as channel, channelIndex}
       <!-- Cropped to the scale: the panel holds just the arc, numbers, needle and channel, centred top to bottom -->
@@ -122,12 +133,16 @@
 
 <style>
   .meters { display: flex; gap: 4px; background: none; border: 0; padding: 0; cursor: pointer; align-items: center; }
-  .small .vu, .small :global(.analog) { width: 60px; height: 36px; } .large .vu, .large :global(.analog) { width: 190px; height: 114px; }
-  .full :global(.analog) { width: min(46vw, (100vh - 140px) * 1.66); height: auto; }
+  .small .vu { width: 60px; height: 36px; } .large .vu { width: 190px; height: 114px; }
+  /* Whole panels keep their own shape and size: tall round meters, long low monitor strips… */
+  .small :global(.panel) { height: 34px; width: auto; max-width: 130px; } .large :global(.panel) { width: auto; }
+  .large :global(.panel.deck) { height: 104px; } .large :global(.panel.orange) { height: 124px; } .large :global(.panel.monitor) { height: 84px; } .large :global(.panel.blue) { height: 96px; } .large :global(.panel.green) { height: 112px; }
+  .full :global(.panel) { height: auto; width: min(var(--full-share) * 1vw, (100vh - 140px) * var(--aspect)); }
+  .full :global(.panel.deck) { --full-share: 78; } .full :global(.panel.orange) { --full-share: 58; } .full :global(.panel.monitor) { --full-share: 94; } .full :global(.panel.blue) { --full-share: 86; } .full :global(.panel.green) { --full-share: 90; }
   .small .oledvu { height: 27px; } .large .oledvu { height: 85.5px; }
   .bezel { fill: #15161a; stroke: #2c2e34; stroke-width: 1; }
-  .lamp-hot { stop-color: #fffbf0; } .lamp-warm { stop-color: #f9efd6; } .lamp-mid { stop-color: #e4cf9f; } .lamp-edge { stop-color: #c4ab7c; }
-  .idle .lamp-hot { stop-color: #efe6cf; } .idle .lamp-warm { stop-color: #e2d4b2; } .idle .lamp-mid { stop-color: #cbb68c; } .idle .lamp-edge { stop-color: #a08a62; }
+  .lamp-hot { stop-color: #fff3d6; } .lamp-warm { stop-color: #f8deaa; } .lamp-mid { stop-color: #dcb47a; } .lamp-edge { stop-color: #a17a48; }
+  .idle .lamp-hot { stop-color: #f3e3c4; } .idle .lamp-warm { stop-color: #e6cc9c; } .idle .lamp-mid { stop-color: #c9a46e; } .idle .lamp-edge { stop-color: #8d6a3e; }
   .face { stroke: rgba(0, 0, 0, 0.5); stroke-width: 0.8; }
   .scale { fill: none; stroke: #1d1a14; stroke-width: 0.9; stroke-linecap: round; }
   .red-line { fill: none; stroke: #c4291c; stroke-width: 0.9; }
@@ -146,6 +161,8 @@
   .rim-glow { fill: none; stroke: #ffe6b4; stroke-width: 1.3; opacity: 0.4; } .rim-seam { fill: none; stroke: #3a2508; stroke-width: 0.45; opacity: 0.35; } .rim-catch { stroke: #fff8e6; stroke-width: 0.5; opacity: 0.6; }
   .grain { opacity: 0.45; } .full .grain { opacity: 0.18; } .needle-shadow { stroke: #2a1a05; stroke-width: 1.4; opacity: 0.22; }
   .idle .rim-glow { opacity: 0.22; } .idle .rim-catch { opacity: 0.3; }
+  .refraction { opacity: 0.42; } .refraction-seam { opacity: 0.22; } .smudge { opacity: 0.06; } .dust { opacity: 0.22; }
+  .idle .refraction { opacity: 0.35; }
   .lit-edge { fill: #ffe7b0; opacity: 0.75; } .idle .lit-edge { opacity: 0.35; }
   /* OLED VU: a frosted glass pane over whatever is behind, with a fine top-lit edge */
   .glass { fill: url(#oled-glass-sheen); stroke: rgba(255, 255, 255, 0.16); stroke-width: 0.6; }
