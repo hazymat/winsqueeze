@@ -1,4 +1,4 @@
-import { sendToShell, query } from './bridge'
+import { sendToShell, query, command } from './bridge'
 
 export type View = { kind: string; key?: string; title?: string }
 export type PlaylistItem = { id: number; title: string; artist: string; duration: number }
@@ -31,8 +31,26 @@ export const currentView = () => nav.stack.length ? nav.stack[nav.stack.length -
 
 // Messages show in the action strip above the transport (ActionStrip.svelte), with a ring counting down their time
 let toastTimer = 0, toastId = 0
-export function toast(text: string, undo?: () => void) { const ms = undo ? 6000 : 2500; ui.toast = { text, undo, ms, id: ++toastId }; clearTimeout(toastTimer); toastTimer = window.setTimeout(() => ui.toast = null, ms) }
+export function toast(text: string, undo?: () => void, undoMs = 6000) { const ms = undo ? undoMs : 2500; ui.toast = { text, undo, ms, id: ++toastId }; clearTimeout(toastTimer); toastTimer = window.setTimeout(() => ui.toast = null, ms) }
 export function undoToast() { const undo = ui.toast?.undo; ui.toast = null; undo?.() }
+
+// Undo an accidental track change: if the track changed partway through (not at its natural end), offer to go back to the exact spot
+let trackChangePlayer = ''
+export function noteTrackChange(previous: any, next: any) {
+  const player = app.selectedPlayer
+  const samePlayer = player === trackChangePlayer; trackChangePlayer = player
+  const trackOf = (status: any) => status?.playlist_loop?.find((item: any) => String(item['playlist index']) === String(status.playlist_cur_index))
+  const left = trackOf(previous), arrived = trackOf(next)
+  if (!samePlayer || !left || !arrived || String(left.id) === String(arrived.id) || !['play', 'pause'].includes(previous.mode)) return
+  const position = Number(previous.time ?? 0) + (previous.mode === 'play' ? (Date.now() - app.receivedAt) / 1000 : 0), duration = Number(left.duration ?? previous.duration ?? 0)
+  if (position < 5 || (duration && duration - position < 8)) return
+  toast(`Changed track. Back to “${left.title}” at ${formatTime(position)}?`, () => {
+    const queued = next.playlist_loop?.find((item: any) => String(item.id) === String(left.id))
+    if (queued) command('playlist', 'index', queued['playlist index'])
+    else { sendToShell({ type: 'playTracks', ids: [Number(left.id)], mode: 'insert' }); window.setTimeout(() => command('playlist', 'index', '+1'), 400) } // the queue was replaced: put it back next and play it
+    window.setTimeout(() => command('time', Math.floor(position)), queued ? 700 : 1100) // seek once the track has started
+  }, 10000)
+}
 
 // The current track of the selected player, from its queue
 export function currentTrack() {
