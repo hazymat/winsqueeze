@@ -188,6 +188,9 @@ Record a radio station (or any other stream) to FLAC, for personal listening.
 - **Ends** when you click stop, the player leaves the stream for a library file or stops, or WinSqueeze quits (the file is finished cleanly). A Squeezelite restart (device change) finishes the file and carries on in a new one.
 - A toast says where the files went. The UI and Settings say recordings are for personal use only.
 
+## Play history
+Every play is kept for good in history.db (per server profile), once it has run 20 seconds: library tracks by id, radio and other streams by URL, so an episode can be played again. The History section lists plays by day, newest first. An album played through (3 or more of its tracks in a row) is one block; each radio programme is its own row with Play again; everything else groups by hour. Selection actions: Play now / next / add to end, Track info, Remove from history; Clear history asks first.
+
 ## Offline downloads
 
 Albums (or any selection: artists, genres, folders, tracks, playlists) can be downloaded to this PC and played without the server.

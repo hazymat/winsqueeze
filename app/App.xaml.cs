@@ -22,6 +22,8 @@ public partial class App : Application
     public Equaliser Equaliser { get; } = new();
     public Recorder Recorder { get; } = new();
     public Offline.DownloadManager Downloads { get; } = new();
+    public PlayHistory History { get; } = new();
+    public event Action? HistoryChanged;
     public Offline.OfflineServer? Offline { get; private set; } // set while playing downloads without the server
     public bool IsOffline => Offline != null;
     public bool ServerBack { get; private set; } // offline, and the server answers again
@@ -126,11 +128,12 @@ public partial class App : Application
         RefreshIconsAfterUpdate();
         if (CrashReporter.TakeUnseenReport()) ShowTip("WinSqueeze had a problem last time", "It crashed or stopped responding. Details are in Settings › About › Open logs (crash.log).");
         try { Media = new MediaControls(); } catch { } // SMTC needs Windows 10 1903+
-        Session.StatusUpdated += () => { if (Settings.ActiveProfile is { } profile) Media?.Update(Session.LastStatus, $"http://{profile.Host}:{profile.Port}"); trayIcon.RefreshNowPlaying(Session.LastStatus); NotifyTrackChange(Session.LastStatus); Recorder.OnStatus(Session.LastStatus, Session.SelectedPlayerId == ""); };
+        Session.StatusUpdated += () => { if (Settings.ActiveProfile is { } profile) Media?.Update(Session.LastStatus, $"http://{profile.Host}:{profile.Port}"); trayIcon.RefreshNowPlaying(Session.LastStatus); NotifyTrackChange(Session.LastStatus); History.OnStatus(Session.LastStatus); Recorder.OnStatus(Session.LastStatus, Session.SelectedPlayerId == ""); };
         Recorder.Changed += () => Dispatcher.BeginInvoke(() => StatusChanged?.Invoke());
         ApplyGlobalHotkeys();
         Downloads.CacheArt = Library.CacheArtAsync;
         Downloads.Open(Settings.ActiveProfile);
+        History.Open(Settings.ActiveProfile); History.Changed += () => Dispatcher.BeginInvoke(() => HistoryChanged?.Invoke());
         Downloads.Changed += () => Dispatcher.BeginInvoke(() => DownloadsChanged?.Invoke());
         Library.IndexUpdated += () => { var queries = Library.Queries; Downloads.Relink(queries.TrackIdsByUrl); DownloadsChanged?.Invoke(); };
         Session.ServerUnreachable += () => _ = GoOfflineAsync(true);
@@ -260,7 +263,7 @@ public partial class App : Application
     {
         if (!IsOffline) _ = Library.RefreshAsync(false);
         var profile = Settings.ActiveProfile;
-        Downloads.Open(profile);
+        Downloads.Open(profile); History.Open(profile);
         if (profile is not { Host.Length: > 0 }) { Player.SetWaiting("No server set. Open Settings › Servers."); return; }
         if (profile.DeviceName == "") { Player.SetWaiting("Choose an output device in Settings › Audio."); return; }
         var outputDevice = FindDevice(profile.DeviceName, profile.DeviceHostApi);

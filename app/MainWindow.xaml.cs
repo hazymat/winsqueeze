@@ -30,6 +30,7 @@ public partial class MainWindow : Window
         StateChanged += (sender, args) => { UpdateFrameMargin(); PushWindowState(); };
         IsVisibleChanged += (sender, args) => App.Session.SetVisible(IsVisible);
         App.StatusChanged += () => Push(App.StatusJson());
+        App.HistoryChanged += () => Push("{\"type\":\"historyChanged\"}");
         App.Session.StatusUpdated += () => Push($"{{\"type\":\"nowPlaying\",\"status\":{App.Session.LastStatusJson}}}");
         App.Session.PlayersUpdated += () => Push($"{{\"type\":\"players\",\"players\":{App.Session.LastPlayersJson},\"selected\":{JsonSerializer.Serialize(App.Session.SelectedPlayerId == "" ? App.Settings.PlayerMac : App.Session.SelectedPlayerId)},\"own\":{JsonSerializer.Serialize(App.Settings.PlayerMac)}}}");
         App.Library.Changed += PushLibraryStatus;
@@ -114,6 +115,7 @@ public partial class MainWindow : Window
                     var queryName = Text(message, "name");
                     var queryParameters = message.TryGetProperty("params", out var parameters) ? parameters : default;
                     var queries = App.Library.Queries;
+                    if (queryName == "history") { var before = queryParameters.ValueKind == JsonValueKind.Object && queryParameters.TryGetProperty("before", out var beforeValue) ? beforeValue.GetInt64() : 0; Reply(message, await Task.Run(() => App.History.Recent(before, 400))); break; }
                     if (queryName == "downloadedAlbums") { var sortName = queryParameters.ValueKind == JsonValueKind.Object ? Text(queryParameters, "sort") : ""; Reply(message, await Task.Run(() => queries.DownloadedAlbums(App.Downloads.DownloadedIds(), sortName))); break; }
                     Reply(message, await Task.Run(() => queries.Run(queryName, queryParameters)));
                     break;
@@ -147,6 +149,8 @@ public partial class MainWindow : Window
                 case "downloadCancelAll": App.Downloads.CancelAll(); break;
                 case "downloadRetry": App.Downloads.Retry(); break;
                 case "openDownloads": Directory.CreateDirectory(App.Downloads.Folder); System.Diagnostics.Process.Start("explorer.exe", $"\"{App.Downloads.Folder}\""); break;
+                case "historyDelete": App.History.Delete(Ids(message.GetProperty("ids"))); break;
+                case "historyClear": App.History.Clear(); break;
                 case "goOffline": await App.GoOfflineAsync(false); break;
                 case "goOnline": await App.GoOnlineAsync(); break;
                 case "selectPlayer": App.Session.SelectedPlayerId = Text(message, "id") == App.Settings.PlayerMac ? "" : Text(message, "id"); await App.Session.RequestAsync(true, "status", "-", 1); break;
