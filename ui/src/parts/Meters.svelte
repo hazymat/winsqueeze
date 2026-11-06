@@ -2,7 +2,7 @@
   let meterCount = 0
 </script>
 <script lang="ts">
-  import { app, ui, meters, writeSetting } from '../state.svelte'
+  import { app, ui, meters, meterView, writeSetting } from '../state.svelte'
   import Analyser from './Analyser.svelte'
   import MeterPanel, { panelThemes } from './MeterPanel.svelte'
   // Live from our Squeezelite build's sample export; with no audio the needles rest below -20 and the lamp dims
@@ -22,7 +22,7 @@
   }
   // Same octaves and scale as the EQ window's analyser
   const spectrumScale = ['30', '24', '18', '12', '6']
-  const meterStyles = ['vu', 'deck', 'orange', 'monitor', 'blue', 'green', 'ledbar', 'oledvu', 'oled'] // analogue faces after classic amps and decks sit between the VU and the OLED styles
+  const meterStyles = ['vu', 'deck', 'orange', 'monitor', 'blue', 'green', 'oledvu', 'oled'] // analogue faces after classic amps and decks sit between the VU and the OLED styles
   const bandLabels = ['31', '63', '125', '250', '500', '1k', '2k', '4k', '8k', '16k'] // octave centres (Hz)
   const toggle = () => { ui.meterStyle = meterStyles[(meterStyles.indexOf(ui.meterStyle) + 1) % meterStyles.length]; writeSetting('meterStyle', ui.meterStyle) }
   const gradientId = `vu-lamp-${meterCount++}`
@@ -41,6 +41,7 @@
 </script>
 
 <button class="meters {size}" bind:clientWidth={meterWidth} class:idle={!active} onclick={toggle} oncontextmenu={(event) => { event.preventDefault(); ui.metersFull = !ui.metersFull }} title="Click to switch meter style · right-click for full window">
+  {#key meterView.epoch}
   {#if ui.meterStyle === 'vu'}
     {#each ['L', 'R'] as channel, channelIndex}
       <svg viewBox="0 0 120 72" class="vu" aria-hidden="true">
@@ -132,6 +133,7 @@
     <!-- Spectrum analyser (the third style; stored as 'oled' so earlier choices carry over) -->
     <div class="spectrum">{#if size !== 'small'}<Analyser levels={meters.bands} labels={bandLabels} scale={spectrumScale} segments={24} title="SPECTRUM ANALYZER" fullRange={Math.max(0, Math.min(1, (Math.max(meters.vu[0] ?? -90, meters.vu[1] ?? -90) + 40) / 40))} />{:else}<Analyser levels={meters.bands} compact={true} segments={12} />{/if}</div>
   {/if}
+  {/key}
 </button>
 
 <style>
@@ -142,7 +144,7 @@
   /* large: as wide as the pair of VU meters, unless that makes a tall panel too tall */
   .large :global(.panel) { width: min(384px, 170px * var(--aspect)); height: auto; }
   .full :global(.panel) { height: auto; width: min(var(--full-share) * 1vw, (100vh - 140px) * var(--aspect)); }
-  .full :global(.panel.deck) { --full-share: 78; } .full :global(.panel.orange) { --full-share: 58; } .full :global(.panel.monitor) { --full-share: 94; } .full :global(.panel.blue) { --full-share: 86; } .full :global(.panel.green) { --full-share: 90; } .full :global(.panel.ledbar) { --full-share: 94; }
+  .full :global(.panel.deck) { --full-share: 78; } .full :global(.panel.orange) { --full-share: 58; } .full :global(.panel.monitor) { --full-share: 94; } .full :global(.panel.blue) { --full-share: 86; } .full :global(.panel.green) { --full-share: 90; }
   .small .oledvu { height: 27px; } .large .oledvu { height: 85.5px; }
   .bezel { fill: #15161a; stroke: #2c2e34; stroke-width: 1; }
   .lamp-hot { stop-color: #fff3d6; } .lamp-warm { stop-color: #f8deaa; } .lamp-mid { stop-color: #dcb47a; } .lamp-edge { stop-color: #a17a48; }

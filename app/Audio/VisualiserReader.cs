@@ -47,7 +47,7 @@ public sealed class VisualiserReader : IDisposable
             try
             {
                 if (view == null) { try { sharedFile = MemoryMappedFile.OpenExisting(mapName, MemoryMappedFileRights.Read); view = sharedFile.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read); } catch (FileNotFoundException) { Thread.Sleep(1000); continue; } }
-                var now = Environment.TickCount64; var elapsedSeconds = (now - lastTick) / 1000.0; lastTick = now;
+                var now = Environment.TickCount64; var elapsedSeconds = Math.Clamp((now - lastTick) / 1000.0, 0, 1); lastTick = now;
                 // Seqlock read: retry if the writer was mid-update
                 int bufferSize = 0, rate = 0; bool live = false; double volumeGain = 1;
                 for (var attempt = 0; attempt < 4; attempt++)
@@ -85,7 +85,7 @@ public sealed class VisualiserReader : IDisposable
     {
         // VU: RMS over the newest ~50 ms, integrated with a 300 ms time constant
         const int newest = AnalyserSize - FftSize; // frame where the newest FftSize frames start
-        var rmsFrames = Math.Min(FftSize, rate / 20);
+        var rmsFrames = Math.Clamp(rate / 20, 1, FftSize);
         double sumLeft = 0, sumRight = 0, maxLeft = 0, maxRight = 0;
         for (var frame = FftSize - rmsFrames; frame < FftSize; frame++)
         {
@@ -95,6 +95,7 @@ public sealed class VisualiserReader : IDisposable
         var tuning = Tuning;
         var vuFollow = 1 - Math.Exp(-elapsedSeconds / Math.Max(0.02, tuning.VuIntegrationMs / 1000));
         vuLeft += (Math.Sqrt(sumLeft / rmsFrames) - vuLeft) * vuFollow; vuRight += (Math.Sqrt(sumRight / rmsFrames) - vuRight) * vuFollow;
+        if (!double.IsFinite(vuLeft) || vuLeft < 0) vuLeft = 0; if (!double.IsFinite(vuRight) || vuRight < 0) vuRight = 0; // a bad value never sticks
         var framePower = Math.Max(sumLeft, sumRight) / rmsFrames;
         if (framePower > 1e-5) loudnessPower += (framePower - loudnessPower) * (loudnessPower > 0 ? 1 - Math.Exp(-elapsedSeconds / 8) : 1);
         // Bars: instant attack, optional hold, then a steady fall in dB

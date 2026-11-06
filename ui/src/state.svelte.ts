@@ -15,7 +15,7 @@ export const app = $state({
 const savedNav = (() => { try { return JSON.parse(readSetting('nav', '')) } catch { return null } })()
 export const nav = $state({ section: (savedNav?.section ?? 'artists') as string, stack: (savedNav?.stack ?? []) as View[] })
 $effect.root(() => { $effect(() => { writeSetting('nav', JSON.stringify({ section: nav.section, stack: nav.stack })) }) })
-export const ui = $state({ search: '', scope: 'list' as 'list' | 'everything', expanded: false, meterStyle: readSetting('meterStyle', 'vu'), skin: readSetting('skin', 'auto'), coverAccent: readSetting('coverAccent', '') === '1', coverBackdrop: readSetting('coverBackdrop', '1') !== '0', accent: readSetting('accent', ''), glassTransparency: Number(readSetting('glassTransparency', '-1')), glassTintHue: Number(readSetting('glassTintHue', '0')), lookVersion: 0, pinned: false, metersFull: false, trackInfo: null as null | number[], itemInfo: null as null | { name: string, fields: [string, string][] }[], toast: null as null | { text: string; undo?: () => unknown; redo?: () => unknown; action?: { label: string; key: string; run: () => unknown }; ms: number; id: number } })
+export const ui = $state({ search: '', scope: 'list' as 'list' | 'everything', expanded: false, meterStyle: readSetting('meterStyle', 'vu').replace(/^ledbar$/, 'vu'), skin: readSetting('skin', 'auto'), coverAccent: readSetting('coverAccent', '') === '1', coverBackdrop: readSetting('coverBackdrop', '1') !== '0', accent: readSetting('accent', ''), glassTransparency: Number(readSetting('glassTransparency', '-1')), glassTintHue: Number(readSetting('glassTintHue', '0')), lookVersion: 0, pinned: false, metersFull: false, trackInfo: null as null | number[], itemInfo: null as null | { name: string, fields: [string, string][] }[], toast: null as null | { text: string; undo?: () => unknown; redo?: () => unknown; action?: { label: string; key: string; run: () => unknown }; ms: number; id: number } })
 export const playlist = $state({ open: false, collapsed: false, name: 'Untitled playlist', items: [] as PlaylistItem[], history: [] as number[] })
 
 export function readSetting(name: string, fallback: string) { try { return localStorage.getItem('ws.' + name) ?? fallback } catch { return fallback } }
@@ -132,8 +132,9 @@ let loudnessPower = 0, loudnessAt = 0
 export function receiveLevels(vu: number[], peak: number[], bands: number[]) {
   const receivedAt = Date.now(), loudestDb = Math.max(vu[0] ?? -90, vu[1] ?? -90)
   if (loudestDb > -50) {
-    const follow = loudnessPower ? 1 - Math.exp(-Math.min(1000, receivedAt - loudnessAt) / 8000) : 1
+    const follow = loudnessPower > 0 ? 1 - Math.exp(-Math.max(0, Math.min(1000, receivedAt - loudnessAt)) / 8000) : 1 // clamped: the clock can jump back after sleep
     loudnessPower += (Math.pow(10, loudestDb / 10) - loudnessPower) * follow
+    if (!Number.isFinite(loudnessPower) || loudnessPower < 0) loudnessPower = 0
   }
   loudnessAt = receivedAt
   meters.reference = app.meterSettings.autoReference && loudnessPower ? Math.max(-24, Math.min(-6, 10 * Math.log10(loudnessPower) + 4)) : app.meterSettings.referenceDbfs
@@ -141,12 +142,19 @@ export function receiveLevels(vu: number[], peak: number[], bands: number[]) {
   if (!meterFrame) { meterLastTime = performance.now(); meterFrame = requestAnimationFrame(easeMeters) }
 }
 function easeMeters(time: number) {
-  const elapsed = time - meterLastTime, follow = 1 - Math.exp(-elapsed / 35), needleFollow = 1 - Math.exp(-elapsed / 75); meterLastTime = time // needles glide over the uneven arrival of updates (the VU is 300 ms-integrated anyway)
-  const ease = (shown: number[], target: number[]) => target.map((value, index) => (shown[index] ?? value) + (value - (shown[index] ?? value)) * follow)
+  const elapsed = Math.max(0, Math.min(250, time - meterLastTime)), follow = 1 - Math.exp(-elapsed / 35), needleFollow = 1 - Math.exp(-elapsed / 75); meterLastTime = time // needles glide over the uneven arrival of updates (the VU is 300 ms-integrated anyway)
+  const from = (shown: number[], index: number, value: number) => Number.isFinite(shown[index]) ? shown[index] : value // a bad value never sticks
+  const ease = (shown: number[], target: number[]) => target.map((value, index) => from(shown, index, value) + (value - from(shown, index, value)) * follow)
   const vuTarget = Date.now() - app.levels.at > 1000 ? [-90, -90] : app.levels.vu
-  meters.vu = vuTarget.map((value, index) => (meters.vu[index] ?? value) + (value - (meters.vu[index] ?? value)) * needleFollow)
+  meters.vu = vuTarget.map((value, index) => from(meters.vu, index, value) + (value - from(meters.vu, index, value)) * needleFollow)
   meters.peak = ease(meters.peak, Date.now() - app.levels.at > 1000 ? [0, 0] : app.levels.peak)
   meters.bands = ease(meters.bands, Date.now() - app.levels.at > 1000 ? meters.bands.map(() => 0) : app.levels.bands)
   const resting = Date.now() - app.levels.at > 1000 && meters.vu.every(value => value < -80) && meters.peak.every(value => value < 0.001) && meters.bands.every(value => value < 0.005)
   meterFrame = resting ? 0 : requestAnimationFrame(easeMeters)
 }
+// Back from the tray or a minimised window: restart the frame loop and redraw the meters from scratch (meterEpoch remounts them)
+export const meterView = $state({ epoch: 0 })
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return
+  cancelAnimationFrame(meterFrame); meterLastTime = performance.now(); meterFrame = requestAnimationFrame(easeMeters); meterView.epoch++
+})
