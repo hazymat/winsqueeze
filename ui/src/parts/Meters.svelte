@@ -46,12 +46,13 @@
             <stop offset="0%" class="lamp-hot" /><stop offset="38%" class="lamp-warm" /><stop offset="75%" class="lamp-mid" /><stop offset="100%" class="lamp-edge" />
           </radialGradient>
           <!-- Bulb shading: the bezel lip shadows the top, corners fall off into the dark, the lamp lights the window's bottom edge -->
-          <linearGradient id={gradientId + '-lip'} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1a0e00" stop-opacity="0.55" /><stop offset="10%" stop-color="#1a0e00" stop-opacity="0.18" /><stop offset="28%" stop-color="#1a0e00" stop-opacity="0" /></linearGradient>
-          <radialGradient id={gradientId + channel + '-falloff'} cx={channelIndex ? '56%' : '45%'} cy="92%" r="80%"><stop offset="45%" stop-color="#2a1500" stop-opacity="0" /><stop offset="80%" stop-color="#2a1500" stop-opacity="0.28" /><stop offset="100%" stop-color="#2a1500" stop-opacity="0.6" /></radialGradient>
+          <linearGradient id={gradientId + '-lip'} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1a0e00" stop-opacity="0.5" /><stop offset="5%" stop-color="#1a0e00" stop-opacity="0.22" /><stop offset="13%" stop-color="#1a0e00" stop-opacity="0.05" /><stop offset="22%" stop-color="#1a0e00" stop-opacity="0" /></linearGradient>
+          <radialGradient id={gradientId + channel + '-falloff'} cx={channelIndex ? '56%' : '45%'} cy="92%" r="80%"><stop offset="45%" stop-color="#2a1500" stop-opacity="0" /><stop offset="80%" stop-color="#2a1500" stop-opacity="0.14" /><stop offset="100%" stop-color="#2a1500" stop-opacity="0.32" /></radialGradient>
           <!-- Real bulbs are uneven: a second softer hotspot off to one side and low-frequency mottling, different per meter -->
           <radialGradient id={gradientId + channel + '-blob'} cx={channelIndex ? '28%' : '74%'} cy={channelIndex ? '62%' : '70%'} r="42%"><stop offset="0%" stop-color="#fff2cc" stop-opacity="0.32" /><stop offset="100%" stop-color="#fff2cc" stop-opacity="0" /></radialGradient>
           <filter id={gradientId + channel + '-mottle'} x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.045 0.06" numOctaves="2" seed={channelIndex ? 11 : 4} /><feColorMatrix values="0 0 0 0 0.16  0 0 0 0 0.09  0 0 0 0 0  0 0 0 1.4 -0.55" /></filter>
-          <clipPath id={gradientId + '-clip'}><rect x="5" y="5" width="110" height="55" /></clipPath>
+          <filter id={gradientId + '-inset'} x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="2.2" /></filter>
+          <clipPath id={gradientId + '-clip'}><rect x="5" y="5" width="110" height="62" rx="2" /></clipPath>
         </defs>
         <rect x="0" y="0" width="120" height="72" rx="5" class="bezel" />
         <rect x="5" y="5" width="110" height="62" rx="2" fill="url(#{gradientId}{channel})" class="face" />
@@ -64,13 +65,20 @@
           <text x={labelX} y={labelY} class="number" class:hot={decibels > 0}>{Math.abs(decibels)}</text>
         {/each}
         {#each [-48, -31, -21, -12, -1, 6, 13, 21] as angle, index}{#if index < 7}{@const [minorX1, minorY1] = point(angle + (scaleMarks[index + 1][1] - angle) / 2, 52)}{@const [minorX2, minorY2] = point(angle + (scaleMarks[index + 1][1] - angle) / 2, 54.5)}<line x1={minorX1} y1={minorY1} x2={minorX2} y2={minorY2} class="tick minor" />{/if}{/each}
+        <!-- Second scale under the arc: percent of 0 VU -->
+        <path d={arc(needleAngle(-13.98 + meters.reference, restAngle), 21, 48.5)} class="scale percent" />
+        {#each [[20, -13.98], [40, -7.96], [60, -4.44], [80, -1.94], [100, 0]] as [percent, decibels]}
+          {@const angle = needleAngle(decibels + meters.reference, restAngle)}{@const [tickX1, tickY1] = point(angle, 48.5)}{@const [tickX2, tickY2] = point(angle, 46.6)}{@const [textX, textY] = point(angle, 43.6)}
+          <line x1={tickX1} y1={tickY1} x2={tickX2} y2={tickY2} class="tick minor" /><text x={textX} y={textY} class="percent-number">{percent}</text>
+        {/each}
         <text x="16" y="22" class="vu-label">VU</text>
+        <circle cx="106" cy="13.5" r="2.8" class="pilot" /><circle cx="105.2" cy="12.7" r="0.9" class="pilot-glint" />
         <text x="105" y="57" class="sign hot">+</text><text x="14" y="57" class="sign">−</text>
         <text x="60" y="58" class="channel">{channel}</text>
-        <rect x="5" y="5" width="110" height="55" fill="url(#{gradientId}{channel}-blob)" class="shade" /><rect x="5" y="5" width="110" height="55" filter="url(#{gradientId}{channel}-mottle)" class="shade mottle" />
-        <rect x="5" y="5" width="110" height="55" fill="url(#{gradientId}{channel}-falloff)" class="shade" /><rect x="5" y="5" width="110" height="55" fill="url(#{gradientId}-lip)" class="shade" />
+        <rect x="5" y="5" width="110" height="62" fill="url(#{gradientId}{channel}-blob)" class="shade" /><rect x="5" y="5" width="110" height="62" filter="url(#{gradientId}{channel}-mottle)" class="shade mottle" />
+        <rect x="5" y="5" width="110" height="62" fill="url(#{gradientId}{channel}-falloff)" class="shade" /><rect x="5" y="5" width="110" height="62" fill="url(#{gradientId}-lip)" class="shade" /><g clip-path="url(#{gradientId}-clip)"><rect x="5" y="6.6" width="110" height="62" class="shade inset" filter="url(#{gradientId}-inset)" /></g>
         <g clip-path="url(#{gradientId}-clip)"><line x1={pivotX} y1={pivotY} x2={pivotX} y2={pivotY - 60} class="needle" transform="rotate({needleAngle(meters.vu[channelIndex] ?? -90, restAngle)} {pivotX} {pivotY})" /></g>
-        <rect x="5" y="60" width="110" height="7" class="pivot-cover" /><rect x="7" y="59.2" width="106" height="1.1" class="lit-edge" />
+        <rect x="7" y="65.6" width="106" height="1" class="lit-edge" />
         <!-- Acrylic window edge: light bends through the thick rim, a bright band with a darker inner seam -->
         <rect x="5.7" y="5.7" width="108.6" height="60.6" rx="1.6" class="rim-glow" /><rect x="7.3" y="7.3" width="105.4" height="57.4" rx="1" class="rim-seam" /><path d="M6 6.2 H114" class="rim-catch" />
       </svg>
@@ -108,8 +116,8 @@
   .small .vu { width: 60px; height: 36px; } .large .vu { width: 190px; height: 114px; }
   .small .oledvu { height: 27px; } .large .oledvu { height: 85.5px; }
   .bezel { fill: #15161a; stroke: #2c2e34; stroke-width: 1; }
-  .lamp-hot { stop-color: #fff4d2; } .lamp-warm { stop-color: #f5dfa8; } .lamp-mid { stop-color: #d6b779; } .lamp-edge { stop-color: #8f7448; }
-  .idle .lamp-hot { stop-color: #e9dcb6; } .idle .lamp-warm { stop-color: #d8c595; } .idle .lamp-mid { stop-color: #b59d6c; } .idle .lamp-edge { stop-color: #7a6744; }
+  .lamp-hot { stop-color: #fffbf0; } .lamp-warm { stop-color: #f9efd6; } .lamp-mid { stop-color: #e4cf9f; } .lamp-edge { stop-color: #c4ab7c; }
+  .idle .lamp-hot { stop-color: #efe6cf; } .idle .lamp-warm { stop-color: #e2d4b2; } .idle .lamp-mid { stop-color: #cbb68c; } .idle .lamp-edge { stop-color: #a08a62; }
   .face { stroke: rgba(0, 0, 0, 0.5); stroke-width: 0.8; }
   .scale { fill: none; stroke: #1d1a14; stroke-width: 0.9; }
   .red-line { fill: none; stroke: #c4291c; stroke-width: 0.9; }
@@ -121,7 +129,10 @@
   .sign { fill: #1d1a14; font-size: 8px; font-weight: 700; text-anchor: middle; font-family: Arial, sans-serif; } .sign.hot { fill: #c4291c; }
   .channel { fill: rgba(29, 26, 20, 0.55); font-size: 6px; text-anchor: middle; font-family: var(--font-display); }
   .needle { stroke: #111; stroke-width: 0.9; } /* ballistics in the shell, easing per frame in state.svelte.ts */
-  .pivot-cover { fill: #15161a; } .shade { pointer-events: none; } .mottle { opacity: 0.55; }
+  .inset { fill: none; stroke: #1c1206; stroke-width: 4; opacity: 0.55; }
+  .percent { stroke-width: 0.5; } .percent-number { fill: #1d1a14; font-size: 3.6px; text-anchor: middle; dominant-baseline: middle; font-family: "Segoe UI", Arial, sans-serif; }
+  .pilot { fill: #2b2620; stroke: #7a6646; stroke-width: 0.5; } .pilot-glint { fill: #fff; opacity: 0.45; }
+  .pivot-cover { fill: #15161a; } .shade { pointer-events: none; } .mottle { opacity: 0.18; }
   .rim-glow { fill: none; stroke: #ffe6b4; stroke-width: 1.3; opacity: 0.4; } .rim-seam { fill: none; stroke: #3a2508; stroke-width: 0.45; opacity: 0.35; } .rim-catch { stroke: #fff8e6; stroke-width: 0.5; opacity: 0.6; }
   .idle .rim-glow { opacity: 0.22; } .idle .rim-catch { opacity: 0.3; }
   .lit-edge { fill: #ffe7b0; opacity: 0.75; } .idle .lit-edge { opacity: 0.35; }
