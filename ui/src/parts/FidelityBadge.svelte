@@ -18,6 +18,7 @@
   let shownState = ''
   $effect(() => { if (check.state !== shownState) { shownState = check.state; noteOpen = false; infoOpen = false } })
 </script>
+<svelte:window onkeydown={(event) => { if (event.key === 'Escape' && (noteOpen || infoOpen)) { event.preventDefault(); noteOpen = false; infoOpen = false } }} />
 
 {#if check.state}
   <div class="fidelity">

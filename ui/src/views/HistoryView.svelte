@@ -58,6 +58,7 @@
   async function openArtist(play: Play) { const place = play.track_id ? await query('trackPlace', { id: play.track_id }) : null; if (place?.artist) openView({ kind: 'artist', key: String(place.artist), title: place.artistName || play.artist }); else toast('No artist page for that one') }
   const art = (play: Play) => { const source = play.artwork_url ?? ''; if (play.remote && source) return source.startsWith('http') ? source : `https://art.winsqueeze/server/${encodeURIComponent(source.replace(/^\//, ''))}`; return Number(play.cover_id) > 0 || (play.cover_id && !/^-/.test(play.cover_id)) ? artUrl(play.cover_id, 120) : '' }
 </script>
+<svelte:window onkeydown={(event) => { if (event.key === 'Escape' && confirmClear) { event.preventDefault(); confirmClear = false } }} />
 
 <PageHead title="History">
   {#if plays.length}{#if confirmClear}<span class="quiet">Clear all play history? This can’t be undone.</span><button class="ghost danger" onclick={() => { sendToShell({ type: 'historyClear' }); confirmClear = false }}>Clear</button><button class="ghost" onclick={() => confirmClear = false}>Keep</button>{:else}<button class="ghost" onclick={() => confirmClear = true}>Clear history…</button>{/if}{/if}

@@ -120,7 +120,7 @@ export function sortable(listElement: HTMLElement, initialOptions: SortableOptio
     if (drag) move(event.clientY)
   }
   function onPointerUp() { cancelPress(); if (drag) finish(true) }
-  function onKeyDown(event: KeyboardEvent) { if (event.key === 'Escape' && drag) { event.stopPropagation(); finish(false) } }
+  function onKeyDown(event: KeyboardEvent) { if (event.key === 'Escape' && drag) { event.preventDefault(); finish(false) } }
   // The click that ends a hold or a drag isn't a click on the row
   function onClick(event: MouseEvent) { if (swallowClick) { swallowClick = false; event.stopPropagation(); event.preventDefault() } }
   function onPointerDownReset() { swallowClick = false }

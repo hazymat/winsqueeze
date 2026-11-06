@@ -22,7 +22,7 @@
   import Meters from './parts/Meters.svelte'
   import { sortable } from './lib/sortable'
   import Icon from './parts/Icon.svelte'
-  import { selection } from './lib/selection.svelte'
+  import { selection, clearSelection } from './lib/selection.svelte'
   import PlaylistsView from './views/PlaylistsView.svelte'
   import DownloadsView from './views/DownloadsView.svelte'
   import { downloads } from './lib/downloads.svelte'
@@ -151,9 +151,21 @@
     sendToShell({ type: 'dragWindow' })
   }
 
+  function escapeLayer(event: KeyboardEvent) {
+    if (event.defaultPrevented) return
+    if (copyMenu) copyMenu = null
+    else if (customising) { customising = false; heldIntoCustomise = false }
+    else if (ui.trackInfo || ui.itemInfo) { ui.trackInfo = null; ui.itemInfo = null }
+    else if (ui.metersFull) ui.metersFull = false
+    else if (selection.keys.length) clearSelection()
+    else if (ui.toast) ui.toast = null
+    else if (ui.search) ui.search = ''
+    else if (nav.stack.length) back()
+  }
   function onKey(event: KeyboardEvent) {
     const typing = (event.target as HTMLElement)?.matches?.('input, textarea, select')
-    if (event.key === 'Escape' && customising) { event.preventDefault(); event.stopImmediatePropagation(); customising = false; heldIntoCustomise = false; return } // leave sidebar editing
+    // Esc closes one layer per press, innermost first. Menus, dropdowns and drags close themselves and preventDefault; this runs after them
+    if (event.key === 'Escape') { setTimeout(() => escapeLayer(event)); return }
     if (event.key === ' ' && !typing) { event.preventDefault(); command('pause', app.nowPlaying?.mode === 'play' ? '1' : '0') }
     else if (event.ctrlKey && event.key === 'ArrowRight') { event.preventDefault(); command('playlist', 'index', '+1') }
     else if (event.ctrlKey && event.key === 'ArrowLeft') { event.preventDefault(); command('playlist', 'index', '-1') }
@@ -165,10 +177,6 @@
     else if (event.ctrlKey && ((event.shiftKey && event.key.toLowerCase() === 'z') || event.key.toLowerCase() === 'y') && !typing) { event.preventDefault(); redoLast() }
     else if (event.ctrlKey && event.key.toLowerCase() === 'z' && !typing) { event.preventDefault(); if (ui.toast?.undo && ui.toast.undo !== undoLast) undoToast(); else undoLast() }
     else if (!event.ctrlKey && !event.altKey && !typing && ui.toast?.action && event.key.toUpperCase() === ui.toast.action.key) { event.preventDefault(); const action = ui.toast.action; ui.toast = null; action.run() }
-    else if (event.key === 'Escape' && (ui.trackInfo || ui.itemInfo)) { ui.trackInfo = null; ui.itemInfo = null }
-    else if (event.key === 'Escape' && ui.metersFull) ui.metersFull = false
-    else if (event.key === 'Escape' && ui.toast && !selection.keys.length) ui.toast = null
-    else if (event.key === 'Escape' && !selection.keys.length) { if (ui.search) ui.search = ''; else if (nav.stack.length) back() }
     else if (event.altKey && event.key === 'ArrowLeft' && nav.stack.length) { event.preventDefault(); back() }
     else if (event.altKey && event.key === 'ArrowRight' && forwardHistory.views.length) { event.preventDefault(); forward() }
   }
