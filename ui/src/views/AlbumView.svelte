@@ -3,7 +3,7 @@
   import { selectable } from '../lib/selectable.svelte'
   import { browseActions } from '../lib/browseActions'
   import { query, sendToShell, live, artUrl } from '../bridge'
-  import { app, openView, playlist, addToPlaylist, inPlaylist, formatTime, toast } from '../state.svelte'
+  import { app, openView, personView, playlist, addToPlaylist, inPlaylist, formatTime, toast } from '../state.svelte'
   import { downloads, downloadItems, removeDownloads } from '../lib/downloads.svelte'
   import { isDamaged } from '../lib/damaged.svelte'
   let { albumKey, highlight = '' }: { albumKey: string, highlight?: string } = $props()
@@ -26,7 +26,7 @@
     await live(['favorites', 'add', `url:${folderUrl}`, `title:${album.title}`])
     toast(`Added ${album.title} to favourites`)
   }
-  const goTo = (kind: string, name: string) => { if (name) openView({ kind, key: name.split(',')[0].trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''), title: name.split(',')[0].trim() }) }
+  const goTo = (kind: string, name: string) => { if (name) personView(kind, name).then(openView) }
 </script>
 
 {#if album}

@@ -14,6 +14,13 @@ public static class TextNormaliser
         return plainBuilder.ToString().Normalize(NormalizationForm.FormC).ToLowerInvariant().Trim();
     }
 
+    // A person's name in the chosen order: "surname" turns "Nikolai Kapustin" into "Kapustin, Nikolai" (last word is the surname; one-word names stay as they are)
+    public static string PersonDisplay(string name, string nameOrder)
+    {
+        var words = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return nameOrder != "surname" || words.Length < 2 ? name.Trim() : words[^1] + ", " + string.Join(" ", words[..^1]);
+    }
+
     // Splits "Keith Jarrett, Gary Peacock & Jack DeJohnette" on the configured separators; word separators need spaces around them.
     // A comma part shaped "Surname, Forename(s)" (one word before the comma: "Kapustin, Nikolai", "Tchaikovsky, P.I.", "Bach, Johann Sebastian") is one person, turned round to "Nikolai Kapustin" so it matches tags written that way
     static readonly Regex invertedName = new(@"^(?<surname>[^\s,]+)\s*,\s*(?<forenames>[^\s,]+(?:\s+[^\s,]+){0,2})$");

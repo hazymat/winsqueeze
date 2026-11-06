@@ -1,7 +1,7 @@
 <script lang="ts">
   import { trackArt, query, sendToShell } from '../bridge'
   import { isDamaged } from '../lib/damaged.svelte'
-  import { app, currentTrack, openView, ui, toast } from '../state.svelte'
+  import { app, currentTrack, openView, personView, ui, toast } from '../state.svelte'
   import Meters from './Meters.svelte'
   import Hint from './Hint.svelte'
   import Readout from './Readout.svelte'
@@ -9,7 +9,7 @@
   // The one Now playing view: blurred-art backdrop, big art, track details, and the queue in its own scrolling glass panel
   const track = $derived(currentTrack())
   const cover = $derived(trackArt(track, 600))
-  const goTo = (kind: string, name: string) => openView({ kind, key: name.split(',')[0].trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''), title: name.split(',')[0].trim() })
+  const goTo = (kind: string, name: string) => personView(kind, name).then(openView)
   // The album opens with this track marked (folder or tag album, whichever the library uses)
   async function openAlbum() { const trackId = Number(track?.id); const place = trackId > 0 ? await query('trackPlace', { id: trackId }) : null; if (place?.album) openView({ kind: 'album', key: String(place.album), title: place.albumTitle, highlight: String(trackId) }); else toast('That album isn’t in the library') }
 </script>
