@@ -75,12 +75,13 @@ public sealed class LibraryService
         var profile = App.Settings.ActiveProfile;
         if (profile is not { Host.Length: > 0 } || coverId == "") return null;
         var cachePath = Path.Combine(LibraryDatabase.ArtFolder(profile), $"{coverId}_{size}");
-        if (File.Exists(cachePath)) { var cachedBytes = await File.ReadAllBytesAsync(cachePath); return cachedBytes.Length == 0 || cachedBytes.AsSpan().SequenceEqual(await PlaceholderAsync(profile, size)) ? null : cachedBytes; } // older caches may hold the placeholder
+        var placeholder = await PlaceholderAsync(profile, size);
+        if (File.Exists(cachePath)) { var cachedBytes = await File.ReadAllBytesAsync(cachePath); return cachedBytes.Length == 0 || cachedBytes.AsSpan().SequenceEqual(placeholder) ? null : cachedBytes; } // older caches may hold the placeholder
         using var response = await artClient.GetAsync($"http://{profile.Host}:{profile.Port}/music/{coverId}/cover_{size}x{size}_o");
         if (!response.IsSuccessStatusCode) return null;
         var artBytes = await response.Content.ReadAsByteArrayAsync();
         // No real art: Lyrion sends its own framed placeholder; report "none" (cached as an empty file) so the UI shows its own rounded one
-        if (artBytes.AsSpan().SequenceEqual(await PlaceholderAsync(profile, size))) artBytes = Array.Empty<byte>();
+        if (artBytes.AsSpan().SequenceEqual(placeholder)) artBytes = Array.Empty<byte>();
         await File.WriteAllBytesAsync(cachePath, artBytes);
         return artBytes.Length == 0 ? null : artBytes;
     }
