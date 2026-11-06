@@ -25,6 +25,24 @@ public sealed class PlayerSession
     public void Start() { pollTimer.Tick += async (sender, args) => await PollAsync(); pollTimer.Start(); }
     public void SetVisible(bool windowVisible) => pollTimer.Interval = TimeSpan.FromSeconds(windowVisible ? 1 : 5);
 
+    // Sync groups (multi-room) and each grouped player's own volume, for the picker; the offline server has neither
+    public string LastSyncGroupsJson { get; private set; } = "[]";
+    public string LastGroupVolumesJson { get; private set; } = "{}";
+    async Task LoadSyncGroupsAsync()
+    {
+        if (App.IsOffline) { LastSyncGroupsJson = "[]"; LastGroupVolumesJson = "{}"; return; }
+        try
+        {
+            var syncGroups = await App.ServerRequestAsync("", "syncgroups", "?");
+            var groups = new List<List<string>>(); var volumes = new Dictionary<string, int>();
+            if (syncGroups.ValueKind == JsonValueKind.Object && syncGroups.TryGetProperty("syncgroups_loop", out var groupsLoop))
+                foreach (var group in groupsLoop.EnumerateArray()) groups.Add(Server.LyrionClient.ReadString(group, "sync_members").Split(',', StringSplitOptions.RemoveEmptyEntries).ToList());
+            foreach (var memberId in groups.SelectMany(members => members)) volumes[memberId] = Math.Abs(Server.LyrionClient.ReadInt(await App.ServerRequestAsync(memberId, "mixer", "volume", "?"), "_volume"));
+            LastSyncGroupsJson = JsonSerializer.Serialize(groups); LastGroupVolumesJson = JsonSerializer.Serialize(volumes);
+        }
+        catch { }
+    }
+
     public async Task RefreshPlayersAsync() { pollTick = 0; await Task.Delay(300); await PollAsync(); } // power changes show at once, not on the next 10-poll round
 
     public async Task PollAsync()
@@ -42,6 +60,7 @@ public sealed class PlayerSession
             {
                 var players = await App.ServerRequestAsync("", "players", 0, 50);
                 LastPlayersJson = players.ValueKind == JsonValueKind.Object && players.TryGetProperty("players_loop", out var playersLoop) ? playersLoop.GetRawText() : "[]";
+                await LoadSyncGroupsAsync();
                 PlayersUpdated?.Invoke();
             }
         }

@@ -140,6 +140,7 @@ Settings › Browsing chooses which groupings the Group menu offers and each are
 **Players:** a player switcher in the transport bar. Defaults to this PC's bundled Squeezelite; any other player on the server (other Squeezeboxes in the house) can be picked and controlled the same way.
 
 - **Power:** each connected player in the switcher has an on/off button (Lyrion's `power`); a player in standby reads "off".
+- **Multi-room (sync groups):** each other player in the switcher has a link button that joins it to the selected player's group (Lyrion's `sync`) or takes it out. Grouped players sit indented under the selected one, each with its own thin volume slider; the main volume stays the selected player's. The switcher button reads "Living room + 2" while grouped; a player in another group shows "with …". Nothing else in the main window changes. Hidden offline.
 - **Sleep timer:** in the switcher menu (15, 30, 45, 60, 90 min, End of track, Off) and the tray menu, for the selected player (Lyrion's `sleep`). While it runs, a small moon shows on the switcher button. Power and sleep are hidden offline.
 
 ## Playlist builder
