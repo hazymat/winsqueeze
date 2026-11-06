@@ -83,3 +83,6 @@ body.is-dragging { cursor: grabbing; }
 .select-wrap { display: contents; }
 /* Windows "Animation effects" off: no lifts, slides or wobbles, only instant changes (SPEC.md › Look and feel) */
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 1ms; animation-iteration-count: 1; transition-duration: 1ms; scroll-behavior: auto; } }
+
+/* Damaged file (SPEC.md › Damaged files): a small warning after the track title in lists */
+.damaged-mark { color: var(--warn); margin-left: 6px; font-size: 0.85em; }

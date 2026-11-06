@@ -4,6 +4,7 @@
   import { query, sendToShell, artUrl } from '../bridge'
   import { app, ui, openView, playlist, addToPlaylist, inPlaylist, formatTime } from '../state.svelte'
   import AlbumList from '../parts/AlbumList.svelte'
+  import { isDamaged } from '../lib/damaged.svelte'
   let results = $state<any>({})
   let timer = 0
   // Debounced ~150 ms, served entirely from the local index
@@ -29,7 +30,7 @@
       </button>
       {#each group.tracks as track (track.id)}
         <div class="track" data-select-key={String(track.id)}>
-          <button class="title" onclick={() => sendToShell({ type: 'playTracks', ids: [track.id], mode: 'load' })}>{track.title}{#if track.composer}<span class="quiet"> · {track.composer}</span>{/if}</button>
+          <button class="title" onclick={() => sendToShell({ type: 'playTracks', ids: [track.id], mode: 'load' })}>{track.title}{#if isDamaged(track.id)}<span class="damaged-mark" title="Damaged file: playback may skip">⚠</span>{/if}{#if track.composer}<span class="quiet"> · {track.composer}</span>{/if}</button>
           <span class="quiet">{formatTime(track.duration)}</span>
           {#if playlist.open}<button class="add" onclick={() => addToPlaylist([{ id: track.id, title: track.title, artist: track.artist ?? '', duration: track.duration }], track.title)}>{inPlaylist(track.id) ? '✓' : '＋'}</button>{/if}
         </div>

@@ -20,6 +20,7 @@ public sealed partial class SqueezeliteHost : IDisposable
     public bool ExclusiveActive { get; private set; }
     public int OutputSampleRate { get; private set; }
     public event Action? StatusChanged;
+    public event Action<string>? DecodeLine; // lines DamagedFiles cares about, on Squeezelite's reader thread
 
     [GeneratedRegex(@"opened device \d+ - (.+) at (\d+) latency")] private static partial Regex OpenedDeviceRegex();
 
@@ -86,6 +87,7 @@ public sealed partial class SqueezeliteHost : IDisposable
         var thisSecond = Environment.TickCount64 / 1000;
         if (thisSecond != logSecond) { if (droppedLines > 0) try { logWriter?.WriteLine($"(… {droppedLines} repeated lines skipped)"); } catch (ObjectDisposedException) { } logSecond = thisSecond; linesThisSecond = 0; droppedLines = 0; }
         if (++linesThisSecond <= 50) try { logWriter?.WriteLine(logLine); } catch (ObjectDisposedException) { } else droppedLines++;
+        if (DamagedFiles.Matters(logLine)) DecodeLine?.Invoke(logLine);
         var openedMatch = OpenedDeviceRegex().Match(logLine);
         if (logLine.Contains("opening WASAPI device in exclusive mode")) ExclusiveActive = true;
         else if (openedMatch.Success) { OutputSampleRate = int.Parse(openedMatch.Groups[2].Value); if (State == PlayerState.Failed) SetStatus(PlayerState.Running, $"Playing to {openedMatch.Groups[1].Value}"); else StatusChanged?.Invoke(); }
