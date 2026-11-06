@@ -8,6 +8,7 @@
   </Window.Resources>
   <TabControl x:Name="settingsTabs" Margin="8">
     <TabItem Header="General" x:Name="generalTab">
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel Margin="16">
         <CheckBox x:Name="startWithWindowsBox" Content="Start with Windows" />
         <CheckBox x:Name="startMinimisedBox" Content="Start minimised to tray" />
@@ -26,6 +27,7 @@
         </StackPanel>
         <TextBlock x:Name="settingsFileText" Style="{StaticResource Quiet}" Text="Exports everything except passwords, as a JSON file you can keep or copy to another PC." />
       </StackPanel>
+      </ScrollViewer>
     </TabItem>
     <TabItem Header="Servers" x:Name="serversTab">
       <Grid Margin="16">
@@ -67,6 +69,7 @@
       </Grid>
     </TabItem>
     <TabItem Header="Audio" x:Name="audioTab">
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel Margin="16">
         <TextBlock Text="Output device" FontWeight="SemiBold" />
         <DockPanel Margin="0,4,0,0">
@@ -93,8 +96,10 @@
         </Expander>
         <TextBlock Style="{StaticResource Quiet}" Text="Volume mode and fidelity warnings arrive in Phase 4." Margin="0,12,0,0" />
       </StackPanel>
+      </ScrollViewer>
     </TabItem>
     <TabItem Header="Library &amp; cache" x:Name="libraryTab">
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel Margin="16">
         <TextBlock Text="Albums are built from" FontWeight="SemiBold" />
         <RadioButton x:Name="folderAlbumsRadio" GroupName="albumSource" Content="Folders: one folder is one album or CD (CD1/CD2 subfolders join their parent)" Margin="0,6,0,0" />
@@ -116,8 +121,10 @@
         </StackPanel>
         <TextBlock x:Name="libraryStatusText" Style="{StaticResource Quiet}" />
       </StackPanel>
+      </ScrollViewer>
     </TabItem>
     <TabItem Header="Browsing" x:Name="browsingTab">
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel Margin="16">
         <TextBlock Text="Group by options offered at the top of each view" FontWeight="SemiBold" />
         <WrapPanel x:Name="groupingChoicesPanel" Margin="0,6,0,0" />
@@ -127,8 +134,10 @@
         </Grid>
         <TextBlock Style="{StaticResource Quiet}" Margin="0,12,0,0" TextWrapping="Wrap" Text="Sort and View (Large, Compact or List) are remembered per area from the toolbar in the main window." />
       </StackPanel>
+      </ScrollViewer>
     </TabItem>
     <TabItem Header="Appearance" x:Name="appearanceTab">
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel Margin="16">
         <TextBlock Style="{StaticResource Label}" Text="Skin (changes the main window as you pick)" />
         <ComboBox x:Name="skinBox" Width="260" HorizontalAlignment="Left" Margin="0,0,0,14" />
@@ -165,6 +174,7 @@
         <CheckBox x:Name="framelessBox" Content="Frameless window (default): no title bar or standard border. Drag from the top strip, resize from the edges. Untick for the standard Windows title bar." Margin="0,8,0,0" />
         <TextBlock Style="{StaticResource Quiet}" Margin="0,12,0,0" TextWrapping="Wrap" Text="Meter style: click the meters in Now playing to cycle VU, OLED VU and bars." />
       </StackPanel>
+      </ScrollViewer>
     </TabItem>
     <TabItem Header="Meters" x:Name="metersTab">
       <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -176,6 +186,7 @@
       </ScrollViewer>
     </TabItem>
     <TabItem Header="Shortcuts" x:Name="shortcutsTab">
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel Margin="16">
         <TextBlock Text="In the window" FontWeight="SemiBold" />
         <TextBlock Style="{StaticResource Quiet}" TextWrapping="Wrap" Margin="0,4,0,0" Text="Space play/pause · Ctrl+Left/Right previous/next · Ctrl+Up/Down volume · Ctrl+F search · Ctrl+N new playlist · Ctrl+Z undo · Ctrl+1/2/3 window mode · Ctrl+, settings · Ctrl+Q quit · Esc back or clear selection" />
@@ -184,14 +195,18 @@
         <CheckBox x:Name="globalHotkeysBox" Content="Global hotkeys: Ctrl+Alt+Space play/pause, Ctrl+Alt+Left/Right previous/next, Ctrl+Alt+Up/Down volume, from any app" Margin="0,16,0,0" />
         <TextBlock x:Name="hotkeyStatusText" Style="{StaticResource Quiet}" TextWrapping="Wrap" />
       </StackPanel>
+      </ScrollViewer>
     </TabItem>
     <TabItem Header="Notifications" x:Name="notificationsTab">
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel Margin="16">
         <CheckBox x:Name="trackToastsBox" Content="Show a notification when a new track starts" />
         <TextBlock Style="{StaticResource Quiet}" TextWrapping="Wrap" Margin="0,10,0,0" Text="Output device missing and update-ready alerts are always shown." />
       </StackPanel>
+      </ScrollViewer>
     </TabItem>
     <TabItem Header="Recording" x:Name="recordingTab">
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel Margin="16">
         <CheckBox x:Name="recordButtonBox" Content="Show a record button while a radio station or other live stream plays" Margin="0" />
         <CheckBox x:Name="recordSplitBox" Content="Start a new file whenever the station announces a new song" />
@@ -205,6 +220,7 @@
         </DockPanel>
         <TextBlock Style="{StaticResource Quiet}" Margin="0,10,0,0" Text="Recordings are FLAC files of exactly what this PC's player plays, taken before the equaliser and volume, tagged with the station, song and date. They're for your own listening: broadcasts are copyright, so don't share them." />
       </StackPanel>
+      </ScrollViewer>
     </TabItem>
     <TabItem Header="About" x:Name="aboutTab">
       <ScrollViewer VerticalScrollBarVisibility="Auto">

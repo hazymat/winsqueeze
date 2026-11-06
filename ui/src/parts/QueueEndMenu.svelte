@@ -37,12 +37,12 @@
 
 <style>
   .queue-end { position: relative; }
-  .current { display: flex; align-items: center; gap: 7px; height: 28px; padding: 0 10px 0 11px; background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 999px; font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap; }
+  .current { display: flex; flex-wrap: wrap; align-content: center; align-items: baseline; gap: 7px; height: 28px; padding: 0 10px 0 11px; background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 999px; font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap; }
   .current:hover, .current.open { background: var(--hover); }
   .current.active .value { color: var(--accent); }
-  .label { color: var(--fg-quiet); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+  .label, .value { line-height: 1; } .label { color: var(--fg-quiet); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
   .value { font-weight: 600; }
-  .chevron { color: var(--fg-quiet); transition: transform 150ms; } .open .chevron { transform: rotate(180deg); }
+  .chevron { align-self: center; color: var(--fg-quiet); transition: transform 150ms; } .open .chevron { transform: rotate(180deg); }
   .queue-end-menu { position: fixed; width: 250px; overflow-y: auto; z-index: 100; padding: 6px; background: var(--panel-solid); backdrop-filter: blur(24px) saturate(1.5); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 16px 40px var(--shadow); }
   .queue-end-menu .menu-title { padding: 8px 10px 6px; color: var(--fg-quiet); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
   .queue-end-menu button { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; background: none; border: 0; color: var(--fg); font: inherit; font-size: 13px; text-align: left; padding: 7px 10px; border-radius: 8px; cursor: pointer; }
