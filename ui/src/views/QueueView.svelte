@@ -3,7 +3,7 @@
   import QueueEndMenu from '../parts/QueueEndMenu.svelte'
   import { playlistUrls, refillPlaylist } from '../lib/browseActions'
   import { command, live, artUrl, request } from '../bridge'
-  import { app, formatTime, toast, newPlaylist } from '../state.svelte'
+  import { app, ui, formatTime, toast, newPlaylist } from '../state.svelte'
   import { sortable, planMoves, blockOrder } from '../lib/sortable'
   import { isSelected, rowClick, selectOnHold, selection, type SelectionAction } from '../lib/selection.svelte'
   // The player's queue: hold to reorder (several at once when chosen), choose rows to remove or play next
@@ -53,6 +53,7 @@
     { label: 'Play now', single: true, key: 'Enter', run: positionKeys => command('playlist', 'index', Number(positionKeys[0])) },
     { label: 'Play next', run: playNext },
     { label: 'New playlist from these', run: positionKeys => newPlaylist('Untitled playlist', positionKeys.map(Number).sort((first, second) => first - second).map(position => queue[position]).map(item => ({ id: Number(item.id), title: item.title, artist: item.artist ?? '', duration: Number(item.duration || 0) }))) },
+    { label: 'Track info', run: positionKeys => { ui.trackInfo = positionKeys.map(Number).sort((first, second) => first - second).map(position => Number(queue[position]?.id)).filter(id => id > 0) } },
     { label: 'Remove', key: 'Delete', danger: true, run: remove }
   ]
   // Saving over an existing playlist keeps its old tracks, so Undo can put them back

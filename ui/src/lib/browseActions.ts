@@ -1,7 +1,7 @@
 // The action strip's actions for anything you can browse: resolved to tracks by the shell's index, then played,
 // queued or added to a playlist, each with Undo
 import { query, request, live, sendToShell } from '../bridge'
-import { app, toast, playlist, newPlaylist, addToPlaylist, type PlaylistItem } from '../state.svelte'
+import { app, ui, toast, playlist, newPlaylist, addToPlaylist, type PlaylistItem } from '../state.svelte'
 import type { SelectionAction, MenuChoice } from './selection.svelte'
 
 export const resolveTracks = async (kind: string, keys: string[]): Promise<PlaylistItem[]> => {
@@ -61,6 +61,7 @@ export function browseActions(kind: string): SelectionAction[] {
     { label: 'Play now', key: 'Enter', run: async keys => queueTracks(await resolveTracks(kind, keys), 'load') },
     { label: 'Play next', run: async keys => queueTracks(await resolveTracks(kind, keys), 'insert') },
     { label: 'Add to end', run: async keys => queueTracks(await resolveTracks(kind, keys), 'add') },
-    { label: 'Add to playlist…', menu: async keys => playlistMenu(() => resolveTracks(kind, keys)) }
+    { label: 'Add to playlist…', menu: async keys => playlistMenu(() => resolveTracks(kind, keys)) },
+    { label: 'Track info', run: async keys => { ui.trackInfo = (await resolveTracks(kind, keys)).map(item => item.id) } }
   ]
 }

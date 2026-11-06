@@ -46,6 +46,7 @@
   }
   const actions: SelectionAction[] = [
     { label: 'Play from here', single: true, key: 'Enter', run: indexKeys => play(playlistId, title, Number(indexKeys[0])) },
+    { label: 'Track info', run: indexKeys => { ui.trackInfo = indexKeys.map(Number).sort((first, second) => first - second).map(index => Number(items[index]?.id)).filter(id => id > 0) } },
     { label: 'Remove from playlist', key: 'Delete', danger: true, run: remove }
   ]
   const listActions = browseActions('playlist').concat([{ label: 'Delete', key: 'Delete', danger: true, run: keys => deletePlaylists(keys, load) }])

@@ -5,6 +5,7 @@
   import { app, nav, ui, playlist, openSection, back, forward, forwardHistory, currentView, newPlaylist, undoToast, toast, noteTrackChange, receiveLevels, writeSetting, readSetting, currentTrack } from './state.svelte'
   import TransportBar from './parts/TransportBar.svelte'
   import WhatsNew from './parts/WhatsNew.svelte'
+  import TrackInfo from './parts/TrackInfo.svelte'
   import ResizeEdges from './parts/ResizeEdges.svelte'
   import NowPlaying from './parts/NowPlaying.svelte'
   import PlaylistPanel from './parts/PlaylistPanel.svelte'
@@ -144,6 +145,7 @@
     else if (event.ctrlKey && event.key.toLowerCase() === 'n') { event.preventDefault(); if (!playlist.open) newPlaylist(); else playlist.collapsed = false }
     else if (event.ctrlKey && event.key.toLowerCase() === 'c' && !typing && getSelection()?.toString()) { event.preventDefault(); copySelection() }
     else if (event.ctrlKey && event.key.toLowerCase() === 'z' && !typing && ui.toast?.undo) { event.preventDefault(); undoToast() }
+    else if (event.key === 'Escape' && ui.trackInfo) ui.trackInfo = null
     else if (event.key === 'Escape' && ui.metersFull) ui.metersFull = false
     else if (event.key === 'Escape' && ui.toast && !selection.keys.length) ui.toast = null
     else if (event.key === 'Escape' && !selection.keys.length) { if (ui.search) ui.search = ''; else if (nav.stack.length) back() }
@@ -154,6 +156,7 @@
 
 <svelte:window bind:innerWidth={width} bind:innerHeight={height} onkeydown={onKey} onmouseup={(event) => { if (event.button === 3 && nav.stack.length) back(); if (event.button === 4) forward() }} oncontextmenu={onContextMenu} onpointerdown={(event) => { if (copyMenu && !(event.target as HTMLElement).closest('.copy-menu')) copyMenu = null }} />
 <WhatsNew {mini} offset={!!app.status?.updateReady} />
+{#if ui.trackInfo && !mini}<TrackInfo ids={ui.trackInfo} />{/if}
 {#if ui.metersFull && !mini}<div class="meters-full" role="dialog" aria-label="Meters"><Meters size="full" /><button class="meters-full-close" onclick={() => ui.metersFull = false} title="Close (Esc or right-click)">✕</button></div>{/if}
 {#if app.window.frameless && !app.window.maximised}<ResizeEdges />{/if}
 {#if copyMenu}<div class="copy-menu" style:left="{copyMenu.left}px" style:top="{copyMenu.top}px"><button onclick={copySelection}>Copy</button></div>{/if}
