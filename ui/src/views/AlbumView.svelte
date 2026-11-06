@@ -5,6 +5,7 @@
   import { query, sendToShell, live, artUrl } from '../bridge'
   import { app, openView, playlist, addToPlaylist, inPlaylist, formatTime, toast } from '../state.svelte'
   import { downloads, downloadItems, removeDownloads } from '../lib/downloads.svelte'
+  import { isDamaged } from '../lib/damaged.svelte'
   let { albumKey, highlight = '' }: { albumKey: string, highlight?: string } = $props()
   // Opened from History: scroll to that track and mark it for a moment
   $effect(() => { if (!highlight) return; const timer = setInterval(() => { const row = document.querySelector(`.track[data-select-key="${highlight}"]`); if (!row) return; clearInterval(timer); row.scrollIntoView({ block: 'center' }); row.classList.add('found') }, 100); setTimeout(() => clearInterval(timer), 5000); return () => clearInterval(timer) })
@@ -55,7 +56,7 @@
         <div class="track" role="button" tabindex="0" ondblclick={() => playAlbum('load', trackIndex(track))} onkeydown={(event) => event.key === 'Enter' && playAlbum('load', trackIndex(track))} data-select-key={String(track.id)}>
           <button class="number" onclick={() => playAlbum('load', trackIndex(track))} aria-label="Play from here"><span class="digit">{track.number || ''}</span><span class="arrow">▶</span></button>
           <div class="text">
-            <div class="title">{track.title}{#if playlist.open && inPlaylist(track.id)}<span class="added"> ✓</span>{/if}</div>
+            <div class="title">{track.title}{#if isDamaged(track.id)}<span class="damaged-mark" title="Damaged file: playback may skip">⚠</span>{/if}{#if playlist.open && inPlaylist(track.id)}<span class="added"> ✓</span>{/if}</div>
             {#if (album.key.startsWith('f:') && multiComposer && track.composer) || (track.artist && track.artist !== album.artist)}<div class="quiet-line">{[multiComposer ? track.composer : '', track.artist !== album.artist ? track.artist : ''].filter(Boolean).join(' · ')}</div>{/if}
           </div>
           <span class="duration">{formatTime(track.duration)}</span>

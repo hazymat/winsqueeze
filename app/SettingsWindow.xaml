@@ -177,6 +177,13 @@
           <Button x:Name="clearArtButton" Content="Clear art cache" />
         </StackPanel>
         <TextBlock x:Name="libraryStatusText" Style="{StaticResource Quiet}" />
+        <TextBlock Text="Damaged files" FontWeight="SemiBold" Margin="0,20,0,0" />
+        <TextBlock Style="{StaticResource Quiet}" TextWrapping="Wrap" Text="Tracks that failed to decode while playing, so they skip or go quiet. Restore them from a backup or re-rip them, then clear the list." />
+        <TextBox x:Name="damagedFilesBox" IsReadOnly="True" Height="140" Margin="0,6,0,0" TextWrapping="NoWrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" FontFamily="Consolas" />
+        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+          <Button x:Name="copyDamagedButton" Content="Copy list" />
+          <Button x:Name="clearDamagedButton" Content="Clear list" />
+        </StackPanel>
       </StackPanel>
       </ScrollViewer>
     </TabItem>

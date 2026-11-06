@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { trackArt, query } from '../bridge'
+  import { trackArt, query, sendToShell } from '../bridge'
+  import { isDamaged } from '../lib/damaged.svelte'
   import { app, currentTrack, openView, ui, toast } from '../state.svelte'
   import Meters from './Meters.svelte'
   import Hint from './Hint.svelte'
@@ -19,6 +20,7 @@
     <div class="art-column">{#if cover}<div class="art" class:stream={Number(app.nowPlaying?.remote) === 1}><img src={cover} alt="" /></div>{:else}<div class="art empty">♪</div>{/if}</div>
     <div class="meta">
       <h1>{track?.title ?? 'Nothing playing'}</h1>
+      {#if track && isDamaged(track.id)}<div class="damaged">⚠ This file is damaged, so playback may skip. <button class="link" onclick={() => sendToShell({ type: 'openSettings', tab: 'Library' })}>See damaged files</button></div>{/if}
       {#if track?.artist}<button class="link artist" onclick={() => goTo('artist', track.artist)}>{track.artist}</button>{/if}
       {#if track?.album}<div class="album"><button class="link album-link" onclick={openAlbum} title="Open the album">{track.album}</button>{track.year && track.year !== '0' ? ` · ${track.year}` : ''}</div>{/if}
       {#if track?.composer}<div class="quiet">Composer <button class="link" onclick={() => goTo('composer', track.composer)}>{track.composer}</button></div>{/if}
@@ -37,6 +39,8 @@
   .backdrop { position: absolute; inset: -80px; background-size: cover; background-position: center; filter: blur(70px) saturate(1.7) brightness(0.6); opacity: 0.75; pointer-events: none; }
   .layout { position: relative; height: 100%; box-sizing: border-box; display: grid; grid-template-columns: minmax(200px, 1fr) minmax(220px, 0.9fr) minmax(300px, 1.1fr); gap: 28px; padding: 28px 28px 20px; align-items: center; }
   .art-column { display: flex; justify-content: center; }
+  .damaged { color: var(--warn); font-size: 13px; margin: 2px 0 6px; }
+  .damaged .link { color: inherit; text-decoration: underline; }
   .art { width: 100%; max-width: min(440px, 80cqh); aspect-ratio: 1; border-radius: 12px; overflow: hidden; box-shadow: 0 24px 70px var(--shadow); }
   .art img { display: block; width: 100%; height: 100%; object-fit: cover; }
   .art.stream img { transform: scale(1.04); } /* station logos and the stream placeholder carry their own square frame: crop it so only our rounded corner shows */

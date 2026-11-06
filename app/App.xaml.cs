@@ -23,6 +23,8 @@ public partial class App : Application
     public Recorder Recorder { get; } = new();
     public Offline.DownloadManager Downloads { get; } = new();
     public PlayHistory History { get; } = new();
+    public DamagedFiles Damaged { get; } = new();
+    public event Action<DamagedFiles.DamagedFile, string>? DamagedFound;
     public event Action? HistoryChanged;
     public Offline.OfflineServer? Offline { get; private set; } // set while playing downloads without the server
     public bool IsOffline => Offline != null;
@@ -130,6 +132,9 @@ public partial class App : Application
         mainWindow = new MainWindow();
         trayIcon = new TrayIcon();
         Player.StatusChanged += () => Dispatcher.BeginInvoke(OnPlayerStatusChanged);
+        Damaged.Load(); Damaged.PlayerRequest = command => ServerRequestAsync(Settings.PlayerMac, command);
+        Player.DecodeLine += decodeLine => Dispatcher.BeginInvoke(() => Damaged.OnLogLine(decodeLine));
+        Damaged.Found += OnDamagedFound;
         HwndSource.FromHwnd(new WindowInteropHelper(mainWindow).EnsureHandle()).AddHook(WindowMessageHook);
         deviceChangeTimer.Tick += async (sender, args) => { deviceChangeTimer.Stop(); await OnDevicesChangedAsync(); };
         // A restart for an update brings the window back exactly as it was (--window=normal|maximised|minimised|hidden,left,top,width,height); otherwise the start-minimised setting applies
@@ -293,6 +298,7 @@ public partial class App : Application
         (string mode, double seconds) resumeState = ("", 0);
         if (resumePosition && Player.State == PlayerState.Running) resumeState = await ReadPlaybackStateAsync();
         Recorder.Flush(); // finish the file cleanly; it carries on in a new one once Squeezelite is back
+        Damaged.Reset();
         Player.Start(Offline is { } offlineServer ? $"127.0.0.1:{offlineServer.SlimPort}" : profile.Host, outputDevice, Settings.Audio, Settings.PlayerMac);
         if (SqueezeliteHost.SupportsRecording) Recorder.Start(Settings.PlayerMac);
         Visualiser.Tuning = Settings.Meters;
@@ -413,6 +419,15 @@ public partial class App : Application
     }
 
     void OnPlayerStatusChanged() { trayIcon.Refresh(); StatusChanged?.Invoke(); }
+
+    // The window shows its own message; hidden in the tray, a tip says it instead
+    void OnDamagedFound(DamagedFiles.DamagedFile damagedFile, string what)
+    {
+        DamagedFound?.Invoke(damagedFile, what);
+        if (mainWindow.IsVisible && mainWindow.WindowState != WindowState.Minimized) return;
+        var heading = what switch { "skipped" => "Skipped a damaged file", "unplayable" => "Can't play a damaged file", _ => "This file is damaged" };
+        trayIcon.ShowTip(heading, $"{damagedFile.Title} · {damagedFile.Artist}. Settings › Library & cache lists damaged files.");
+    }
 
     public string StatusJson() => JsonSerializer.Serialize(new
     {

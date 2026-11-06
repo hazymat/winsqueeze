@@ -4,6 +4,7 @@
   import { playlistUrls, refillPlaylist } from '../lib/browseActions'
   import { command, live, trackArt, request } from '../bridge'
   import { app, ui, formatTime, toast, newPlaylist } from '../state.svelte'
+  import { isDamaged } from '../lib/damaged.svelte'
   import { sortable, planMoves, blockOrder } from '../lib/sortable'
   import { isSelected, rowClick, selectOnHold, selection, type SelectionAction } from '../lib/selection.svelte'
   // The player's queue: hold to reorder (several at once when chosen), choose rows to remove or play next
@@ -92,7 +93,7 @@
     <button data-sort-row class="item" class:current={position === currentIndex} class:selected={isSelected(scope, String(position))}
       onclick={(event) => { if (!rowClick(event, scope, String(position), keys, actions, 'track')) command('playlist', 'index', position) }}>
       {#if trackArt(item)}<img src={trackArt(item, 80)} alt="" loading="lazy" draggable="false" />{:else}<span class="glyph">♪</span>{/if}
-      <span class="text"><span class="title">{item.title}</span><span class="quiet">{item.artist}{item.album ? ` · ${item.album}` : ''}</span></span>
+      <span class="text"><span class="title">{item.title}{#if isDamaged(item.id)}<span class="damaged-mark" title="Damaged file: playback may skip">⚠</span>{/if}</span><span class="quiet">{item.artist}{item.album ? ` · ${item.album}` : ''}</span></span>
       {#if position === currentIndex}<span class="playing" aria-label="Playing">▶</span>{/if}
       <span class="quiet time">{formatTime(Number(item.duration))}</span>
     </button>
