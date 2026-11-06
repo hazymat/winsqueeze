@@ -74,14 +74,14 @@
       <button class="volume-icon" onclick={() => volumeOpen = !volumeOpen} aria-label="Volume"><Icon name="volume" /></button>
       {#if volumeOpen}<div class="volume-pop"><input type="range" min="0" max="100" value={volume} oninput={dragVolume} onchange={releaseVolume} aria-label="Volume" /></div>{/if}
     </div>
-    {#if mini}<div class="mini-meters"><Meters size="small" /></div><button class="mini-speaker" class:on={miniVolume} onclick={() => miniVolume ? miniVolume = false : showMiniVolume()} title="Volume (or scroll)"><Icon name="volume" size={16} /></button><button class="pin" class:on={ui.pinned} onclick={() => { ui.pinned = !ui.pinned; sendToShell({ type: 'setTopmost', on: ui.pinned }) }} title="Always on top"><Icon name="pin" size={16} /></button>{/if}
+    {#if mini}<div class="mini-meters"><Meters size="large" /></div><button class="mini-speaker" class:on={miniVolume} onclick={() => miniVolume ? miniVolume = false : showMiniVolume()} title="Volume (or scroll)"><Icon name="volume" size={16} /></button><button class="pin" class:on={ui.pinned} onclick={() => { ui.pinned = !ui.pinned; sendToShell({ type: 'setTopmost', on: ui.pinned }) }} title="Always on top"><Icon name="pin" size={16} /></button>{/if}
   </div>
 </footer>
 </div>
 
 <style>
   /* The host is the size container: a container query can't restyle the container itself */
-  .transport-host { container-type: inline-size; } .mini-host { height: 100%; }
+  .transport-host { container-type: inline-size; } .mini-host { height: 100%; container-type: size; }
   .transport { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 1.3fr) minmax(max-content, 1fr); /* equal sides keep the buttons centred; the right never shrinks below its content */ align-items: center; gap: 16px; padding: 10px 16px; background: var(--glass); backdrop-filter: blur(var(--blur)) saturate(1.4); border-top: 1px solid var(--line); }
   .left { display: flex; align-items: center; gap: 8px; min-width: 0; }
   /* Record: a quiet red ring beside a playing station; solid and pulsing while it records */
@@ -109,7 +109,11 @@
   .seek { flex: 1; height: 5px; background: var(--track); border-radius: 3px; cursor: pointer; position: relative; }
   .seek:hover { height: 7px; }
   .fill { height: 100%; background: var(--accent); border-radius: 3px; }
-  .pixel-meter { display: flex; width: 68px; height: 40px; padding: 0; background: none; border: 0; cursor: pointer; border-radius: 5px; } /* the analyser opens the EQ */
+  /* glowing segments over a soft pool of their own light, behind a faint glass edge */
+  .pixel-meter { position: relative; display: flex; width: 76px; height: 46px; padding: 4px 4px 7px; background: none; border: 0; cursor: pointer; border-radius: 6px; } /* the analyser opens the EQ */
+  .pixel-meter :global(.bar) { filter: drop-shadow(0 0 4px rgba(92, 230, 200, 0.7)); }
+  .pixel-meter::before { content: ""; position: absolute; left: 6px; right: 6px; bottom: 0; height: 7px; border-radius: 50%; background: radial-gradient(closest-side, rgba(92, 230, 200, 0.25), transparent); filter: blur(2px); pointer-events: none; }
+  .pixel-meter::after { content: ""; position: absolute; inset: 0; border-radius: 6px; pointer-events: none; border: 1px solid rgba(255, 255, 255, 0.07); background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), transparent 35%); }
   /* No bezel here: the bars sit straight on the glass bar */
   .pixel-meter :global(.frame), .pixel-meter :global(.window) { background: none; box-shadow: none; padding: 0; } .pixel-meter :global(.window::after) { display: none; }
   .pixel-meter :global(.analyser) { flex: 1; } .pixel-meter:hover { filter: brightness(1.15); }
@@ -137,10 +141,11 @@
   .mini .seek-row { display: flex; } .mini .seek-row .time { display: none; }
   .mini .volume, .mini .meter-anchor { display: none; }
   .mini .right { gap: 4px; }
-  .mini-meters { display: flex; transform-origin: right center; } .mini-meters :global(.small .vu) { width: 48px; height: 29px; }
+  /* mini meters as big as the window allows: up to a third of the width each pair, and the height left above the transport row */
+  .mini-meters { display: flex; align-self: center; } .mini-meters :global(.meters) { gap: 6px; } .mini-meters :global(.large .vu) { width: max(44px, min(16cqw, (100cqh - 86px) * 1.66, 230px)); height: auto; }
   .mini-speaker { background: none; border: 0; cursor: pointer; color: var(--fg); opacity: 0.6; padding: 4px; } .mini-speaker.on, .mini-speaker:hover { opacity: 1; color: var(--accent); }
   .mini-volume input { flex: 1; accent-color: var(--accent); } .mini .mini-volume .time { display: inline; }
   @container (max-width: 300px) { .mini-meters { display: none; } }
-  .mini .now img, .mini .no-art { width: 64px; height: 64px; }
+  .mini .now img, .mini .no-art { width: clamp(44px, min(100cqh - 96px, 20cqw), 150px); height: clamp(44px, min(100cqh - 96px, 20cqw), 150px); }
   .mini .buttons { gap: 6px; } .mini .buttons button { width: 30px; height: 30px; } .mini .buttons .play { width: 34px; height: 34px; }
 </style>
