@@ -348,11 +348,11 @@ public partial class SettingsWindow : Window
         void Build()
         {
             metersPanel.Children.Clear();
-            AddRow("0 VU reference", "The RMS level that reads 0 on the VU meters. Higher (e.g. −14) makes the needles read lower; −18 is the usual digital alignment.", -24, -8, 1, meters => meters.ReferenceDbfs, (meters, value) => meters.ReferenceDbfs = value, "dBFS");
+            var autoBox = new CheckBox { Content = "Automatic 0 VU (follows each song's loudness, so loud recordings don't pin the needles)", IsChecked = Settings.Meters.AutoReference, Margin = new Thickness(0, 0, 0, 10) };
+            autoBox.Click += (sender, args) => { Settings.Meters.AutoReference = autoBox.IsChecked == true; Settings.Save(); App.ApplyMeters(); };
+            metersPanel.Children.Add(autoBox);
+            AddRow("0 VU reference", "When automatic is off: the RMS level that reads 0 on the VU meters. Higher (e.g. −14) makes the needles read lower; −18 is the usual digital alignment.", -24, -8, 1, meters => meters.ReferenceDbfs, (meters, value) => meters.ReferenceDbfs = value, "dBFS");
             AddRow("VU ballistics", "How quickly the needles follow the music. 300 ms is a classic VU.", 50, 1000, 10, meters => meters.VuIntegrationMs, (meters, value) => meters.VuIntegrationMs = value, "ms");
-            AddRow("Spectrum floor", "Level where a spectrum column starts to light.", -90, -24, 1, meters => meters.SpectrumFloorDbfs, (meters, value) => meters.SpectrumFloorDbfs = value, "dBFS");
-            AddRow("Spectrum top", "Level that fills a spectrum column.", -30, 0, 1, meters => meters.SpectrumCeilingDbfs, (meters, value) => meters.SpectrumCeilingDbfs = value, "dBFS");
-            AddRow("Spectrum tilt", "Lifts the treble columns (around 1 kHz). Music has less energy up high; 3 dB/octave makes it read evenly.", 0, 6, 0.5, meters => meters.SpectrumTiltDbPerOctave, (meters, value) => meters.SpectrumTiltDbPerOctave = value, "dB/oct");
             AddRow("Spectrum fall", "How fast the spectrum columns fall back.", 50, 1000, 10, meters => meters.SpectrumFallMs, (meters, value) => meters.SpectrumFallMs = value, "ms");
         }
         Build();

@@ -9,17 +9,17 @@
   let now = $state(Date.now())
   $effect(() => { const ticker = setInterval(() => now = Date.now(), 500); return () => clearInterval(ticker) })
   const active = $derived(now - app.levels.at < 1500 && app.levels.vu.some(decibels => decibels > -60))
-  // 0 VU = the reference RMS level (Settings › Meters, -18 dBFS by default); below -20 VU the needle sinks to its rest
+  // 0 VU = the reference RMS level (auto, following the music's loudness, or fixed in Settings › Meters); below -20 VU the needle sinks to its rest
   const needleAngle = (decibelsFs: number, rest: number) => {
-    const vu = decibelsFs - app.meterSettings.referenceDbfs
+    const vu = decibelsFs - meters.reference
     if (vu <= scaleMarks[0][0]) return rest + (scaleMarks[0][1] - rest) * Math.max(0, Math.min(1, (vu + 30) / 10))
     for (let mark = 1; mark < scaleMarks.length; mark++) if (vu <= scaleMarks[mark][0]) { const [lowDb, lowAngle] = scaleMarks[mark - 1], [highDb, highAngle] = scaleMarks[mark]; return lowAngle + (highAngle - lowAngle) * (vu - lowDb) / (highDb - lowDb) }
     return Math.min(52, scaleMarks[scaleMarks.length - 1][1] + (vu - 3) * 4)
   }
-  // Spectrum scale marks in dBFS, top to bottom, from Settings › Meters
-  const spectrumScale = $derived(Array.from({ length: 5 }, (unused, index) => String(Math.round(app.meterSettings.spectrumCeilingDbfs - index * (app.meterSettings.spectrumCeilingDbfs - app.meterSettings.spectrumFloorDbfs) / 4))))
+  // Same octaves and scale as the EQ window's analyser
+  const spectrumScale = ['30', '24', '18', '12', '6']
   const meterStyles = ['vu', 'oledvu', 'oled']
-  const bandLabels = ['63', '160', '400', '850', '1.7k', '3.5k', '7k', '13k'] // centres of the 8 spectrum bands (Hz)
+  const bandLabels = ['31', '63', '125', '250', '500', '1k', '2k', '4k', '8k', '16k'] // octave centres (Hz)
   const toggle = () => { ui.meterStyle = meterStyles[(meterStyles.indexOf(ui.meterStyle) + 1) % meterStyles.length]; writeSetting('meterStyle', ui.meterStyle) }
   const gradientId = `vu-lamp-${meterCount++}`
   // Classic VU scale: dB mark -> needle angle (degrees from vertical), pivot sits below the face like a real meter

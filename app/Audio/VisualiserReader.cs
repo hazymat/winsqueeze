@@ -5,13 +5,12 @@ using WinSqueeze.Settings;
 namespace WinSqueeze.Audio;
 
 // Reads the samples our Squeezelite build shares (-v, see vendor/squeezelite/src/output_vis_win.c) and turns them into meter data ~30 times a second:
-// VU levels (RMS with ~300 ms ballistics, in dB), peak levels for the bar graph, and 8 spectrum bands, ~60 times a second. Looks back by the output latency so meters match what you hear.
+// VU levels (RMS with ~300 ms ballistics, in dB), peak levels for the bar graph, and the 10 octave bands (the same analysis the EQ window shows), ~60 times a second. Looks back by the output latency so meters match what you hear.
 public sealed class VisualiserReader : IDisposable
 {
-    const int HeaderBytes = 32, FftSize = 1024, BandCount = 8, AnalyserSize = 4096; // the EQ window's analyser looks at a longer window for its low octaves
-    static readonly double[] bandEdges = { 40, 100, 250, 600, 1200, 2500, 5000, 10000, 18000 }; // Hz, roughly log-spaced like the hardware's bands
+    const int HeaderBytes = 32, FftSize = 1024, AnalyserSize = 4096; // a long window resolves the low octaves
     public event Action<string>? LevelsReady;
-    public event Action<string>? AnalyserReady; // 10 octave bands per channel for the EQ window, while it's open
+    public event Action<string>? AnalyserReady; // raw octave dBFS per channel for the EQ window, while it's open
     public volatile bool AnalyserWanted;
     public int SampleRate { get; private set; }
     int analyserFrame;
@@ -20,7 +19,7 @@ public sealed class VisualiserReader : IDisposable
     string mapName = "";
     int latencyMs = 200;
     double vuLeft, vuRight, peakLeft, peakRight;
-    readonly double[] bandLevels = new double[BandCount];
+    readonly double[] bandLevels = new double[10];
     bool sentSilence;
     double peakHeldLeft, peakHeldRight; // seconds each bar has held its peak
     public MeterSettings Tuning { get; set; } = new(); // Settings › Meters, read every frame so changes show live
@@ -67,15 +66,16 @@ public sealed class VisualiserReader : IDisposable
                 }
                 if (!live) Array.Clear(samples);
                 if (rate > 0) SampleRate = rate;
-                Analyse(samples, rate > 0 ? rate : 44100, elapsedSeconds, live);
-                if (AnalyserWanted && ++analyserFrame % 2 == 0) AnalyseOctaves(samples, rate > 0 ? rate : 44100); // ~30 a second is plenty
+                var octaves = AnalyseOctaves(samples, rate > 0 ? rate : 44100);
+                Analyse(samples, rate > 0 ? rate : 44100, octaves, elapsedSeconds, live);
+                if (AnalyserWanted && ++analyserFrame % 2 == 0) AnalyserReady?.Invoke(JsonSerializer.Serialize(new { type = "eqLevels", left = octaves[0], right = octaves[1] })); // ~30 a second is plenty
             }
             catch (Exception) { view?.Dispose(); sharedFile?.Dispose(); view = null; sharedFile = null; Thread.Sleep(1000); }
         }
         view?.Dispose(); sharedFile?.Dispose();
     }
 
-    void Analyse(short[] samples, int rate, double elapsedSeconds, bool live)
+    void Analyse(short[] samples, int rate, double[][] octaves, double elapsedSeconds, bool live)
     {
         // VU: RMS over the newest ~50 ms, integrated with a 300 ms time constant
         const int newest = AnalyserSize - FftSize; // frame where the newest FftSize frames start
@@ -93,19 +93,12 @@ public sealed class VisualiserReader : IDisposable
         var peakFall = Math.Pow(10, -elapsedSeconds * 30 / 20);
         (peakLeft, peakHeldLeft) = FollowPeak(maxLeft, peakLeft, peakHeldLeft, peakFall, elapsedSeconds, 0);
         (peakRight, peakHeldRight) = FollowPeak(maxRight, peakRight, peakHeldRight, peakFall, elapsedSeconds, 0);
-        // Spectrum: Hann-windowed FFT of the mono mix. A full-scale sine peaks at |X| = N/4, so 20·log10(|X|·4/N) is the band's level in dBFS; floor..ceiling fills the column
-        var real = new double[FftSize]; var imaginary = new double[FftSize];
-        for (var frame = 0; frame < FftSize; frame++) real[frame] = (samples[(newest + frame) * 2] + samples[(newest + frame) * 2 + 1]) / 65536.0 * (0.5 - 0.5 * Math.Cos(2 * Math.PI * frame / (FftSize - 1)));
-        Fft(real, imaginary);
-        var bandFollow = 1 - Math.Exp(-elapsedSeconds / Math.Max(0.02, tuning.SpectrumFallMs / 1000)); // instant rise, ~250 ms fall like the hardware
-        for (var band = 0; band < BandCount; band++)
+        // Spectrum: the octaves of both channels power-averaged, on the EQ window's scale (+3 dB/octave tilt about 1 kHz, 3..30 over -33..-6 dBFS)
+        var bandFollow = 1 - Math.Exp(-elapsedSeconds / Math.Max(0.02, tuning.SpectrumFallMs / 1000)); // instant rise, then the fall from Settings › Meters
+        for (var band = 0; band < bandLevels.Length; band++)
         {
-            int firstBin = Math.Max(1, (int)(bandEdges[band] * FftSize / rate)), lastBin = Math.Min(FftSize / 2 - 1, Math.Max(firstBin, (int)(bandEdges[band + 1] * FftSize / rate)));
-            double energy = 0;
-            for (var bin = firstBin; bin <= lastBin; bin++) energy = Math.Max(energy, real[bin] * real[bin] + imaginary[bin] * imaginary[bin]);
-            var tilt = tuning.SpectrumTiltDbPerOctave * Math.Log2(Math.Sqrt(bandEdges[band] * bandEdges[band + 1]) / 1000); // pivots at 1 kHz
-            var span = Math.Max(6, tuning.SpectrumCeilingDbfs - tuning.SpectrumFloorDbfs);
-            var level = Math.Clamp((10 * Math.Log10(energy * 16.0 / ((double)FftSize * FftSize) + 1e-12) + tilt - tuning.SpectrumFloorDbfs) / span, 0, 1);
+            var decibels = 10 * Math.Log10((Math.Pow(10, octaves[0][band] / 10) + Math.Pow(10, octaves[1][band] / 10)) / 2 + 1e-12);
+            var level = Math.Clamp((decibels + 3 * Math.Log2(octaveCentres[band] / 1000) + 36) / 30, 0, 1);
             bandLevels[band] = level > bandLevels[band] ? level : bandLevels[band] + (level - bandLevels[band]) * bandFollow;
         }
         var silent = !live && vuLeft < 1e-4 && vuRight < 1e-4 && peakLeft < 1e-3 && peakRight < 1e-3 && bandLevels.All(level => level < 0.01);
@@ -114,9 +107,9 @@ public sealed class VisualiserReader : IDisposable
         LevelsReady?.Invoke(JsonSerializer.Serialize(new { type = "levels", vu = new[] { Decibels(vuLeft), Decibels(vuRight) }, peak = new[] { Math.Round(peakLeft, 3), Math.Round(peakRight, 3) }, bands = bandLevels.Select(level => Math.Round(level, 3)) }));
     }
 
-    // EQ analyser: per channel, the energy in each octave band 31.5 Hz–16 kHz as dBFS (raw; the window applies its own decay)
+    // Per channel, the energy in each octave band 31.5 Hz–16 kHz as dBFS (raw; the EQ window applies its own decay)
     static readonly double[] octaveCentres = { 31.5, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000 };
-    void AnalyseOctaves(short[] samples, int rate)
+    static double[][] AnalyseOctaves(short[] samples, int rate)
     {
         var levels = new double[2][];
         for (var channel = 0; channel < 2; channel++)
@@ -133,7 +126,7 @@ public sealed class VisualiserReader : IDisposable
                 return Math.Round(10 * Math.Log10(energy * 16.0 / (1.5 * AnalyserSize * AnalyserSize) + 1e-12), 1);
             }).ToArray();
         }
-        AnalyserReady?.Invoke(JsonSerializer.Serialize(new { type = "eqLevels", left = levels[0], right = levels[1] }));
+        return levels;
     }
 
     static (double level, double held) FollowPeak(double current, double level, double held, double fall, double elapsedSeconds, double holdSeconds)

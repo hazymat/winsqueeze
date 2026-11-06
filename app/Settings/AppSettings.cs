@@ -37,11 +37,9 @@ public class AudioSettings
 // Meter tuning (Settings › Meters), applied live
 public class MeterSettings
 {
-    public double ReferenceDbfs { get; set; } = -18; // RMS level that reads 0 VU
+    public bool AutoReference { get; set; } = true; // 0 VU follows the music's loudness
+    public double ReferenceDbfs { get; set; } = -18; // RMS level that reads 0 VU when not automatic
     public double VuIntegrationMs { get; set; } = 300; // needle ballistics
-    public double SpectrumFloorDbfs { get; set; } = -54;
-    public double SpectrumCeilingDbfs { get; set; } = -6;
-    public double SpectrumTiltDbPerOctave { get; set; } = 0; // lifts the treble bands; 3 dB/octave makes pink noise read flat
     public double SpectrumFallMs { get; set; } = 250;
 }
 

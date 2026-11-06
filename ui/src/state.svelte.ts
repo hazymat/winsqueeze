@@ -7,8 +7,8 @@ export const app = $state({
   status: null as any, nowPlaying: null as any, players: [] as any[], selectedPlayer: '', ownPlayer: '',
   library: { text: '', done: 0, total: 0 }, librarySettings: { AlbumSource: 'folders', ContributorGrouping: 'any' } as any, indexVersion: 0, receivedAt: 0,
   // Meter data from Squeezelite (~30 a second while playing): VU in dBFS, peak amplitude 0..1, spectrum bands 0..1
-  levels: { vu: [-90, -90], peak: [0, 0], bands: [0, 0, 0, 0, 0, 0, 0, 0], at: 0 },
-  meterSettings: { referenceDbfs: -18, spectrumFloorDbfs: -54, spectrumCeilingDbfs: -6 }, // Settings › Meters
+  levels: { vu: [-90, -90], peak: [0, 0], bands: Array(10).fill(0), at: 0 },
+  meterSettings: { referenceDbfs: -18, autoReference: true }, // Settings › Meters
   window: { glass: false, frameless: false, maximised: false }
 })
 // Where you were browsing survives restarts (and updates)
@@ -69,10 +69,19 @@ export const formatTime = (seconds: number) => { if (!seconds || seconds < 0) re
 export const formatRate = (rate: number) => rate ? `${(rate / 1000).toFixed(rate % 1000 ? 1 : 0)} kHz` : ''
 
 // What the meters draw: eased towards the latest levels on every display frame, so needles and bars glide between the shell's ~60 updates a second
-export const meters = $state({ vu: [-90, -90], peak: [0, 0], bands: [0, 0, 0, 0, 0, 0, 0, 0] })
+export const meters = $state({ vu: [-90, -90], peak: [0, 0], bands: Array(10).fill(0) as number[], reference: -18 })
 let meterFrame = 0, meterLastTime = 0
+// Auto 0 VU: follows the music's loudness (power average over ~8 s) so loud masters don't pin the needles; average loudness reads about -4 VU
+let loudnessPower = 0, loudnessAt = 0
 export function receiveLevels(vu: number[], peak: number[], bands: number[]) {
-  app.levels = { vu, peak, bands, at: Date.now() }
+  const receivedAt = Date.now(), loudestDb = Math.max(vu[0] ?? -90, vu[1] ?? -90)
+  if (loudestDb > -50) {
+    const follow = loudnessPower ? 1 - Math.exp(-Math.min(1000, receivedAt - loudnessAt) / 8000) : 1
+    loudnessPower += (Math.pow(10, loudestDb / 10) - loudnessPower) * follow
+  }
+  loudnessAt = receivedAt
+  meters.reference = app.meterSettings.autoReference && loudnessPower ? Math.max(-24, Math.min(-6, 10 * Math.log10(loudnessPower) + 4)) : app.meterSettings.referenceDbfs
+  app.levels = { vu, peak, bands, at: receivedAt }
   if (!meterFrame) { meterLastTime = performance.now(); meterFrame = requestAnimationFrame(easeMeters) }
 }
 function easeMeters(time: number) {
