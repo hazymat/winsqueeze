@@ -123,7 +123,9 @@ Settings › Browsing chooses which groupings the Group menu offers and each are
 - Buttons: **Play** (replaces the queue), **Play next**, **Add to queue**, **Favourite** (star).
 - Track row: click plays from that track onward; right-click or ⋯ menu has Play next, Add to queue, Go to artist, Go to composer, Open folder.
 
-**Queue:** full view in the sidebar section and inside the expanded now-playing view. Drag to reorder, remove, clear, save as Lyrion playlist. Shows total remaining time.
+**Queue:** full view in the sidebar section and inside the expanded now-playing view. Drag to reorder, remove, clear, save as Lyrion playlist. Shows total remaining time. Clear can be undone (same tracks, track and position).
+
+**When the queue ends** (Up next header, remembered): Stop, Repeat all (Lyrion's repeat-all on the player), or Keep playing. Keep playing adds a whole album or about ten tracks just before the last track ends (under 20 s left), looking at the same album artist, then the playing track's genres, then anything; it skips anything queued or added by Keep playing in the last 3 days, and each top-up can be undone. Radio and remote streams are left alone.
 
 **Favourites:** star any album, artist, folder, playlist or stream from anywhere; unstar the same way. Changes go to Lyrion's own favourites, so they stay in sync with other controllers. Only on user action.
 

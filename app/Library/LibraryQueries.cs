@@ -55,6 +55,32 @@ public sealed class LibraryQueries
         });
     }
 
+    // Keep playing: what to add when the queue runs out. Looks at the same album artist, then the playing track's genres, then anything, skipping what's queued or was added lately
+    public ContinuePickResult ContinuePick(long trackId, bool wholeAlbum, string lookFrom, List<long> queuedIds, List<string> recentKeys) => !HasIndex ? new(new(), new(), "") : WithConnection<ContinuePickResult>(connection =>
+    {
+        var current = Query(connection, "SELECT a.key, a.artist_norm FROM album_tracks at JOIN albums a ON a.key=at.album_key AND a.source=$source WHERE at.track_id=$track LIMIT 1", ("$source", albumSource), ("$track", trackId)).FirstOrDefault();
+        var levels = new List<string>();
+        if (lookFrom == "artist" && current != null) levels.Add("a.artist_norm=$artist");
+        if (lookFrom != "anything") levels.Add("a.key IN (SELECT gt.album_key FROM album_tracks gt JOIN track_genres tg ON tg.track_id=gt.track_id WHERE tg.genre_id IN (SELECT genre_id FROM track_genres WHERE track_id=$track))");
+        levels.Add("1");
+        var picked = new List<long>();
+        (string, object?)[] Parameters() => new (string, object?)[] { ("$source", albumSource), ("$track", trackId), ("$artist", current?["artist_norm"] ?? ""), ("$queued", JsonSerializer.Serialize(queuedIds)), ("$recent", JsonSerializer.Serialize(recentKeys)), ("$picked", JsonSerializer.Serialize(picked)) };
+        const string notQueuedAlbum = "a.source=$source AND a.key NOT IN (SELECT album_key FROM album_tracks WHERE track_id IN (SELECT value FROM json_each($queued))) AND a.key NOT IN (SELECT value FROM json_each($recent))";
+        foreach (var level in levels)
+        {
+            if (wholeAlbum)
+            {
+                var album = Query(connection, $"SELECT a.key, a.title, a.artist FROM albums a WHERE {notQueuedAlbum} AND {level} ORDER BY random() LIMIT 1", Parameters()).FirstOrDefault();
+                if (album == null) continue;
+                var albumIds = Query(connection, "SELECT track_id AS id FROM album_tracks WHERE album_key=$key ORDER BY disc_no, track_no", ("$key", album["key"])).Select(row => Convert.ToInt64(row["id"])).ToList();
+                return new(albumIds, new() { Convert.ToString(album["key"])! }, $"{album["title"]} by {album["artist"]}");
+            }
+            picked.AddRange(Query(connection, $"SELECT DISTINCT at.track_id AS id FROM album_tracks at JOIN albums a ON a.key=at.album_key WHERE a.source=$source AND {level} AND at.track_id NOT IN (SELECT value FROM json_each($queued)) AND at.track_id NOT IN (SELECT value FROM json_each($picked)) AND ('t' || at.track_id) NOT IN (SELECT value FROM json_each($recent)) ORDER BY random() LIMIT {10 - picked.Count}", Parameters()).Select(row => Convert.ToInt64(row["id"])));
+            if (picked.Count >= 10) break;
+        }
+        return new(picked, picked.Select(id => $"t{id}").ToList(), picked.Count == 1 ? "1 track" : $"{picked.Count} tracks");
+    });
+
     object ArtistAlbums(SqliteConnection connection, string partNorm, string sort)
     {
         var own = AlbumsByCredit(connection, partNorm, new[] { "own" }, sort);
@@ -140,3 +166,5 @@ public sealed class LibraryQueries
         return new { artists = Hits("artist", 12), composers = Hits("composer", 12), performers = Hits("performer", 12), albums = Hits("album", 40), trackGroups, bestArtistAlbums = bestArtist == null ? null : AlbumsByCredit(connection, (string)bestArtist["key"]!, new[] { "own" }, "") };
     }
 }
+
+public sealed record ContinuePickResult(List<long> Ids, List<string> Keys, string Label);

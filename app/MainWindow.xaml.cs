@@ -105,7 +105,20 @@ public partial class MainWindow : Window
                     var queries = App.Library.Queries;
                     Reply(message, await Task.Run(() => queries.Run(queryName, queryParameters)));
                     break;
-                case "playTracks": await App.Session.PlayTracksAsync(Ids(message.GetProperty("ids")), Text(message, "mode"), message.TryGetProperty("start", out var start) ? start.GetInt32() : 0); break;
+                case "setPlayback":
+                    var playbackSettings = App.Settings.Playback;
+                    if (Text(message, "queueEnd") is { Length: > 0 } queueEnd) playbackSettings.QueueEnd = queueEnd;
+                    if (Text(message, "continueAdds") is { Length: > 0 } continueAdds) playbackSettings.ContinueAdds = continueAdds;
+                    if (Text(message, "continueFrom") is { Length: > 0 } continueFrom) playbackSettings.ContinueFrom = continueFrom;
+                    App.Settings.Save(); PushSettings(); break;
+                case "continuePick":
+                    var playback = App.Settings.Playback; var nowSeconds = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                    foreach (var staleKey in playback.ContinueRecent.Where(entry => entry.Value < nowSeconds - playback.ContinueAvoidDays * 86400L).Select(entry => entry.Key).ToList()) playback.ContinueRecent.Remove(staleKey);
+                    var pickQueries = App.Library.Queries; var pickTrack = long.TryParse(Text(message, "track"), out var pickTrackId) ? pickTrackId : 0; var queuedIds = Ids(message.GetProperty("queued")); var recentKeys = playback.ContinueRecent.Keys.ToList();
+                    var pick = await Task.Run(() => pickQueries.ContinuePick(pickTrack, playback.ContinueAdds != "tracks", playback.ContinueFrom, queuedIds, recentKeys));
+                    foreach (var pickedKey in pick.Keys) playback.ContinueRecent[pickedKey] = nowSeconds;
+                    App.Settings.Save(); Reply(message, new { ids = pick.Ids, label = pick.Label }); break;
+                case "playTracks": await App.Session.PlayTracksAsync(Ids(message.GetProperty("ids")), Text(message, "mode"), message.TryGetProperty("start", out var start) ? start.GetInt32() : 0); Reply(message, true); break;
                 case "playAlbum":
                     var albumQueries = App.Library.Queries;
                     var albumKey = Text(message, "key");
@@ -324,7 +337,7 @@ public partial class MainWindow : Window
 
     public void PushSkin() => Push(JsonSerializer.Serialize(new { type = "skin", skin = App.Settings.General.Skin, coverAccent = App.Settings.General.CoverAccent, coverBackdrop = App.Settings.General.CoverBackdrop, accent = App.Settings.General.AccentColour, glassTransparency = App.Settings.General.GlassTransparency, glassTintHue = App.Settings.General.GlassTintHue }));
     public void PushWhatsNew(string fromVersion, string toVersion, List<ReleaseEntry> releases) => Push(JsonSerializer.Serialize(new { type = "whatsNew", fromVersion, toVersion, releases = releases.Select(release => new { version = release.Version, date = release.Published.ToString("d MMM"), notes = release.Notes, url = release.Url }) }));
-    void PushSettings() => Push(JsonSerializer.Serialize(new { type = "settings", library = App.Settings.Library, hints = new { hidden = App.Settings.General.HideHints, dismissed = App.Settings.General.DismissedHints } }));
+    void PushSettings() => Push(JsonSerializer.Serialize(new { type = "settings", library = App.Settings.Library, playback = new { App.Settings.Playback.QueueEnd, App.Settings.Playback.ContinueAdds, App.Settings.Playback.ContinueFrom }, hints = new { hidden = App.Settings.General.HideHints, dismissed = App.Settings.General.DismissedHints } }));
     public void PushMeterSettings() => Push(JsonSerializer.Serialize(new { type = "meterSettings", referenceDbfs = App.Settings.Meters.ReferenceDbfs, autoReference = App.Settings.Meters.AutoReference }));
     void PushWindowState() => Push(JsonSerializer.Serialize(new { type = "window", glass = glassActive, frameless = App.Settings.General.Frameless, maximised = WindowState == WindowState.Maximized }));
 

@@ -75,6 +75,15 @@ public class RecordingSettings
     public bool FolderPerStation { get; set; } // false (default): a folder per recording; true: one folder per station, files dated
 }
 
+public class PlaybackSettings
+{
+    public string QueueEnd { get; set; } = "stop"; // stop | repeat (Lyrion's repeat all) | continue (Keep playing tops the queue up from the library)
+    public string ContinueAdds { get; set; } = "album"; // album | tracks (about ten)
+    public string ContinueFrom { get; set; } = "artist"; // artist (then genre, then anything) | genre (then anything) | anything
+    public int ContinueAvoidDays { get; set; } = 3; // don't add the same album or track again within this many days
+    public Dictionary<string, long> ContinueRecent { get; set; } = new(); // album key or "t<track id>" -> unix seconds when Keep playing added it
+}
+
 public class LibrarySettings
 {
     public string AlbumSource { get; set; } = "folders"; // folders | tags
@@ -127,6 +136,7 @@ public class AppSettings
     public EqualiserSettings Equaliser { get; set; } = new();
     public LibrarySettings Library { get; set; } = new();
     public RecordingSettings Recording { get; set; } = new();
+    public PlaybackSettings Playback { get; set; } = new();
     public List<ServerProfile> Profiles { get; set; } = new();
     public string DefaultProfileId { get; set; } = "";
     public string PlayerMac { get; set; } = ""; // own stable MAC so we never collide with another Squeezelite on this PC

@@ -1,6 +1,7 @@
 <script lang="ts">
   import Hint from '../parts/Hint.svelte'
-  import { command, live, artUrl } from '../bridge'
+  import QueueEndMenu from '../parts/QueueEndMenu.svelte'
+  import { command, live, artUrl, request } from '../bridge'
   import { app, formatTime, toast, newPlaylist } from '../state.svelte'
   import { sortable, planMoves, blockOrder } from '../lib/sortable'
   import { isSelected, rowClick, selectOnHold, selection, type SelectionAction } from '../lib/selection.svelte'
@@ -55,12 +56,22 @@
   ]
   async function saveQueue() { const name = prompt('Save the queue as a Lyrion playlist named:'); if (!name) return; await live(['playlist', 'save', name], true); toast(`Saved queue as “${name}”`) }
   const startPlaylistFromQueue = () => newPlaylist('Untitled playlist', queue.map(item => ({ id: Number(item.id), title: item.title, artist: item.artist ?? '', duration: Number(item.duration || 0) })))
-  const clearQueue = () => { const ids = queue.map(item => Number(item.id)).filter(id => id > 0); command('playlist', 'clear'); toast('Queue cleared', () => ids.length && live(['playlistcontrol', 'cmd:add', `track_id:${ids.join(',')}`], true)) }
+  // Undo brings the queue back as it was: same tracks, same order, same track and spot
+  const clearQueue = () => {
+    const ids = queue.map(item => Number(item.id)).filter(id => id > 0), index = Math.max(currentIndex, 0), seconds = Number(app.nowPlaying?.time ?? 0), wasPlaying = app.nowPlaying?.mode === 'play'
+    command('playlist', 'clear')
+    toast('Queue cleared', async () => {
+      if (!ids.length) return
+      await request({ type: 'playTracks', ids, mode: 'load', start: index })
+      if (seconds > 2) await live(['time', seconds], true)
+      if (!wasPlaying) await live(['pause', '1'], true)
+    })
+  }
 </script>
 
 <div class="head">
   <h3>Up next</h3><span class="quiet">{queue.length} tracks · {formatTime(Math.max(remaining, 0))} left</span>
-  <div class="tools"><button class="ghost" onclick={saveQueue}>Save</button><button class="ghost" onclick={startPlaylistFromQueue}>Edit as playlist</button><button class="ghost" onclick={clearQueue}>Clear</button></div>
+  <div class="tools"><QueueEndMenu /><button class="ghost" onclick={saveQueue}>Save</button><button class="ghost" onclick={startPlaylistFromQueue}>Edit as playlist</button><button class="ghost" onclick={clearQueue}>Clear</button></div>
 </div>
 {#if queue.length > 1}<Hint id="queue-reorder" text="Press and hold, then drag to reorder." /><Hint id="queue-multiselect" text="Press and hold without dragging to select several tracks." />{/if}
 {#if !queue.length}<p class="quiet">The queue is empty.</p>{/if}
@@ -79,7 +90,7 @@
 <style>
   .head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
   h3 { margin: 0; color: var(--fg); font-size: 16px; }
-  .tools { display: flex; gap: 6px; margin-left: auto; }
+  .tools { display: flex; align-items: center; gap: 6px; margin-left: auto; }
   .tools .ghost { padding: 4px 10px; font-size: 12px; }
   .queue { display: flex; flex-direction: column; gap: 2px; }
   .item { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 52px; background: none; border: 0; border-radius: 10px; color: var(--fg); padding: 6px 10px; cursor: pointer; font: inherit; text-align: left; }
