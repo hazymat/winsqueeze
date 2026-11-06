@@ -1,12 +1,12 @@
 <script lang="ts" module>
   let panelCount = 0
   // Whole meter panels after classic decks and amps (style only, no makers' names), each with its own shape, light and mechanics
-  export const panelThemes: Record<string, { aspect: number }> = { deck: { aspect: 300 / 96 }, orange: { aspect: 236 / 130 }, monitor: { aspect: 440 / 110 }, blue: { aspect: 360 / 110 }, green: { aspect: 360 / 120 } }
+  export const panelThemes: Record<string, { aspect: number }> = { deck: { aspect: 300 / 96 }, orange: { aspect: 236 / 130 }, monitor: { aspect: 440 / 110 }, blue: { aspect: 360 / 110 }, green: { aspect: 360 / 120 }, ledbar: { aspect: 400 / 96 } }
 </script>
 <script lang="ts">
   let { theme, levels, reference, size, idle, textureScale = 1 }: { theme: string, levels: number[], reference: number, size: string, idle: boolean, textureScale?: number } = $props()
   const id = `panel-${panelCount++}`
-  const height = $derived(theme === 'monitor' || theme === 'blue' ? 110 : theme === 'deck' ? 96 : theme === 'orange' ? 130 : 120)
+  const height = $derived(theme === 'monitor' || theme === 'blue' ? 110 : theme === 'deck' || theme === 'ledbar' ? 96 : theme === 'orange' ? 130 : 120)
   const width = $derived(Math.round(panelThemes[theme].aspect * height))
   // Needle angles: VU faces keep the VU law, power meters are logarithmic (dB re full power spread evenly)
   const vuMarks: [number, number][] = [[-20, -48], [-10, -31], [-7, -21], [-5, -12], [-3, -1], [-2, 6], [-1, 13], [0, 21], [1, 29], [2, 37], [3, 46]]
@@ -41,6 +41,11 @@
   const blueLabels = [0.01, 0.1, 0.5, 1, 5, 10, 50, 100, 200]
   const greenWindows = [{ x: 8, channel: 'L' }, { x: 202, channel: 'R' }]
   const greenLabels = [0.01, 0.1, 0.5, 1, 5, 10, 50, 100, 200, 500]
+  // Lo-fi LED bars: twelve segments per channel behind a printed grid; each LED a touch different in brightness, like old parts
+  const ledThresholds = [-30, -20, -15, -12, -10, -7, -5, -3, 0, 3, 5, 8]
+  const ledLabels = ['∞', '-20', '-15', '-12', '-10', '-7', '-5', '-3', '0', '3', '5', '8']
+  const ledVariance = [0.92, 1, 0.86, 0.97, 0.9, 1, 0.94, 0.83, 0.98, 0.88, 1, 0.91, 0.95, 0.85, 1, 0.9, 0.97, 0.87, 0.93, 1, 0.89, 0.96, 0.84, 0.99]
+  const ledColumn = (index: number) => 70 + index * 22.4
 </script>
 
 <svg viewBox="0 0 {width} {height}" class="panel {theme}" class:idle aria-hidden="true" style:--aspect={panelThemes[theme].aspect}>
@@ -206,6 +211,32 @@
     <rect x="162" y="8" width="36" height="100" fill="#060707" />
     <g filter="url(#{id}-glow)">{#each [[30, 'PHASE'], [56, 'CAPACITOR'], [82, 'DUAL MONO']] as [lineY, text]}<text x="166" y={Number(lineY) - 3} class="legend">{text}</text><rect x="178" y={lineY} width="16" height="1.4" class="legend-bar" />{/each}</g>
     <path d="M0 0 L{width * 0.42} 0 L{width * 0.2} {height} L0 {height} Z" fill="#fff" opacity="0.05" /><rect width={width} height={height} rx="4" fill="url(#{id}-sheen)" />
+  {:else if theme === 'ledbar'}
+    <!-- Cassette-deck LED bars: grey faceplate, a smoked window with a printed grid, chunky green LEDs with the unlit ones still showing -->
+    <defs><filter id={id + '-ledglow'} filterUnits="userSpaceOnUse" x="0" y="0" width={width} height={height}><feGaussianBlur stdDeviation="1.6" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter></defs>
+    <rect width={width} height={height} rx="4" fill="#2b2b2a" /><rect width={width} height={height} rx="4" filter="url(#{id}-grain)" class="grain" />
+    <rect x="6" y="6" width={width - 12} height="72" rx="2" fill="#141513" stroke="#0a0a0a" stroke-width="1" /><rect x="6" y="6" width={width - 12} height="0.8" fill="#000" opacity="0.6" />
+    <rect x="12" y="12" width="376" height="60" fill="#0b0c0b" />
+    <g class="grid-print">
+      <rect x="12" y="12" width="376" height="60" fill="none" /><line x1="12" y1="38" x2="388" y2="38" /><line x1="12" y1="46" x2="388" y2="46" />
+      <line x1="58" y1="12" x2="58" y2="72" /><line x1="342" y1="12" x2="342" y2="72" />
+      {#each range(0, 11, 1) as index}<line x1={ledColumn(index) - 11.2} y1="38" x2={ledColumn(index) - 11.2} y2="46" /><line x1={ledColumn(index)} y1="38" x2={ledColumn(index)} y2="46" />{/each}
+      <line x1="342" y1="38" x2="342" y2="46" />
+    </g>
+    <text x="35" y="26" class="led-label">LEFT</text><text x="35" y="59" class="led-label">RIGHT</text><text x="365" y="26" class="led-label">LEFT</text><text x="365" y="59" class="led-label">RIGHT</text>
+    {#each [0, 1] as channelIndex}
+      {@const rowY = channelIndex ? 56 : 22}
+      {#each ledThresholds as threshold, index}
+        {@const lit = relative(channelIndex) >= threshold}{@const variance = ledVariance[index + channelIndex * 12]}
+        <rect x={ledColumn(index) + 0.8} y={rowY} width="19" height="7" rx="1.6" class="led-off" />
+        {#if lit}<rect x={ledColumn(index) + 0.8} y={rowY} width="19" height="7" rx="1.6" class="led-on" class:hot={threshold >= 0} style:opacity={variance} filter="url(#{id}-ledglow)" /><rect x={ledColumn(index) + 2.5} y={rowY + 1.3} width="15.6" height="1.6" rx="0.8" fill="#eaffc8" opacity={0.35 * variance} />{/if}
+      {/each}
+    {/each}
+    <!-- the printed grid crosses in front of the LEDs, as on the real window -->
+    <g class="grid-print front">{#each range(0, 12, 1) as index}<line x1={ledColumn(index)} y1="12" x2={ledColumn(index)} y2="38" /><line x1={ledColumn(index)} y1="46" x2={ledColumn(index)} y2="72" />{/each}<line x1="58" y1="25.5" x2="342" y2="25.5" /><line x1="58" y1="59.5" x2="342" y2="59.5" /></g>
+    <rect x="12" y="12" width="376" height="60" filter="url(#{id}-grain)" class="grain dark-grain" />
+    <rect x="12" y="12" width="376" height="60" fill="url(#{id}-sheen)" /><rect x="12" y="12" width="376" height="60" fill="none" stroke="#000" stroke-width="3" opacity="0.4" filter="url(#{id}-soft)" />
+    {#each ledLabels as text, index}<text x={ledColumn(index) + 10.4} y="88" class="led-scale">{text}</text>{/each}<text x="366" y="88" class="led-scale">+dB</text>
   {/if}
 </svg>
 
@@ -248,5 +279,9 @@
   .green-number { font-size: 6px; fill: #6dff9a; font-weight: 600; } .green-small { font-size: 4px; fill: #57e884; } .green-small.dim { opacity: 0.7; }
   .green-title { font-size: 5px; fill: #6dff9a; letter-spacing: 1px; font-weight: 600; }
   .green-needle { stroke: #cfffdc; stroke-width: 0.8; }
+  .grid-print line, .grid-print rect { stroke: #8f8f86; stroke-width: 0.7; opacity: 0.75; } .led-label { font-size: 6.5px; fill: #9d9d94; letter-spacing: 0.6px; font-family: 'Arial Narrow', Arial, sans-serif; }
+  .grid-print.front line { opacity: 0.35; stroke-width: 0.5; }
+  .led-off { fill: #4d4c42; stroke: #1c1c18; stroke-width: 0.4; } .led-on { fill: #8dff3c; } .led-on.hot { fill: #b6ff3a; } .idle .led-off { fill: #34352e; }
+  .led-scale { font-size: 8px; fill: #b9b9b0; font-family: 'Arial Narrow', Arial, sans-serif; }
   .legend { font-size: 3px; fill: #b6c2b9; text-anchor: start; letter-spacing: 0.3px; } .legend-bar { fill: #d7ff4a; }
 </style>

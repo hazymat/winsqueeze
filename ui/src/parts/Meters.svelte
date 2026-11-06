@@ -22,7 +22,7 @@
   }
   // Same octaves and scale as the EQ window's analyser
   const spectrumScale = ['30', '24', '18', '12', '6']
-  const meterStyles = ['vu', 'deck', 'orange', 'monitor', 'blue', 'green', 'oledvu', 'oled'] // analogue faces after classic amps and decks sit between the VU and the OLED styles
+  const meterStyles = ['vu', 'deck', 'orange', 'monitor', 'blue', 'green', 'ledbar', 'oledvu', 'oled'] // analogue faces after classic amps and decks sit between the VU and the OLED styles
   const bandLabels = ['31', '63', '125', '250', '500', '1k', '2k', '4k', '8k', '16k'] // octave centres (Hz)
   const toggle = () => { ui.meterStyle = meterStyles[(meterStyles.indexOf(ui.meterStyle) + 1) % meterStyles.length]; writeSetting('meterStyle', ui.meterStyle) }
   const gradientId = `vu-lamp-${meterCount++}`
@@ -142,7 +142,7 @@
   /* large: as wide as the pair of VU meters, unless that makes a tall panel too tall */
   .large :global(.panel) { width: min(384px, 170px * var(--aspect)); height: auto; }
   .full :global(.panel) { height: auto; width: min(var(--full-share) * 1vw, (100vh - 140px) * var(--aspect)); }
-  .full :global(.panel.deck) { --full-share: 78; } .full :global(.panel.orange) { --full-share: 58; } .full :global(.panel.monitor) { --full-share: 94; } .full :global(.panel.blue) { --full-share: 86; } .full :global(.panel.green) { --full-share: 90; }
+  .full :global(.panel.deck) { --full-share: 78; } .full :global(.panel.orange) { --full-share: 58; } .full :global(.panel.monitor) { --full-share: 94; } .full :global(.panel.blue) { --full-share: 86; } .full :global(.panel.green) { --full-share: 90; } .full :global(.panel.ledbar) { --full-share: 94; }
   .small .oledvu { height: 27px; } .large .oledvu { height: 85.5px; }
   .bezel { fill: #15161a; stroke: #2c2e34; stroke-width: 1; }
   .lamp-hot { stop-color: #fff3d6; } .lamp-warm { stop-color: #f8deaa; } .lamp-mid { stop-color: #dcb47a; } .lamp-edge { stop-color: #a17a48; }
