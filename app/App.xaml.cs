@@ -131,6 +131,8 @@ public partial class App : Application
         Updater.Changed += () => Dispatcher.BeginInvoke(() => StatusChanged?.Invoke());
         Updater.Start();
         RefreshIconsAfterUpdate();
+        // Hardware volume became opt-in (Mat preferred WinSqueeze's volume independent of Windows): switch it off once on existing installs
+        if (!Settings.Audio.HardwareVolumeOptIn) { Settings.Audio.HardwareVolume = false; Settings.Audio.HardwareVolumeOptIn = true; Settings.Save(); }
         if (CrashReporter.TakeUnseenReport()) ShowTip("WinSqueeze had a problem last time", "It crashed or stopped responding. Details are in Settings › About › Open logs (crash.log).");
         try { Media = new MediaControls(); } catch { } // SMTC needs Windows 10 1903+
         // Windows' volume for the DAC moved (taskbar mixer, keyboard keys): tell the server, so the slider and other controllers follow

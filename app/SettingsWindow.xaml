@@ -76,7 +76,7 @@
         </DockPanel>
         <TextBlock x:Name="playerStatusText" Style="{StaticResource Quiet}" />
         <CheckBox x:Name="exclusiveBox" Content="Exclusive mode (bit-perfect, bypasses the Windows mixer)" Margin="0,14,0,0" />
-        <CheckBox x:Name="hardwareVolumeBox" Content="Volume on the device itself when it has hardware volume (bit-perfect); otherwise Squeezelite scales the audio" Margin="0,8,0,0" />
+        <CheckBox x:Name="hardwareVolumeBox" Content="Use the device's hardware volume (bit-perfect, but it is the same as Windows' volume for the device); otherwise Squeezelite scales the audio" Margin="0,8,0,0" />
         <TextBlock x:Name="exclusiveNoteText" Style="{StaticResource Quiet}" Text="Shared mode only plays tracks whose sample rate matches the Windows mixer, and is not bit-perfect." />
         <Grid Margin="0,4,0,0">
           <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="140" /></Grid.ColumnDefinitions>
