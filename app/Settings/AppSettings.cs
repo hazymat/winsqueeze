@@ -89,6 +89,7 @@ public class LibrarySettings
     public string AlbumSource { get; set; } = "folders"; // folders | tags
     public string ContributorGrouping { get; set; } = "any"; // any | albumartist
     public string NameSeparators { get; set; } = ", ; & / feat. with and";
+    public bool ReadSurnameFirst { get; set; } = true; // composer and conductor tags shaped "Kapustin, Nikolai" are one person, not two
     public string NameOrder { get; set; } = "surname"; // composers and conductors shown and sorted as surname | forename ("Kapustin, Nikolai" or "Nikolai Kapustin")
     public int RefreshMinutes { get; set; } = 5;
     public bool HideOwnComposers { get; set; } = true; // composers list leaves out songwriters credited only on their own albums

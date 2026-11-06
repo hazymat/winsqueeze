@@ -12,6 +12,7 @@ public sealed class LibraryQueries
     readonly string albumSource; // "f" folders or "t" tags
     readonly bool anyCredit, hideOwnComposers;
     readonly string nameSeparators;
+    readonly bool readSurnameFirst;
     const string albumColumns = "a.key, a.title, a.artist, a.year, a.cover_id AS cover, a.track_count AS tracks, a.duration, a.format, a.added";
 
     public LibraryQueries(ServerProfile profile, LibrarySettings librarySettings)
@@ -20,7 +21,7 @@ public sealed class LibraryQueries
         albumSource = librarySettings.AlbumSource == "tags" ? "t" : "f";
         anyCredit = librarySettings.ContributorGrouping != "albumartist";
         hideOwnComposers = librarySettings.HideOwnComposers;
-        nameSeparators = librarySettings.NameSeparators;
+        nameSeparators = librarySettings.NameSeparators; readSurnameFirst = librarySettings.ReadSurnameFirst;
     }
 
     public bool HasIndex => File.Exists(databasePath);
@@ -57,7 +58,7 @@ public sealed class LibraryQueries
             "customLevel" => CustomLevel(connection, queryParameters, Text("level")),
             "customAlbums" => new { own = Query(connection, $"WITH matched AS ({CustomTracks(queryParameters, out var albumParameters)}) SELECT DISTINCT {albumColumns} FROM albums a JOIN album_tracks at ON at.album_key=a.key JOIN matched m ON m.id=at.track_id WHERE a.source=$source ORDER BY {AlbumOrder(Text("sort"))}", albumParameters.Append(("$source", (object?)albumSource)).ToArray()) },
             // Raw tag text ("Kapustin, Nikolai; Bach, J.S.") to the first person's key, as the lists use it
-            "personKey" => TextNormaliser.SplitNames(Text("name"), nameSeparators).Select(part => new { key = TextNormaliser.Normalise(part), name = Query(connection, "SELECT display FROM people WHERE part_norm=$part LIMIT 1", ("$part", TextNormaliser.Normalise(part))).FirstOrDefault()?["display"] ?? part }).FirstOrDefault(),
+            "personKey" => TextNormaliser.SplitNames(Text("name"), nameSeparators, Text("kind") is "composer" or "conductor", readSurnameFirst).Select(part => new { key = TextNormaliser.Normalise(part), name = Query(connection, "SELECT display FROM people WHERE part_norm=$part LIMIT 1", ("$part", TextNormaliser.Normalise(part))).FirstOrDefault()?["display"] ?? part }).FirstOrDefault(),
             "trackItems" => TrackItems(connection, queryParameters.ValueKind == JsonValueKind.Object && queryParameters.TryGetProperty("items", out var itemList) && itemList.ValueKind == JsonValueKind.Array ? itemList : default),
             _ => new { error = $"Unknown query {queryName}" }
         });

@@ -275,6 +275,8 @@ public partial class SettingsWindow : Window
         void SaveChoice() { library.AlbumSource = tagAlbumsRadio.IsChecked == true ? "tags" : "folders"; library.ContributorGrouping = albumArtistRadio.IsChecked == true ? "albumartist" : "any"; Settings.Save(); App.NotifyLibraryChanged(); }
         foreach (var radio in new[] { folderAlbumsRadio, tagAlbumsRadio, anyCreditRadio, albumArtistRadio }) radio.Click += (sender, args) => SaveChoice();
         nameOrderBox.SelectedIndex = library.NameOrder == "forename" ? 1 : 0;
+        readSurnameFirstBox.IsChecked = library.ReadSurnameFirst;
+        readSurnameFirstBox.Click += async (sender, args) => { library.ReadSurnameFirst = readSurnameFirstBox.IsChecked == true; Settings.Save(); await App.Library.RefreshAsync(true); };
         nameOrderBox.SelectionChanged += async (sender, args) => { library.NameOrder = (string)((ComboBoxItem)nameOrderBox.SelectedItem).Tag; Settings.Save(); await App.Library.RefreshAsync(true); };
         hideOwnComposersBox.IsChecked = library.HideOwnComposers;
         hideOwnComposersBox.Click += (sender, args) => { library.HideOwnComposers = hideOwnComposersBox.IsChecked == true; Settings.Save(); App.NotifyLibraryChanged(); };
