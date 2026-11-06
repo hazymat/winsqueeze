@@ -41,7 +41,7 @@
   const greenLabels = [0.01, 0.1, 0.5, 1, 5, 10, 50, 100, 200, 500]
 </script>
 
-<svg viewBox="0 0 {width} {height}" class="vu panel {theme}" class:idle aria-hidden="true" style:--aspect={panelThemes[theme].aspect}>
+<svg viewBox="0 0 {width} {height}" class="panel {theme}" class:idle aria-hidden="true" style:--aspect={panelThemes[theme].aspect}>
   <defs>
     <filter id={id + '-grain'} x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency={grainFrequency} numOctaves="1" seed="7" /><feColorMatrix values="0 0 0 0 0.2  0 0 0 0 0.15  0 0 0 0 0.08  0 0 0 1.1 -0.5" /></filter>
     <filter id={id + '-brushed'} x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.004 0.9" numOctaves="2" seed="3" /><feColorMatrix values="0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0 0.52  0 0 0 0.6 0" /></filter>
