@@ -15,7 +15,7 @@ export const app = $state({
 const savedNav = (() => { try { return JSON.parse(readSetting('nav', '')) } catch { return null } })()
 export const nav = $state({ section: (savedNav?.section ?? 'artists') as string, stack: (savedNav?.stack ?? []) as View[] })
 $effect.root(() => { $effect(() => { writeSetting('nav', JSON.stringify({ section: nav.section, stack: nav.stack })) }) })
-export const ui = $state({ search: '', scope: 'list' as 'list' | 'everything', expanded: false, meterStyle: readSetting('meterStyle', 'vu'), skin: readSetting('skin', 'auto'), coverAccent: readSetting('coverAccent', '') === '1', coverBackdrop: readSetting('coverBackdrop', '1') !== '0', accent: readSetting('accent', ''), glassTransparency: Number(readSetting('glassTransparency', '-1')), glassTintHue: Number(readSetting('glassTintHue', '0')), lookVersion: 0, pinned: false, toast: null as null | { text: string; undo?: () => void; ms: number; id: number } })
+export const ui = $state({ search: '', scope: 'list' as 'list' | 'everything', expanded: false, meterStyle: readSetting('meterStyle', 'vu'), skin: readSetting('skin', 'auto'), coverAccent: readSetting('coverAccent', '') === '1', coverBackdrop: readSetting('coverBackdrop', '1') !== '0', accent: readSetting('accent', ''), glassTransparency: Number(readSetting('glassTransparency', '-1')), glassTintHue: Number(readSetting('glassTintHue', '0')), lookVersion: 0, pinned: false, metersFull: false, toast: null as null | { text: string; undo?: () => void; ms: number; id: number } })
 export const playlist = $state({ open: false, collapsed: false, name: 'Untitled playlist', items: [] as PlaylistItem[], history: [] as number[] })
 
 export function readSetting(name: string, fallback: string) { try { return localStorage.getItem('ws.' + name) ?? fallback } catch { return fallback } }
@@ -103,9 +103,10 @@ export function receiveLevels(vu: number[], peak: number[], bands: number[]) {
   if (!meterFrame) { meterLastTime = performance.now(); meterFrame = requestAnimationFrame(easeMeters) }
 }
 function easeMeters(time: number) {
-  const follow = 1 - Math.exp(-(time - meterLastTime) / 35); meterLastTime = time
+  const elapsed = time - meterLastTime, follow = 1 - Math.exp(-elapsed / 35), needleFollow = 1 - Math.exp(-elapsed / 75); meterLastTime = time // needles glide over the uneven arrival of updates (the VU is 300 ms-integrated anyway)
   const ease = (shown: number[], target: number[]) => target.map((value, index) => (shown[index] ?? value) + (value - (shown[index] ?? value)) * follow)
-  meters.vu = ease(meters.vu, Date.now() - app.levels.at > 1000 ? [-90, -90] : app.levels.vu)
+  const vuTarget = Date.now() - app.levels.at > 1000 ? [-90, -90] : app.levels.vu
+  meters.vu = vuTarget.map((value, index) => (meters.vu[index] ?? value) + (value - (meters.vu[index] ?? value)) * needleFollow)
   meters.peak = ease(meters.peak, Date.now() - app.levels.at > 1000 ? [0, 0] : app.levels.peak)
   meters.bands = ease(meters.bands, Date.now() - app.levels.at > 1000 ? meters.bands.map(() => 0) : app.levels.bands)
   const resting = Date.now() - app.levels.at > 1000 && meters.vu.every(value => value < -80) && meters.peak.every(value => value < 0.001) && meters.bands.every(value => value < 0.005)

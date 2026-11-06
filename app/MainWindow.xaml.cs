@@ -135,6 +135,7 @@ public partial class MainWindow : Window
                 case "loadDraft": ReplyRaw(message, File.Exists(Shell.PlayerSession.DraftPath) ? File.ReadAllText(Shell.PlayerSession.DraftPath) : "null"); break;
                 case "saveDraft": Directory.CreateDirectory(AppPaths.DataFolder); if (Text(message, "draft") == "null") File.Delete(Shell.PlayerSession.DraftPath); else File.WriteAllText(Shell.PlayerSession.DraftPath, message.GetProperty("draft").GetRawText()); break;
                 case "openEq": App.OpenEqualiser(); break;
+                case "toggleEq": App.ToggleEqualiser(); break;
                 case "toggleRecording": App.Recorder.Toggle(App.Session.LastStatus); break;
                 case "openRecordings": Directory.CreateDirectory(App.Recorder.Folder); System.Diagnostics.Process.Start("explorer.exe", App.Recorder.Folder); break;
                 case "edgeColour": LookLog("edge " + Text(message, "colour")); SetEdgeColour(Text(message, "colour")); break;

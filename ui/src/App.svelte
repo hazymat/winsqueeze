@@ -13,6 +13,7 @@
   import SearchView from './views/SearchView.svelte'
   import FavouritesView from './views/FavouritesView.svelte'
   import ActionStrip from './parts/ActionStrip.svelte'
+  import Meters from './parts/Meters.svelte'
   import { sortable } from './lib/sortable'
   import Icon from './parts/Icon.svelte'
   import { selection } from './lib/selection.svelte'
@@ -141,6 +142,7 @@
     else if (event.ctrlKey && event.key.toLowerCase() === 'n') { event.preventDefault(); if (!playlist.open) newPlaylist(); else playlist.collapsed = false }
     else if (event.ctrlKey && event.key.toLowerCase() === 'c' && !typing && getSelection()?.toString()) { event.preventDefault(); copySelection() }
     else if (event.ctrlKey && event.key.toLowerCase() === 'z' && !typing && ui.toast?.undo) { event.preventDefault(); undoToast() }
+    else if (event.key === 'Escape' && ui.metersFull) ui.metersFull = false
     else if (event.key === 'Escape' && !selection.keys.length) { if (ui.search) ui.search = ''; else if (nav.stack.length) back() }
     else if (event.altKey && event.key === 'ArrowLeft' && nav.stack.length) { event.preventDefault(); back() }
     else if (event.altKey && event.key === 'ArrowRight' && forwardHistory.views.length) { event.preventDefault(); forward() }
@@ -149,6 +151,7 @@
 
 <svelte:window bind:innerWidth={width} bind:innerHeight={height} onkeydown={onKey} onmouseup={(event) => { if (event.button === 3 && nav.stack.length) back(); if (event.button === 4) forward() }} oncontextmenu={onContextMenu} onpointerdown={(event) => { if (copyMenu && !(event.target as HTMLElement).closest('.copy-menu')) copyMenu = null }} />
 <WhatsNew {mini} offset={!!app.status?.updateReady} />
+{#if ui.metersFull && !mini}<div class="meters-full" role="dialog" aria-label="Meters"><Meters size="full" /><button class="meters-full-close" onclick={() => ui.metersFull = false} title="Close (Esc or right-click)">✕</button></div>{/if}
 {#if app.window.frameless && !app.window.maximised}<ResizeEdges />{/if}
 {#if copyMenu}<div class="copy-menu" style:left="{copyMenu.left}px" style:top="{copyMenu.top}px"><button onclick={copySelection}>Copy</button></div>{/if}
 
@@ -323,4 +326,7 @@
   .copy-menu { position: fixed; z-index: 100; background: var(--panel-solid); border: 1px solid var(--line); border-radius: 8px; padding: 4px; box-shadow: 0 8px 24px var(--shadow); }
   .copy-menu button { display: block; min-width: 90px; text-align: left; background: none; border: 0; color: var(--fg); font: inherit; padding: 6px 10px; border-radius: 5px; cursor: pointer; }
   .copy-menu button:hover { background: var(--hover); }
+  /* Right-click on the meters: they fill the window, like Task Manager's graphs */
+  .meters-full { position: fixed; inset: 0; z-index: 85; display: grid; place-items: center; background: color-mix(in srgb, var(--panel-solid) 88%, transparent); backdrop-filter: blur(30px) saturate(1.3); }
+  .meters-full-close { position: absolute; top: 14px; right: 14px; width: 34px; height: 34px; border: 0; border-radius: 8px; background: var(--hover); color: var(--fg); font-size: 14px; cursor: pointer; }
 </style>

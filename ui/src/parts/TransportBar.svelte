@@ -67,7 +67,7 @@
   </div>
   <div class="right">
     <div class="readout-slot"><Readout /></div>
-    <button class="pixel-meter" title="Equaliser" onclick={() => sendToShell({ type: 'openEq' })}><Analyser levels={meters.bands} compact={true} segments={14} /></button>
+    <button class="pixel-meter" title="Equaliser (click to open or close)" onclick={() => sendToShell({ type: 'toggleEq' })}><Analyser levels={meters.bands} compact={true} segments={14} /></button>
     <div class="volume">
       <FidelityBadge />
       <input type="range" min="0" max="100" value={volume} oninput={dragVolume} onchange={releaseVolume} aria-label="Volume" />

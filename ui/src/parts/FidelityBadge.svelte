@@ -50,8 +50,8 @@
   .badge { display: inline-flex; align-items: center; gap: 3px; height: 16px; padding: 0 6px; border-radius: 999px; font: inherit; font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; line-height: 1; }
   .perfect { background: none; border: 0; color: var(--accent); padding: 0; margin-right: -0.06em; gap: 4px; cursor: pointer; } .perfect:hover, .perfect.open { filter: brightness(1.2); }
   .format { background: none; border: 0; padding: 0; cursor: pointer; font-family: inherit; color: var(--fg-quiet); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; line-height: 1; margin-right: -0.06em; } /* the last letter's spacing would push it left of the line below */
-  .scaled { background: none; border: 1px solid var(--line); color: var(--fg-quiet); cursor: pointer; }
-  .scaled:hover, .scaled.open { color: var(--fg); background: var(--hover); }
+  .scaled { background: none; border: 0; padding: 0; margin-right: -0.06em; color: var(--fg-quiet); cursor: pointer; } /* plain text like Bit-perfect, so its right edge lines up with the format */
+  .scaled:hover, .scaled.open { color: var(--fg); text-decoration: underline; text-underline-offset: 2px; }
   .note { position: absolute; right: 0; bottom: calc(100% + 8px); z-index: 50; width: 260px; padding: 12px 14px; background: var(--panel-solid); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 12px 32px var(--shadow); font-size: 12px; line-height: 1.45; color: var(--fg); }
   .note p { margin: 6px 0 0; } .note .quiet { color: var(--fg-quiet); }
   .close { margin-top: 10px; float: right; background: var(--accent-soft); color: var(--fg); border: 0; border-radius: 6px; padding: 4px 12px; font: inherit; font-size: 12px; cursor: pointer; }
