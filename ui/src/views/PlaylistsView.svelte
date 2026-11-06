@@ -1,4 +1,5 @@
 <script lang="ts">
+  import PinButton from '../parts/PinButton.svelte'
   import { untrack } from 'svelte'
   import { live, artUrl } from '../bridge'
   import { app, ui, openView, toast, formatTime, newPlaylist } from '../state.svelte'
@@ -54,7 +55,7 @@
 </script>
 
 {#if playlistId}
-  <div class="head"><h2>{title}</h2><span class="quiet">{items.length} tracks · {formatTime(totalSeconds)}</span>
+  <div class="head"><h2>{title}</h2><span class="quiet">{items.length} tracks · {formatTime(totalSeconds)}</span><PinButton view={{ kind: 'playlist', key: playlistId, title }} />
     <button class="primary" onclick={() => play(playlistId, title)}>Play</button><button class="ghost" onclick={edit}>Edit as new playlist</button></div>
   <div class="list" use:sortable={{ onMove, onHold: index => selectOnHold(scope, String(index), actions, 'track'), group: index => selection.scope === scope && selection.keys.includes(String(index)) ? selection.keys.map(Number) : [index], enabled: ui.search.length < 2 }}>
   {#each shown as item, index (index + ':' + item.id)}

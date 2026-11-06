@@ -2,7 +2,7 @@
   import { checkKeepPlaying } from './lib/queueEnd.svelte'
   import { noteLongTrack } from './lib/resume'
   import { sendToShell, onShellMessage, request, command, artUrl } from './bridge'
-  import { app, nav, ui, playlist, openSection, back, forward, forwardHistory, currentView, newPlaylist, undoToast, undoLast, redoLast, history, toast, noteTrackChange, receiveLevels, writeSetting, readSetting, currentTrack } from './state.svelte'
+  import { app, nav, ui, playlist, openSection, back, forward, forwardHistory, currentView, newPlaylist, pins, togglePin, undoToast, undoLast, redoLast, history, toast, noteTrackChange, receiveLevels, writeSetting, readSetting, currentTrack } from './state.svelte'
   import TransportBar from './parts/TransportBar.svelte'
   import WhatsNew from './parts/WhatsNew.svelte'
   import TrackInfo from './parts/TrackInfo.svelte'
@@ -31,14 +31,17 @@
   const vertical = $derived(!mini && width <= 900)
   const folderMode = $derived(app.librarySettings.AlbumSource !== 'tags')
   const allSections = $derived([['queue', 'Now playing', 'queue'], ['favourites', 'Favourites', 'favourites'], ['playlists', 'Playlists', 'playlists'], ['artists', 'Artists', 'artists'], ['genres', 'Genres', 'genres'], ['composers', 'Composers', 'composers'], ['performers', 'Performers', 'performers'], ['folders', folderMode ? 'Folders' : 'Albums', folderMode ? 'folders' : 'albums']] as [string, string, any][])
+  const pinGlyphs: Record<string, string> = { genre: 'genres', artist: 'artists', composer: 'composers', performer: 'performers', album: 'albums', folder: 'folders', playlist: 'playlists' }
+  const pinSections = $derived(Object.entries(pins.views).map(([key, view]) => [key, view.title ?? '', pinGlyphs[view.kind] ?? 'pin']) as [string, string, any][])
   // Sidebar and bottom-bar customisation (one shared setting): every section shows by default; order, spacers and hidden ones are remembered per PC
   // The layout is section keys plus spacers ("spacer-…"); out of the box one spacer sits under the first section
   const isSpacer = (key: string) => key.startsWith('spacer-')
   function initialLayout(): string[] { const stored: string[] = JSON.parse(readSetting('sectionOrder', '[]')); if (readSetting('spacersAdded', '')) return stored; return stored.length ? stored.slice(0, 1).concat(['spacer-1'], stored.slice(1)) : ['queue', 'spacer-1'] }
   let layoutOrder = $state<string[]>(initialLayout())
   // Stored order first (unknown keys dropped), then any section not placed yet
-  const layout = $derived(layoutOrder.filter(key => isSpacer(key) || allSections.some(section => section[0] === key)).concat(allSections.map(section => section[0]).filter(key => !layoutOrder.includes(key))))
-  const sections = $derived(layout.map(key => isSpacer(key) ? [key, 'Spacer', 'spacer'] : allSections.find(section => section[0] === key)!) as [string, string, any][])
+  const placeable = $derived(allSections.concat(pinSections))
+  const layout = $derived(layoutOrder.filter(key => isSpacer(key) || placeable.some(section => section[0] === key)).concat(placeable.map(section => section[0]).filter(key => !layoutOrder.includes(key))))
+  const sections = $derived(layout.map(key => isSpacer(key) ? [key, 'Spacer', 'spacer'] : placeable.find(section => section[0] === key)!) as [string, string, any][])
   function saveLayout(order: string[]) { layoutOrder = order; writeSetting('sectionOrder', JSON.stringify(order)); writeSetting('spacersAdded', '1') }
   function changeLayout(order: string[], label: string) { const before = layout.slice(); saveLayout(order); toast(label, () => saveLayout(before), 6000, { redo: () => saveLayout(order) }) }
   function moveSection(from: number, to: number) { const keys = layout.slice(), moved = keys.splice(from, 1)[0]; keys.splice(to, 0, moved); changeLayout(keys, `Moved ${isSpacer(moved) ? 'spacer' : sections[from][1]}`) }
@@ -187,7 +190,7 @@
           {#if customising && isSpacer(key)}
             <div class="section customise spacer-row" data-sort-row title="Hold and drag to move"><span class="grip">⋮⋮</span><span class="spacer-line"></span><button class="remove-spacer no-hold" onclick={() => removeSpacer(key)} aria-label="Remove spacer">×</button></div>
           {:else if customising}
-            <label class="section customise" data-sort-row title="Hold and drag to reorder"><span class="grip">⋮⋮</span><input type="checkbox" checked={!hiddenSections.includes(key)} onchange={() => toggleSection(key)} /><span class="glyph"><Icon name={glyph} /></span>{label}</label>
+            <label class="section customise" data-sort-row title="Hold and drag to reorder"><span class="grip">⋮⋮</span><input type="checkbox" checked={!hiddenSections.includes(key)} onchange={() => toggleSection(key)} /><span class="glyph"><Icon name={glyph} /></span>{label}{#if pins.views[key]}<button class="remove-spacer no-hold" onclick={(event) => { event.preventDefault(); togglePin(pins.views[key]) }} aria-label="Unpin" title="Unpin">×</button>{/if}</label>
           {:else if isSpacer(key)}
             <div class="divider"></div>
           {:else}

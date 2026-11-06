@@ -4,6 +4,7 @@
   import { browseState, groupAlbums } from '../lib/browse.svelte'
   import AlbumList from '../parts/AlbumList.svelte'
   import BrowseBar from '../parts/BrowseBar.svelte'
+  import PinButton from '../parts/PinButton.svelte'
   let { kind, key = '', title = '' }: { kind: string; key?: string; title?: string } = $props()
   let result = $state<any>({ own: [], appearsOn: [] })
   const view = browseState(kind)
@@ -22,7 +23,7 @@
 
 <div class="page-width" bind:clientWidth={pageWidth}></div>
 <div class="head">
-  <div class="titles"><h2>{title || result.name || ''}</h2>{#if albumCount}<span class="count">{albumCount} {albumCount === 1 ? 'album' : 'albums'}</span>{/if}</div>
+  <div class="titles"><h2>{title || result.name || ''}</h2>{#if albumCount}<span class="count">{albumCount} {albumCount === 1 ? 'album' : 'albums'}</span>{/if}{#if kind !== 'albums' && key}<PinButton view={{ kind, key, title: title || result.name || '' }} />{/if}</div>
   {#if playlist.open && (result.own ?? []).length}<button class="ghost" onclick={addAll}>＋ Add all to {playlist.name}</button>{/if}
   <BrowseBar {view} />
 </div>

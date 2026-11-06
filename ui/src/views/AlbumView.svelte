@@ -1,4 +1,5 @@
 <script lang="ts">
+  import PinButton from '../parts/PinButton.svelte'
   import { selectable } from '../lib/selectable.svelte'
   import { browseActions } from '../lib/browseActions'
   import { query, sendToShell, live, artUrl } from '../bridge'
@@ -29,7 +30,7 @@
     {#if album.cover}<img class="cover" src={artUrl(album.cover, 600)} alt="" />{:else}<div class="cover none">♪</div>{/if}
     <div class="info">
       <div class="kicker">{album.key.startsWith('f:') ? 'Folder album' : 'Album'}</div>
-      <h1>{album.title}</h1>
+      <h1>{album.title}</h1><PinButton view={{ kind: 'album', key: albumKey, title: album.title }} />
       <button class="link" onclick={() => goTo('artist', album.artist)}>{album.artist}</button>
       <div class="meta">{album.year || ''}{album.year ? ' · ' : ''}{album.tracks} tracks · {formatTime(album.duration)}{album.format ? ` · ${album.format}` : ''}</div>
       <div class="actions">

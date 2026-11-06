@@ -27,7 +27,17 @@ export function openSection(section: string) { nav.section = section; nav.stack 
 export function openView(view: View) { nav.stack = nav.stack.concat([view]); ui.search = ''; forwardHistory.views = [] }
 export function back() { if (!nav.stack.length) return; forwardHistory.views = forwardHistory.views.concat([nav.stack[nav.stack.length - 1]]); nav.stack = nav.stack.slice(0, -1) }
 export function forward() { if (!forwardHistory.views.length) return; nav.stack = nav.stack.concat([forwardHistory.views[forwardHistory.views.length - 1]]); forwardHistory.views = forwardHistory.views.slice(0, -1) }
-export const currentView = () => nav.stack.length ? nav.stack[nav.stack.length - 1] : { kind: nav.section }
+export const currentView = () => nav.stack.length ? nav.stack[nav.stack.length - 1] : pins.views[nav.section] ?? { kind: nav.section }
+// Sidebar shortcuts: any genre, artist, album, folder or playlist pinned as its own sidebar section ("pin:<kind>:<key>"), remembered per PC
+export const pins = $state({ views: (() => { try { return JSON.parse(readSetting('pins', '{}')) } catch { return {} } })() as Record<string, View> })
+export const pinKey = (view: View) => `pin:${view.kind}:${view.key ?? ''}`
+export function togglePin(view: View) {
+  const key = pinKey(view), next: Record<string, View> = {}
+  for (const [existing, pinned] of Object.entries(pins.views)) if (existing !== key) next[existing] = pinned
+  if (!pins.views[key]) next[key] = { kind: view.kind, key: view.key, title: view.title }
+  pins.views = next; writeSetting('pins', JSON.stringify(next))
+  toast(pins.views[key] ? `Pinned “${view.title}” to the sidebar` : `Unpinned “${view.title}”`, () => togglePin(view), 6000, { keep: false })
+}
 
 // Messages show in the action strip above the transport (ActionStrip.svelte), with a ring counting down their time
 let toastTimer = 0, toastId = 0

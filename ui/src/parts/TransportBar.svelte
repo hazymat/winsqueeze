@@ -39,6 +39,15 @@
   const showRecord = $derived(recording.available && ownSelected && (recording.on || status?.remote == 1))
   const recordedFor = $derived(recording.on && recording.startedAt ? formatTime((now - recording.startedAt) / 1000) : '')
   const seek = (event: MouseEvent) => { const bar = event.currentTarget as HTMLElement; const ratio = (event.clientX - bar.getBoundingClientRect().left) / bar.clientWidth; if (duration) command('time', Math.round(ratio * duration)) }
+  // Hold Next / Previous (after half a second) to scan through the track like a CD player: hops of 5 s, a little music between each; a tap still skips
+  let scanDirection = $state(0), scanUsed = false
+  function holdToScan(button: HTMLElement, direction: number) {
+    let holdTimer = 0, hopTimer = 0
+    const stop = () => { clearTimeout(holdTimer); clearInterval(hopTimer); scanDirection = 0 }
+    const start = (event: PointerEvent) => { if (event.button !== 0) return; scanUsed = false; holdTimer = window.setTimeout(() => { scanUsed = true; scanDirection = direction; const hop = () => command('time', direction > 0 ? '+5' : '-5'); hop(); hopTimer = window.setInterval(hop, 450) }, 500) }
+    button.addEventListener('pointerdown', start); button.addEventListener('pointerup', stop); button.addEventListener('pointerleave', stop); button.addEventListener('pointercancel', stop)
+    return { destroy: () => { stop(); button.removeEventListener('pointerdown', start); button.removeEventListener('pointerup', stop); button.removeEventListener('pointerleave', stop); button.removeEventListener('pointercancel', stop) } }
+  }
 </script>
 
 <div class="transport-host" class:mini-host={mini}>
@@ -52,9 +61,9 @@
   </div>
   <div class="centre">
     <div class="buttons">
-      <button onclick={() => command('playlist', 'index', '-1')} aria-label="Previous"><Icon name="previous" /></button>
+      <button class:scanning={scanDirection < 0} use:holdToScan={-1} onclick={() => { if (!scanUsed) command('playlist', 'index', '-1'); scanUsed = false }} aria-label="Previous" title="Previous (hold to rewind)"><Icon name="previous" /></button>
       <button class="play" onclick={() => command('pause', playing ? '1' : '0')} aria-label={playing ? 'Pause' : 'Play'}><Icon name={playing ? 'pause' : 'play'} size={20} /></button>
-      <button onclick={() => command('playlist', 'index', '+1')} aria-label="Next"><Icon name="next" /></button>
+      <button class:scanning={scanDirection > 0} use:holdToScan={1} onclick={() => { if (!scanUsed) command('playlist', 'index', '+1'); scanUsed = false }} aria-label="Next" title="Next (hold to fast-forward)"><Icon name="next" /></button>
     </div>
     {#if mini && miniVolume}<div class="seek-row mini-volume"><input type="range" min="0" max="100" value={volume} oninput={dragVolume} onchange={releaseVolume} aria-label="Volume" /><span class="time">{volume}</span></div>
     {:else}<div class="seek-row">
@@ -147,5 +156,6 @@
   .mini-volume input { flex: 1; accent-color: var(--accent); } .mini .mini-volume .time { display: inline; }
   @container (max-width: 300px) { .mini-meters { display: none; } }
   .mini .now img, .mini .no-art { width: clamp(44px, min(100cqh - 96px, 20cqw), 150px); height: clamp(44px, min(100cqh - 96px, 20cqw), 150px); }
+  .buttons button.scanning { color: var(--accent); background: var(--accent-soft); }
   .mini .buttons { gap: 6px; } .mini .buttons button { width: 30px; height: 30px; } .mini .buttons .play { width: 34px; height: 34px; }
 </style>
