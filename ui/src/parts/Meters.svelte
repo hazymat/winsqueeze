@@ -6,7 +6,10 @@
   import Analyser from './Analyser.svelte'
   import MeterPanel, { panelThemes } from './MeterPanel.svelte'
   // Live from our Squeezelite build's sample export; with no audio the needles rest below -20 and the lamp dims
-  let { size = 'small' }: { size?: 'small' | 'large' | 'full' } = $props()
+  let { size = 'small', zoom = 1 }: { size?: 'small' | 'large' | 'full', zoom?: number } = $props()
+  // Grain and dust are drawn in face units, so their frequency follows the real pixel size (window size × full-screen zoom) to stay fine
+  let meterWidth = $state(384)
+  const textureScale = $derived(Math.max(0.4, zoom * (meterWidth || 384) / 384))
   let now = $state(Date.now())
   $effect(() => { const ticker = setInterval(() => now = Date.now(), 500); return () => clearInterval(ticker) })
   const active = $derived(now - app.levels.at < 1500 && app.levels.vu.some(decibels => decibels > -60))
@@ -37,7 +40,7 @@
   const detentAngles = Array.from({ length: 16 }, (unused, index) => 21 + index * 25 / 15)
 </script>
 
-<button class="meters {size}" class:idle={!active} onclick={toggle} oncontextmenu={(event) => { event.preventDefault(); ui.metersFull = !ui.metersFull }} title="Click to switch meter style · right-click for full window">
+<button class="meters {size}" bind:clientWidth={meterWidth} class:idle={!active} onclick={toggle} oncontextmenu={(event) => { event.preventDefault(); ui.metersFull = !ui.metersFull }} title="Click to switch meter style · right-click for full window">
   {#if ui.meterStyle === 'vu'}
     {#each ['L', 'R'] as channel, channelIndex}
       <svg viewBox="0 0 120 72" class="vu" aria-hidden="true">
@@ -53,12 +56,12 @@
           <radialGradient id={gradientId + channel + '-blob'} cx={channelIndex ? '28%' : '74%'} cy={channelIndex ? '62%' : '70%'} r="42%"><stop offset="0%" stop-color="#fff2cc" stop-opacity="0.32" /><stop offset="100%" stop-color="#fff2cc" stop-opacity="0" /></radialGradient>
           <filter id={gradientId + channel + '-mottle'} x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.045 0.06" numOctaves="2" seed={channelIndex ? 11 : 4} /><feColorMatrix values="0 0 0 0 0.16  0 0 0 0 0.09  0 0 0 0 0  0 0 0 1.4 -0.55" /></filter>
           <filter id={gradientId + '-inset'} x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="2.2" /></filter>
-          <filter id={gradientId + '-grain'} x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency={size === 'full' ? 6 : 1.6} numOctaves="1" seed={channelIndex ? 3 : 8} /><feColorMatrix values="0 0 0 0 0.2  0 0 0 0 0.13  0 0 0 0 0.05  0 0 0 1.1 -0.45" /></filter>
+          <filter id={gradientId + '-grain'} x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency={1.6 * textureScale} numOctaves="1" seed={channelIndex ? 3 : 8} /><feColorMatrix values="0 0 0 0 0.2  0 0 0 0 0.13  0 0 0 0 0.05  0 0 0 1.1 -0.45" /></filter>
           <filter id={gradientId + '-soft'} filterUnits="userSpaceOnUse" x="0" y="0" width="120" height="72"><feGaussianBlur stdDeviation="0.7" /></filter>
           <linearGradient id={gradientId + '-sheen'} x1="0" y1="0" x2="1" y2="0.6"><stop offset="0%" stop-color="#fff" stop-opacity="0" /><stop offset="30%" stop-color="#fff" stop-opacity="0.13" /><stop offset="44%" stop-color="#fff" stop-opacity="0.02" /><stop offset="58%" stop-color="#fff" stop-opacity="0" /></linearGradient>
           <!-- Glass: the thick edge bends light unevenly; faint smudges and dust on the pane -->
           <filter id={gradientId + channel + '-warp'} filterUnits="userSpaceOnUse" x="0" y="0" width="120" height="72"><feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="2" seed={channelIndex ? 21 : 13} result="warp" /><feDisplacementMap in="SourceGraphic" in2="warp" scale="0.9" xChannelSelector="R" yChannelSelector="G" /></filter>
-          <filter id={gradientId + channel + '-dust'} filterUnits="userSpaceOnUse" x="5" y="5" width="110" height="62"><feTurbulence type="fractalNoise" baseFrequency={size === 'full' ? 3 : 1.2} numOctaves="1" seed={channelIndex ? 31 : 17} /><feColorMatrix values="0 0 0 0 1  0 0 0 0 0.98  0 0 0 0 0.94  0 0 0 9 -7.4" /></filter>
+          <filter id={gradientId + channel + '-dust'} filterUnits="userSpaceOnUse" x="5" y="5" width="110" height="62"><feTurbulence type="fractalNoise" baseFrequency={1.2 * textureScale} numOctaves="1" seed={channelIndex ? 31 : 17} /><feColorMatrix values="0 0 0 0 1  0 0 0 0 0.98  0 0 0 0 0.94  0 0 0 9 -7.4" /></filter>
           <filter id={gradientId + '-smudge'} filterUnits="userSpaceOnUse" x="0" y="0" width="120" height="72"><feGaussianBlur stdDeviation="5" /></filter>
           <linearGradient id={gradientId + '-edge-light'} x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fff6de" stop-opacity="0.9" /><stop offset="35%" stop-color="#fff6de" stop-opacity="0.35" /><stop offset="70%" stop-color="#fff6de" stop-opacity="0.12" /><stop offset="100%" stop-color="#fff6de" stop-opacity="0.4" /></linearGradient>
           <clipPath id={gradientId + '-clip'}><rect x="5" y="5" width="110" height="62" rx="2" /></clipPath>
@@ -102,7 +105,7 @@
       </svg>
     {/each}
   {:else if panelThemes[ui.meterStyle]}
-    <MeterPanel theme={ui.meterStyle} levels={meters.vu} reference={meters.reference} {size} idle={!active} />
+    <MeterPanel theme={ui.meterStyle} levels={meters.vu} reference={meters.reference} {size} {textureScale} idle={!active} />
   {:else if ui.meterStyle === 'oledvu'}
     {#each ['L', 'R'] as channel, channelIndex}
       <!-- Cropped to the scale: the panel holds just the arc, numbers, needle and channel, centred top to bottom -->
