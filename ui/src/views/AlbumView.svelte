@@ -5,7 +5,9 @@
   import { query, sendToShell, live, artUrl } from '../bridge'
   import { app, openView, playlist, addToPlaylist, inPlaylist, formatTime, toast } from '../state.svelte'
   import { downloads, downloadItems, removeDownloads } from '../lib/downloads.svelte'
-  let { albumKey }: { albumKey: string } = $props()
+  let { albumKey, highlight = '' }: { albumKey: string, highlight?: string } = $props()
+  // Opened from History: scroll to that track and mark it for a moment
+  $effect(() => { if (!highlight) return; const timer = setInterval(() => { const row = document.querySelector(`.track[data-select-key="${highlight}"]`); if (!row) return; clearInterval(timer); row.scrollIntoView({ block: 'center' }); row.classList.add('found') }, 100); setTimeout(() => clearInterval(timer), 5000); return () => clearInterval(timer) })
   let data = $state<any>({ album: null, tracks: [] })
   let menuFor = $state<number | null>(null)
   $effect(() => { app.indexVersion; query('album', { key: albumKey }).then(result => data = result ?? { tracks: [] }) })
@@ -91,6 +93,7 @@
   .actions { display: flex; gap: 8px; flex-wrap: wrap; }
   h4 { margin: 18px 0 6px; color: var(--fg-quiet); font-weight: 600; font-size: 13px; }
   .tracks { display: flex; flex-direction: column; }
+  .track:global(.found) { background: var(--accent-soft); transition: background 1.5s; }
   .track { position: relative; display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 8px; }
   .track:hover { background: var(--hover); }
   /* digit and arrow share one grid cell and swap visibility, so hover never changes the row height */

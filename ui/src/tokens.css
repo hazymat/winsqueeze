@@ -54,6 +54,7 @@ h3 { font-size: 15px; margin: 18px 0 8px; color: var(--fg-quiet); font-weight: 6
 .primary:disabled, .ghost:disabled { opacity: 0.5; cursor: default; }
 .ghost { background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 5px 12px; font: inherit; cursor: pointer; }
 .ghost:hover { background: var(--hover); }
+.ghost.danger { color: #ff7a6b; border-color: color-mix(in srgb, #ff7a6b 45%, var(--line)); }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
 .chips button { background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 14px; padding: 4px 12px; font: inherit; font-size: 13px; cursor: pointer; }
 .chips button:hover { background: var(--hover); }

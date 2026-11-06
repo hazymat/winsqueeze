@@ -1,6 +1,6 @@
 import { sendToShell, query, command } from './bridge'
 
-export type View = { kind: string; key?: string; title?: string }
+export type View = { kind: string; key?: string; title?: string; highlight?: string }
 export type PlaylistItem = { id: number; title: string; artist: string; duration: number }
 
 export const app = $state({

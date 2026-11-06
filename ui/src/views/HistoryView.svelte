@@ -1,6 +1,6 @@
 <script lang="ts">
   import { query, artUrl, sendToShell, command } from '../bridge'
-  import { toast, ui } from '../state.svelte'
+  import { toast, ui, openView } from '../state.svelte'
   import { selectable } from '../lib/selectable.svelte'
   import { queueTracks, resolveTracks } from '../lib/browseActions'
   import { history } from '../lib/history.svelte'
@@ -52,12 +52,15 @@
     { label: 'Track info', run: keys => { ui.trackInfo = trackIdsOf(keys).map(Number) } },
     { label: 'Remove from history', danger: true, run: keys => sendToShell({ type: 'historyDelete', ids: keys.map(Number) }) }
   ]
+  // Click through: the track opens its album (or folder album) with the track marked; the artist opens the album artist's page
+  async function openAlbum(play: Play) { if (!play.track_id) { playStream(play); return } const place = await query('trackPlace', { id: play.track_id }); if (place?.album) openView({ kind: 'album', key: String(place.album), title: place.albumTitle, highlight: String(play.track_id) }); else toast('That track isn’t in the library any more') }
+  async function openArtist(play: Play) { const place = play.track_id ? await query('trackPlace', { id: play.track_id }) : null; if (place?.artist) openView({ kind: 'artist', key: String(place.artist), title: place.artistName || play.artist }); else toast('No artist page for that one') }
   const art = (play: Play) => { const source = play.artwork_url ?? ''; if (play.remote && source) return source.startsWith('http') ? source : `https://art.winsqueeze/server/${encodeURIComponent(source.replace(/^\//, ''))}`; return Number(play.cover_id) > 0 || (play.cover_id && !/^-/.test(play.cover_id)) ? artUrl(play.cover_id, 120) : '' }
 </script>
 
 <div class="history-head">
   <h1>History</h1>
-  {#if plays.length}{#if confirmClear}<span class="quiet">Clear all play history? This can’t be undone.</span><button class="danger" onclick={() => { sendToShell({ type: 'historyClear' }); confirmClear = false }}>Clear</button><button class="ghost" onclick={() => confirmClear = false}>Keep</button>{:else}<button class="ghost" onclick={() => confirmClear = true}>Clear history…</button>{/if}{/if}
+  {#if plays.length}{#if confirmClear}<span class="quiet">Clear all play history? This can’t be undone.</span><button class="ghost danger" onclick={() => { sendToShell({ type: 'historyClear' }); confirmClear = false }}>Clear</button><button class="ghost" onclick={() => confirmClear = false}>Keep</button>{:else}<button class="ghost" onclick={() => confirmClear = true}>Clear history…</button>{/if}{/if}
 </div>
 {#if !loading && !plays.length}<p class="quiet">Nothing yet. Everything you play here (albums, tracks, radio programmes) is listed by day once it has played for 20 seconds.</p>{/if}
 <div use:selectable={{ scope: 'history', noun: 'play', actions }}>
@@ -67,11 +70,12 @@
       {#if block.kind === 'album'}
         {@const first = block.plays[block.plays.length - 1]}
         <section class="block album-block">
-          <button class="album-head" onclick={() => playTracks(block.plays.slice().reverse().map(play => String(play.id)), 'load')} title="Play these again">
+          <button class="album-head" onclick={() => openAlbum(first)} title="Open the album">
             {#if art(first)}<img src={art(first)} alt="" />{:else}<span class="no-art">♪</span>{/if}
-            <span class="text"><span class="title">{first.album}</span><span class="quiet">{first.artist} · {block.plays.length} tracks · {clock(block.start)}–{clock(block.end)}</span></span>
+            <span class="text"><span class="title">{first.album}</span><span class="quiet"><span class="link" role="link" tabindex="-1" onclick={(event) => { event.stopPropagation(); openArtist(first) }} onkeydown={() => {}}>{first.artist}</span> · {block.plays.length} tracks · {clock(block.start)}–{clock(block.end)}</span></span>
+            <span class="replay" role="button" tabindex="-1" title="Play these again" onclick={(event) => { event.stopPropagation(); playTracks(block.plays.slice().reverse().map(play => String(play.id)), 'load') }} onkeydown={() => {}}><Icon name="play" size={14} /></span>
           </button>
-          {#each block.plays as play (play.id)}<button class="play-row" data-select-key={String(play.id)} ondblclick={() => playTracks([String(play.id)], 'load')}><span class="time">{clock(play.played_at)}</span><span class="name">{play.title}</span><span class="quiet artist">{play.artist}</span></button>{/each}
+          {#each block.plays as play (play.id)}<button class="play-row" data-select-key={String(play.id)} ondblclick={() => playTracks([String(play.id)], 'load')}><span class="time">{clock(play.played_at)}</span><span class="name link" role="link" tabindex="-1" onclick={(event) => { event.stopPropagation(); openAlbum(play) }} onkeydown={() => {}}>{play.title}</span><span class="quiet artist link" role="link" tabindex="-1" onclick={(event) => { event.stopPropagation(); openArtist(play) }} onkeydown={() => {}}>{play.artist}</span></button>{/each}
         </section>
       {:else if block.kind === 'radio'}
         {@const play = block.plays[0]}
@@ -86,7 +90,7 @@
       {:else}
         <section class="block">
           <h3 class="hour">{hourLabel(block.start)}</h3>
-          {#each block.plays as play (play.id)}<button class="play-row" data-select-key={String(play.id)} ondblclick={() => playTracks([String(play.id)], 'load')}><span class="time">{clock(play.played_at)}</span><span class="name">{play.title}</span><span class="quiet artist">{play.artist}{play.album ? ' · ' + play.album : ''}</span></button>{/each}
+          {#each block.plays as play (play.id)}<button class="play-row" data-select-key={String(play.id)} ondblclick={() => playTracks([String(play.id)], 'load')}><span class="time">{clock(play.played_at)}</span><span class="name link" role="link" tabindex="-1" onclick={(event) => { event.stopPropagation(); openAlbum(play) }} onkeydown={() => {}}>{play.title}</span><span class="quiet artist"><span class="link" role="link" tabindex="-1" onclick={(event) => { event.stopPropagation(); openArtist(play) }} onkeydown={() => {}}>{play.artist}</span>{#if play.album} · <span class="link" role="link" tabindex="-1" onclick={(event) => { event.stopPropagation(); openAlbum(play) }} onkeydown={() => {}}>{play.album}</span>{/if}</span></button>{/each}
         </section>
       {/if}
     {/each}
@@ -113,5 +117,7 @@
   .radio .text .quiet { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; } .radio .text { flex: 1; }
   .replay:hover { background: var(--accent); color: var(--on-accent); }
   .quiet { color: var(--fg-quiet); }
+  .link { cursor: pointer; } .link:hover { text-decoration: underline; color: var(--fg); }
+  .album-head .replay { opacity: 0.55; } .album-head:hover .replay { opacity: 1; }
   .load-more { margin: 16px 0; }
 </style>

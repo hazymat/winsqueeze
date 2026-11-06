@@ -250,7 +250,7 @@
           {:else if view.kind === 'folder'}
             {#key view.key}<FolderView folderKey={view.key} />{/key}
           {:else if view.kind === 'album'}
-            {#key view.key}<AlbumView albumKey={view.key ?? ''} />{/key}
+            {#key view.key}<AlbumView albumKey={view.key ?? ''} highlight={view.highlight} />{/key}
           {:else if view.kind === 'artist' || view.kind === 'composer' || view.kind === 'performer' || view.kind === 'genre'}
             {#key view.kind + view.key}<AlbumsOf kind={view.kind} key={view.key} title={view.title} />{/key}
           {:else if view.kind === 'favourites'}
