@@ -31,7 +31,7 @@
 {#each sections as [sectionName, albums] (sectionName)}
   {@const groups = groupAlbums(albums, view.group)}
   {#if sectionName && groups.length > 1 || sectionName && view.group !== 'none'}<h3 class="section-name">{sectionName}</h3>{/if}
-  <div class="groups" style:--card-width="{cardWidth}px" style:--column-gap="{columnGap}px">{#each groups as group (group.key)}<AlbumList albums={group.albums} section={kind} heading={group.heading || sectionName} size={view.size} minor={!!sectionName && !!group.heading} columns={groups.length > 1 ? columns : 0} />{/each}</div>
+  <div class="groups" style:--card-width="{cardWidth}px" style:--column-gap="{columnGap}px">{#each groups as group (group.key)}<AlbumList albums={group.albums} section={kind} heading={group.heading || sectionName} size={view.size} minor={!!sectionName && !!group.heading} columns={0} />{/each}</div>
 {/each}
 
 <style>
