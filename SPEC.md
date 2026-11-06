@@ -88,11 +88,13 @@ Name matching splits on common separators (`,` `;` `&` `/` `feat.` `with` `and`)
 
 ## Browsing
 
-Sidebar sections, in this order: Favourites, Artists, Genres, Composers, Performers, Folders, Queue.
+Sidebar sections, in this order: Favourites, Radio, Apps, Artists, Genres, Composers, Performers, Folders, Queue.
 
 | Section | List shows | Click opens |
 | --- | --- | --- |
 | Favourites | Lyrion favourites: streams (Radio 3, Radio 4), random mixes (e.g. jazz), albums, artists, playlists | Plays it, or opens it if it's a container |
+| Radio | The server's radio plugins (`radios`), as an icon grid | That plugin's menu |
+| Apps | The server's apps and streaming services (`apps`: Qobuz, TIDAL, Spotty, BBC Sounds, podcasts…), as an icon grid | That app's menu |
 | Artists | One merged list of every artist and album artist (no separate "album artist" concept) | That artist's albums: their own first, then a separate "Also appears on" group of contributing albums |
 | Genres | All genres | Albums in that genre, grouped under album artist headings, with contributing albums folded under the main artist as above |
 | Composers | Everyone credited as composer | Albums (CDs) containing at least one work by them, not a list of works |
@@ -130,6 +132,8 @@ Settings › Browsing chooses which groupings the Group menu offers and each are
 **Long tracks** (20 min and up) remember where you left them partway (more than a minute in and a minute from the end); playing one again carries on from there, with Undo to start from the beginning. Kept per device for the last 50 such tracks.
 
 **Favourites:** star any album, artist, folder, playlist or stream from anywhere; unstar the same way. Changes go to Lyrion's own favourites, so they stay in sync with other controllers. Only on user action.
+
+**Radio and apps:** no plugin gets its own code. Every radio and app plugin serves Lyrion's shared menu format (`<cmd> items`, the same one Favourites uses), so one browser covers them all: folders open, streams and episodes play (Play now / next / add to end via `<cmd> playlist`), search entries ask for words, and anything with an address can be added to favourites. Any app page can be pinned to the sidebar, so a much-used app gets its own entry without crowding the sidebar for people with many plugins. Radio and streams show their own artwork (`artwork_url`) wherever playback was started.
 
 **Players:** a player switcher in the transport bar. Defaults to this PC's bundled Squeezelite; any other player on the server (other Squeezeboxes in the house) can be picked and controlled the same way.
 

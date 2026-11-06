@@ -2,8 +2,9 @@
   import { untrack } from 'svelte'
   import { selectable } from '../lib/selectable.svelte'
   import type { SelectionAction } from '../lib/selection.svelte'
-  import { live, artUrl } from '../bridge'
-  import { app, ui, openView, toast, formatTime } from '../state.svelte'
+  import { live } from '../bridge'
+  import { infoFor, splitName, detail, itemImage } from '../lib/xmlBrowse'
+  import { app, ui, openView, toast } from '../state.svelte'
   import Icon from '../parts/Icon.svelte'
   let { itemId = '' }: { itemId?: string } = $props()
   let items = $state<any[]>([])
@@ -46,14 +47,6 @@
     { label: 'Info', run: keys => { ui.itemInfo = byId(keys).map(infoFor) } },
     { label: 'Remove from favourites', key: 'Delete', danger: true, run: removeFavourites }
   ]
-  // Whatever the server or plugin (e.g. BBC Sounds) gives for an item: date, length, description…
-  const labels: Record<string, string> = { name: 'Name', title: 'Title', line1: 'Title', line2: 'Detail', subtitle: 'Detail', description: 'Description', date: 'Date', year: 'Year', duration: 'Length', artist: 'Artist', album: 'Album', remote_title: 'Station', type: 'Type', url: 'Address' }
-  const formatValue = (key: string, value: any) => key === 'duration' && Number(value) > 0 ? formatTime(Number(value)) : String(value)
-  const infoFor = (item: any) => ({ name: item.name, fields: Object.keys(item).filter(key => !['id', 'hasitems', 'isaudio', 'image', 'icon'].includes(key) && item[key] !== '' && item[key] != null && typeof item[key] !== 'object').map(key => [labels[key] ?? key, formatValue(key, item[key])] as [string, string]) })
-  // "Programme - what it is" names (BBC Sounds) split into a title and a subtitle line
-  const splitName = (item: any) => { const name = String(item.name ?? ''), cut = name.indexOf(' - '); return cut > 0 ? [name.slice(0, cut), name.slice(cut + 3)] : [name, ''] }
-  const detail = (item: any) => [item.line2 ?? item.subtitle ?? splitName(item)[1], /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(String(item.name)) ? '' : item.date ?? '', Number(item.duration) > 0 ? formatTime(Number(item.duration)) : ''].filter(Boolean).join(' · ') || (item.description ?? '')
-  const image = (item: any) => { const source = String(item.image ?? item.icon ?? ''); return source.startsWith('http') ? source : source.startsWith('/') || source.startsWith('imageproxy') || source.startsWith('html/') || source.startsWith('plugins/') ? `https://art.winsqueeze/server/${encodeURIComponent(source.replace(/^\//, ''))}` : '' }
 </script>
 
 {#if !itemId}<h2>Favourites</h2>{/if}
@@ -62,7 +55,7 @@
   {#each shown as item (item.id)}
     <div class="favourite" data-select-key={String(item.id)}>
       <button class="main" onclick={() => activate(item)}>
-        {#if image(item)}<img src={image(item)} alt="" loading="lazy" />{:else}<span class="glyph">{item.hasitems && !item.isaudio ? '📁' : item.type === 'audio' ? '📻' : '★'}</span>{/if}
+        {#if itemImage(item)}<img src={itemImage(item)} alt="" loading="lazy" />{:else}<span class="glyph">{item.hasitems && !item.isaudio ? '📁' : item.type === 'audio' ? '📻' : '★'}</span>{/if}
         <span class="text" title={item.name}><span class="name">{splitName(item)[0]}</span>{#if detail(item)}<span class="detail">{detail(item)}</span>{/if}</span>
         <span class="kind" title={item.hasitems && !item.isaudio ? 'Open' : 'Play'}><Icon name={item.hasitems && !item.isaudio ? 'folders' : 'play'} size={16} /></span>
       </button>
