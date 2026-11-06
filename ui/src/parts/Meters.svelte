@@ -135,8 +135,9 @@
   .meters { display: flex; gap: 4px; background: none; border: 0; padding: 0; cursor: pointer; align-items: center; }
   .small .vu { width: 60px; height: 36px; } .large .vu { width: 190px; height: 114px; }
   /* Whole panels keep their own shape and size: tall round meters, long low monitor strips… */
-  .small :global(.panel) { height: 34px; width: auto; max-width: 130px; } .large :global(.panel) { width: auto; }
-  .large :global(.panel.deck) { height: 104px; } .large :global(.panel.orange) { height: 124px; } .large :global(.panel.monitor) { height: 84px; } .large :global(.panel.blue) { height: 96px; } .large :global(.panel.green) { height: 112px; }
+  .small :global(.panel) { height: 34px; width: auto; max-width: 130px; }
+  /* large: as wide as the pair of VU meters, unless that makes a tall panel too tall */
+  .large :global(.panel) { width: min(384px, 170px * var(--aspect)); height: auto; }
   .full :global(.panel) { height: auto; width: min(var(--full-share) * 1vw, (100vh - 140px) * var(--aspect)); }
   .full :global(.panel.deck) { --full-share: 78; } .full :global(.panel.orange) { --full-share: 58; } .full :global(.panel.monitor) { --full-share: 94; } .full :global(.panel.blue) { --full-share: 86; } .full :global(.panel.green) { --full-share: 90; }
   .small .oledvu { height: 27px; } .large .oledvu { height: 85.5px; }
