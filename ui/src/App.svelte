@@ -11,6 +11,8 @@
   import PlaylistPanel from './parts/PlaylistPanel.svelte'
   import PeopleList from './views/PeopleList.svelte'
   import AlbumsOf from './views/AlbumsOf.svelte'
+  import CustomBrowse from './views/CustomBrowse.svelte'
+  import CustomViewsEditor from './views/CustomViewsEditor.svelte'
   import AlbumView from './views/AlbumView.svelte'
   import FolderView from './views/FolderView.svelte'
   import SearchView from './views/SearchView.svelte'
@@ -34,7 +36,10 @@
   const mini = $derived(height < 400 || width < 460) // short or narrow windows snap to the mini player, with big meters
   const vertical = $derived(!mini && width <= 900)
   const folderMode = $derived(app.librarySettings.AlbumSource !== 'tags')
-  const allSections = $derived([['queue', 'Now playing', 'queue'], ['favourites', 'Favourites', 'favourites'], ['radio', 'Radio', 'radio'], ['apps', 'Apps', 'apps'], ['playlists', 'Playlists', 'playlists'], ['artists', 'Artists', 'artists'], ['genres', 'Genres', 'genres'], ['composers', 'Composers', 'composers'], ['performers', 'Performers', 'performers'], ['folders', folderMode ? 'Folders' : 'Albums', folderMode ? 'folders' : 'albums'], ['downloads', 'Downloaded', 'download'], ['history', 'History', 'history']] as [string, string, any][])
+  // Switched-on custom views (SPEC.md › Custom views): one entry each, or one per group for views that share a group
+  const levelGlyphs: Record<string, string> = { genre: 'genres', composer: 'composers', artist: 'artists', performer: 'performers' }
+  const customSections = $derived(((app.librarySettings.CustomViews ?? []) as any[]).filter(view => view.Enabled).reduce((entries: string[][], view) => { const key = view.Group ? 'customgroup:' + view.Group : 'custom:' + view.Id; if (!entries.some(entry => entry[0] === key)) entries.push([key, view.Group || view.Name, levelGlyphs[view.Levels?.[view.Levels.length - 1]] ?? 'albums']); return entries }, []))
+  const allSections = $derived([['queue', 'Now playing', 'queue'], ['favourites', 'Favourites', 'favourites'], ['radio', 'Radio', 'radio'], ['apps', 'Apps', 'apps'], ['playlists', 'Playlists', 'playlists'], ['artists', 'Artists', 'artists'], ['genres', 'Genres', 'genres'], ['composers', 'Composers', 'composers'], ['performers', 'Performers', 'performers'], ['folders', folderMode ? 'Folders' : 'Albums', folderMode ? 'folders' : 'albums'], ['downloads', 'Downloaded', 'download'], ['history', 'History', 'history']].concat(customSections) as [string, string, any][])
   const pinGlyphs: Record<string, string> = { genre: 'genres', artist: 'artists', composer: 'composers', performer: 'performers', album: 'albums', folder: 'folders', playlist: 'playlists', app: 'apps' }
   const pinSections = $derived(Object.entries(pins.views).map(([key, view]) => [key, view.title ?? '', pinGlyphs[view.kind] ?? 'pin']) as [string, string, any][])
   // Sidebar and bottom-bar customisation (one shared setting): every section shows by default; order, spacers and hidden ones are remembered per PC
@@ -77,6 +82,7 @@
   onShellMessage('players', message => { app.players = message.players ?? []; app.syncGroups = message.syncGroups ?? []; app.groupVolumes = message.groupVolumes ?? {}; app.ownPlayer = message.own ?? ''; app.selectedPlayer = message.selected ?? app.selectedPlayer })
   onShellMessage('library', message => app.library = { text: message.text ?? '', done: message.done ?? 0, total: message.total ?? 0 })
   onShellMessage('indexUpdated', () => app.indexVersion++)
+  onShellMessage('openSection', message => openSection(message.section))
   onShellMessage('newPlaylist', () => { if (!playlist.open) newPlaylist(); else playlist.collapsed = false })
   onShellMessage('levels', message => receiveLevels(message.vu, message.peak, message.bands))
   onShellMessage('meterSettings', message => app.meterSettings = { referenceDbfs: message.referenceDbfs, autoReference: message.autoReference })
@@ -207,7 +213,7 @@
           {/if}
         {/each}
         </div>
-        {#if customising}<button class="customise-toggle" onclick={addSpacer}>＋ Add spacer</button>{/if}
+        {#if customising}<button class="customise-toggle" onclick={addSpacer}>＋ Add spacer</button><button class="customise-toggle" onclick={() => { customising = false; openSection('customViews') }}>Custom views…</button>{/if}
         <button class="customise-toggle" title="Or press and hold any item" onclick={() => { customising = !customising; heldIntoCustomise = false }}>{customising ? 'Done (drag to reorder, tick to show)' : 'Customise sidebar'}</button>
         <button class="section new" onclick={() => playlist.open ? (playlist.collapsed = false) : newPlaylist()}><span class="glyph"><Icon name="plus" /></span>New playlist</button>
         <div class="spacer"></div>
@@ -256,6 +262,10 @@
             {#key view.key}<AlbumView albumKey={view.key ?? ''} highlight={view.highlight} />{/key}
           {:else if view.kind === 'artist' || view.kind === 'composer' || view.kind === 'performer' || view.kind === 'genre'}
             {#key view.kind + view.key}<AlbumsOf kind={view.kind} key={view.key} title={view.title} />{/key}
+          {:else if view.kind === 'custom' || view.kind === 'customGroup'}
+            {#key view.kind + view.key + JSON.stringify(view.filters ?? [])}<CustomBrowse viewId={view.kind === 'custom' ? view.key : ''} group={view.kind === 'customGroup' ? view.key : ''} filters={view.filters ?? []} />{/key}
+          {:else if view.kind === 'customViews'}
+            <CustomViewsEditor />
           {:else if view.kind === 'favourites'}
             {#key view.key}<FavouritesView itemId={view.key ?? ''} />{/key}
           {:else if view.kind === 'radio' || view.kind === 'apps' || view.kind === 'app' || view.kind === 'app-search'}

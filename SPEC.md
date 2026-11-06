@@ -118,6 +118,16 @@ Sidebar sections, in this order: Favourites, Radio, Apps, Artists, Genres, Compo
 
 Settings › Browsing chooses which groupings the Group menu offers and each area's starting grouping.
 
+## Custom views
+
+The built-in lists browse the whole library one way: pick a composer, see their albums. A custom view first narrows the library to genres you choose, then steps through the order you choose (for example Genre, then Composer, then albums). A Classical view therefore lists only classical composers, without the pop songwriters credited on other albums, and answers questions the built-in lists can't, such as which composers you have in Choral or which genres you have of Bach. (The successor to Custom Browse and Multi Library menus from the old Logitech Media Server, built into WinSqueeze so it needs no server plugin or setup.)
+
+- **A view** has a name, an on/off switch, an optional group, a genre list (empty = whole library) and up to four steps, each one of Genre, Composer, Artist (album, track or guest artist) or Performer (conductors, bands and orchestras). After the last step it shows albums, with the usual Sort, Group and View toolbar.
+- **Scope:** a track belongs to a view when it has one of the view's genres and matches every step chosen so far. Genre steps list only the view's own genres. Counts are albums and tracks within the scope. Selecting rows and playing them plays only the tracks in scope.
+- **Sidebar:** switched-on views appear in the sidebar. Views sharing a group sit in one entry named after the group, which opens a list of them; a view with no group gets its own entry. They can be moved and hidden like any section.
+- **Editing:** a Custom views page in the main window (from Customise sidebar, from a group's page, or Settings › Browsing, which also carries the explainer above). Changes save at once, in the settings file, so settings export and import carry them.
+- **Demos**, switched off out of the box, all in group "Classical" and limited to Baroque, Chamber Music, Choral, Classical, Minimalist, Opera, Orchestral, Piano Music, String Music and Symphony: Composers (composer, then albums), Composers by genre, Genres by composer, Composers by artist.
+
 ## Album view, queue and favourites
 
 **Album view (CD view):** opening an album shows large cover art, album artist, year, format summary (e.g. FLAC 24/96), then the track list grouped by disc. In folder mode, a CD holding works by several composers shows each track's composer in a quiet line under the title.

@@ -6,11 +6,11 @@
   import BrowseBar from '../parts/BrowseBar.svelte'
   import PinButton from '../parts/PinButton.svelte'
   import { downloads } from '../lib/downloads.svelte'
-  let { kind, key = '', title = '' }: { kind: string; key?: string; title?: string } = $props()
+  let { kind, key = '', title = '', params = {} }: { kind: string; key?: string; title?: string; params?: Record<string, unknown> } = $props()
   let result = $state<any>({ own: [], appearsOn: [] })
   const view = browseState(kind)
-  const queryName: Record<string, string> = { artist: 'artistAlbums', composer: 'composerAlbums', performer: 'performerAlbums', genre: 'genreAlbums', albums: 'albums', downloads: 'downloadedAlbums' }
-  $effect(() => { app.indexVersion; if (kind === 'downloads') downloads.finishedTracks; app.librarySettings.AlbumSource; app.librarySettings.ContributorGrouping; query(queryName[kind], { key, sort: view.sort }).then(data => result = data ?? { own: [] }) })
+  const queryName: Record<string, string> = { artist: 'artistAlbums', composer: 'composerAlbums', performer: 'performerAlbums', genre: 'genreAlbums', albums: 'albums', downloads: 'downloadedAlbums', custom: 'customAlbums' }
+  $effect(() => { app.indexVersion; if (kind === 'downloads') downloads.finishedTracks; app.librarySettings.AlbumSource; app.librarySettings.ContributorGrouping; query(queryName[kind], Object.assign({ key, sort: view.sort }, params)).then(data => result = data ?? { own: [] }) })
   // An artist keeps "Albums" and "Also appears on" as sections, with the chosen grouping inside each
   const sections = $derived(kind === 'artist' ? [['Albums', result.own ?? []], ['Also appears on', result.appearsOn ?? []]].filter(([, albums]) => (albums as any[]).length) as [string, any[]][] : [['', result.own ?? []]] as [string, any[]][])
   // Grouped grids share one column width (as auto-fill would give), so small groups can sit side by side on a row
@@ -24,7 +24,7 @@
 
 <div class="page-width" bind:clientWidth={pageWidth}></div>
 <div class="head">
-  <div class="titles"><h2>{title || result.name || ''}</h2>{#if albumCount}<span class="count">{albumCount} {albumCount === 1 ? 'album' : 'albums'}</span>{/if}{#if kind !== 'albums' && key}<PinButton view={{ kind, key, title: title || result.name || '' }} />{/if}</div>
+  <div class="titles"><h2>{title || result.name || ''}</h2>{#if albumCount}<span class="count">{albumCount} {albumCount === 1 ? 'album' : 'albums'}</span>{/if}{#if kind !== 'albums' && kind !== 'custom' && key}<PinButton view={{ kind, key, title: title || result.name || '' }} />{/if}</div>
   {#if playlist.open && (result.own ?? []).length}<button class="ghost" onclick={addAll}>＋ Add all to {playlist.name}</button>{/if}
   <BrowseBar {view} />
 </div>

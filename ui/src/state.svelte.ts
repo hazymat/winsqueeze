@@ -1,6 +1,8 @@
 import { sendToShell, query, command } from './bridge'
 
-export type View = { kind: string; key?: string; title?: string; highlight?: string }
+export type View = { kind: string; key?: string; title?: string; highlight?: string; filters?: CustomStep[] }
+// A step taken inside a custom view (SPEC.md › Custom views): the row chosen at that level
+export type CustomStep = { kind: string; key: string; name: string }
 export type PlaylistItem = { id: number; title: string; artist: string; duration: number }
 
 export const app = $state({
@@ -27,7 +29,9 @@ export function openSection(section: string) { nav.section = section; nav.stack 
 export function openView(view: View) { nav.stack = nav.stack.concat([view]); ui.search = ''; forwardHistory.views = [] }
 export function back() { if (!nav.stack.length) return; forwardHistory.views = forwardHistory.views.concat([nav.stack[nav.stack.length - 1]]); nav.stack = nav.stack.slice(0, -1) }
 export function forward() { if (!forwardHistory.views.length) return; nav.stack = nav.stack.concat([forwardHistory.views[forwardHistory.views.length - 1]]); forwardHistory.views = forwardHistory.views.slice(0, -1) }
-export const currentView = () => nav.stack.length ? nav.stack[nav.stack.length - 1] : pins.views[nav.section] ?? { kind: nav.section }
+export const currentView = (): View => nav.stack.length ? nav.stack[nav.stack.length - 1] : pins.views[nav.section] ?? sectionView(nav.section)
+// Custom views sit in the sidebar as "custom:<id>", or several under one "customgroup:<group name>"
+const sectionView = (section: string): View => section.startsWith('custom:') ? { kind: 'custom', key: section.slice(7), filters: [] } : section.startsWith('customgroup:') ? { kind: 'customGroup', key: section.slice(12) } : { kind: section }
 // Sidebar shortcuts: any genre, artist, album, folder or playlist pinned as its own sidebar section ("pin:<kind>:<key>"), remembered per PC
 export const pins = $state({ views: (() => { try { return JSON.parse(readSetting('pins', '{}')) } catch { return {} } })() as Record<string, View> })
 export const pinKey = (view: View) => `pin:${view.kind}:${view.key ?? ''}`

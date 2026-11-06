@@ -117,6 +117,7 @@ public partial class App : Application
     // ---- Tray actions ----
     public void SetWindowMode(string mode) { ShowMainWindow(); mainWindow.SetWindowMode(mode); }
     public void NewPlaylist() { ShowMainWindow(); mainWindow.PushNewPlaylist(); }
+    public void OpenSection(string section) { ShowMainWindow(); mainWindow.PushOpenSection(section); }
     public void SetSkin(string skin) { Settings.General.Skin = skin; Settings.Save(); ApplySkin(); }
     public async Task SelectPlayerAsync(string playerId) { Session.SelectedPlayerId = playerId == Settings.PlayerMac ? "" : playerId; await Session.RequestAsync(true, "status", "-", 1); }
 
