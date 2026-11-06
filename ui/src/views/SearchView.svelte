@@ -17,7 +17,7 @@
   <div class="chips">{#each people as person (person.key)}<button onclick={() => openView({ kind: kind as string, key: person.key, title: person.name })}>{person.name}{kind === 'performer' && person.detail ? ` · ${person.detail}` : ''}</button>{/each}</div>
 {/each}
 {#if (results.bestArtistAlbums ?? []).length}<AlbumList albums={results.bestArtistAlbums} section="search" heading={`${results.artists?.[0]?.name}: albums`} />{/if}
-{#if (results.albums ?? []).length}<AlbumList albums={results.albums.map((hit: any) => ({ key: hit.key, title: hit.name, artist: hit.detail }))} section="search" heading={folderMode ? 'Folders' : 'Albums'} />{/if}
+{#if (results.albums ?? []).length}<AlbumList albums={results.albums.map((hit: any) => ({ key: hit.key, title: hit.name, artist: hit.detail, cover: hit.cover, year: hit.year }))} section="search" heading={folderMode ? 'Folders' : 'Albums'} />{/if}
 {#if (results.trackGroups ?? []).length}
   <h3>Tracks{folderMode ? ', by folder' : ''}</h3>
   <div use:selectable={{ scope: 'search:tracks', noun: 'track', actions: browseActions('track') }}>
