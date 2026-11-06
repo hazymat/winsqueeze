@@ -23,6 +23,7 @@
   import PlaylistsView from './views/PlaylistsView.svelte'
   import DownloadsView from './views/DownloadsView.svelte'
   import { downloads } from './lib/downloads.svelte'
+  import HistoryView from './views/HistoryView.svelte'
   import PlayerPicker from './parts/PlayerPicker.svelte'
   import { accentFromCover } from './lib/coverAccent'
 
@@ -32,7 +33,7 @@
   const mini = $derived(height < 400 || width < 460) // short or narrow windows snap to the mini player, with big meters
   const vertical = $derived(!mini && width <= 900)
   const folderMode = $derived(app.librarySettings.AlbumSource !== 'tags')
-  const allSections = $derived([['queue', 'Now playing', 'queue'], ['favourites', 'Favourites', 'favourites'], ['playlists', 'Playlists', 'playlists'], ['artists', 'Artists', 'artists'], ['genres', 'Genres', 'genres'], ['composers', 'Composers', 'composers'], ['performers', 'Performers', 'performers'], ['folders', folderMode ? 'Folders' : 'Albums', folderMode ? 'folders' : 'albums'], ['downloads', 'Downloaded', 'download']] as [string, string, any][])
+  const allSections = $derived([['queue', 'Now playing', 'queue'], ['favourites', 'Favourites', 'favourites'], ['playlists', 'Playlists', 'playlists'], ['artists', 'Artists', 'artists'], ['genres', 'Genres', 'genres'], ['composers', 'Composers', 'composers'], ['performers', 'Performers', 'performers'], ['folders', folderMode ? 'Folders' : 'Albums', folderMode ? 'folders' : 'albums'], ['downloads', 'Downloaded', 'download'], ['history', 'History', 'history']] as [string, string, any][])
   const pinGlyphs: Record<string, string> = { genre: 'genres', artist: 'artists', composer: 'composers', performer: 'performers', album: 'albums', folder: 'folders', playlist: 'playlists' }
   const pinSections = $derived(Object.entries(pins.views).map(([key, view]) => [key, view.title ?? '', pinGlyphs[view.kind] ?? 'pin']) as [string, string, any][])
   // Sidebar and bottom-bar customisation (one shared setting): every section shows by default; order, spacers and hidden ones are remembered per PC
@@ -251,6 +252,8 @@
             {#key view.kind + view.key}<AlbumsOf kind={view.kind} key={view.key} title={view.title} />{/key}
           {:else if view.kind === 'favourites'}
             {#key view.key}<FavouritesView itemId={view.key ?? ''} />{/key}
+          {:else if view.kind === 'history'}
+            <HistoryView />
           {:else if view.kind === 'downloads'}
             <DownloadsView />
           {:else if view.kind === 'playlists'}

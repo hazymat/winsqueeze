@@ -1,6 +1,6 @@
 <script lang="ts">
   // Crisp transport icons as SVG: text glyphs (⏮ ▶ ⏭) render off-centre with colour fringes in WebView2
-  let { name, size = 18 }: { name: 'back' | 'forward' | 'previous' | 'next' | 'play' | 'pause' | 'volume' | 'speaker' | 'pin' | 'favourites' | 'artists' | 'genres' | 'composers' | 'performers' | 'folders' | 'albums' | 'queue' | 'plus' | 'settings' | 'playlists' | 'verified' | 'grid-large' | 'grid-small' | 'list' | 'minimise' | 'maximise' | 'restore' | 'close' | 'download'; size?: number } = $props()
+  let { name, size = 18 }: { name: 'back' | 'history' | 'forward' | 'previous' | 'next' | 'play' | 'pause' | 'volume' | 'speaker' | 'pin' | 'favourites' | 'artists' | 'genres' | 'composers' | 'performers' | 'folders' | 'albums' | 'queue' | 'plus' | 'settings' | 'playlists' | 'verified' | 'grid-large' | 'grid-small' | 'list' | 'minimise' | 'maximise' | 'restore' | 'close' | 'download'; size?: number } = $props()
 </script>
 
 <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" class="icon">
@@ -10,6 +10,7 @@
   {:else if name === 'pause'}<rect x="6.5" y="5" width="4" height="14" rx="1.2" /><rect x="13.5" y="5" width="4" height="14" rx="1.2" />
   {:else if name === 'previous'}<rect x="5" y="5.5" width="2.6" height="13" rx="1" /><path d="M19 6.4v11.2a.9.9 0 0 1-1.4.75L9.4 12.75a.9.9 0 0 1 0-1.5l8.2-5.6A.9.9 0 0 1 19 6.4z" />
   {:else if name === 'next'}<rect x="16.4" y="5.5" width="2.6" height="13" rx="1" /><path d="M5 6.4v11.2a.9.9 0 0 0 1.4.75l8.2-5.6a.9.9 0 0 0 0-1.5L6.4 5.65A.9.9 0 0 0 5 6.4z" />
+  {:else if name === 'history'}<path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3M4.5 4.5v3.2h3.2" class="stroke" /><path d="M12 8v4.2l2.8 1.8" class="stroke" />
   {:else if name === 'volume'}<path d="M4 9.5h3.2L11.5 6v12l-4.3-3.5H4z" /><path d="M15 9a4.2 4.2 0 0 1 0 6M17.6 6.6a7.6 7.6 0 0 1 0 10.8" class="stroke" />
   {:else if name === 'speaker'}<rect x="6" y="3.5" width="12" height="17" rx="2.5" class="stroke" /><circle cx="12" cy="14.5" r="3" class="stroke" /><circle cx="12" cy="7.8" r="1.2" />
   {:else if name === 'pin'}<path d="M9 4h6l-1 6 3 3H7l3-3zM12 13v7" class="stroke" />
