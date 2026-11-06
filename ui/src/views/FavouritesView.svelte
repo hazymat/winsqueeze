@@ -3,7 +3,7 @@
   import { selectable } from '../lib/selectable.svelte'
   import type { SelectionAction } from '../lib/selection.svelte'
   import { live, artUrl } from '../bridge'
-  import { app, ui, openView, toast } from '../state.svelte'
+  import { app, ui, openView, toast, formatTime } from '../state.svelte'
   let { itemId = '' }: { itemId?: string } = $props()
   let items = $state<any[]>([])
   let loading = $state(true)
@@ -36,9 +36,15 @@
     { label: 'Play now', key: 'Enter', run: keys => queueFavourites(keys, 'play') },
     { label: 'Play next', run: keys => queueFavourites(keys, 'insert') },
     { label: 'Add to end', run: keys => queueFavourites(keys, 'add') },
+    { label: 'Info', run: keys => { ui.itemInfo = byId(keys).map(infoFor) } },
     { label: 'Remove from favourites', key: 'Delete', danger: true, run: removeFavourites }
   ]
-  const image = (item: any) => item.image ? (String(item.image).startsWith('http') ? item.image : '') : ''
+  // Whatever the server or plugin (e.g. BBC Sounds) gives for an item: date, length, description…
+  const labels: Record<string, string> = { name: 'Name', title: 'Title', line1: 'Title', line2: 'Detail', subtitle: 'Detail', description: 'Description', date: 'Date', year: 'Year', duration: 'Length', artist: 'Artist', album: 'Album', remote_title: 'Station', type: 'Type', url: 'Address' }
+  const formatValue = (key: string, value: any) => key === 'duration' && Number(value) > 0 ? formatTime(Number(value)) : String(value)
+  const infoFor = (item: any) => ({ name: item.name, fields: Object.keys(item).filter(key => !['id', 'hasitems', 'isaudio', 'image', 'icon'].includes(key) && item[key] !== '' && item[key] != null && typeof item[key] !== 'object').map(key => [labels[key] ?? key, formatValue(key, item[key])] as [string, string]) })
+  const detail = (item: any) => [item.line2 ?? item.subtitle ?? '', item.date ?? '', Number(item.duration) > 0 ? formatTime(Number(item.duration)) : ''].filter(Boolean).join(' · ') || (item.description ?? '')
+  const image = (item: any) => { const source = String(item.image ?? item.icon ?? ''); return source.startsWith('http') ? source : source.startsWith('/') || source.startsWith('imageproxy') || source.startsWith('html/') || source.startsWith('plugins/') ? `https://art.winsqueeze/server/${encodeURIComponent(source.replace(/^\//, ''))}` : '' }
 </script>
 
 {#if !itemId}<h2>Favourites</h2>{/if}
@@ -48,7 +54,7 @@
     <div class="favourite" data-select-key={String(item.id)}>
       <button class="main" onclick={() => activate(item)}>
         {#if image(item)}<img src={image(item)} alt="" loading="lazy" />{:else}<span class="glyph">{item.hasitems && !item.isaudio ? '📁' : item.type === 'audio' ? '📻' : '★'}</span>{/if}
-        <span class="name">{item.name}</span>
+        <span class="text"><span class="name">{item.name}</span>{#if detail(item)}<span class="detail">{detail(item)}</span>{/if}</span>
         <span class="kind">{item.hasitems && !item.isaudio ? 'Open' : 'Play'}</span>
       </button>
       <button class="remove" onclick={() => remove(item)} title="Remove from favourites">★</button>
@@ -63,7 +69,8 @@
   .favourite:hover { background: var(--hover); }
   .main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; background: none; border: 0; color: var(--fg); padding: 6px 8px; cursor: pointer; font: inherit; text-align: left; }
   .main img, .glyph { width: 40px; height: 40px; border-radius: 6px; object-fit: cover; display: grid; place-items: center; background: var(--panel-strong); flex-shrink: 0; }
-  .name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .text { flex: 1; min-width: 0; display: flex; flex-direction: column; } .detail { color: var(--fg-quiet); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .kind { color: var(--fg-quiet); font-size: 12px; }
   .remove { background: none; border: 0; color: var(--accent); cursor: pointer; font-size: 16px; padding: 0 10px; }
   .quiet { color: var(--fg-quiet); }

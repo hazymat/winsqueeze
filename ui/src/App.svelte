@@ -153,7 +153,7 @@
     else if (event.ctrlKey && ((event.shiftKey && event.key.toLowerCase() === 'z') || event.key.toLowerCase() === 'y') && !typing) { event.preventDefault(); redoLast() }
     else if (event.ctrlKey && event.key.toLowerCase() === 'z' && !typing) { event.preventDefault(); if (ui.toast?.undo && ui.toast.undo !== undoLast) undoToast(); else undoLast() }
     else if (!event.ctrlKey && !event.altKey && !typing && ui.toast?.action && event.key.toUpperCase() === ui.toast.action.key) { event.preventDefault(); const action = ui.toast.action; ui.toast = null; action.run() }
-    else if (event.key === 'Escape' && ui.trackInfo) ui.trackInfo = null
+    else if (event.key === 'Escape' && (ui.trackInfo || ui.itemInfo)) { ui.trackInfo = null; ui.itemInfo = null }
     else if (event.key === 'Escape' && ui.metersFull) ui.metersFull = false
     else if (event.key === 'Escape' && ui.toast && !selection.keys.length) ui.toast = null
     else if (event.key === 'Escape' && !selection.keys.length) { if (ui.search) ui.search = ''; else if (nav.stack.length) back() }
@@ -168,7 +168,7 @@
 
 <svelte:window bind:innerWidth={width} bind:innerHeight={height} onkeydown={onKey} onmouseup={(event) => { if (event.button === 3 && nav.stack.length) back(); if (event.button === 4) forward() }} oncontextmenu={onContextMenu} onpointerdown={(event) => { if (copyMenu && !(event.target as HTMLElement).closest('.copy-menu')) copyMenu = null }} />
 <WhatsNew {mini} offset={!!app.status?.updateReady} />
-{#if ui.trackInfo && !mini}<TrackInfo ids={ui.trackInfo} />{/if}
+{#if (ui.trackInfo || ui.itemInfo) && !mini}<TrackInfo ids={ui.trackInfo ?? []} items={ui.itemInfo} />{/if}
 {#if ui.metersFull && !mini}<div class="meters-full" role="dialog" aria-label="Meters" bind:clientWidth={fullWidth} bind:clientHeight={fullHeight}><div class="meters-zoom" bind:this={fullMeters} style:zoom={fullZoom}><Meters size="large" /></div><button class="meters-full-close" onclick={() => ui.metersFull = false} title="Close (Esc or right-click)">✕</button></div>{/if}
 {#if app.window.frameless && !app.window.maximised}<ResizeEdges />{/if}
 {#if copyMenu}<div class="copy-menu" style:left="{copyMenu.left}px" style:top="{copyMenu.top}px"><button onclick={copySelection}>Copy</button></div>{/if}
