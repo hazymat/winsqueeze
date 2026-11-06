@@ -44,11 +44,15 @@ export function noteTrackChange(previous: any, next: any) {
   if (!samePlayer || !left || !arrived || String(left.id) === String(arrived.id) || !['play', 'pause'].includes(previous.mode)) return
   const position = Number(previous.time ?? 0) + (previous.mode === 'play' ? (Date.now() - app.receivedAt) / 1000 : 0), duration = Number(left.duration ?? previous.duration ?? 0)
   if (position < 5 || (duration && duration - position < 8)) return
-  toast(`Changed track. Back to “${left.title}” at ${formatTime(position)}?`, () => {
-    const queued = next.playlist_loop?.find((item: any) => String(item.id) === String(left.id))
+  // If the queue itself was replaced (e.g. Play now on another album), undo restores the whole old queue, not just the track
+  const oldQueue: any[] = previous.playlist_loop ?? [], oldIds = oldQueue.map((item: any) => Number(item.id))
+  const queued = next.playlist_loop?.find((item: any) => String(item.id) === String(left.id))
+  const queueReplaced = !queued && oldIds.length > 1 && oldIds.every(id => Number.isFinite(id) && id > 0)
+  toast(queueReplaced ? `Queue replaced. Undo to bring back the previous queue at “${left.title}” ${formatTime(position)}?` : `Changed track. Back to “${left.title}” at ${formatTime(position)}?`, () => {
     if (queued) command('playlist', 'index', queued['playlist index'])
-    else { sendToShell({ type: 'playTracks', ids: [Number(left.id)], mode: 'insert' }); window.setTimeout(() => command('playlist', 'index', '+1'), 400) } // the queue was replaced: put it back next and play it
-    window.setTimeout(() => command('time', Math.floor(position)), queued ? 700 : 1100) // seek once the track has started
+    else if (queueReplaced) sendToShell({ type: 'playTracks', ids: oldIds, mode: 'load', start: oldQueue.indexOf(left) })
+    else { sendToShell({ type: 'playTracks', ids: [Number(left.id)], mode: 'insert' }); window.setTimeout(() => command('playlist', 'index', '+1'), 400) } // put it back next and play it
+    window.setTimeout(() => command('time', Math.floor(position)), queued ? 700 : 1500) // seek once the track has started
   }, 10000)
 }
 

@@ -12,7 +12,7 @@
     const status = app.status ?? {}, sourceRate = Number(track.samplerate ?? 0), outputRate = Number(status.sampleRate ?? 0)
     const bitrate = String(track.bitrate ?? '').replace(/kbps/i, ' kbps').trim(), sizeBytes = Number(track.filesize ?? 0)
     const rows: [string, string][] = [['Format', check.format + (check.lossy ? ' (lossy)' : ' (lossless)')], ['Bitrate', bitrate], ['Sample rate', sourceRate ? formatRate(sourceRate) : ''], ['Bit depth', track.samplesize ? `${track.samplesize}-bit` : ''], ['File size', sizeBytes ? `${(sizeBytes / 1048576).toFixed(1)} MB` : ''], ['ReplayGain', track.replay_gain ? `${track.replay_gain} dB` : ''],
-      ['Output', status.exclusive ? 'WASAPI exclusive' : 'Shared (Windows mixer)'], ['Device', status.device ?? ''], ['Device rate', outputRate ? formatRate(outputRate) + (sourceRate && outputRate !== sourceRate ? ' (resampled)' : '') : ''], ['Equaliser', status.eqActive ? 'On' : 'Off (bypassed)'], ['Volume', String(Math.abs(Number(app.nowPlaying?.['mixer volume'] ?? 0)))]]
+      ['Signal path', `${check.format}${sourceRate ? ' ' + formatRate(sourceRate) : ''} → ${status.exclusive ? 'WASAPI exclusive' : 'Windows mixer'}${outputRate ? ' → ' + formatRate(outputRate) : ''}`], ['Output', status.exclusive ? 'WASAPI exclusive' : 'Shared (Windows mixer)'], ['Device', status.device ?? ''], ['Device rate', outputRate ? formatRate(outputRate) + (sourceRate && outputRate !== sourceRate ? ' (resampled)' : '') : ''], ['Equaliser', status.eqActive ? 'On' : 'Off (bypassed)'], ['Volume', String(Math.abs(Number(app.nowPlaying?.['mixer volume'] ?? 0)))]]
     return rows.filter(row => row[1])
   })
   let shownState = ''
