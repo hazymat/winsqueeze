@@ -157,8 +157,6 @@ public partial class SettingsWindow : Window
     void WireAudioTab()
     {
         exclusiveBox.IsChecked = Settings.Audio.Exclusive;
-        hardwareVolumeBox.IsChecked = Settings.Audio.HardwareVolume;
-        hardwareVolumeBox.Click += async (sender, args) => { Settings.Audio.HardwareVolume = hardwareVolumeBox.IsChecked == true; Settings.Save(); await App.StartPlayerAsync(true); };
         playerNameBox.Text = Settings.Audio.PlayerName;
         latencyBox.Text = Settings.Audio.LatencyMs.ToString();
         extraArgumentsBox.Text = Settings.Audio.ExtraArguments;

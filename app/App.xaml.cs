@@ -22,7 +22,6 @@ public partial class App : Application
     public Equaliser Equaliser { get; } = new();
     public Recorder Recorder { get; } = new();
     EqualiserWindow? equaliserWindow;
-    public DeviceVolume DeviceVolume { get; } = new();
     public List<OutputDevice> Devices { get; private set; } = new();
     public bool UsingFallbackDevice { get; private set; }
     public bool IsQuitting { get; private set; }
@@ -91,17 +90,6 @@ public partial class App : Application
         catch { }
     }
 
-    // The server's volume for this PC's player goes to the device (only while this player is the one being polled)
-    bool hardwareVolumeFailed;
-    void ApplyDeviceVolume(JsonElement status)
-    {
-        if (!DeviceVolume.Active || Session.SelectedPlayerId != "" || status.ValueKind != JsonValueKind.Object) return;
-        if (!int.TryParse(LyrionClient.ReadString(status, "mixer volume"), out var serverVolume) || DeviceVolume.Apply(serverVolume)) return;
-        // The endpoint won't take volume: restart Squeezelite with its own (digital) volume for the rest of this run
-        hardwareVolumeFailed = true; DeviceVolume.Detach();
-        Dispatcher.InvokeAsync(() => StartPlayerAsync(true));
-    }
-
     // ---- Tray actions ----
     public void SetWindowMode(string mode) { ShowMainWindow(); mainWindow.SetWindowMode(mode); }
     public void NewPlaylist() { ShowMainWindow(); mainWindow.PushNewPlaylist(); }
@@ -131,13 +119,9 @@ public partial class App : Application
         Updater.Changed += () => Dispatcher.BeginInvoke(() => StatusChanged?.Invoke());
         Updater.Start();
         RefreshIconsAfterUpdate();
-        // Hardware volume became opt-in (Mat preferred WinSqueeze's volume independent of Windows): switch it off once on existing installs
-        if (!Settings.Audio.HardwareVolumeOptIn) { Settings.Audio.HardwareVolume = false; Settings.Audio.HardwareVolumeOptIn = true; Settings.Save(); }
         if (CrashReporter.TakeUnseenReport()) ShowTip("WinSqueeze had a problem last time", "It crashed or stopped responding. Details are in Settings › About › Open logs (crash.log).");
         try { Media = new MediaControls(); } catch { } // SMTC needs Windows 10 1903+
-        // Windows' volume for the DAC moved (taskbar mixer, keyboard keys): tell the server, so the slider and other controllers follow
-        DeviceVolume.ExternalChange += volume => { if (Session.SelectedPlayerId == "") _ = volume < 0 ? Session.RequestAsync(true, "mixer", "muting", 1) : Session.RequestAsync(true, "mixer", "volume", volume); };
-        Session.StatusUpdated += () => { if (Settings.ActiveProfile is { } profile) Media?.Update(Session.LastStatus, $"http://{profile.Host}:{profile.Port}"); trayIcon.RefreshNowPlaying(Session.LastStatus); NotifyTrackChange(Session.LastStatus); ApplyDeviceVolume(Session.LastStatus); Recorder.OnStatus(Session.LastStatus, Session.SelectedPlayerId == ""); };
+        Session.StatusUpdated += () => { if (Settings.ActiveProfile is { } profile) Media?.Update(Session.LastStatus, $"http://{profile.Host}:{profile.Port}"); trayIcon.RefreshNowPlaying(Session.LastStatus); NotifyTrackChange(Session.LastStatus); Recorder.OnStatus(Session.LastStatus, Session.SelectedPlayerId == ""); };
         Recorder.Changed += () => Dispatcher.BeginInvoke(() => StatusChanged?.Invoke());
         ApplyGlobalHotkeys();
         Session.Start();
@@ -276,10 +260,8 @@ public partial class App : Application
         }
         (string mode, double seconds) resumeState = ("", 0);
         if (resumePosition && Player.State == PlayerState.Running) resumeState = await ReadPlaybackStateAsync();
-        var hardwareVolume = Settings.Audio.HardwareVolume && !hardwareVolumeFailed && SqueezeliteHost.SupportsFixedVolume && DeviceVolume.Attach(outputDevice.Name);
-        if (!hardwareVolume) DeviceVolume.Detach();
         Recorder.Flush(); // finish the file cleanly; it carries on in a new one once Squeezelite is back
-        Player.Start(profile, outputDevice, Settings.Audio, Settings.PlayerMac, hardwareVolume);
+        Player.Start(profile, outputDevice, Settings.Audio, Settings.PlayerMac);
         if (SqueezeliteHost.SupportsRecording) Recorder.Start(Settings.PlayerMac);
         Visualiser.Tuning = Settings.Meters;
         if (SqueezeliteHost.SupportsVisualiser) Visualiser.Start(Settings.PlayerMac, Settings.Audio.LatencyMs);
@@ -345,7 +327,6 @@ public partial class App : Application
         device = Player.Device?.Name ?? "",
         driver = Player.Device?.Driver ?? "",
         exclusive = Player.ExclusiveActive,
-        hardwareVolume = DeviceVolume.Active,
         eqActive = Settings.Equaliser.Enabled && SqueezeliteHost.SupportsEqualiser,
         sampleRate = Player.OutputSampleRate,
         recording = new { available = SqueezeliteHost.SupportsRecording && Settings.Recording.ShowButton, on = Recorder.Recording, file = System.IO.Path.GetFileName(Recorder.CurrentFile), startedAt = Recorder.Recording ? new DateTimeOffset(Recorder.StartedAt).ToUnixTimeMilliseconds() : 0, files = Recorder.FilesThisRecording, note = Recorder.Note, noteId = Recorder.NoteId },

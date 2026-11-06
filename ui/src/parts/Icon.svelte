@@ -1,6 +1,6 @@
 <script lang="ts">
   // Crisp transport icons as SVG: text glyphs (⏮ ▶ ⏭) render off-centre with colour fringes in WebView2
-  let { name, size = 18 }: { name: 'back' | 'forward' | 'previous' | 'next' | 'play' | 'pause' | 'volume' | 'speaker' | 'pin' | 'favourites' | 'artists' | 'genres' | 'composers' | 'performers' | 'folders' | 'albums' | 'queue' | 'plus' | 'settings' | 'playlists' | 'grid-large' | 'grid-small' | 'list' | 'minimise' | 'maximise' | 'restore' | 'close'; size?: number } = $props()
+  let { name, size = 18 }: { name: 'back' | 'forward' | 'previous' | 'next' | 'play' | 'pause' | 'volume' | 'speaker' | 'pin' | 'favourites' | 'artists' | 'genres' | 'composers' | 'performers' | 'folders' | 'albums' | 'queue' | 'plus' | 'settings' | 'playlists' | 'verified' | 'grid-large' | 'grid-small' | 'list' | 'minimise' | 'maximise' | 'restore' | 'close'; size?: number } = $props()
 </script>
 
 <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" class="icon">
@@ -24,6 +24,7 @@
   {:else if name === 'plus'}<path d="M12 5v14M5 12h14" class="stroke" />
   {:else if name === 'settings'}<circle cx="12" cy="12" r="3" class="stroke" /><path d="M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M6 6l1.6 1.6M16.4 16.4L18 18M6 18l1.6-1.6M16.4 7.6L18 6" class="stroke" />
   {:else if name === 'playlists'}<path d="M4 6.5h11M4 11h11M4 15.5h6" class="stroke" /><path d="M17 13v6.5" class="stroke" /><circle cx="15.5" cy="19.5" r="1.8" class="stroke" /><path d="M17 13l3-1" class="stroke" />
+  {:else if name === 'verified'}<path d="M20.20 12.00Q22.35 16.29 17.80 17.80Q16.29 22.35 12.00 20.20Q7.71 22.35 6.20 17.80Q1.65 16.29 3.80 12.00Q1.65 7.71 6.20 6.20Q7.71 1.65 12.00 3.80Q16.29 1.65 17.80 6.20Q22.35 7.71 20.20 12.00z" /><path d="M8.3 12.2l2.5 2.5 4.9-5" class="stroke tick" />
   {:else if name === 'grid-large'}<rect x="4.5" y="4.5" width="6.5" height="6.5" rx="1.3" class="stroke" /><rect x="13" y="4.5" width="6.5" height="6.5" rx="1.3" class="stroke" /><rect x="4.5" y="13" width="6.5" height="6.5" rx="1.3" class="stroke" /><rect x="13" y="13" width="6.5" height="6.5" rx="1.3" class="stroke" />
   {:else if name === 'grid-small'}{#each [5, 10.5, 16] as gridY}{#each [5, 10.5, 16] as gridX}<rect x={gridX} y={gridY} width="3.5" height="3.5" rx=".8" />{/each}{/each}
   {:else if name === 'list'}<path d="M9 6.5h11M9 12h11M9 17.5h11" class="stroke" /><circle cx="5" cy="6.5" r="1.2" /><circle cx="5" cy="12" r="1.2" /><circle cx="5" cy="17.5" r="1.2" />
@@ -35,6 +36,7 @@
 
 <style>
   .icon { display: block; fill: currentColor; }
+  .stroke.tick { stroke: var(--on-accent, #fff); stroke-width: 2.2; }
   .thin { stroke-width: 1.3; }
   .stroke { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 </style>

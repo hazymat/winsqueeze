@@ -23,7 +23,7 @@ public sealed partial class SqueezeliteHost : IDisposable
 
     [GeneratedRegex(@"opened device \d+ - (.+) at (\d+) latency")] private static partial Regex OpenedDeviceRegex();
 
-    public void Start(ServerProfile profile, OutputDevice device, AudioSettings audio, string playerMac, bool fixedVolume = false)
+    public void Start(ServerProfile profile, OutputDevice device, AudioSettings audio, string playerMac)
     {
         Stop();
         Device = device; ExclusiveActive = false; OutputSampleRate = 0;
@@ -34,7 +34,6 @@ public sealed partial class SqueezeliteHost : IDisposable
         // Resample only tracks the device can't take natively (e.g. 22.05 kHz radio in exclusive mode); without it Squeezelite retries the open forever
         if (!extraArguments.Any(argument => argument is "-R" or "-u")) foreach (var argument in new[] { "-R", "hE" }) startInfo.ArgumentList.Add(argument);
         if (SupportsVisualiser) startInfo.ArgumentList.Add("-v"); // share played samples for the meters
-        if (fixedVolume) startInfo.ArgumentList.Add("-F"); // full level; the device's own volume does the work
         foreach (var extraArgument in extraArguments) startInfo.ArgumentList.Add(extraArgument);
         logWriter = new StreamWriter(Path.Combine(AppPaths.LogsFolder, "squeezelite.log"), false) { AutoFlush = true };
         logWriter.WriteLine($"[{DateTime.Now:O}] start: {string.Join(" ", startInfo.ArgumentList.Select(argument => argument.Contains(' ') ? $"\"{argument}\"" : argument))}");
@@ -64,7 +63,6 @@ public sealed partial class SqueezeliteHost : IDisposable
     public static bool SupportsVisualiser => (helpText ??= ReadHelpText()).Contains("VISEXPORT");
     public static bool SupportsEqualiser => (helpText ??= ReadHelpText()).Contains("WINEQ"); // rides on -v
     public static bool SupportsRecording => (helpText ??= ReadHelpText()).Contains("WINREC"); // rides on -v
-    public static bool SupportsFixedVolume => (helpText ??= ReadHelpText()).Contains("-F ");
     static string ReadHelpText()
     {
         try

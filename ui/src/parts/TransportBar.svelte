@@ -3,6 +3,7 @@
   import { app, ui, meters, nav, openSection, currentTrack, formatTime } from '../state.svelte'
   import Analyser from './Analyser.svelte'
   import Readout from './Readout.svelte'
+  import FidelityBadge from './FidelityBadge.svelte'
   import Icon from './Icon.svelte'
   import Meters from './Meters.svelte'
   let { mini = false }: { mini?: boolean } = $props()
@@ -68,6 +69,7 @@
     <div class="readout-slot"><Readout /></div>
     <button class="pixel-meter" title="Equaliser" onclick={() => sendToShell({ type: 'openEq' })}><Analyser levels={meters.bands} compact={true} segments={14} /></button>
     <div class="volume">
+      <FidelityBadge />
       <input type="range" min="0" max="100" value={volume} oninput={dragVolume} onchange={releaseVolume} aria-label="Volume" />
       <button class="volume-icon" onclick={() => volumeOpen = !volumeOpen} aria-label="Volume"><Icon name="volume" /></button>
       {#if volumeOpen}<div class="volume-pop"><input type="range" min="0" max="100" value={volume} oninput={dragVolume} onchange={releaseVolume} aria-label="Volume" /></div>{/if}
@@ -122,7 +124,7 @@
   @container (max-width: 1400px) { .readout-slot { display: none; } } /* it's in Now playing too; never let it crowd the buttons */
   @container (max-width: 900px) { .transport { grid-template-columns: minmax(0, 1fr) minmax(200px, 1.4fr) auto; } }
   @container (max-width: 700px) { .time, .pixel-meter { display: none; } }
-  @container (max-width: 540px) { .volume > input { display: none; } .volume-icon { display: block; } .transport { grid-template-columns: 1fr auto auto; } .seek-row { display: none; } }
+  @container (max-width: 540px) { .volume > input, .volume :global(.badge) { display: none; } .volume-icon { display: block; } .transport { grid-template-columns: 1fr auto auto; } .seek-row { display: none; } }
   /* Mini: Winamp-style strip */
   .mini { grid-template-columns: 1fr auto; grid-template-rows: auto auto; gap: 6px 10px; padding: 10px; height: 100%; box-sizing: border-box; border: 0; }
   .mini .centre { grid-column: 1 / 3; grid-row: 2; flex-direction: row; }
