@@ -113,15 +113,15 @@ public sealed class LibraryQueries
         return new { album, tracks, folderPath };
     }
 
-    // Prefix match on every word ("jarr" finds Keith Jarrett); album and track hits grouped by the current album source, so in folder mode they group by folder
+    // Prefix match on every word ("jarr" finds Keith Jarrett); track columns are aliased so the album's title/artist/duration don't overwrite them; album and track hits grouped by the current album source, so in folder mode they group by folder
     object Search(SqliteConnection connection, string searchText)
     {
         var words = searchText.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(word => new string(word.Where(char.IsLetterOrDigit).ToArray())).Where(word => word != "").ToList();
         if (words.Count == 0) return new { };
         var matchExpression = "text:(" + string.Join(" AND ", words.Select(word => $"\"{word}\"*")) + ")";
         List<Dictionary<string, object?>> Hits(string kind, int limit) => Query(connection, "SELECT ref AS key, label AS name, detail FROM search WHERE search MATCH $match AND kind=$kind AND (source='' OR source=$source) ORDER BY rank LIMIT $limit", ("$match", matchExpression), ("$kind", kind), ("$source", albumSource), ("$limit", limit));
-        var trackHits = Query(connection, $"SELECT t.id, t.title, t.composer, t.track_artist AS artist, t.duration, {albumColumns} FROM search s JOIN tracks t ON t.id=s.ref JOIN album_tracks at ON at.track_id=t.id JOIN albums a ON a.key=at.album_key AND a.source=$source WHERE search MATCH $match AND s.kind='track' ORDER BY rank LIMIT 120", ("$match", matchExpression), ("$source", albumSource));
-        var trackGroups = trackHits.GroupBy(hit => (string)hit["key"]!).Select(group => new { album = group.First(), tracks = group.Select(hit => new { id = hit["id"], title = hit["title"], composer = hit["composer"], artist = hit["artist"], duration = hit["duration"] }).ToList() }).ToList();
+        var trackHits = Query(connection, $"SELECT t.id, t.title AS trackTitle, t.composer, t.track_artist AS trackArtist, t.duration AS trackDuration, {albumColumns} FROM search s JOIN tracks t ON t.id=s.ref JOIN album_tracks at ON at.track_id=t.id JOIN albums a ON a.key=at.album_key AND a.source=$source WHERE search MATCH $match AND s.kind='track' ORDER BY rank LIMIT 120", ("$match", matchExpression), ("$source", albumSource));
+        var trackGroups = trackHits.GroupBy(hit => (string)hit["key"]!).Select(group => new { album = group.First(), tracks = group.Select(hit => new { id = hit["id"], title = hit["trackTitle"], composer = hit["composer"], artist = hit["trackArtist"], duration = hit["trackDuration"] }).ToList() }).ToList();
         var bestArtist = Hits("artist", 1).FirstOrDefault();
         return new { artists = Hits("artist", 12), composers = Hits("composer", 12), performers = Hits("performer", 12), albums = Hits("album", 40), trackGroups, bestArtistAlbums = bestArtist == null ? null : AlbumsByCredit(connection, (string)bestArtist["key"]!, new[] { "own" }, "") };
     }
