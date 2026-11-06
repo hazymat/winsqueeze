@@ -21,6 +21,10 @@ public partial class App : Application
     public VisualiserReader Visualiser { get; } = new();
     public Equaliser Equaliser { get; } = new();
     public Recorder Recorder { get; } = new();
+    public Offline.DownloadManager Downloads { get; } = new();
+    public Offline.OfflineServer? Offline { get; private set; } // set while playing downloads without the server
+    public bool IsOffline => Offline != null;
+    public bool ServerBack { get; private set; } // offline, and the server answers again
     EqualiserWindow? equaliserWindow;
     public List<OutputDevice> Devices { get; private set; } = new();
     public bool UsingFallbackDevice { get; private set; }
@@ -28,6 +32,7 @@ public partial class App : Application
     public event Action? DevicesChanged;
     public event Action? StatusChanged;
     public event Action? LibraryChanged;
+    public event Action? DownloadsChanged;
 
     MainWindow mainWindow = null!;
     TrayIcon trayIcon = null!;
@@ -124,6 +129,12 @@ public partial class App : Application
         Session.StatusUpdated += () => { if (Settings.ActiveProfile is { } profile) Media?.Update(Session.LastStatus, $"http://{profile.Host}:{profile.Port}"); trayIcon.RefreshNowPlaying(Session.LastStatus); NotifyTrackChange(Session.LastStatus); Recorder.OnStatus(Session.LastStatus, Session.SelectedPlayerId == ""); };
         Recorder.Changed += () => Dispatcher.BeginInvoke(() => StatusChanged?.Invoke());
         ApplyGlobalHotkeys();
+        Downloads.CacheArt = Library.CacheArtAsync;
+        Downloads.Open(Settings.ActiveProfile);
+        Downloads.Changed += () => Dispatcher.BeginInvoke(() => DownloadsChanged?.Invoke());
+        Library.IndexUpdated += () => { var queries = Library.Queries; Downloads.Relink(queries.TrackIdsByUrl); DownloadsChanged?.Invoke(); };
+        Session.ServerUnreachable += () => _ = GoOfflineAsync(true);
+        serverBackTimer.Tick += async (sender, args) => await CheckServerBackAsync();
         Session.Start();
         Library.Start();
         await CheckOtherPlayersAsync();
@@ -247,8 +258,9 @@ public partial class App : Application
 
     public async Task StartPlayerAsync(bool resumePosition)
     {
-        _ = Library.RefreshAsync(false);
+        if (!IsOffline) _ = Library.RefreshAsync(false);
         var profile = Settings.ActiveProfile;
+        Downloads.Open(profile);
         if (profile is not { Host.Length: > 0 }) { Player.SetWaiting("No server set. Open Settings › Servers."); return; }
         if (profile.DeviceName == "") { Player.SetWaiting("Choose an output device in Settings › Audio."); return; }
         var outputDevice = FindDevice(profile.DeviceName, profile.DeviceHostApi);
@@ -263,7 +275,7 @@ public partial class App : Application
         (string mode, double seconds) resumeState = ("", 0);
         if (resumePosition && Player.State == PlayerState.Running) resumeState = await ReadPlaybackStateAsync();
         Recorder.Flush(); // finish the file cleanly; it carries on in a new one once Squeezelite is back
-        Player.Start(profile, outputDevice, Settings.Audio, Settings.PlayerMac);
+        Player.Start(Offline is { } offlineServer ? $"127.0.0.1:{offlineServer.SlimPort}" : profile.Host, outputDevice, Settings.Audio, Settings.PlayerMac);
         if (SqueezeliteHost.SupportsRecording) Recorder.Start(Settings.PlayerMac);
         Visualiser.Tuning = Settings.Meters;
         if (SqueezeliteHost.SupportsVisualiser) Visualiser.Start(Settings.PlayerMac, Settings.Audio.LatencyMs);
@@ -276,8 +288,7 @@ public partial class App : Application
     {
         try
         {
-            using var lyrionClient = new LyrionClient(Settings.ActiveProfile!);
-            var status = await lyrionClient.RequestAsync(Settings.PlayerMac, "status", "-", 1);
+            var status = await ServerRequestAsync(Settings.PlayerMac, "status", "-", 1);
             return (LyrionClient.ReadString(status, "mode"), LyrionClient.ReadDouble(status, "time"));
         }
         catch { return ("", 0); }
@@ -286,26 +297,91 @@ public partial class App : Application
     // After a restart, wait for the player to reconnect, then continue from the same position
     async Task ResumeAtAsync(double seconds)
     {
-        using var lyrionClient = new LyrionClient(Settings.ActiveProfile!);
         for (var attempt = 0; attempt < 20; attempt++)
         {
             await Task.Delay(500);
             try
             {
-                var connected = await lyrionClient.RequestAsync(Settings.PlayerMac, "connected", "?");
+                var connected = await ServerRequestAsync(Settings.PlayerMac, "connected", "?");
                 if (LyrionClient.ReadString(connected, "_connected") != "1") continue;
-                await lyrionClient.RequestAsync(Settings.PlayerMac, "play");
-                await lyrionClient.RequestAsync(Settings.PlayerMac, "time", seconds.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                await ServerRequestAsync(Settings.PlayerMac, "play");
+                await ServerRequestAsync(Settings.PlayerMac, "time", seconds.ToString(System.Globalization.CultureInfo.InvariantCulture));
                 return;
             }
             catch { }
         }
     }
 
+    // Every player and server command goes through here, so offline the same commands reach the offline server
+    public async Task<JsonElement> ServerRequestAsync(string playerId, params object[] command)
+    {
+        if (Offline is { } offlineServer) return offlineServer.Request(command);
+        using var lyrionClient = new LyrionClient(Settings.ActiveProfile!);
+        return await lyrionClient.RequestAsync(playerId, command);
+    }
+
+    // ---- Offline (SPEC.md › Offline downloads) ----
+    readonly DispatcherTimer serverBackTimer = new() { Interval = TimeSpan.FromSeconds(30) };
+    public async Task GoOfflineAsync(bool automatic)
+    {
+        if (IsOffline || Settings.ActiveProfile is not { } profile) return;
+        if (!Downloads.HasDownloads) { if (!automatic) ShowTip("Nothing downloaded yet", "Download albums from any selection (Download) to play them without the server."); return; }
+        // Carry on with the downloaded part of the current queue, at the same spot
+        (List<long> ids, int index, double seconds, bool playing) carried = (new(), 0, 0, false);
+        if (!automatic) try
+        {
+            var status = await ServerRequestAsync(Settings.PlayerMac, "status", 0, 500);
+            if (status.ValueKind == JsonValueKind.Object && status.TryGetProperty("playlist_loop", out var playlistLoop)) carried = (playlistLoop.EnumerateArray().Select(item => LyrionClient.ReadLong(item, "id")).ToList(), LyrionClient.ReadInt(status, "playlist_cur_index"), LyrionClient.ReadDouble(status, "time"), LyrionClient.ReadString(status, "mode") == "play");
+        }
+        catch { }
+        Offline = new Offline.OfflineServer(Downloads.Find) { PlayerMac = Settings.PlayerMac, PlayerName = Settings.Audio.PlayerName };
+        Offline.Changed += () => Dispatcher.BeginInvoke(async () => await Session.PollAsync());
+        Offline.Log += line => CrashReporter.Note("offline: " + line);
+        Session.SelectedPlayerId = ""; ServerBack = false;
+        await StartPlayerAsync(false);
+        serverBackTimer.Start();
+        if (automatic) ShowTip("Playing offline", "The server can't be reached, so WinSqueeze is playing your downloads. It goes back online by itself when the server returns and nothing is playing.");
+        if (carried.ids.Count > 0)
+        {
+            var downloadedIds = Downloads.DownloadedIds().ToHashSet();
+            var keptIds = carried.ids.Where(downloadedIds.Contains).ToList();
+            if (keptIds.Count > 0)
+            {
+                for (var attempt = 0; attempt < 20 && !Offline.Connected; attempt++) await Task.Delay(250);
+                Offline.Request(new object[] { "playlistcontrol", "cmd:load", "track_id:" + string.Join(",", keptIds) });
+                var currentId = carried.ids.ElementAtOrDefault(carried.index);
+                if (keptIds.IndexOf(currentId) is var keptIndex and > 0) Offline.Request(new object[] { "playlist", "index", keptIndex });
+                if (keptIds.Contains(currentId) && carried.seconds > 1) Offline.Request(new object[] { "time", carried.seconds.ToString(System.Globalization.CultureInfo.InvariantCulture) });
+                if (!carried.playing) Offline.Request(new object[] { "pause", "1" });
+            }
+        }
+        StatusChanged?.Invoke();
+    }
+
+    public async Task GoOnlineAsync()
+    {
+        if (Offline is not { } offlineServer) return;
+        serverBackTimer.Stop();
+        Offline = null; ServerBack = false;
+        await StartPlayerAsync(false); // Squeezelite back to the server, which still has this player's own queue
+        offlineServer.Dispose();
+        StatusChanged?.Invoke();
+    }
+
+    // Offline: is the server back? Go back by itself when nothing is playing, otherwise offer it
+    async Task CheckServerBackAsync()
+    {
+        if (Offline is not { } offlineServer || Settings.ActiveProfile is not { Host.Length: > 0 } profile) return;
+        try { using var lyrionClient = new LyrionClient(profile); await lyrionClient.GetServerStatusAsync(); }
+        catch { if (ServerBack) { ServerBack = false; StatusChanged?.Invoke(); } return; }
+        if (!offlineServer.IsPlaying) { await GoOnlineAsync(); ShowTip("Back online", "The server is reachable again."); }
+        else if (!ServerBack) { ServerBack = true; StatusChanged?.Invoke(); }
+    }
+
     public async Task SendPlayerCommandAsync(params object[] command)
     {
-        if (Settings.ActiveProfile is not { Host.Length: > 0 } profile) return;
-        try { using var lyrionClient = new LyrionClient(profile); await lyrionClient.RequestAsync(Settings.PlayerMac, command); }
+        if (Settings.ActiveProfile is not { Host.Length: > 0 }) return;
+        try { await ServerRequestAsync(Settings.PlayerMac, command); }
         catch (Exception commandError) { trayIcon.ShowTip("Server not reachable", commandError.Message); }
     }
 
@@ -333,6 +409,8 @@ public partial class App : Application
         sampleRate = Player.OutputSampleRate,
         recording = new { available = SqueezeliteHost.SupportsRecording && Settings.Recording.ShowButton, on = Recorder.Recording, file = System.IO.Path.GetFileName(Recorder.CurrentFile), startedAt = Recorder.Recording ? new DateTimeOffset(Recorder.StartedAt).ToUnixTimeMilliseconds() : 0, files = Recorder.FilesThisRecording, note = Recorder.Note, noteId = Recorder.NoteId, folder = Recorder.SessionFolder },
         fallback = UsingFallbackDevice,
+        offline = IsOffline,
+        serverBack = ServerBack,
         version = Updater.CurrentVersion,
         updateReady = Updater.ReadyVersion
     });
@@ -368,6 +446,7 @@ public partial class App : Application
         IsQuitting = true;
         Recorder.Dispose(); // finish any recording before Squeezelite stops
         Player.Dispose();
+        Downloads.Dispose(); Offline?.Dispose();
         trayIcon.Dispose();
         settingsWindow?.Close();
         mainWindow.Close();

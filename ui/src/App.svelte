@@ -21,6 +21,8 @@
   import Icon from './parts/Icon.svelte'
   import { selection } from './lib/selection.svelte'
   import PlaylistsView from './views/PlaylistsView.svelte'
+  import DownloadsView from './views/DownloadsView.svelte'
+  import { downloads } from './lib/downloads.svelte'
   import PlayerPicker from './parts/PlayerPicker.svelte'
   import { accentFromCover } from './lib/coverAccent'
 
@@ -30,7 +32,7 @@
   const mini = $derived(height < 400 || width < 460) // short or narrow windows snap to the mini player, with big meters
   const vertical = $derived(!mini && width <= 900)
   const folderMode = $derived(app.librarySettings.AlbumSource !== 'tags')
-  const allSections = $derived([['queue', 'Now playing', 'queue'], ['favourites', 'Favourites', 'favourites'], ['playlists', 'Playlists', 'playlists'], ['artists', 'Artists', 'artists'], ['genres', 'Genres', 'genres'], ['composers', 'Composers', 'composers'], ['performers', 'Performers', 'performers'], ['folders', folderMode ? 'Folders' : 'Albums', folderMode ? 'folders' : 'albums']] as [string, string, any][])
+  const allSections = $derived([['queue', 'Now playing', 'queue'], ['favourites', 'Favourites', 'favourites'], ['playlists', 'Playlists', 'playlists'], ['artists', 'Artists', 'artists'], ['genres', 'Genres', 'genres'], ['composers', 'Composers', 'composers'], ['performers', 'Performers', 'performers'], ['folders', folderMode ? 'Folders' : 'Albums', folderMode ? 'folders' : 'albums'], ['downloads', 'Downloaded', 'download']] as [string, string, any][])
   const pinGlyphs: Record<string, string> = { genre: 'genres', artist: 'artists', composer: 'composers', performer: 'performers', album: 'albums', folder: 'folders', playlist: 'playlists' }
   const pinSections = $derived(Object.entries(pins.views).map(([key, view]) => [key, view.title ?? '', pinGlyphs[view.kind] ?? 'pin']) as [string, string, any][])
   // Sidebar and bottom-bar customisation (one shared setting): every section shows by default; order, spacers and hidden ones are remembered per PC
@@ -64,7 +66,7 @@
 
   // A finished or failed recording says where it went (only notes that arrive after startup)
   let lastRecordingNote = -1
-  onShellMessage('status', message => { const recording = message.recording; if (recording && lastRecordingNote >= 0 && recording.noteId > lastRecordingNote && recording.note) toast(recording.note, undefined, 10000, recording.note.includes(' in ') && recording.folder ? { action: { label: 'Open in Explorer', key: 'E', run: () => sendToShell({ type: 'openRecording' }) } } : {}); if (recording) lastRecordingNote = recording.noteId; app.status = message })
+  onShellMessage('status', message => { const recording = message.recording; if (recording && lastRecordingNote >= 0 && recording.noteId > lastRecordingNote && recording.note) toast(recording.note, undefined, 10000, recording.note.includes(' in ') && recording.folder ? { action: { label: 'Open in Explorer', key: 'E', run: () => sendToShell({ type: 'openRecording' }) } } : {}); if (recording) lastRecordingNote = recording.noteId; if (message.offline && !app.status?.offline) openSection('downloads'); if (message.serverBack && !app.status?.serverBack) toast('The server is back', undefined, 15000, { action: { label: 'Go online', key: 'O', run: () => sendToShell({ type: 'goOnline' }) } }); app.status = message })
   onShellMessage('nowPlaying', message => { noteTrackChange(app.nowPlaying, message.status); noteLongTrack(app.nowPlaying, message.status); app.nowPlaying = message.status; checkKeepPlaying(message.status); app.receivedAt = Date.now() })
   onShellMessage('players', message => { app.players = message.players ?? []; app.ownPlayer = message.own ?? ''; app.selectedPlayer = message.selected ?? app.selectedPlayer })
   onShellMessage('library', message => app.library = { text: message.text ?? '', done: message.done ?? 0, total: message.total ?? 0 })
@@ -194,7 +196,7 @@
           {:else if isSpacer(key)}
             <div class="divider"></div>
           {:else}
-            <button class="section" class:on={nav.section === key && !everything} onpointerdown={startHold} onpointerup={cancelHold} onpointerleave={cancelHold} onclick={() => { if (heldIntoCustomise) { heldIntoCustomise = false; return } openSection(key) }}><span class="glyph"><Icon name={glyph} /></span>{label}</button>
+            <button class="section" class:on={nav.section === key && !everything} onpointerdown={startHold} onpointerup={cancelHold} onpointerleave={cancelHold} onclick={() => { if (heldIntoCustomise) { heldIntoCustomise = false; return } openSection(key) }}><span class="glyph"><Icon name={glyph} /></span>{label}{#if key === 'downloads' && downloads.active.length}<span class="section-badge" title="Downloading">{downloads.active.reduce((sum, group) => sum + group.total - group.done, 0)}</span>{/if}</button>
           {/if}
         {/each}
         </div>
@@ -249,6 +251,8 @@
             {#key view.kind + view.key}<AlbumsOf kind={view.kind} key={view.key} title={view.title} />{/key}
           {:else if view.kind === 'favourites'}
             {#key view.key}<FavouritesView itemId={view.key ?? ''} />{/key}
+          {:else if view.kind === 'downloads'}
+            <DownloadsView />
           {:else if view.kind === 'playlists'}
             <PlaylistsView />
           {:else if view.kind === 'playlist'}
@@ -281,6 +285,7 @@
   .section { display: flex; align-items: center; gap: 10px; background: none; border: 0; color: var(--fg); padding: 8px 10px; border-radius: 8px; cursor: pointer; font: inherit; text-align: left; }
   .section:hover { background: var(--hover); }
   .section.on { background: var(--accent-soft); color: var(--accent); }
+  .section-badge { margin-left: auto; min-width: 18px; padding: 0 5px; border-radius: 9px; background: var(--accent); color: var(--on-accent); font-size: 10.5px; line-height: 18px; text-align: center; }
   .section-list { display: flex; flex-direction: column; gap: 2px; }
   .customise { cursor: grab; } .grip { color: var(--fg-quiet); font-size: 10px; margin-right: -6px; } .customise input { margin: 0 -4px 0 0; accent-color: var(--accent); }
   .customise-toggle { align-self: flex-start; background: none; border: 0; color: var(--fg-quiet); font: inherit; font-size: 11px; padding: 4px 10px; cursor: pointer; opacity: 0.7; }

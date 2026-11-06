@@ -3,6 +3,7 @@
   import { browseActions } from '../lib/browseActions'
   import AlbumCard from './AlbumCard.svelte'
   import { ui } from '../state.svelte'
+  import { removeDownloads } from '../lib/downloads.svelte'
   // size comes from the view's toolbar (Large / Compact / List); minor headings sit under a section heading when grouped
   let { albums, section = 'albums', heading = '', size = 'large', minor = false, columns = 0 }: { albums: any[]; section?: string; heading?: string; size?: string; minor?: boolean; columns?: number } = $props()
   const layout = $derived(size === 'list' ? 'list' : 'grid')
@@ -18,7 +19,7 @@
     {#if heading}<h3 title={heading}>{heading}</h3>{/if}
     <span class="count">{shown.length} {shown.length === 1 ? 'album' : 'albums'}</span>
   </div>
-  <div class={layout === 'grid' ? 'grid ' + size : 'rows'} use:selectable={{ scope: 'albums:' + section + ':' + heading, noun: 'album', actions: browseActions('album') }}>
+  <div class={layout === 'grid' ? 'grid ' + size : 'rows'} use:selectable={{ scope: 'albums:' + section + ':' + heading, noun: 'album', actions: section === 'downloads' ? browseActions('album').filter(action => action.label !== 'Download').concat([{ label: 'Remove download', danger: true, key: 'Delete', run: keys => removeDownloads('album', keys) }]) : browseActions('album') }}>
     {#each shown as album (album.key)}<div class="select-wrap" data-select-key={album.key}><AlbumCard {album} {layout} compact={size === 'compact'} /></div>{/each}
   </div>
 </div>

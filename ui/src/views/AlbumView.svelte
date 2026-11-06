@@ -4,6 +4,7 @@
   import { browseActions } from '../lib/browseActions'
   import { query, sendToShell, live, artUrl } from '../bridge'
   import { app, openView, playlist, addToPlaylist, inPlaylist, formatTime, toast } from '../state.svelte'
+  import { downloads, downloadItems, removeDownloads } from '../lib/downloads.svelte'
   let { albumKey }: { albumKey: string } = $props()
   let data = $state<any>({ album: null, tracks: [] })
   let menuFor = $state<number | null>(null)
@@ -38,6 +39,8 @@
         <button class="ghost" onclick={() => { playAlbum('insert'); toast('Playing next') }}>Play next</button>
         <button class="ghost" onclick={() => { playAlbum('add'); toast('Added to queue') }}>Add to queue</button>
         <button class="ghost" onclick={favourite} title="Add to Lyrion favourites">☆ Favourite</button>
+        {#if downloads.albums[albumKey] === 'full'}<button class="ghost" onclick={() => toast('This album is on this PC, so it plays without the server', undefined, 8000, { action: { label: 'Remove from this PC', key: 'R', run: () => removeDownloads('album', [albumKey]) } })} title="On this PC">✓ Downloaded</button>
+        {:else}<button class="ghost" onclick={() => downloadItems('album', [albumKey])} title="Keep a copy on this PC to play without the server">{downloads.albums[albumKey] ? 'Download the rest' : 'Download'}</button>{/if}
         {#if playlist.open}<button class="ghost" onclick={() => addToPlaylist((data.tracks ?? []).map(item), album.title)}>{allAdded ? '✓ Added' : `＋ Add to ${playlist.name}`}</button>{/if}
       </div>
     </div>

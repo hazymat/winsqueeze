@@ -34,6 +34,7 @@ public partial class MainWindow : Window
         App.Session.PlayersUpdated += () => Push($"{{\"type\":\"players\",\"players\":{App.Session.LastPlayersJson},\"selected\":{JsonSerializer.Serialize(App.Session.SelectedPlayerId == "" ? App.Settings.PlayerMac : App.Session.SelectedPlayerId)},\"own\":{JsonSerializer.Serialize(App.Settings.PlayerMac)}}}");
         App.Library.Changed += PushLibraryStatus;
         App.Library.IndexUpdated += () => Push("{\"type\":\"indexUpdated\"}");
+        App.DownloadsChanged += () => _ = PushDownloadsAsync();
         // Meter data, only while the window is on screen
         App.Visualiser.LevelsReady += levelsJson => { if (webViewReady) Dispatcher.BeginInvoke(() => { if (IsVisible && WindowState != WindowState.Minimized) webView.CoreWebView2?.PostWebMessageAsJson(levelsJson); }); };
         Microsoft.Win32.SystemEvents.DisplaySettingsChanged += (sender, args) => Dispatcher.BeginInvoke(RestoreBoundsForDisplays);
@@ -77,6 +78,14 @@ public partial class MainWindow : Window
     void Reply(JsonElement message, object? data) { if (message.TryGetProperty("id", out var requestId)) Push(JsonSerializer.Serialize(new { type = "result", id = requestId.GetInt64(), data })); }
     void ReplyRaw(JsonElement message, string dataJson) { if (message.TryGetProperty("id", out var requestId)) Push($"{{\"type\":\"result\",\"id\":{requestId.GetInt64()},\"data\":{dataJson}}}"); }
 
+    // The download manager's state, plus which albums are (fully or partly) on this PC for the cover badges
+    async Task PushDownloadsAsync()
+    {
+        if (App.Settings.ActiveProfile == null) return;
+        var queries = App.Library.Queries;
+        var downloadsJson = await Task.Run(() => { var snapshot = JsonSerializer.SerializeToNode(App.Downloads.Snapshot())!; snapshot["albums"] = JsonSerializer.SerializeToNode(queries.DownloadedAlbumKeys(App.Downloads.DownloadedIds())); return snapshot.ToJsonString(); });
+        Push(downloadsJson);
+    }
     void PushLibraryStatus() => Push(JsonSerializer.Serialize(new { type = "library", text = App.Library.ProgressText, done = App.Library.ProgressDone, total = App.Library.ProgressTotal }));
 
     static object[] CommandParts(JsonElement commandArray) => commandArray.EnumerateArray().Select(part => part.ValueKind == JsonValueKind.String ? (object)(part.GetString() ?? "") : part.GetRawText()).ToArray();
@@ -94,7 +103,7 @@ public partial class MainWindow : Window
         {
             switch (Text(message, "type"))
             {
-                case "ready": LookLog("ready"); _ = ReapplyLookSoonAsync(); PushSkin(); PushMeterSettings(); _ = App.ShowWhatsNewAsync(); PushWindowState(); Push(App.StatusJson()); PushLibraryStatus(); PushSettings(); break;
+                case "ready": _ = PushDownloadsAsync(); LookLog("ready"); _ = ReapplyLookSoonAsync(); PushSkin(); PushMeterSettings(); _ = App.ShowWhatsNewAsync(); PushWindowState(); Push(App.StatusJson()); PushLibraryStatus(); PushSettings(); break;
                 case "dismissHint": if (!App.Settings.General.DismissedHints.Contains(Text(message, "id"))) { App.Settings.General.DismissedHints.Add(Text(message, "id")); App.Settings.Save(); } break;
                 case "openSettings": App.OpenSettings(Text(message, "tab")); break;
                 case "quit": App.Quit(); break;
@@ -105,6 +114,7 @@ public partial class MainWindow : Window
                     var queryName = Text(message, "name");
                     var queryParameters = message.TryGetProperty("params", out var parameters) ? parameters : default;
                     var queries = App.Library.Queries;
+                    if (queryName == "downloadedAlbums") { var sortName = queryParameters.ValueKind == JsonValueKind.Object ? Text(queryParameters, "sort") : ""; Reply(message, await Task.Run(() => queries.DownloadedAlbums(App.Downloads.DownloadedIds(), sortName))); break; }
                     Reply(message, await Task.Run(() => queries.Run(queryName, queryParameters)));
                     break;
                 case "setPlayback":
@@ -127,6 +137,18 @@ public partial class MainWindow : Window
                     var albumTrackIds = await Task.Run(() => ((List<object?>)albumQueries.Run("albumTrackIds", JsonDocument.Parse(JsonSerializer.Serialize(new { key = albumKey })).RootElement)).Select(trackId => Convert.ToInt64(trackId)).ToList());
                     await App.Session.PlayTracksAsync(albumTrackIds, Text(message, "mode"), message.TryGetProperty("start", out var albumStart) ? albumStart.GetInt32() : 0);
                     break;
+                // ---- Offline downloads (SPEC.md › Offline downloads) ----
+                case "download":
+                    var downloadQueries = App.Library.Queries; var downloadItems = message.GetProperty("items");
+                    var queuedCount = await Task.Run(() => App.Downloads.Enqueue(downloadQueries.DownloadInfo(downloadQueries.TrackIds(downloadItems))));
+                    Reply(message, new { added = queuedCount }); break;
+                case "downloadCancel": var cancelIds = message.TryGetProperty("tracks", out var cancelTracks) ? Ids(cancelTracks) : new List<long>(); if (message.TryGetProperty("albums", out var cancelAlbums)) cancelIds.AddRange(App.Downloads.IdsForAlbums(cancelAlbums.EnumerateArray().Select(albumKey => albumKey.GetString() ?? "").ToList())); App.Downloads.Cancel(cancelIds, false); break;
+                case "downloadRemove": var removeQueries = App.Library.Queries; var removeItems = message.GetProperty("items"); var removeIds = await Task.Run(() => removeQueries.TrackIds(removeItems)); App.Downloads.Cancel(removeIds, true); Reply(message, new { removed = removeIds.Count }); break;
+                case "downloadCancelAll": App.Downloads.CancelAll(); break;
+                case "downloadRetry": App.Downloads.Retry(); break;
+                case "openDownloads": Directory.CreateDirectory(App.Downloads.Folder); System.Diagnostics.Process.Start("explorer.exe", $"\"{App.Downloads.Folder}\""); break;
+                case "goOffline": await App.GoOfflineAsync(false); break;
+                case "goOnline": await App.GoOnlineAsync(); break;
                 case "selectPlayer": App.Session.SelectedPlayerId = Text(message, "id") == App.Settings.PlayerMac ? "" : Text(message, "id"); await App.Session.RequestAsync(true, "status", "-", 1); break;
                 case "savePlaylist":
                     var urlQueries = App.Library.Queries;

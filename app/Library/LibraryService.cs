@@ -33,7 +33,7 @@ public sealed class LibraryService
     public async Task RefreshAsync(bool forceRebuild)
     {
         var profile = App.Settings.ActiveProfile;
-        if (profile is not { Host.Length: > 0 }) return;
+        if (profile is not { Host.Length: > 0 } || App.IsOffline) return;
         try
         {
             if (await librarySync.SyncIfChangedAsync(profile, App.Settings.Library, forceRebuild)) IndexUpdated?.Invoke();
@@ -75,6 +75,7 @@ public sealed class LibraryService
         var profile = App.Settings.ActiveProfile;
         if (profile is not { Host.Length: > 0 } || coverId == "") return null;
         var cachePath = Path.Combine(LibraryDatabase.ArtFolder(profile), $"{coverId}_{size}");
+        if (App.IsOffline) { var offlineBytes = File.Exists(cachePath) ? await File.ReadAllBytesAsync(cachePath) : Array.Empty<byte>(); return offlineBytes.Length == 0 ? null : offlineBytes; } // offline: only what's cached
         var placeholder = await PlaceholderAsync(profile, size);
         if (File.Exists(cachePath)) { var cachedBytes = await File.ReadAllBytesAsync(cachePath); return cachedBytes.Length == 0 || cachedBytes.AsSpan().SequenceEqual(placeholder) ? null : cachedBytes; } // older caches may hold the placeholder
         using var response = await artClient.GetAsync($"http://{profile.Host}:{profile.Port}/music/{coverId}/cover_{size}x{size}_o");
@@ -85,6 +86,9 @@ public sealed class LibraryService
         await File.WriteAllBytesAsync(cachePath, artBytes);
         return artBytes.Length == 0 ? null : artBytes;
     }
+
+    // Downloads keep their covers so they show offline
+    public async Task CacheArtAsync(string coverId, int size) => await GetArtAsync(new string(coverId.Where(char.IsLetterOrDigit).ToArray()), size);
 
     public void ClearArtCache() { var profile = App.Settings.ActiveProfile; if (profile != null) { Directory.Delete(LibraryDatabase.ArtFolder(profile), true); } }
 
