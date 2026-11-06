@@ -31,7 +31,7 @@ public sealed partial class LibrarySync
         {
             using var lyrionClient = new LyrionClient(profile);
             var serverStatus = await lyrionClient.GetServerStatusAsync();
-            var signature = $"{serverStatus.LastScan}|{serverStatus.TotalSongs}|{serverStatus.TotalAlbums}|{serverStatus.TotalArtists}|{librarySettings.NameSeparators}|derive4|{librarySettings.NameOrder}";
+            var signature = $"{serverStatus.LastScan}|{serverStatus.TotalSongs}|{serverStatus.TotalAlbums}|{serverStatus.TotalArtists}|{librarySettings.NameSeparators}|derive5|{librarySettings.NameOrder}|{librarySettings.ReadSurnameFirst}";
             var databasePath = DatabasePath(profile);
             if (!force && File.Exists(databasePath))
             {
@@ -148,7 +148,7 @@ public sealed partial class LibrarySync
         {
             Execute(connection, "INSERT INTO contributors VALUES($id,$name,$norm)", ("$id", contributorId), ("$name", contributorName), ("$norm", TextNormaliser.Normalise(contributorName)));
             var position = 0;
-            foreach (var part in TextNormaliser.SplitNames(contributorName, librarySettings.NameSeparators)) Execute(connection, "INSERT INTO contributor_parts VALUES($id,$norm,$display,$position)", ("$id", contributorId), ("$norm", TextNormaliser.Normalise(part)), ("$display", part), ("$position", position++));
+            foreach (var part in TextNormaliser.SplitNames(contributorName, librarySettings.NameSeparators, true, librarySettings.ReadSurnameFirst)) Execute(connection, "INSERT INTO contributor_parts VALUES($id,$norm,$display,$position)", ("$id", contributorId), ("$norm", TextNormaliser.Normalise(part)), ("$display", part), ("$position", position++));
         }
         foreach (var (genreId, genreName) in genreNames) Execute(connection, "INSERT INTO genres VALUES($id,$name,$norm)", ("$id", genreId), ("$name", genreName), ("$norm", TextNormaliser.Normalise(genreName)));
         // Folder tree from file paths, rooted at the common music folder
@@ -232,14 +232,14 @@ public sealed partial class LibrarySync
             foreach (var (track, discNo) in orderedMembers) Execute(connection, "INSERT INTO album_tracks VALUES($key,$track,$disc,$trackNo)", ("$key", albumKey), ("$track", track.Id), ("$disc", discNo), ("$trackNo", track.TrackNo));
             // Credits: first album-artist name is the album's own artist, the rest are 'with'; track-level roles follow
             var credits = new HashSet<(string partNorm, string credit)>();
-            var albumArtistParts = TextNormaliser.SplitNames(albumArtist, librarySettings.NameSeparators);
+            var albumArtistParts = TextNormaliser.SplitNames(albumArtist, librarySettings.NameSeparators, false, false);
             for (var index = 0; index < albumArtistParts.Count; index++) { credits.Add((TextNormaliser.Normalise(albumArtistParts[index]), index == 0 ? "own" : "with")); AddPerson(albumArtistParts[index], "artist", albumKey); }
             var trackArtistParts = new List<string>();
             foreach (var (track, discNo) in orderedMembers)
                 foreach (var (contributorId, role) in track.Contributors)
                 {
                     var credit = role switch { "composer" => "composer", "conductor" => "conductor", "band" => "band", _ => "track" };
-                    foreach (var part in TextNormaliser.SplitNames(contributorNames.GetValueOrDefault(contributorId, ""), librarySettings.NameSeparators))
+                    foreach (var part in TextNormaliser.SplitNames(contributorNames.GetValueOrDefault(contributorId, ""), librarySettings.NameSeparators, credit is "composer" or "conductor", librarySettings.ReadSurnameFirst))
                     {
                         credits.Add((TextNormaliser.Normalise(part), credit));
                         AddPerson(part, credit == "track" ? "artist" : credit, albumKey);
