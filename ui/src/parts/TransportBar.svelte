@@ -1,6 +1,6 @@
 <script lang="ts">
   import Hint from './Hint.svelte'
-  import { command, sendToShell, artUrl } from '../bridge'
+  import { command, sendToShell, trackArt } from '../bridge'
   import { app, ui, meters, nav, openSection, currentTrack, formatTime } from '../state.svelte'
   import Analyser from './Analyser.svelte'
   import FidelityBadge from './FidelityBadge.svelte'
@@ -54,7 +54,7 @@
 <footer class="transport" class:mini onwheel={wheelVolume}>
   <div class="left">
   <button class="now" onclick={showNowPlaying} title="Now playing">
-    {#if track?.coverid}<img src={artUrl(track.coverid, 120)} alt="" />{:else}<span class="no-art">♪</span>{/if}
+    {#if trackArt(track)}<img src={trackArt(track, 120)} alt="" />{:else}<span class="no-art">♪</span>{/if}
     <span class="text"><span class="title">{track?.title ?? 'Nothing playing'}</span><span class="artist" title={track?.artist ?? (ownSelected ? app.status?.message ?? '' : '')}>{track?.artist ?? (ownSelected ? app.status?.message ?? '' : '')}</span></span>
   </button>
   {#if showRecord}<button class="record" class:on={recording.on} onclick={() => sendToShell({ type: 'toggleRecording' })} title={recording.on ? `Recording ${recordedFor}${recording.files > 1 ? ` · file ${recording.files}` : ''}. Click to stop` : 'Record this station'} aria-label={recording.on ? 'Stop recording' : 'Record'}><span class="dot"></span>{#if recording.on && !mini}<span class="rec-time">{recordedFor}</span>{/if}</button>{#if !mini && !recording.on}<span class="record-anchor"><Hint id="transport-record" text="Click to record this station" bubble /></span>{/if}{/if}

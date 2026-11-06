@@ -2,7 +2,7 @@
   import Hint from '../parts/Hint.svelte'
   import QueueEndMenu from '../parts/QueueEndMenu.svelte'
   import { playlistUrls, refillPlaylist } from '../lib/browseActions'
-  import { command, live, artUrl, request } from '../bridge'
+  import { command, live, trackArt, request } from '../bridge'
   import { app, ui, formatTime, toast, newPlaylist } from '../state.svelte'
   import { sortable, planMoves, blockOrder } from '../lib/sortable'
   import { isSelected, rowClick, selectOnHold, selection, type SelectionAction } from '../lib/selection.svelte'
@@ -91,7 +91,7 @@
   {#each queue as item, position (position + ':' + item.id)}
     <button data-sort-row class="item" class:current={position === currentIndex} class:selected={isSelected(scope, String(position))}
       onclick={(event) => { if (!rowClick(event, scope, String(position), keys, actions, 'track')) command('playlist', 'index', position) }}>
-      {#if item.coverid}<img src={artUrl(item.coverid, 80)} alt="" loading="lazy" draggable="false" />{:else}<span class="glyph">♪</span>{/if}
+      {#if trackArt(item)}<img src={trackArt(item, 80)} alt="" loading="lazy" draggable="false" />{:else}<span class="glyph">♪</span>{/if}
       <span class="text"><span class="title">{item.title}</span><span class="quiet">{item.artist}{item.album ? ` · ${item.album}` : ''}</span></span>
       {#if position === currentIndex}<span class="playing" aria-label="Playing">▶</span>{/if}
       <span class="quiet time">{formatTime(Number(item.duration))}</span>
