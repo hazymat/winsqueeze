@@ -44,10 +44,14 @@ public sealed class PlayerSession
         finally { polling = false; }
     }
 
+    // Player commands go one at a time, so a fast volume drag can't land out of order (a late 98 overwriting the final 100)
+    readonly SemaphoreSlim playerCommandGate = new(1, 1);
     public async Task<JsonElement> RequestAsync(bool forPlayer, params object[] command)
     {
         using var lyrionClient = new LyrionClient(App.Settings.ActiveProfile!);
-        var result = await lyrionClient.RequestAsync(forPlayer ? PlayerId : "", command);
+        JsonElement result;
+        if (forPlayer) { await playerCommandGate.WaitAsync(); try { result = await lyrionClient.RequestAsync(PlayerId, command); } finally { playerCommandGate.Release(); } }
+        else result = await lyrionClient.RequestAsync("", command);
         if (forPlayer) { await Task.Delay(150); await PollAsync(); }
         return result;
     }
