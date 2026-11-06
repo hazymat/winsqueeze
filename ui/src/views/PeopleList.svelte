@@ -3,6 +3,7 @@
   import { browseActions } from '../lib/browseActions'
   import { query } from '../bridge'
   import { app, ui, openView } from '../state.svelte'
+  import { browseState } from '../lib/browse.svelte'
   let { kind }: { kind: 'artists' | 'composers' | 'performers' | 'genres' } = $props()
   let rows = $state<any[]>([])
   let role = $state('')
@@ -12,6 +13,16 @@
   // Matches from the start of any word: "jarr" finds Keith Jarrett
   const shown = $derived(ui.search.length >= 2 ? rows.filter(row => plain(row.name).split(/[\s,.&/-]+/).some(word => word.startsWith(plain(ui.search)))) : rows)
   const viewKind = { artists: 'artist', composers: 'composer', performers: 'performer', genres: 'genre' }[kind]
+  // The count matches what the next view groups by (album artists, years…), or tracks, or both (Settings › Library)
+  const nextView = browseState(viewKind) // keyed per kind by the parent
+  const groupCounts: Record<string, [string, string, string]> = { artist: ['artists', 'album artist', 'album artists'], year: ['years', 'year', 'years'], decade: ['decades', 'decade', 'decades'], format: ['formats', 'format', 'formats'] }
+  const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`
+  function countText(row: any) {
+    const [field, one, many] = groupCounts[nextView.group] ?? ['albums', 'album', 'albums']
+    const grouped = row[field] != null ? plural(Number(row[field]), one, many) : '', tracks = row.tracks != null ? plural(Number(row.tracks), 'track', 'tracks') : ''
+    const mode = app.librarySettings.ListCounts ?? 'group'
+    return mode === 'tracks' ? tracks || grouped : mode === 'both' ? [grouped, tracks].filter(Boolean).join(' · ') : grouped || tracks
+  }
 </script>
 
 {#if kind === 'performers'}
@@ -22,7 +33,7 @@
   {#each shown as row (row.key + (row.role ?? ''))}
     <button class="person" data-select-key={String(row.key)} onclick={() => openView({ kind: viewKind, key: String(row.key), title: row.name })}>
       <span class="name">{row.name}</span>
-      <span class="meta">{row.role && kind === 'performers' && !role ? row.role + ' · ' : ''}{row.albums ?? row.tracks ?? ''}{row.albums != null ? (row.albums === 1 ? ' album' : ' albums') : row.tracks != null ? ' tracks' : ''}</span>
+      <span class="meta">{row.role && kind === 'performers' && !role ? row.role + ' · ' : ''}{countText(row)}</span>
     </button>
   {/each}
 </div>

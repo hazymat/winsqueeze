@@ -35,11 +35,11 @@ public sealed class LibraryQueries
         return WithConnection<object>(connection => queryName switch
         {
             "stats" => new { tracks = Meta(connection, "track_count"), syncedAt = Meta(connection, "synced_at"), albums = Query(connection, "SELECT COUNT(*) AS albums FROM albums WHERE source=$source", ("$source", albumSource))[0]["albums"] },
-            "artists" => Query(connection, $"SELECT part_norm AS key, display AS name, {CountColumn} AS albums FROM people WHERE role='artist' AND {CountColumn}>0 ORDER BY part_norm"),
+            "artists" => WithCounts(connection, Query(connection, $"SELECT part_norm AS key, display AS name, {CountColumn} AS albums FROM people WHERE role='artist' AND {CountColumn}>0 ORDER BY part_norm"), "SELECT part_norm AS key, album_key FROM album_credits WHERE credit IN ('own')"),
             // Pop tags credit singer-songwriters as composers; optionally keep only people who compose on albums that aren't their own
-            "composers" => Query(connection, $"SELECT part_norm AS key, display AS name, {CountColumn} AS albums FROM people p WHERE role='composer' AND {CountColumn}>0" + (hideOwnComposers ? " AND EXISTS (SELECT 1 FROM album_credits c JOIN albums a ON a.key=c.album_key AND a.source=$source WHERE c.part_norm=p.part_norm AND c.credit='composer' AND NOT EXISTS (SELECT 1 FROM album_credits o WHERE o.album_key=c.album_key AND o.part_norm=c.part_norm AND o.credit IN ('own','with')))" : "") + " ORDER BY part_norm", ("$source", albumSource)),
-            "performers" => Query(connection, $"SELECT part_norm AS key, display AS name, role, {CountColumn} AS albums FROM people WHERE role IN ('conductor','band','soloist') AND {CountColumn}>0 AND ($role='' OR role=$role) ORDER BY part_norm", ("$role", Text("role"))),
-            "genres" => Query(connection, "SELECT g.id AS key, g.name, COUNT(DISTINCT tg.track_id) AS tracks FROM genres g JOIN track_genres tg ON tg.genre_id=g.id GROUP BY g.id ORDER BY g.name_norm"),
+            "composers" => WithCounts(connection, Query(connection, $"SELECT part_norm AS key, display AS name, {CountColumn} AS albums FROM people p WHERE role='composer' AND {CountColumn}>0" + (hideOwnComposers ? " AND EXISTS (SELECT 1 FROM album_credits c JOIN albums a ON a.key=c.album_key AND a.source=$source WHERE c.part_norm=p.part_norm AND c.credit='composer' AND NOT EXISTS (SELECT 1 FROM album_credits o WHERE o.album_key=c.album_key AND o.part_norm=c.part_norm AND o.credit IN ('own','with')))" : "") + " ORDER BY part_norm", ("$source", albumSource)), "SELECT part_norm AS key, album_key FROM album_credits WHERE credit='composer'"),
+            "performers" => WithCounts(connection, Query(connection, $"SELECT part_norm AS key, display AS name, role, {CountColumn} AS albums FROM people WHERE role IN ('conductor','band','soloist') AND {CountColumn}>0 AND ($role='' OR role=$role) ORDER BY part_norm", ("$role", Text("role"))), "SELECT part_norm AS key, album_key FROM album_credits WHERE credit IN ('conductor','band','track')"),
+            "genres" => WithCounts(connection, Query(connection, "SELECT g.id AS key, g.name, COUNT(DISTINCT tg.track_id) AS genreTracks FROM genres g JOIN track_genres tg ON tg.genre_id=g.id GROUP BY g.id ORDER BY g.name_norm"), "SELECT DISTINCT tg.genre_id AS key, at.album_key FROM track_genres tg JOIN album_tracks at ON at.track_id=tg.track_id"),
             "artistAlbums" => ArtistAlbums(connection, Text("key"), Text("sort")),
             "composerAlbums" => new { own = AlbumsByCredit(connection, Text("key"), new[] { "composer" }, Text("sort")) },
             "performerAlbums" => new { own = AlbumsByCredit(connection, Text("key"), new[] { "conductor", "band", "track" }, Text("sort")) },
@@ -63,6 +63,20 @@ public sealed class LibraryQueries
         var appearsOn = AlbumsByCredit(connection, partNorm, appearsCredits, sort).Where(album => !ownKeys.Contains((string)album["key"]!)).ToList();
         var name = Query(connection, "SELECT display FROM people WHERE part_norm=$part LIMIT 1", ("$part", partNorm)).FirstOrDefault()?["display"];
         return new { name, own, appearsOn };
+    }
+
+    // Top-level lists: per row, how many of each second-level grouping its albums make (album artists, years, decades, formats) plus albums and tracks, so the list can show the count that matches the view's grouping
+    List<Dictionary<string, object?>> WithCounts(SqliteConnection connection, List<Dictionary<string, object?>> rows, string rowAlbumsSql)
+    {
+        var counts = Query(connection, $"SELECT ra.key, COUNT(DISTINCT a.key) AS albums, COUNT(DISTINCT a.artist_norm) AS artists, COUNT(DISTINCT NULLIF(a.year, 0)) AS years, COUNT(DISTINCT NULLIF(a.year, 0) / 10) AS decades, COUNT(DISTINCT a.format) AS formats, SUM(a.track_count) AS tracks FROM (SELECT DISTINCT key, album_key FROM ({rowAlbumsSql})) ra JOIN albums a ON a.key=ra.album_key AND a.source=$source GROUP BY ra.key", ("$source", albumSource))
+            .ToDictionary(row => Convert.ToString(row["key"])!);
+        foreach (var row in rows)
+        {
+            if (!counts.TryGetValue(Convert.ToString(row["key"])!, out var count)) continue;
+            foreach (var name in new[] { "albums", "artists", "years", "decades", "formats", "tracks" }) row.TryAdd(name, count[name]); // keeps the list's own album count
+            if (row.Remove("genreTracks", out var genreTracks)) row["tracks"] = genreTracks; // a genre's own tracks, not every track on its albums
+        }
+        return rows;
     }
 
     List<Dictionary<string, object?>> AlbumsByCredit(SqliteConnection connection, string partNorm, string[] credits, string sort) =>

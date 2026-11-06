@@ -218,6 +218,10 @@ public partial class SettingsWindow : Window
         foreach (var radio in new[] { folderAlbumsRadio, tagAlbumsRadio, anyCreditRadio, albumArtistRadio }) radio.Click += (sender, args) => SaveChoice();
         hideOwnComposersBox.IsChecked = library.HideOwnComposers;
         hideOwnComposersBox.Click += (sender, args) => { library.HideOwnComposers = hideOwnComposersBox.IsChecked == true; Settings.Save(); App.NotifyLibraryChanged(); };
+        var listCountChoices = new[] { ("group", "What the view groups by (e.g. album artists)"), ("tracks", "Tracks"), ("both", "Both") };
+        foreach (var (value, label) in listCountChoices) listCountsBox.Items.Add(new ComboBoxItem { Content = label, Tag = value });
+        listCountsBox.SelectedIndex = Math.Max(0, Array.FindIndex(listCountChoices, choice => choice.Item1 == library.ListCounts));
+        listCountsBox.SelectionChanged += (sender, args) => { library.ListCounts = (string)((ComboBoxItem)listCountsBox.SelectedItem).Tag; Settings.Save(); App.NotifyLibraryChanged(); };
         separatorsBox.LostFocus += async (sender, args) => { if (separatorsBox.Text.Trim() == library.NameSeparators) return; library.NameSeparators = separatorsBox.Text.Trim(); Settings.Save(); await App.Library.RefreshAsync(true); };
         refreshMinutesBox.LostFocus += (sender, args) => { library.RefreshMinutes = int.TryParse(refreshMinutesBox.Text, out var minutes) ? Math.Clamp(minutes, 1, 1440) : library.RefreshMinutes; refreshMinutesBox.Text = library.RefreshMinutes.ToString(); Settings.Save(); };
         refreshLibraryButton.Click += async (sender, args) => { libraryStatusText.Text = "Checking the server…"; await App.Library.RefreshAsync(false); ShowLibraryStatus(); };
