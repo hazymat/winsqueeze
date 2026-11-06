@@ -20,4 +20,8 @@ export function request<T = any>(message: ShellMessage): Promise<T> {
 export const query = <T = any>(name: string, params: Record<string, unknown> = {}) => request<T>({ type: 'query', name, params })
 export const live = <T = any>(command: unknown[], forPlayer = false) => request<T>({ type: 'live', command, player: forPlayer })
 export const command = (...parts: unknown[]) => sendToShell({ type: 'command', command: parts })
+// Shown wherever the server has no artwork: a plain square (each place rounds its own corners) with a note
+const noArtSvg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='#2a2d34'/><path d='M58 28v32.5a9 9 0 1 1-4-7.5V34l-14 3v27.5a9 9 0 1 1-4-7.5V32z' fill='#6c717c'/></svg>`
+export const noArtUrl = 'data:image/svg+xml,' + encodeURIComponent(noArtSvg)
+if (typeof document !== 'undefined') document.addEventListener('error', event => { const image = event.target; if (image instanceof HTMLImageElement && image.src.startsWith('https://art.winsqueeze/')) image.src = noArtUrl }, true)
 export const artUrl = (coverId: unknown, size = 300) => coverId ? `https://art.winsqueeze/${coverId}/${size}` : ''

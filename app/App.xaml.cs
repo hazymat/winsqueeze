@@ -331,7 +331,7 @@ public partial class App : Application
         exclusive = Player.ExclusiveActive,
         eqActive = Settings.Equaliser.Enabled && SqueezeliteHost.SupportsEqualiser,
         sampleRate = Player.OutputSampleRate,
-        recording = new { available = SqueezeliteHost.SupportsRecording && Settings.Recording.ShowButton, on = Recorder.Recording, file = System.IO.Path.GetFileName(Recorder.CurrentFile), startedAt = Recorder.Recording ? new DateTimeOffset(Recorder.StartedAt).ToUnixTimeMilliseconds() : 0, files = Recorder.FilesThisRecording, note = Recorder.Note, noteId = Recorder.NoteId },
+        recording = new { available = SqueezeliteHost.SupportsRecording && Settings.Recording.ShowButton, on = Recorder.Recording, file = System.IO.Path.GetFileName(Recorder.CurrentFile), startedAt = Recorder.Recording ? new DateTimeOffset(Recorder.StartedAt).ToUnixTimeMilliseconds() : 0, files = Recorder.FilesThisRecording, note = Recorder.Note, noteId = Recorder.NoteId, folder = Recorder.SessionFolder },
         fallback = UsingFallbackDevice,
         version = Updater.CurrentVersion,
         updateReady = Updater.ReadyVersion

@@ -42,6 +42,7 @@
     {/key}
     <span class="message">{ui.toast.text}</span>
     <div class="actions">
+      {#if ui.toast.action}<button onclick={() => { const action = ui.toast?.action; ui.toast = null; action?.run() }}>{ui.toast.action.label}<kbd>{ui.toast.action.key}</kbd></button>{/if}
       {#if ui.toast.undo}<button class="undo" onclick={undoToast}>Undo<kbd>Ctrl+Z</kbd></button>{/if}
       {#if ui.toast.redo}<button class="undo" onclick={() => { const redo = ui.toast?.redo; ui.toast = null; redo?.() }}>Redo<kbd>Ctrl+Y</kbd></button>{/if}
       <button class="clear" onclick={() => ui.toast = null} aria-label="Dismiss">Close<kbd>Esc</kbd></button>

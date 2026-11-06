@@ -153,6 +153,7 @@ public partial class MainWindow : Window
                 case "toggleEq": App.ToggleEqualiser(); break;
                 case "toggleRecording": App.Recorder.Toggle(App.Session.LastStatus); break;
                 case "openRecordings": Directory.CreateDirectory(App.Recorder.Folder); System.Diagnostics.Process.Start("explorer.exe", App.Recorder.Folder); break;
+                case "openRecording": var recordingFolder = App.Recorder.SessionFolder; System.Diagnostics.Process.Start("explorer.exe", $"\"{(Directory.Exists(recordingFolder) ? recordingFolder : App.Recorder.Folder)}\""); break; // the folder the last recording was saved in
                 case "edgeColour": LookLog("edge " + Text(message, "colour")); SetEdgeColour(Text(message, "colour")); break;
                 // Frameless: the page asks Windows to resize from an edge, as if the native frame were grabbed
                 case "resizeWindow": if (resizeHitCodes.TryGetValue(Text(message, "edge"), out var hitCode)) { ReleaseCapture(); SendMessage(new WindowInteropHelper(this).Handle, 0xA1 /*WM_NCLBUTTONDOWN*/, (IntPtr)hitCode, IntPtr.Zero); } break;

@@ -61,7 +61,7 @@
 
   // A finished or failed recording says where it went (only notes that arrive after startup)
   let lastRecordingNote = -1
-  onShellMessage('status', message => { const recording = message.recording; if (recording && lastRecordingNote >= 0 && recording.noteId > lastRecordingNote && recording.note) toast(recording.note); if (recording) lastRecordingNote = recording.noteId; app.status = message })
+  onShellMessage('status', message => { const recording = message.recording; if (recording && lastRecordingNote >= 0 && recording.noteId > lastRecordingNote && recording.note) toast(recording.note, undefined, 10000, recording.note.includes(' in ') && recording.folder ? { action: { label: 'Open in Explorer', key: 'E', run: () => sendToShell({ type: 'openRecording' }) } } : {}); if (recording) lastRecordingNote = recording.noteId; app.status = message })
   onShellMessage('nowPlaying', message => { noteTrackChange(app.nowPlaying, message.status); noteLongTrack(app.nowPlaying, message.status); app.nowPlaying = message.status; checkKeepPlaying(message.status); app.receivedAt = Date.now() })
   onShellMessage('players', message => { app.players = message.players ?? []; app.ownPlayer = message.own ?? ''; app.selectedPlayer = message.selected ?? app.selectedPlayer })
   onShellMessage('library', message => app.library = { text: message.text ?? '', done: message.done ?? 0, total: message.total ?? 0 })
@@ -146,6 +146,7 @@
     else if (event.ctrlKey && event.key.toLowerCase() === 'c' && !typing && getSelection()?.toString()) { event.preventDefault(); copySelection() }
     else if (event.ctrlKey && ((event.shiftKey && event.key.toLowerCase() === 'z') || event.key.toLowerCase() === 'y') && !typing) { event.preventDefault(); redoLast() }
     else if (event.ctrlKey && event.key.toLowerCase() === 'z' && !typing) { event.preventDefault(); if (ui.toast?.undo && ui.toast.undo !== undoLast) undoToast(); else undoLast() }
+    else if (!event.ctrlKey && !event.altKey && !typing && ui.toast?.action && event.key.toUpperCase() === ui.toast.action.key) { event.preventDefault(); const action = ui.toast.action; ui.toast = null; action.run() }
     else if (event.key === 'Escape' && ui.trackInfo) ui.trackInfo = null
     else if (event.key === 'Escape' && ui.metersFull) ui.metersFull = false
     else if (event.key === 'Escape' && ui.toast && !selection.keys.length) ui.toast = null

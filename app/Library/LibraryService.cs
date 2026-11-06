@@ -61,17 +61,28 @@ public sealed class LibraryService
         };
     }
 
+    readonly Dictionary<int, byte[]> placeholders = new();
+    async Task<byte[]> PlaceholderAsync(ServerProfile profile, int size)
+    {
+        if (placeholders.TryGetValue(size, out var known)) return known;
+        try { using var response = await artClient.GetAsync($"http://{profile.Host}:{profile.Port}/music/0/cover_{size}x{size}_o"); known = response.IsSuccessStatusCode ? await response.Content.ReadAsByteArrayAsync() : Array.Empty<byte>(); } catch { known = Array.Empty<byte>(); }
+        if (known.Length > 0) placeholders[size] = known;
+        return known.Length > 0 ? known : new byte[] { 0 };
+    }
+
     async Task<byte[]?> GetArtAsync(string coverId, int size)
     {
         var profile = App.Settings.ActiveProfile;
         if (profile is not { Host.Length: > 0 } || coverId == "") return null;
         var cachePath = Path.Combine(LibraryDatabase.ArtFolder(profile), $"{coverId}_{size}");
-        if (File.Exists(cachePath)) return await File.ReadAllBytesAsync(cachePath);
+        if (File.Exists(cachePath)) { var cachedBytes = await File.ReadAllBytesAsync(cachePath); return cachedBytes.Length == 0 || cachedBytes.AsSpan().SequenceEqual(await PlaceholderAsync(profile, size)) ? null : cachedBytes; } // older caches may hold the placeholder
         using var response = await artClient.GetAsync($"http://{profile.Host}:{profile.Port}/music/{coverId}/cover_{size}x{size}_o");
         if (!response.IsSuccessStatusCode) return null;
         var artBytes = await response.Content.ReadAsByteArrayAsync();
+        // No real art: Lyrion sends its own framed placeholder; report "none" (cached as an empty file) so the UI shows its own rounded one
+        if (artBytes.AsSpan().SequenceEqual(await PlaceholderAsync(profile, size))) artBytes = Array.Empty<byte>();
         await File.WriteAllBytesAsync(cachePath, artBytes);
-        return artBytes;
+        return artBytes.Length == 0 ? null : artBytes;
     }
 
     public void ClearArtCache() { var profile = App.Settings.ActiveProfile; if (profile != null) { Directory.Delete(LibraryDatabase.ArtFolder(profile), true); } }

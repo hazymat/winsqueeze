@@ -15,7 +15,7 @@ export const app = $state({
 const savedNav = (() => { try { return JSON.parse(readSetting('nav', '')) } catch { return null } })()
 export const nav = $state({ section: (savedNav?.section ?? 'artists') as string, stack: (savedNav?.stack ?? []) as View[] })
 $effect.root(() => { $effect(() => { writeSetting('nav', JSON.stringify({ section: nav.section, stack: nav.stack })) }) })
-export const ui = $state({ search: '', scope: 'list' as 'list' | 'everything', expanded: false, meterStyle: readSetting('meterStyle', 'vu'), skin: readSetting('skin', 'auto'), coverAccent: readSetting('coverAccent', '') === '1', coverBackdrop: readSetting('coverBackdrop', '1') !== '0', accent: readSetting('accent', ''), glassTransparency: Number(readSetting('glassTransparency', '-1')), glassTintHue: Number(readSetting('glassTintHue', '0')), lookVersion: 0, pinned: false, metersFull: false, trackInfo: null as null | number[], toast: null as null | { text: string; undo?: () => unknown; redo?: () => unknown; ms: number; id: number } })
+export const ui = $state({ search: '', scope: 'list' as 'list' | 'everything', expanded: false, meterStyle: readSetting('meterStyle', 'vu'), skin: readSetting('skin', 'auto'), coverAccent: readSetting('coverAccent', '') === '1', coverBackdrop: readSetting('coverBackdrop', '1') !== '0', accent: readSetting('accent', ''), glassTransparency: Number(readSetting('glassTransparency', '-1')), glassTintHue: Number(readSetting('glassTintHue', '0')), lookVersion: 0, pinned: false, metersFull: false, trackInfo: null as null | number[], toast: null as null | { text: string; undo?: () => unknown; redo?: () => unknown; action?: { label: string; key: string; run: () => unknown }; ms: number; id: number } })
 export const playlist = $state({ open: false, collapsed: false, name: 'Untitled playlist', items: [] as PlaylistItem[], history: [] as number[] })
 
 export function readSetting(name: string, fallback: string) { try { return localStorage.getItem('ws.' + name) ?? fallback } catch { return fallback } }
@@ -32,12 +32,14 @@ export const currentView = () => nav.stack.length ? nav.stack[nav.stack.length -
 // Messages show in the action strip above the transport (ActionStrip.svelte), with a ring counting down their time
 let toastTimer = 0, toastId = 0
 // Undo history: every undoable action stays undoable (Ctrl+Z) after its bar has gone; actions that pass a redo can be redone (Ctrl+Y / Ctrl+Shift+Z)
+export type ToastAction = { label: string; key: string; run: () => unknown } // an extra button on the bar, with a one-letter shortcut
 type HistoryEntry = { text: string; undo: () => unknown; redo?: () => unknown }
 const historyLimit = 100
 export const history = $state({ undo: [] as HistoryEntry[], redo: [] as HistoryEntry[] })
-function show(text: string, ms: number, undo?: () => unknown, redo?: () => unknown) { ui.toast = { text, undo, redo, ms, id: ++toastId }; clearTimeout(toastTimer); toastTimer = window.setTimeout(() => ui.toast = null, ms) }
+function show(text: string, ms: number, undo?: () => unknown, redo?: () => unknown, action?: ToastAction) { ui.toast = { text, undo, redo, action, ms, id: ++toastId }; clearTimeout(toastTimer); toastTimer = window.setTimeout(() => ui.toast = null, ms) }
 // keep: false for undos that only make sense straight away (going back to a track you just left)
-export function toast(text: string, undo?: () => unknown, undoMs = 6000, options: { redo?: () => unknown; keep?: boolean } = {}) {
+export function toast(text: string, undo?: () => unknown, undoMs = 6000, options: { redo?: () => unknown; keep?: boolean; action?: ToastAction } = {}) {
+  if (options.action && !undo) { show(text, undoMs, undefined, undefined, options.action); return }
   if (undo && options.keep !== false) { history.undo = history.undo.concat([{ text, undo, redo: options.redo }]).slice(-historyLimit); history.redo = []; show(text, undoMs, undoLast) }
   else show(text, undo ? undoMs : 2500, undo)
 }
