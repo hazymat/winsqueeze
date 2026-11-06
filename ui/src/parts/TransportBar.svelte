@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Hint from './Hint.svelte'
   import { command, sendToShell, artUrl } from '../bridge'
   import { app, ui, meters, nav, openSection, currentTrack, formatTime } from '../state.svelte'
   import Analyser from './Analyser.svelte'
@@ -65,7 +66,7 @@
     </div>{/if}
   </div>
   <div class="right">
-    <button class="pixel-meter" title="Equaliser (click to open or close)" onclick={() => sendToShell({ type: 'toggleEq' })}><Analyser levels={meters.bands} compact={true} segments={14} /></button>
+    <div class="meter-anchor"><button class="pixel-meter" title="Equaliser (click to open or close)" onclick={() => sendToShell({ type: 'toggleEq' })}><Analyser levels={meters.bands} compact={true} segments={14} /></button><Hint id="transport-eq" text="Click for EQ" bubble /></div>
     <div class="volume">
       <FidelityBadge />
       <input type="range" min="0" max="100" value={volume} oninput={dragVolume} onchange={releaseVolume} aria-label="Volume" />
@@ -115,7 +116,7 @@
   .right { display: flex; align-items: center; justify-content: flex-end; gap: 10px; min-width: 0; }
   .right > * { flex-shrink: 0; }
   /* The right column sizes to its content, so it can never spill over the buttons */
-  .right { align-self: stretch; } .right > .pixel-meter { margin: 0 auto; } /* the analyser sits midway between the seek bar and the volume */
+  .right { align-self: stretch; } .meter-anchor { position: relative; margin: 0 auto; } /* the analyser sits midway between the seek bar and the volume */
   /* Format and Bit-perfect/Scaled stacked above the slider, which sits low, in line with the seek bar */
   .volume { position: relative; display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-end; align-self: stretch; gap: 5px; }
   .volume input { width: 90px; accent-color: var(--accent); }
@@ -127,13 +128,13 @@
   .pin { background: none; border: 0; cursor: pointer; opacity: 0.5; color: var(--fg); padding: 4px; } .pin.on { opacity: 1; }
   /* Never drop transport controls: collapse the readout, player switcher, seek times, then the volume slider (SPEC.md › Transport) */
   @container (max-width: 900px) { .transport { grid-template-columns: minmax(0, 1fr) minmax(200px, 1.4fr) auto; } }
-  @container (max-width: 700px) { .time, .pixel-meter { display: none; } }
+  @container (max-width: 700px) { .time, .meter-anchor { display: none; } }
   @container (max-width: 540px) { .volume > input, .volume-number, .volume :global(.fidelity) { display: none; } .volume { justify-content: center; } .volume-icon { display: block; } .transport { grid-template-columns: 1fr auto auto; } .seek-row { display: none; } }
   /* Mini: Winamp-style strip */
   .mini { grid-template-columns: 1fr auto; grid-template-rows: auto auto; gap: 6px 10px; padding: 10px; height: 100%; box-sizing: border-box; border: 0; }
   .mini .centre { grid-column: 1 / 3; grid-row: 2; flex-direction: row; }
   .mini .seek-row { display: flex; } .mini .seek-row .time { display: none; }
-  .mini .volume, .mini .pixel-meter { display: none; }
+  .mini .volume, .mini .meter-anchor { display: none; }
   .mini .right { gap: 4px; }
   .mini-meters { display: flex; transform-origin: right center; } .mini-meters :global(.small .vu) { width: 48px; height: 29px; }
   .mini-speaker { background: none; border: 0; cursor: pointer; color: var(--fg); opacity: 0.6; padding: 4px; } .mini-speaker.on, .mini-speaker:hover { opacity: 1; color: var(--accent); }
