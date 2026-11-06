@@ -1,9 +1,10 @@
 <script lang="ts">
-  import { app } from '../state.svelte'
+  import { app, ui } from '../state.svelte'
+  import { selection } from '../lib/selection.svelte'
   import { sendToShell } from '../bridge'
   // A dismissable tip: gone for good once closed; Settings › General can hide them all or bring them back
   let { id, text, bubble = false }: { id: string; text: string; bubble?: boolean } = $props() // bubble: a small tip floating above its control
-  const shown = $derived(!app.hints.hidden && !app.hints.dismissed.includes(id))
+  const shown = $derived(!app.hints.hidden && !app.hints.dismissed.includes(id) && !(bubble && (ui.toast || selection.keys.length))) // bubbles step aside while the action bar is up
   function dismiss() { app.hints = { hidden: app.hints.hidden, dismissed: app.hints.dismissed.concat([id]) }; sendToShell({ type: 'dismissHint', id }) }
 </script>
 

@@ -32,6 +32,11 @@
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 18px; }
   .grid.compact { grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap: 12px 10px; }
   .rows { display: flex; flex-direction: column; gap: 2px; }
+  /* chosen covers: an accent ring outside the art and a tick (a tinted background would hide behind the cover); the rest dim */
+  .grid :global(.select-wrap.selected) { background: none; box-shadow: none; }
+  .grid :global(.select-wrap.selected .art) { outline: 3px solid var(--accent); outline-offset: 3px; }
+  .grid :global(.select-wrap.selected .art::after) { content: "✓"; position: absolute; top: 6px; right: 6px; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--on-accent); font-size: 14px; font-weight: 700; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4); }
+  :global(:is(.groups, .grid):has(.select-wrap.selected) .select-wrap:not(.selected) > *) { opacity: 0.5; transition: opacity 150ms; }
   /* shared rows: every grid uses the page's exact column width, so packed groups line up with full rows */
   .group { min-width: 0; flex: 1 1 100%; }
   .group.packed { flex: 0 0 calc(var(--span) * var(--card-width) + (var(--span) - 1) * var(--column-gap)); }
