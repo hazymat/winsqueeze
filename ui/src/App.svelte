@@ -143,6 +143,7 @@
     else if (event.ctrlKey && event.key.toLowerCase() === 'c' && !typing && getSelection()?.toString()) { event.preventDefault(); copySelection() }
     else if (event.ctrlKey && event.key.toLowerCase() === 'z' && !typing && ui.toast?.undo) { event.preventDefault(); undoToast() }
     else if (event.key === 'Escape' && ui.metersFull) ui.metersFull = false
+    else if (event.key === 'Escape' && ui.toast && !selection.keys.length) ui.toast = null
     else if (event.key === 'Escape' && !selection.keys.length) { if (ui.search) ui.search = ''; else if (nav.stack.length) back() }
     else if (event.altKey && event.key === 'ArrowLeft' && nav.stack.length) { event.preventDefault(); back() }
     else if (event.altKey && event.key === 'ArrowRight' && forwardHistory.views.length) { event.preventDefault(); forward() }

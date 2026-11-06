@@ -42,6 +42,7 @@
     {/key}
     <span class="message">{ui.toast.text}</span>
     {#if ui.toast.undo}<button class="undo" onclick={undoToast}>Undo<kbd>Ctrl+Z</kbd></button>{/if}
+    <button class="clear dismiss" onclick={() => ui.toast = null} aria-label="Dismiss">Close<kbd>Esc</kbd></button>
   {/if}
 </div>
 </div>
@@ -54,7 +55,7 @@
   button { display: flex; align-items: center; gap: 6px; white-space: nowrap; background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 5px 12px; font: inherit; cursor: pointer; min-height: 32px; }
   button:hover { background: var(--hover); }
   button.danger { color: #ff7a6b; }
-  .clear { background: none; }
+  .clear { background: none; } .dismiss { margin-left: auto; }
   button.open { background: var(--accent-soft); color: var(--accent); }
   .menu { position: absolute; right: 16px; bottom: calc(100% + 6px); z-index: 45; min-width: 240px; max-height: 50vh; overflow-y: auto; padding: 6px; display: flex; flex-direction: column; gap: 2px; background: var(--panel-solid); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 16px 40px var(--shadow); }
   .menu button { justify-content: space-between; border: 0; background: none; min-height: 36px; }
