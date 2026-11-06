@@ -24,7 +24,7 @@
     return mode === 'tracks' ? tracks || grouped : mode === 'both' ? [grouped, tracks].filter(Boolean).join(' · ') : grouped || tracks
   }
   // Size graphic (Settings › Library): log share of the biggest row, by tracks when only tracks are shown, else by the grouped count
-  const graphic = $derived(app.librarySettings.ListGraphic ?? 'none')
+  const graphic = $derived(app.librarySettings.ListSizeGraphic ?? 'none')
   const sizeOf = (row: any) => { const field = (groupCounts[nextView.group] ?? ['albums'])[0]; return Number((app.librarySettings.ListCounts === 'tracks' ? row.tracks : row[field] ?? row.tracks) ?? 0) }
   const biggest = $derived(graphic === 'none' ? 1 : rows.reduce((largest, row) => Math.max(largest, sizeOf(row)), 1))
   const shareOf = (row: any) => Math.log(sizeOf(row) + 1) / Math.log(biggest + 1)

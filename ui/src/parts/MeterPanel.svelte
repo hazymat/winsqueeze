@@ -4,7 +4,7 @@
   export const panelThemes: Record<string, { aspect: number }> = { deck: { aspect: 300 / 96 }, orange: { aspect: 240 / 120 }, monitor: { aspect: 440 / 110 }, blue: { aspect: 360 / 110 }, green: { aspect: 360 / 120 } }
 </script>
 <script lang="ts">
-  let { theme, levels, reference, size, idle }: { theme: string, levels: number[], reference: number, size: string, idle: boolean } = $props()
+  let { theme, levels, reference, size, idle, textureScale = 1 }: { theme: string, levels: number[], reference: number, size: string, idle: boolean, textureScale?: number } = $props()
   const id = `panel-${panelCount++}`
   const height = $derived(theme === 'monitor' || theme === 'blue' ? 110 : theme === 'deck' ? 96 : 120)
   const width = $derived(Math.round(panelThemes[theme].aspect * height))
@@ -23,7 +23,7 @@
   const sum = $derived(10 * Math.log10((Math.pow(10, relative(0) / 10) + Math.pow(10, relative(1) / 10)) / 2 + 1e-12))
   const wattsAt = (wattage: number, full = 100) => 10 * Math.log10(wattage / full)
   const shortWatts = (wattage: number) => wattage < 1 ? String(wattage).replace(/^0/, '') : String(wattage)
-  const grainFrequency = $derived(size === 'full' ? 2.4 : 0.9)
+  const grainFrequency = $derived(0.9 * textureScale * 300 / width)
   const range = (from: number, to: number, step: number) => Array.from({ length: Math.round((to - from) / step) + 1 }, (unused, index) => from + index * step)
   // Deck
   const deckWindows = [{ x: 12, channel: 'L' }, { x: 170, channel: 'R' }]

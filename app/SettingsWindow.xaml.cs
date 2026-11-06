@@ -229,7 +229,7 @@ public partial class SettingsWindow : Window
         // Graphic for list sizes, with a live preview of three sample rows
         var listGraphicChoices = new[] { ("none", "None"), ("dots", "Dots"), ("bar", "Continuous bar"), ("bold", "Bolder and brighter") };
         foreach (var (value, label) in listGraphicChoices) listGraphicBox.Items.Add(new ComboBoxItem { Content = label, Tag = value });
-        listGraphicBox.SelectedIndex = Math.Max(0, Array.FindIndex(listGraphicChoices, choice => choice.Item1 == library.ListGraphic));
+        listGraphicBox.SelectedIndex = Math.Max(0, Array.FindIndex(listGraphicChoices, choice => choice.Item1 == library.ListSizeGraphic));
         void DrawGraphicPreview()
         {
             listGraphicPreview.Children.Clear();
@@ -239,22 +239,22 @@ public partial class SettingsWindow : Window
                 var share = Math.Log(count + 1) / Math.Log(40);
                 var row = new Grid { Height = 24 }; row.ColumnDefinitions.Add(new ColumnDefinition()); row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
                 var nameText = new TextBlock { Text = name, Foreground = Brushes.White, VerticalAlignment = VerticalAlignment.Center };
-                if (library.ListGraphic == "bold") { nameText.FontWeight = FontWeight.FromOpenTypeWeight((int)(300 + share * 400)); nameText.Opacity = 0.45 + share * 0.55; }
+                if (library.ListSizeGraphic == "bold") { nameText.FontWeight = FontWeight.FromOpenTypeWeight((int)(300 + share * 400)); nameText.Opacity = 0.45 + share * 0.55; }
                 row.Children.Add(nameText);
-                if (library.ListGraphic == "dots")
+                if (library.ListSizeGraphic == "dots")
                 {
                     var dots = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) };
                     var lit = Math.Max(1, (int)Math.Round(share * 5));
                     for (var dot = 1; dot <= 5; dot++) dots.Children.Add(new System.Windows.Shapes.Ellipse { Width = 5, Height = 5, Margin = new Thickness(0, 0, 3, 0), Fill = dot <= lit ? accent : new SolidColorBrush(Color.FromArgb(0x30, 0xFF, 0xFF, 0xFF)) });
                     Grid.SetColumn(dots, 1); row.Children.Add(dots);
                 }
-                if (library.ListGraphic == "bar") { var bar = new Border { Height = 2, CornerRadius = new CornerRadius(1), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Bottom, Width = share * 150, Background = new LinearGradientBrush(Color.FromRgb(0x5A, 0xC8, 0xFF), Color.FromRgb(0xB4, 0x8C, 0xFF), 0), Opacity = 0.35 + share * 0.65, Margin = new Thickness(0, 0, 0, 2) }; Grid.SetColumnSpan(bar, 3); row.Children.Add(bar); }
+                if (library.ListSizeGraphic == "bar") { var bar = new Border { Height = 2, CornerRadius = new CornerRadius(1), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Bottom, Width = share * 150, Background = new LinearGradientBrush(Color.FromRgb(0x5A, 0xC8, 0xFF), Color.FromRgb(0xB4, 0x8C, 0xFF), 0), Opacity = 0.35 + share * 0.65, Margin = new Thickness(0, 0, 0, 2) }; Grid.SetColumnSpan(bar, 3); row.Children.Add(bar); }
                 var countText = new TextBlock { Text = $"{count} album{(count == 1 ? "" : "s")}", Foreground = new SolidColorBrush(Color.FromRgb(0x8B, 0x94, 0xAD)), FontSize = 11, VerticalAlignment = VerticalAlignment.Center };
                 Grid.SetColumn(countText, 2); row.Children.Add(countText); listGraphicPreview.Children.Add(row);
             }
         }
         DrawGraphicPreview();
-        listGraphicBox.SelectionChanged += (sender, args) => { library.ListGraphic = (string)((ComboBoxItem)listGraphicBox.SelectedItem).Tag; Settings.Save(); App.NotifyLibraryChanged(); DrawGraphicPreview(); };
+        listGraphicBox.SelectionChanged += (sender, args) => { library.ListSizeGraphic = (string)((ComboBoxItem)listGraphicBox.SelectedItem).Tag; Settings.Save(); App.NotifyLibraryChanged(); DrawGraphicPreview(); };
         separatorsBox.LostFocus += async (sender, args) => { if (separatorsBox.Text.Trim() == library.NameSeparators) return; library.NameSeparators = separatorsBox.Text.Trim(); Settings.Save(); await App.Library.RefreshAsync(true); };
         refreshMinutesBox.LostFocus += (sender, args) => { library.RefreshMinutes = int.TryParse(refreshMinutesBox.Text, out var minutes) ? Math.Clamp(minutes, 1, 1440) : library.RefreshMinutes; refreshMinutesBox.Text = library.RefreshMinutes.ToString(); Settings.Save(); };
         refreshLibraryButton.Click += async (sender, args) => { libraryStatusText.Text = "Checking the server…"; await App.Library.RefreshAsync(false); ShowLibraryStatus(); };
