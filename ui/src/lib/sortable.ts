@@ -131,6 +131,9 @@ export function sortable(listElement: HTMLElement, initialOptions: SortableOptio
   listElement.addEventListener('pointerdown', onPointerDownReset, true)
   listElement.addEventListener('pointerdown', onPointerDown)
   listElement.addEventListener('click', onClick, true)
+  // Right-click chooses a row, like holding it does (and like every other list)
+  function onContextMenu(event: MouseEvent) { const row = (event.target as HTMLElement).closest('[data-sort-row]') as HTMLElement | null; const index = row ? rows().indexOf(row) : -1; if (index < 0 || !options.onHold) return; event.preventDefault(); options.onHold(index) }
+  listElement.addEventListener('contextmenu', onContextMenu)
   window.addEventListener('pointermove', onPointerMove)
   window.addEventListener('pointerup', onPointerUp)
   window.addEventListener('pointercancel', onPointerUp)
@@ -138,6 +141,7 @@ export function sortable(listElement: HTMLElement, initialOptions: SortableOptio
   return {
     update(newOptions: SortableOptions) { options = newOptions },
     destroy() {
+      listElement.removeEventListener('contextmenu', onContextMenu)
       listElement.removeEventListener('pointerdown', onPointerDownReset, true); listElement.removeEventListener('pointerdown', onPointerDown); listElement.removeEventListener('click', onClick, true)
       document.removeEventListener('touchmove', onTouchMove); window.removeEventListener('pointermove', onPointerMove); window.removeEventListener('pointerup', onPointerUp); window.removeEventListener('pointercancel', onPointerUp); window.removeEventListener('keydown', onKeyDown, true)
     }
