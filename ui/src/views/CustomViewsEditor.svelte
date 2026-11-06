@@ -1,14 +1,17 @@
 <script lang="ts">
   import { app, toast, openView } from '../state.svelte'
   import { sendToShell, query } from '../bridge'
-  import { levelNames, customViewsExplainer } from '../lib/browse.svelte'
+  import { levelNames, customViewsExplainer, saveCustomViews } from '../lib/browse.svelte'
+  import { sortable } from '../lib/sortable'
   // Custom views editor (SPEC.md › Custom views): every change is saved straight away, in settings (so export/import carries them)
   type CustomView = { Id: string; Name: string; Enabled: boolean; Group: string; Genres: string[]; Levels: string[] }
   let views = $state<CustomView[]>(JSON.parse(JSON.stringify(app.librarySettings.CustomViews ?? [])))
   let libraryGenres = $state<string[]>([])
   $effect(() => { app.indexVersion; query('genres').then(rows => libraryGenres = Array.isArray(rows) ? rows.map((row: any) => String(row.name)) : []) })
   let pickingGenresFor = $state(''), genreFilter = $state('')
-  function save(next: CustomView[]) { views = next; app.librarySettings.CustomViews = JSON.parse(JSON.stringify(next)); sendToShell({ type: 'setCustomViews', views: app.librarySettings.CustomViews }) }
+  function save(next: CustomView[]) { views = next; saveCustomViews(next) }
+  // Order here is the order on each sidebar menu's page: drag a view (hold it) or use its arrows
+  const moveView = (from: number, to: number) => { if (to < 0 || to >= views.length || from === to) return; const next = views.slice(), moved = next.splice(from, 1)[0]; next.splice(to, 0, moved); save(next) }
   const change = (viewId: string, update: (view: CustomView) => void) => save(views.map(view => { if (view.Id !== viewId) return view; const copy: CustomView = JSON.parse(JSON.stringify(view)); update(copy); return copy }))
   const addView = () => save(views.concat([{ Id: 'view-' + Date.now(), Name: 'New view', Enabled: false, Group: '', Genres: [], Levels: ['genre', 'composer'] }]))
   const duplicateView = (view: CustomView) => { const copy: CustomView = JSON.parse(JSON.stringify(view)); copy.Id = 'view-' + Date.now(); copy.Name = view.Name + ' (copy)'; copy.Enabled = false; const next = views.slice(); next.splice(views.indexOf(view) + 1, 0, copy); save(next) }
@@ -22,15 +25,18 @@
 
 <div class="head"><h2>Custom views</h2><button class="ghost" onclick={addView}>＋ New view</button></div>
 <p class="explainer">{customViewsExplainer}</p>
-<p class="quiet">Switch a view on to add it to the sidebar. Views with the same group share one sidebar entry named after the group; leave the group empty to give a view its own entry. Drag them into place with Customise sidebar.</p>
+<p class="quiet">Switch a view on to add it to the sidebar. Views with the same sidebar menu appear together under one sidebar entry of that name; leave it empty to give a view its own entry. Hold a view and drag it, or use its arrows, to set its order on the menu's page; move sidebar entries with Customise sidebar.</p>
 <datalist id="custom-view-groups">{#each groupNames as groupName}<option value={groupName}></option>{/each}</datalist>
-{#each views as view (view.Id)}
-  <section class="view" class:off={!view.Enabled}>
+<div class="view-list" use:sortable={{ onMove: moveView, holdMs: 350 }}>
+{#each views as view, position (view.Id)}
+  <section class="view" class:off={!view.Enabled} data-sort-row>
     <div class="row">
       <label class="switch"><input type="checkbox" checked={view.Enabled} onchange={() => change(view.Id, copy => copy.Enabled = !copy.Enabled)} />Show</label>
       <input class="name" value={view.Name} aria-label="Name" onchange={(event) => change(view.Id, copy => copy.Name = (event.currentTarget as HTMLInputElement).value.trim() || 'Untitled view')} />
-      <label class="group">Group <input list="custom-view-groups" value={view.Group} placeholder="none" onchange={(event) => change(view.Id, copy => copy.Group = (event.currentTarget as HTMLInputElement).value.trim())} /></label>
+      <label class="group" title="Views with the same sidebar menu appear together under one sidebar entry">Sidebar menu <input list="custom-view-groups" value={view.Group} placeholder="none (own entry)" onchange={(event) => change(view.Id, copy => copy.Group = (event.currentTarget as HTMLInputElement).value.trim())} /></label>
       <span class="grow"></span>
+      <button class="ghost arrow-button no-hold" aria-label="Move up" title="Move up" disabled={position === 0} onclick={() => moveView(position, position - 1)}>↑</button>
+      <button class="ghost arrow-button no-hold" aria-label="Move down" title="Move down" disabled={position === views.length - 1} onclick={() => moveView(position, position + 1)}>↓</button>
       <button class="ghost" onclick={() => openView({ kind: 'custom', key: view.Id, title: view.Name, filters: [] })}>Open</button>
       <button class="ghost" onclick={() => duplicateView(view)}>Duplicate</button>
       <button class="ghost" onclick={() => deleteView(view)}>Delete</button>
@@ -59,6 +65,7 @@
     {/if}
   </section>
 {/each}
+</div>
 {#if !views.length}<p class="quiet">No custom views. Make one with New view.</p>{/if}
 
 <style>
@@ -75,7 +82,8 @@
   .name { font: inherit; font-weight: 600; min-width: 180px; }
   input, select { background: var(--bg, transparent); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; font: inherit; font-size: 13px; }
   .switch, .group { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
-  .group input { width: 130px; }
+  .group input { width: 150px; }
+  .arrow-button { padding: 3px 9px; }
   .arrow { color: var(--fg-quiet); }
   .remove, .chip button { background: none; border: 0; color: var(--fg-quiet); cursor: pointer; font: inherit; padding: 0 4px; }
   .remove:hover, .chip button:hover { color: var(--fg); }
