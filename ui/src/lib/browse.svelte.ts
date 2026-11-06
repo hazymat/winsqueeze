@@ -43,5 +43,19 @@ export function groupAlbums(albums: any[], group: string): { key: string; headin
   const groups = new Map<string, { key: string; heading: string; albums: any[] }>()
   for (const album of albums) { const [key, heading] = groupKey(album, group); if (!groups.has(key)) groups.set(key, { key, heading, albums: [] }); groups.get(key)!.albums.push(album) }
   const ordered = Array.from(groups.values()).sort((first, second) => first.key.localeCompare(second.key, undefined, { numeric: true }))
-  return group === 'added' ? ordered.reverse() : ordered
+  return group === 'added' ? ordered.reverse() : group === 'artist' ? mergeSingles(ordered) : ordered
+}
+// Runs of one-album artists share one group headed by their letter range ("A–E · 14 artists"); the card's artist line names each
+function mergeSingles(groups: { key: string; heading: string; albums: any[] }[]) {
+  const merged: { key: string; heading: string; albums: any[] }[] = []
+  let run: { key: string; heading: string; albums: any[] }[] = []
+  const initial = (heading: string) => (heading.trim()[0] ?? '#').toUpperCase()
+  const flush = () => {
+    if (run.length === 1) merged.push(run[0])
+    else if (run.length > 1) { const first = initial(run[0].heading), last = initial(run[run.length - 1].heading); merged.push({ key: run[0].key + '…', heading: `${first === last ? first : first + '–' + last} · ${run.length} artists`, albums: run.flatMap(group => group.albums) }) }
+    run = []
+  }
+  for (const group of groups) { if (group.albums.length === 1) run.push(group); else { flush(); merged.push(group) } }
+  flush()
+  return merged
 }

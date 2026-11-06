@@ -5,6 +5,8 @@
   import Icon from './Icon.svelte'
   let { album, layout = 'grid', compact = false }: { album: any; layout?: string; compact?: boolean } = $props()
   const downloaded = $derived(downloads.albums[album.key])
+  // "Artist - Title" folder names: the artist is already on the line below
+  const shortTitle = $derived(album.artist && String(album.title).toLowerCase().startsWith(String(album.artist).toLowerCase() + ' - ') ? String(album.title).slice(String(album.artist).length + 3) : album.title)
   const open = () => openView({ kind: 'album', key: album.key, title: album.title })
   const play = (event: Event) => { event.stopPropagation(); sendToShell({ type: 'playAlbum', key: album.key, mode: 'load' }) }
   const add = async (event: Event) => { event.stopPropagation(); addToPlaylist(await albumItems(album.key), album.title) }
@@ -18,7 +20,7 @@
       {#if playlist.open}<button class="add" onclick={add} aria-label="Add to playlist">＋</button>{/if}
       {#if downloaded}<span class="downloaded" class:partial={downloaded === 'partial'} title={downloaded === 'full' ? 'Downloaded to this PC' : 'Partly downloaded to this PC'}><Icon name="download" size={12} /></span>{/if}
     </div>
-    <div class="title">{album.title}</div>
+    <div class="title">{shortTitle}</div>
     <div class="sub">{album.artist}{album.year ? ` · ${album.year}` : ''}</div>
   </div>
 {:else}
@@ -39,7 +41,7 @@
   .play, .add { position: absolute; bottom: 8px; width: 38px; height: 38px; border-radius: 50%; border: 0; background: var(--accent); color: var(--on-accent); opacity: 0; transition: opacity 150ms; cursor: pointer; font-size: 14px; }
   .play { right: 8px; } .add { right: 52px; background: var(--panel-strong); color: var(--fg); }
   .card:hover .play, .card:hover .add, .card:focus-visible .play { opacity: 1; }
-  .title { margin-top: 8px; font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .title { margin-top: 8px; font-weight: 600; font-size: 13px; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-height: 1.25; overflow-wrap: anywhere; }
   .sub { color: var(--fg-quiet); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .compact .art { border-radius: 7px; box-shadow: 0 2px 8px var(--shadow); }
   .compact .title { margin-top: 5px; font-size: 11.5px; } .compact .sub { font-size: 10.5px; }
