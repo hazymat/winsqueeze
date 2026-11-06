@@ -89,10 +89,12 @@
   .tracks { display: flex; flex-direction: column; }
   .track { position: relative; display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 8px; }
   .track:hover { background: var(--hover); }
-  .number { width: 28px; background: none; border: 0; color: var(--fg-quiet); cursor: pointer; font: inherit; text-align: right; }
-  .number .arrow { display: none; color: var(--accent); }
-  .track:hover .number .digit { display: none; }
-  .track:hover .number .arrow { display: inline; }
+  /* digit and arrow share one grid cell and swap visibility, so hover never changes the row height */
+  .number { display: grid; justify-items: end; align-items: center; width: 28px; height: 20px; padding: 0; background: none; border: 0; color: var(--fg-quiet); cursor: pointer; font: inherit; line-height: 20px; }
+  .number > span { grid-area: 1 / 1; }
+  .number .arrow { visibility: hidden; color: var(--accent); }
+  .track:hover .number .digit { visibility: hidden; }
+  .track:hover .number .arrow { visibility: visible; }
   .text { flex: 1; min-width: 0; }
   .title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .added { color: var(--accent); }
