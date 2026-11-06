@@ -19,7 +19,7 @@ public partial class SettingsWindow : Window
 
     public SettingsWindow()
     {
-        InitializeComponent();
+        InitializeComponent(); settingsTabs.SelectedItem = generalTab; // the first sidebar item is a section heading
         WireGeneralTab(); WireServersTab(); WireAudioTab(); WirePlaybackTab(); WireLibraryTab(); WireBrowsingTab(); WireAppearanceTab(); WireMetersTab(); WireShortcutsAndNotifications(); WireRecordingTab(); WireAboutTab();
         App.DevicesChanged += LoadDevices;
         App.StatusChanged += ShowPlayerStatus;
@@ -30,7 +30,7 @@ public partial class SettingsWindow : Window
     public void SelectTab(string tabName)
     {
         var tabByName = new Dictionary<string, TabItem> { ["General"] = generalTab, ["Servers"] = serversTab, ["Audio"] = audioTab, ["Playback"] = playbackTab, ["Library"] = libraryTab, ["Browsing"] = browsingTab, ["About"] = aboutTab };
-        if (tabByName.TryGetValue(tabName, out var selectedTab)) settingsTabs.SelectedItem = selectedTab;
+        settingsTabs.SelectedItem = tabByName.TryGetValue(tabName, out var selectedTab) ? selectedTab : generalTab; // the first item is a section heading
     }
 
     void WireGeneralTab()

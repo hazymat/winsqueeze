@@ -6,7 +6,7 @@
   let { ids, items = null }: { ids: number[], items?: { name: string, fields: [string, string][] }[] | null } = $props()
   let tracks = $state<any[] | null>(null)
   $effect(() => { const wanted = ids; tracks = null; if (items) return; query('trackInfo', { ids: wanted }).then(rows => { const byId = new Map((Array.isArray(rows) ? rows : []).map((row: any) => [Number(row.id), row])); tracks = wanted.map(id => byId.get(id)).filter(Boolean) }) })
-  const folderOf = (url: string) => { try { const path = decodeURIComponent(String(url ?? '').replace(/^file:\/\/\/?/, '')).replace(/\//g, '\\'); return path.slice(0, path.lastIndexOf('\\')) } catch { return '' } }
+  const fileOf = (url: string) => { try { return decodeURIComponent(String(url ?? '').replace(/^file:\/\/\/?/, '')).replace(/\//g, '\\') } catch { return '' } } // the full path to the file, as the server sees it
   const formats: Record<string, string> = { flc: 'FLAC', mp3: 'MP3', aac: 'AAC', mp4: 'AAC', alc: 'ALAC', wav: 'WAV', aif: 'AIFF', ogg: 'Ogg Vorbis', ops: 'Opus', wma: 'WMA', dsf: 'DSD', dff: 'DSD' }
   const fields: [string, string, (track: any) => string][] = [
     ['title', 'Title', track => track.title ?? ''], ['artist', 'Artist', track => track.track_artist ?? ''], ['albumArtist', 'Album artist', track => track.album_artist ?? ''], ['album', 'Album', track => track.album ?? ''],
@@ -14,7 +14,7 @@
     ['disc', 'Disc', track => Number(track.disc_no) > 0 ? String(track.disc_no) : ''], ['number', 'Track', track => Number(track.track_no) > 0 ? String(track.track_no) : ''],
     ['format', 'Format', track => formats[track.content_type] ?? String(track.content_type ?? '').toUpperCase()], ['rate', 'Sample rate', track => Number(track.sample_rate) > 0 ? `${Number(track.sample_rate) / 1000} kHz` : ''],
     ['depth', 'Bit depth', track => Number(track.sample_size) > 0 ? `${track.sample_size}-bit` : ''], ['bitrate', 'Bitrate', track => String(track.bitrate ?? '').replace(/kb\/s/i, ' kbps').replace(/\s+/g, ' ').trim()],
-    ['folder', 'Folder', track => folderOf(track.url)]
+    ['folder', 'File', track => fileOf(track.url)]
   ]
   const totalSeconds = $derived((tracks ?? []).reduce((total, track) => total + Number(track.duration || 0), 0))
   const shared = $derived((tracks ?? []).length ? fields.map(([key, label, read]) => ({ key, label, value: read(tracks![0]), same: tracks!.every(track => read(track) === read(tracks![0])) })).filter(field => field.same && field.value) : [])
