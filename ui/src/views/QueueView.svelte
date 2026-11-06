@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Hint from '../parts/Hint.svelte'
   import { command, live, artUrl } from '../bridge'
   import { app, formatTime, toast, newPlaylist } from '../state.svelte'
   import { sortable, planMoves, blockOrder } from '../lib/sortable'
@@ -61,6 +62,7 @@
   <h3>Up next</h3><span class="quiet">{queue.length} tracks · {formatTime(Math.max(remaining, 0))} left</span>
   <div class="tools"><button class="ghost" onclick={saveQueue}>Save</button><button class="ghost" onclick={startPlaylistFromQueue}>Edit as playlist</button><button class="ghost" onclick={clearQueue}>Clear</button></div>
 </div>
+{#if queue.length > 1}<Hint id="queue-reorder" text="Press and hold, then drag to reorder." /><Hint id="queue-multiselect" text="Press and hold without dragging to select several tracks." />{/if}
 {#if !queue.length}<p class="quiet">The queue is empty.</p>{/if}
 <div class="queue" use:sortable={{ onMove, onHold: position => selectOnHold(scope, String(position), actions, 'track'), group: position => selection.scope === scope && selection.keys.includes(String(position)) ? selection.keys.map(Number) : [position] }}>
   {#each queue as item, position (position + ':' + item.id)}

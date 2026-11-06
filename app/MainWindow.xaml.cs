@@ -37,7 +37,8 @@ public partial class MainWindow : Window
         // Meter data, only while the window is on screen
         App.Visualiser.LevelsReady += levelsJson => { if (webViewReady) Dispatcher.BeginInvoke(() => { if (IsVisible && WindowState != WindowState.Minimized) webView.CoreWebView2?.PostWebMessageAsJson(levelsJson); }); };
         Microsoft.Win32.SystemEvents.DisplaySettingsChanged += (sender, args) => Dispatcher.BeginInvoke(RestoreBoundsForDisplays);
-        App.LibraryChanged += () => { Push(JsonSerializer.Serialize(new { type = "settings", library = App.Settings.Library })); Push("{\"type\":\"indexUpdated\"}"); };
+        App.LibraryChanged += () => { PushSettings(); Push("{\"type\":\"indexUpdated\"}"); };
+        App.HintsChanged += PushSettings;
         // WebView2 forwards accelerator keys to WPF as KeyDown
         PreviewKeyDown += (sender, keyArgs) =>
         {
@@ -91,7 +92,8 @@ public partial class MainWindow : Window
         {
             switch (Text(message, "type"))
             {
-                case "ready": LookLog("ready"); _ = ReapplyLookSoonAsync(); PushSkin(); PushMeterSettings(); _ = App.ShowWhatsNewAsync(); PushWindowState(); Push(App.StatusJson()); PushLibraryStatus(); Push(JsonSerializer.Serialize(new { type = "settings", library = App.Settings.Library })); break;
+                case "ready": LookLog("ready"); _ = ReapplyLookSoonAsync(); PushSkin(); PushMeterSettings(); _ = App.ShowWhatsNewAsync(); PushWindowState(); Push(App.StatusJson()); PushLibraryStatus(); PushSettings(); break;
+                case "dismissHint": if (!App.Settings.General.DismissedHints.Contains(Text(message, "id"))) { App.Settings.General.DismissedHints.Add(Text(message, "id")); App.Settings.Save(); } break;
                 case "openSettings": App.OpenSettings(Text(message, "tab")); break;
                 case "quit": App.Quit(); break;
                 case "applyUpdate": await App.Updater.RestartToUpdateAsync(); break;
@@ -321,6 +323,7 @@ public partial class MainWindow : Window
 
     public void PushSkin() => Push(JsonSerializer.Serialize(new { type = "skin", skin = App.Settings.General.Skin, coverAccent = App.Settings.General.CoverAccent, coverBackdrop = App.Settings.General.CoverBackdrop, accent = App.Settings.General.AccentColour, glassTransparency = App.Settings.General.GlassTransparency, glassTintHue = App.Settings.General.GlassTintHue }));
     public void PushWhatsNew(string fromVersion, string toVersion, List<ReleaseEntry> releases) => Push(JsonSerializer.Serialize(new { type = "whatsNew", fromVersion, toVersion, releases = releases.Select(release => new { version = release.Version, date = release.Published.ToString("d MMM"), notes = release.Notes, url = release.Url }) }));
+    void PushSettings() => Push(JsonSerializer.Serialize(new { type = "settings", library = App.Settings.Library, hints = new { hidden = App.Settings.General.HideHints, dismissed = App.Settings.General.DismissedHints } }));
     public void PushMeterSettings() => Push(JsonSerializer.Serialize(new { type = "meterSettings", referenceDbfs = App.Settings.Meters.ReferenceDbfs, autoReference = App.Settings.Meters.AutoReference }));
     void PushWindowState() => Push(JsonSerializer.Serialize(new { type = "window", glass = glassActive, frameless = App.Settings.General.Frameless, maximised = WindowState == WindowState.Maximized }));
 

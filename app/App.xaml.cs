@@ -345,6 +345,8 @@ public partial class App : Application
     }
 
     public void NotifyLibraryChanged() => LibraryChanged?.Invoke();
+    public event Action? HintsChanged;
+    public void NotifyHintsChanged() => HintsChanged?.Invoke();
 
     public void ShowMainWindow() { mainWindow.Show(); if (mainWindow.WindowState == WindowState.Minimized) mainWindow.WindowState = WindowState.Normal; mainWindow.Activate(); }
     public void ToggleMainWindow() { if (mainWindow.IsVisible && mainWindow.WindowState != WindowState.Minimized) mainWindow.Hide(); else ShowMainWindow(); }
