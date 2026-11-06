@@ -19,6 +19,8 @@ public sealed class VisualiserReader : IDisposable
     string mapName = "";
     int latencyMs = 200;
     double vuLeft, vuRight, peakLeft, peakRight;
+    double loudnessPower; // the music's power averaged over ~8 s, so the spectrum can be shown relative to the track's loudness (Automatic 0 VU)
+    double LoudnessOffsetDb => Tuning.AutoReference && loudnessPower > 0 ? Math.Clamp(-18 - 10 * Math.Log10(loudnessPower), -6, 24) : 0; // lifts quiet recordings to where -18 dBFS music sits
     readonly double[] bandLevels = new double[10];
     bool sentSilence;
     double peakHeldLeft, peakHeldRight; // seconds each bar has held its peak
@@ -72,7 +74,7 @@ public sealed class VisualiserReader : IDisposable
                 if (rate > 0) SampleRate = rate;
                 var octaves = AnalyseOctaves(samples, rate > 0 ? rate : 44100);
                 Analyse(samples, rate > 0 ? rate : 44100, octaves, elapsedSeconds, live);
-                if (AnalyserWanted && ++analyserFrame % 2 == 0) AnalyserReady?.Invoke(JsonSerializer.Serialize(new { type = "eqLevels", left = octaves[0], right = octaves[1] })); // ~30 a second is plenty
+                if (AnalyserWanted && ++analyserFrame % 2 == 0) { var offset = LoudnessOffsetDb; AnalyserReady?.Invoke(JsonSerializer.Serialize(new { type = "eqLevels", left = octaves[0].Select(level => Math.Round(level + offset, 1)), right = octaves[1].Select(level => Math.Round(level + offset, 1)) })); } // ~30 a second is plenty
             }
             catch (Exception) { view?.Dispose(); sharedFile?.Dispose(); view = null; sharedFile = null; Thread.Sleep(1000); }
         }
@@ -93,6 +95,8 @@ public sealed class VisualiserReader : IDisposable
         var tuning = Tuning;
         var vuFollow = 1 - Math.Exp(-elapsedSeconds / Math.Max(0.02, tuning.VuIntegrationMs / 1000));
         vuLeft += (Math.Sqrt(sumLeft / rmsFrames) - vuLeft) * vuFollow; vuRight += (Math.Sqrt(sumRight / rmsFrames) - vuRight) * vuFollow;
+        var framePower = Math.Max(sumLeft, sumRight) / rmsFrames;
+        if (framePower > 1e-5) loudnessPower += (framePower - loudnessPower) * (loudnessPower > 0 ? 1 - Math.Exp(-elapsedSeconds / 8) : 1);
         // Bars: instant attack, optional hold, then a steady fall in dB
         var peakFall = Math.Pow(10, -elapsedSeconds * 30 / 20);
         (peakLeft, peakHeldLeft) = FollowPeak(maxLeft, peakLeft, peakHeldLeft, peakFall, elapsedSeconds, 0);
@@ -102,7 +106,7 @@ public sealed class VisualiserReader : IDisposable
         for (var band = 0; band < bandLevels.Length; band++)
         {
             var decibels = 10 * Math.Log10((Math.Pow(10, octaves[0][band] / 10) + Math.Pow(10, octaves[1][band] / 10)) / 2 + 1e-12);
-            var level = Math.Clamp((decibels + 3 * Math.Log2(octaveCentres[band] / 1000) + 36) / 30, 0, 1);
+            var level = Math.Clamp((decibels + LoudnessOffsetDb + 3 * Math.Log2(octaveCentres[band] / 1000) + 36) / 30, 0, 1);
             bandLevels[band] = level > bandLevels[band] ? level : bandLevels[band] + (level - bandLevels[band]) * bandFollow;
         }
         var silent = !live && vuLeft < 1e-4 && vuRight < 1e-4 && peakLeft < 1e-3 && peakRight < 1e-3 && bandLevels.All(level => level < 0.01);

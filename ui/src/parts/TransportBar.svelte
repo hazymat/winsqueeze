@@ -116,10 +116,12 @@
   .right > * { flex-shrink: 0; }
   .right > .readout-slot { flex-shrink: 1; min-width: 0; overflow: hidden; white-space: nowrap; }
   /* The right column sizes to its content, so it can never spill over the buttons */
-  .volume { position: relative; display: flex; align-items: center; }
+  .right { align-self: stretch; } .right > .pixel-meter { margin: 0 auto; } /* the analyser sits midway between the seek bar and the volume */
+  /* Format and Bit-perfect/Scaled stacked above the slider, which sits low, in line with the seek bar */
+  .volume { position: relative; display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-end; align-self: stretch; gap: 5px; }
   .volume input { width: 90px; accent-color: var(--accent); }
   /* the number appears under the slider while hovering or dragging */
-  .volume-number { position: absolute; left: 50%; top: calc(50% + 9px); transform: translateX(-50%); color: var(--fg-quiet); font-size: 10px; font-variant-numeric: tabular-nums; opacity: 0; transition: opacity 150ms; pointer-events: none; }
+  .volume-number { position: absolute; right: calc(100% + 6px); bottom: 1px; color: var(--fg-quiet); font-size: 10px; font-variant-numeric: tabular-nums; opacity: 0; transition: opacity 150ms; pointer-events: none; }
   .volume:hover .volume-number, .volume-number.show { opacity: 1; }
   .volume-icon { display: none; background: none; border: 0; cursor: pointer; color: var(--fg); padding: 4px; }
   .volume-pop { position: absolute; bottom: 36px; right: 0; background: var(--panel-solid); border: 1px solid var(--line); border-radius: 8px; padding: 10px; box-shadow: 0 8px 24px var(--shadow); }
@@ -128,7 +130,7 @@
   @container (max-width: 1400px) { .readout-slot { display: none; } } /* it's in Now playing too; never let it crowd the buttons */
   @container (max-width: 900px) { .transport { grid-template-columns: minmax(0, 1fr) minmax(200px, 1.4fr) auto; } }
   @container (max-width: 700px) { .time, .pixel-meter { display: none; } }
-  @container (max-width: 540px) { .volume > input, .volume-number, .volume :global(.badge) { display: none; } .volume-icon { display: block; } .transport { grid-template-columns: 1fr auto auto; } .seek-row { display: none; } }
+  @container (max-width: 540px) { .volume > input, .volume-number, .volume :global(.fidelity) { display: none; } .volume { justify-content: center; } .volume-icon { display: block; } .transport { grid-template-columns: 1fr auto auto; } .seek-row { display: none; } }
   /* Mini: Winamp-style strip */
   .mini { grid-template-columns: 1fr auto; grid-template-rows: auto auto; gap: 6px 10px; padding: 10px; height: 100%; box-sizing: border-box; border: 0; }
   .mini .centre { grid-column: 1 / 3; grid-row: 2; flex-direction: row; }

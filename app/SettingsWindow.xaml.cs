@@ -352,7 +352,7 @@ public partial class SettingsWindow : Window
         void Build()
         {
             metersPanel.Children.Clear();
-            var autoBox = new CheckBox { Content = "Automatic 0 VU (follows each song's loudness, so loud recordings don't pin the needles)", IsChecked = Settings.Meters.AutoReference, Margin = new Thickness(0, 0, 0, 10) };
+            var autoBox = new CheckBox { Content = "Follow each track's loudness: automatic 0 VU, and the spectrum lifts quiet recordings (so loud ones don't pin the meters and quiet ones still show)", IsChecked = Settings.Meters.AutoReference, Margin = new Thickness(0, 0, 0, 10) };
             autoBox.Click += (sender, args) => { Settings.Meters.AutoReference = autoBox.IsChecked == true; Settings.Save(); App.ApplyMeters(); };
             metersPanel.Children.Add(autoBox);
             void AddCheck(string label, Func<MeterSettings, bool> read, Action<MeterSettings, bool> write)
