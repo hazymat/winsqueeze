@@ -19,9 +19,11 @@ No server plugins, no skin switching, no server settings changed. WinSqueeze onl
 
 Search and browse use the ID3/Vorbis tags (composer, performer, genre, artist), but the results are grouped by music folder, so each hit shows up as the physical CD or LP it belongs to.
 
-## Status
+## Download
 
-In development. See [SPEC.md](SPEC.md) for the full specification and build phases.
+Get the latest stable release from [Releases](https://github.com/hazymat/winsqueeze/releases/latest): `WinSqueeze-Setup.exe` installs per user (no admin needed), `WinSqueeze-Portable.exe` runs from anywhere. WinSqueeze updates itself. Builds are not code-signed yet, so Windows SmartScreen may warn on first run (More info › Run anyway).
+
+Questions, ideas and bug reports are welcome in [Discussions](https://github.com/hazymat/winsqueeze/discussions). See [SPEC.md](SPEC.md) for the full specification.
 
 ## Licence
 
