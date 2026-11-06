@@ -24,7 +24,7 @@
     localQueue = finalOrder.map(position => before[position]); holdLocalUntil = Date.now() + 4000
     for (const [from, to] of planMoves(before.map((item, position) => position), finalOrder)) await live(['playlist', 'move', from, to], true)
     holdLocalUntil = Date.now() + 1500
-    if (undoable) toast(label, () => { const inverse = finalOrder.map((unused, position) => finalOrder.indexOf(position)); applyOrder(inverse, 'Order restored', false) })
+    if (undoable) toast(label, () => { const inverse = finalOrder.map((unused, position) => finalOrder.indexOf(position)); applyOrder(inverse, 'Order restored', false) }, 6000, { redo: () => applyOrder(finalOrder, label, false) })
   }
   function onMove(from: number, to: number) {
     const selected = selectedPositions()
@@ -41,7 +41,7 @@
       // Put them back where they were: append each, then move it into place (lowest position first)
       for (const { position, item } of removed.slice().reverse()) { if (Number(item?.id) > 0) { await live(['playlistcontrol', 'cmd:add', `track_id:${item.id}`], true); const status = await live(['status', '-', 1], true); await live(['playlist', 'move', Number(status?.playlist_tracks ?? 1) - 1, position], true) } }
       toast('Tracks restored')
-    })
+    }, 6000, { redo: async () => { for (const position of positions) await live(['playlist', 'delete', position], true) } })
   }
   function playNext(positionKeys: string[]) {
     const positions = positionKeys.map(Number).sort((first, second) => first - second).filter(position => position !== currentIndex)
@@ -65,7 +65,7 @@
     toast(existing ? `Replaced “${name}” with the queue` : `Saved queue as “${name}”`, async () => {
       if (!savedId) return
       if (oldUrls) { await refillPlaylist(savedId, oldUrls); toast(`“${name}” is back as it was`) } else { await live(['playlists', 'delete', `playlist_id:${savedId}`]); toast(`Removed “${name}”`) }
-    }, 30000)
+    }, 30000, { redo: () => live(['playlist', 'save', name], true) })
   }
   const startPlaylistFromQueue = () => newPlaylist('Untitled playlist', queue.map(item => ({ id: Number(item.id), title: item.title, artist: item.artist ?? '', duration: Number(item.duration || 0) })))
   // Undo brings the queue back as it was: same tracks, same order, same track and spot
@@ -77,7 +77,7 @@
       await request({ type: 'playTracks', ids, mode: 'load', start: index })
       if (seconds > 2) await live(['time', seconds], true)
       if (!wasPlaying) await live(['pause', '1'], true)
-    })
+    }, 6000, { redo: () => command('playlist', 'clear') })
   }
 </script>
 

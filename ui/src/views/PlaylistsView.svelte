@@ -28,7 +28,7 @@
   async function applyOrder(finalOrder: number[], label: string, undoable = true) {
     const before = items.slice(); items = finalOrder.map(index => before[index])
     for (const [from, to] of planMoves(before.map((item, index) => index), finalOrder)) await live(['playlists', 'edit', 'cmd:move', `playlist_id:${playlistId}`, `index:${from}`, `toindex:${to}`])
-    if (undoable) toast(label, () => applyOrder(finalOrder.map((unused, index) => finalOrder.indexOf(index)), 'Order restored', false))
+    if (undoable) toast(label, () => applyOrder(finalOrder.map((unused, index) => finalOrder.indexOf(index)), 'Order restored', false), 6000, { redo: () => applyOrder(finalOrder, label, false) })
   }
   function onMove(from: number, to: number) {
     const selected = selection.scope === scope ? selection.keys.map(Number) : []
@@ -42,7 +42,7 @@
     for (const index of indexes) await live(['playlists', 'edit', 'cmd:delete', `playlist_id:${playlistId}`, `index:${index}`])
     toast(removed.length === 1 ? `Removed “${removed[0].item?.title}” from ${title}` : `Removed ${removed.length} tracks from ${title}`, async () => {
       for (const { index, item } of removed.slice().reverse()) { if (!item?.url) continue; await live(['playlists', 'edit', 'cmd:add', `playlist_id:${playlistId}`, `url:${item.url}`]); const count = items.length + 1; await live(['playlists', 'edit', 'cmd:move', `playlist_id:${playlistId}`, `index:${count - 1}`, `toindex:${index}`]) ; items = items.slice(0, index).concat([item], items.slice(index)) }
-    })
+    }, 6000, { redo: async () => { items = items.filter((item, index) => !indexes.includes(index)); for (const index of indexes) await live(['playlists', 'edit', 'cmd:delete', `playlist_id:${playlistId}`, `index:${index}`]) } })
   }
   const actions: SelectionAction[] = [
     { label: 'Play from here', single: true, key: 'Enter', run: indexKeys => play(playlistId, title, Number(indexKeys[0])) },

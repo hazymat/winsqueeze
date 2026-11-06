@@ -16,7 +16,7 @@ export function noteLongTrack(previous: any, next: any) {
   const resumeAt = spotsNow.find(([id]) => id === String(arrived.id))?.[1]
   if (resumeAt && Number(arrived.duration ?? 0) >= longSeconds && Number(next.time ?? 0) < 10) {
     command('time', resumeAt)
-    toast(`Carrying on from ${formatTime(resumeAt)} where you left “${arrived.title}”`, () => command('time', 0))
+    toast(`Carrying on from ${formatTime(resumeAt)} where you left “${arrived.title}”`, () => command('time', 0), 6000, { keep: false })
   }
   writeSetting('resume', JSON.stringify(spotsNow.slice(-keep)))
 }

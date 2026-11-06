@@ -23,7 +23,7 @@ export async function queueTracks(items: PlaylistItem[], mode: 'load' | 'insert'
     if (mode === 'load') { if (!before.ids.length) { await live(['playlist', 'clear'], true); return } await live(['playlistcontrol', 'cmd:load', `track_id:${before.ids.join(',')}`], true); await live(['playlist', 'index', before.index], true); await live(['time', Math.floor(before.time)], true); return }
     const firstAdded = mode === 'insert' ? before.index + 1 : queueLength
     for (let position = firstAdded + items.length - 1; position >= firstAdded; position--) await live(['playlist', 'delete', position], true)
-  })
+  }, 6000, { redo: () => sendToShell({ type: 'playTracks', ids: items.map(item => item.id), mode, start: 0 }) })
 }
 
 // Saved playlists: delete and overwrite keep the old tracks so Undo can put them back for a while afterwards
@@ -51,7 +51,7 @@ async function playlistMenu(itemsFor: () => Promise<PlaylistItem[]>): Promise<Me
   choices.push({ label: 'New playlist…', detail: 'start building one with these', run: async () => newPlaylist('Untitled playlist', await itemsFor()) })
   for (const savedList of saved?.playlists_loop ?? []) choices.push({ label: savedList.playlist, run: async () => {
     const items = await itemsFor(), result = await request({ type: 'addToSavedPlaylist', playlistId: savedList.id, ids: items.map(item => item.id) })
-    toast(`Added ${describe(items)} to ${savedList.playlist}`, async () => { for (let index = Number(result?.before ?? 0) + items.length - 1; index >= Number(result?.before ?? 0); index--) await live(['playlists', 'edit', 'cmd:delete', `playlist_id:${savedList.id}`, `index:${index}`]) })
+    toast(`Added ${describe(items)} to ${savedList.playlist}`, async () => { for (let index = Number(result?.before ?? 0) + items.length - 1; index >= Number(result?.before ?? 0); index--) await live(['playlists', 'edit', 'cmd:delete', `playlist_id:${savedList.id}`, `index:${index}`]) }, 6000, { redo: () => request({ type: 'addToSavedPlaylist', playlistId: savedList.id, ids: items.map(item => item.id) }) })
   } })
   return choices
 }

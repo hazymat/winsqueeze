@@ -9,7 +9,7 @@
   let saving = $state(false)
   const totalSeconds = $derived(playlist.items.reduce((total, item) => total + Number(item.duration || 0), 0))
   const keys = $derived(playlist.items.map((item, index) => String(index)))
-  function setItems(items: typeof playlist.items, label: string) { const before = playlist.items; playlist.items = items; playlist.history = []; saveDraft(); toast(label, () => { playlist.items = before; saveDraft() }) }
+  function setItems(items: typeof playlist.items, label: string) { const before = playlist.items; playlist.items = items; playlist.history = []; saveDraft(); toast(label, () => { playlist.items = before; saveDraft() }, 6000, { redo: () => { playlist.items = items; saveDraft() } }) }
   function onMove(from: number, to: number) {
     const selected = selection.scope === scope ? selection.keys.map(Number) : []
     const order = blockOrder(playlist.items.length, selected.includes(from) ? selected : [from], from, to)

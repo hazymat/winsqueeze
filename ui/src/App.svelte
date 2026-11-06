@@ -2,7 +2,7 @@
   import { checkKeepPlaying } from './lib/queueEnd.svelte'
   import { noteLongTrack } from './lib/resume'
   import { sendToShell, onShellMessage, request, command, artUrl } from './bridge'
-  import { app, nav, ui, playlist, openSection, back, forward, forwardHistory, currentView, newPlaylist, undoToast, toast, noteTrackChange, receiveLevels, writeSetting, readSetting, currentTrack } from './state.svelte'
+  import { app, nav, ui, playlist, openSection, back, forward, forwardHistory, currentView, newPlaylist, undoToast, undoLast, redoLast, history, toast, noteTrackChange, receiveLevels, writeSetting, readSetting, currentTrack } from './state.svelte'
   import TransportBar from './parts/TransportBar.svelte'
   import WhatsNew from './parts/WhatsNew.svelte'
   import TrackInfo from './parts/TrackInfo.svelte'
@@ -40,7 +40,7 @@
   const layout = $derived(layoutOrder.filter(key => isSpacer(key) || allSections.some(section => section[0] === key)).concat(allSections.map(section => section[0]).filter(key => !layoutOrder.includes(key))))
   const sections = $derived(layout.map(key => isSpacer(key) ? [key, 'Spacer', 'spacer'] : allSections.find(section => section[0] === key)!) as [string, string, any][])
   function saveLayout(order: string[]) { layoutOrder = order; writeSetting('sectionOrder', JSON.stringify(order)); writeSetting('spacersAdded', '1') }
-  function changeLayout(order: string[], label: string) { const before = layout.slice(); saveLayout(order); toast(label, () => saveLayout(before)) }
+  function changeLayout(order: string[], label: string) { const before = layout.slice(); saveLayout(order); toast(label, () => saveLayout(before), 6000, { redo: () => saveLayout(order) }) }
   function moveSection(from: number, to: number) { const keys = layout.slice(), moved = keys.splice(from, 1)[0]; keys.splice(to, 0, moved); changeLayout(keys, `Moved ${isSpacer(moved) ? 'spacer' : sections[from][1]}`) }
   const addSpacer = () => changeLayout(layout.concat([`spacer-${Date.now()}`]), 'Added a spacer at the bottom (drag it into place)')
   const removeSpacer = (key: string) => changeLayout(layout.filter(each => each !== key), 'Removed spacer')
@@ -144,7 +144,8 @@
     else if (event.ctrlKey && event.key.toLowerCase() === 'f') { event.preventDefault(); searchBox?.focus(); searchBox?.select() }
     else if (event.ctrlKey && event.key.toLowerCase() === 'n') { event.preventDefault(); if (!playlist.open) newPlaylist(); else playlist.collapsed = false }
     else if (event.ctrlKey && event.key.toLowerCase() === 'c' && !typing && getSelection()?.toString()) { event.preventDefault(); copySelection() }
-    else if (event.ctrlKey && event.key.toLowerCase() === 'z' && !typing && ui.toast?.undo) { event.preventDefault(); undoToast() }
+    else if (event.ctrlKey && ((event.shiftKey && event.key.toLowerCase() === 'z') || event.key.toLowerCase() === 'y') && !typing) { event.preventDefault(); redoLast() }
+    else if (event.ctrlKey && event.key.toLowerCase() === 'z' && !typing) { event.preventDefault(); if (ui.toast?.undo && ui.toast.undo !== undoLast) undoToast(); else undoLast() }
     else if (event.key === 'Escape' && ui.trackInfo) ui.trackInfo = null
     else if (event.key === 'Escape' && ui.metersFull) ui.metersFull = false
     else if (event.key === 'Escape' && ui.toast && !selection.keys.length) ui.toast = null

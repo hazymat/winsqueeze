@@ -41,8 +41,11 @@
       <svg class="ring" viewBox="0 0 20 20" aria-hidden="true" style:--ms={`${ui.toast.ms}ms`}><circle class="track" cx="10" cy="10" r="8" /><circle class="left" cx="10" cy="10" r="8" pathLength="100" /></svg>
     {/key}
     <span class="message">{ui.toast.text}</span>
-    {#if ui.toast.undo}<button class="undo" onclick={undoToast}>Undo<kbd>Ctrl+Z</kbd></button>{/if}
-    <button class="clear dismiss" onclick={() => ui.toast = null} aria-label="Dismiss">Close<kbd>Esc</kbd></button>
+    <div class="actions">
+      {#if ui.toast.undo}<button class="undo" onclick={undoToast}>Undo<kbd>Ctrl+Z</kbd></button>{/if}
+      {#if ui.toast.redo}<button class="undo" onclick={() => { const redo = ui.toast?.redo; ui.toast = null; redo?.() }}>Redo<kbd>Ctrl+Y</kbd></button>{/if}
+      <button class="clear" onclick={() => ui.toast = null} aria-label="Dismiss">Close<kbd>Esc</kbd></button>
+    </div>
   {/if}
 </div>
 </div>
@@ -55,7 +58,7 @@
   button { display: flex; align-items: center; gap: 6px; white-space: nowrap; background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 5px 12px; font: inherit; cursor: pointer; min-height: 32px; }
   button:hover { background: var(--hover); }
   button.danger { color: #ff7a6b; }
-  .clear { background: none; } .dismiss { margin-left: auto; }
+  .clear { background: none; }
   button.open { background: var(--accent-soft); color: var(--accent); }
   .menu { position: absolute; right: 16px; bottom: calc(100% + 6px); z-index: 45; min-width: 240px; max-height: 50vh; overflow-y: auto; padding: 6px; display: flex; flex-direction: column; gap: 2px; background: var(--panel-solid); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 16px 40px var(--shadow); }
   .menu button { justify-content: space-between; border: 0; background: none; min-height: 36px; }
@@ -63,8 +66,8 @@
   .detail { color: var(--fg-quiet); font-size: 11px; }
   .loading { padding: 8px 12px; color: var(--fg-quiet); }
   .wrap { position: relative; }
-  .undo { margin-left: auto; color: var(--accent); font-weight: 600; background: none; }
-  .undo.inline { margin-left: 0; } .message.inline { color: var(--fg-quiet); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .undo { color: var(--accent); font-weight: 600; background: none; }
+  .message.inline { color: var(--fg-quiet); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
   kbd { font-family: var(--font-ui); font-size: 10px; color: var(--fg-quiet); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
   .message { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .ring { flex: none; width: 18px; height: 18px; transform: rotate(-90deg); }
