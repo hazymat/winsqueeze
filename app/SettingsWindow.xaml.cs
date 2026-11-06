@@ -20,7 +20,7 @@ public partial class SettingsWindow : Window
     public SettingsWindow()
     {
         InitializeComponent();
-        WireGeneralTab(); WireServersTab(); WireAudioTab(); WireLibraryTab(); WireBrowsingTab(); WireAppearanceTab(); WireMetersTab(); WireShortcutsAndNotifications(); WireRecordingTab(); WireAboutTab();
+        WireGeneralTab(); WireServersTab(); WireAudioTab(); WirePlaybackTab(); WireLibraryTab(); WireBrowsingTab(); WireAppearanceTab(); WireMetersTab(); WireShortcutsAndNotifications(); WireRecordingTab(); WireAboutTab();
         App.DevicesChanged += LoadDevices;
         App.StatusChanged += ShowPlayerStatus;
         Closed += (sender, args) => { App.DevicesChanged -= LoadDevices; App.StatusChanged -= ShowPlayerStatus; };
@@ -29,7 +29,7 @@ public partial class SettingsWindow : Window
 
     public void SelectTab(string tabName)
     {
-        var tabByName = new Dictionary<string, TabItem> { ["General"] = generalTab, ["Servers"] = serversTab, ["Audio"] = audioTab, ["Library"] = libraryTab, ["Browsing"] = browsingTab, ["About"] = aboutTab };
+        var tabByName = new Dictionary<string, TabItem> { ["General"] = generalTab, ["Servers"] = serversTab, ["Audio"] = audioTab, ["Playback"] = playbackTab, ["Library"] = libraryTab, ["Browsing"] = browsingTab, ["About"] = aboutTab };
         if (tabByName.TryGetValue(tabName, out var selectedTab)) settingsTabs.SelectedItem = selectedTab;
     }
 
@@ -60,6 +60,60 @@ public partial class SettingsWindow : Window
         };
         otherSqueezeliteCombo.SelectedItem = otherSqueezeliteCombo.Items.Cast<ComboBoxItem>().First(item => (string)item.Tag == Settings.General.OtherSqueezelite.ToString());
         otherSqueezeliteCombo.SelectionChanged += (sender, args) => { if (otherSqueezeliteCombo.SelectedItem is ComboBoxItem chosen) { Settings.General.OtherSqueezelite = Enum.Parse<OtherSqueezeliteAction>((string)chosen.Tag); Settings.Save(); } };
+    }
+
+    // ---- Playback: the selected player's Lyrion prefs, read when the tab opens, written only when the user changes one ----
+    string playbackPlayerId = "";
+
+    void WirePlaybackTab()
+    {
+        settingsTabs.SelectionChanged += async (sender, args) => { if (args.Source == settingsTabs && settingsTabs.SelectedItem == playbackTab) await LoadPlaybackAsync(); };
+        transitionTypeCombo.SelectionChanged += async (sender, args) => { if (transitionTypeCombo.SelectedItem is ComboBoxItem chosen) await SetPlayerPrefAsync("transitionType", (string)chosen.Tag); ShowTransitionControls(); };
+        transitionDurationSlider.ValueChanged += (sender, args) => transitionDurationText.Text = $"{transitionDurationSlider.Value:0} s";
+        transitionDurationSlider.PreviewMouseUp += async (sender, args) => await SetPlayerPrefAsync("transitionDuration", $"{transitionDurationSlider.Value:0}");
+        transitionDurationSlider.PreviewKeyUp += async (sender, args) => await SetPlayerPrefAsync("transitionDuration", $"{transitionDurationSlider.Value:0}");
+        transitionSmartBox.Click += async (sender, args) => await SetPlayerPrefAsync("transitionSmart", transitionSmartBox.IsChecked == true ? "1" : "0");
+        replayGainCombo.SelectionChanged += async (sender, args) => { if (replayGainCombo.SelectedItem is ComboBoxItem chosen) await SetPlayerPrefAsync("replayGainMode", (string)chosen.Tag); };
+    }
+
+    async Task LoadPlaybackAsync()
+    {
+        playbackPlayerId = App.Session.PlayerId;
+        var playerName = playbackPlayerId == Settings.PlayerMac ? $"{Settings.Audio.PlayerName} (this PC)" : playbackPlayerId;
+        try
+        {
+            using var playersDocument = System.Text.Json.JsonDocument.Parse(App.Session.LastPlayersJson);
+            foreach (var player in playersDocument.RootElement.EnumerateArray()) if (LyrionClient.ReadString(player, "playerid") == playbackPlayerId && playbackPlayerId != Settings.PlayerMac) playerName = LyrionClient.ReadString(player, "name");
+        }
+        catch (System.Text.Json.JsonException) { }
+        playbackPlayerText.Text = $"Settings for {playerName}";
+        var available = !App.IsOffline;
+        foreach (var control in new Control[] { transitionTypeCombo, transitionDurationSlider, transitionSmartBox, replayGainCombo }) control.IsEnabled = available;
+        playbackStatusText.Text = available ? "" : "Not available while playing offline.";
+        if (!available) return;
+        try
+        {
+            async Task<string> ReadPref(string name) => LyrionClient.ReadString(await App.ServerRequestAsync(playbackPlayerId, "playerpref", name, "?"), "_p2");
+            var transitionType = await ReadPref("transitionType"); var transitionDuration = await ReadPref("transitionDuration"); var transitionSmart = await ReadPref("transitionSmart"); var replayGainMode = await ReadPref("replayGainMode");
+            loadingControls = true;
+            transitionTypeCombo.SelectedItem = transitionTypeCombo.Items.Cast<ComboBoxItem>().FirstOrDefault(item => (string)item.Tag == (transitionType == "" ? "0" : transitionType));
+            transitionDurationSlider.Value = double.TryParse(transitionDuration, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var seconds) ? seconds : 0;
+            transitionDurationText.Text = $"{transitionDurationSlider.Value:0} s";
+            transitionSmartBox.IsChecked = transitionSmart != "0";
+            replayGainCombo.SelectedItem = replayGainCombo.Items.Cast<ComboBoxItem>().FirstOrDefault(item => (string)item.Tag == (replayGainMode == "" ? "0" : replayGainMode));
+            loadingControls = false;
+            ShowTransitionControls();
+        }
+        catch (Exception readError) { loadingControls = false; playbackStatusText.Text = $"Could not read the player's settings: {readError.Message}"; }
+    }
+
+    void ShowTransitionControls() { var transitionOn = transitionTypeCombo.SelectedItem is ComboBoxItem { Tag: string tag } && tag != "0"; transitionDurationSlider.IsEnabled = transitionOn && !App.IsOffline; transitionSmartBox.IsEnabled = transitionOn && !App.IsOffline; }
+
+    async Task SetPlayerPrefAsync(string prefName, string value)
+    {
+        if (loadingControls || playbackPlayerId == "" || App.IsOffline) return;
+        try { await App.ServerRequestAsync(playbackPlayerId, "playerpref", prefName, value); playbackStatusText.Text = ""; if (playbackPlayerId == Settings.PlayerMac) await App.LoadOwnPlayerPrefsAsync(); }
+        catch (Exception writeError) { playbackStatusText.Text = $"Could not change it: {writeError.Message}"; }
     }
 
     // ---- Servers ----

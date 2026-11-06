@@ -83,10 +83,25 @@ public partial class App : Application
         if (!firstTrack && Settings.General.TrackToasts && LyrionClient.ReadString(status, "mode") == "play") trayIcon.ShowTip(title, $"{artist}{(LyrionClient.ReadString(track, "album") is { Length: > 0 } album ? " · " + album : "")}");
     }
 
+    // This PC's ReplayGain and crossfade (Lyrion player prefs), read for the fidelity badge; Settings › Playback changes them
+    public string OwnReplayGainMode = "0", OwnTransitionType = "0";
+    public async Task LoadOwnPlayerPrefsAsync()
+    {
+        try
+        {
+            OwnReplayGainMode = LyrionClient.ReadString(await ServerRequestAsync(Settings.PlayerMac, "playerpref", "replayGainMode", "?"), "_p2");
+            OwnTransitionType = LyrionClient.ReadString(await ServerRequestAsync(Settings.PlayerMac, "playerpref", "transitionType", "?"), "_p2");
+            if (OwnReplayGainMode == "") OwnReplayGainMode = "0"; if (OwnTransitionType == "") OwnTransitionType = "0";
+            StatusChanged?.Invoke();
+        }
+        catch { }
+    }
+
     // Read-only fidelity check (SPEC.md › Playback and fidelity): warn if Lyrion caps this player's bitrate, which forces transcoding. Never changes it
     async Task CheckServerTranscodingAsync()
     {
         await Task.Delay(8000); // give the player time to register with the server
+        await LoadOwnPlayerPrefsAsync();
         try
         {
             if (Settings.ActiveProfile is not { Host.Length: > 0 } profile) return;
@@ -409,6 +424,8 @@ public partial class App : Application
         driver = Player.Device?.Driver ?? "",
         exclusive = Player.ExclusiveActive,
         eqActive = Settings.Equaliser.Enabled && SqueezeliteHost.SupportsEqualiser,
+        replayGain = OwnReplayGainMode != "0",
+        transitions = OwnTransitionType != "0",
         sampleRate = Player.OutputSampleRate,
         recording = new { available = SqueezeliteHost.SupportsRecording && Settings.Recording.ShowButton, on = Recorder.Recording, file = System.IO.Path.GetFileName(Recorder.CurrentFile), startedAt = Recorder.Recording ? new DateTimeOffset(Recorder.StartedAt).ToUnixTimeMilliseconds() : 0, files = Recorder.FilesThisRecording, note = Recorder.Note, noteId = Recorder.NoteId, folder = Recorder.SessionFolder },
         fallback = UsingFallbackDevice,

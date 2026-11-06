@@ -4,7 +4,7 @@ export type View = { kind: string; key?: string; title?: string; highlight?: str
 export type PlaylistItem = { id: number; title: string; artist: string; duration: number }
 
 export const app = $state({
-  status: null as any, nowPlaying: null as any, players: [] as any[], selectedPlayer: '', ownPlayer: '',
+  status: null as any, nowPlaying: null as any, players: [] as any[], syncGroups: [] as string[][], groupVolumes: {} as Record<string, number>, selectedPlayer: '', ownPlayer: '',
   library: { text: '', done: 0, total: 0 }, librarySettings: { AlbumSource: 'folders', ContributorGrouping: 'any' } as any, playback: { QueueEnd: 'stop', ContinueAdds: 'album', ContinueFrom: 'artist' } as Record<string, string>, hints: { hidden: false, dismissed: [] as string[] }, indexVersion: 0, receivedAt: 0,
   // Meter data from Squeezelite (~30 a second while playing): VU in dBFS, peak amplitude 0..1, spectrum bands 0..1
   levels: { vu: [-90, -90], peak: [0, 0], bands: Array(10).fill(0), at: 0 },

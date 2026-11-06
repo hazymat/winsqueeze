@@ -32,7 +32,7 @@ public partial class MainWindow : Window
         App.StatusChanged += () => Push(App.StatusJson());
         App.HistoryChanged += () => Push("{\"type\":\"historyChanged\"}");
         App.Session.StatusUpdated += () => Push($"{{\"type\":\"nowPlaying\",\"status\":{App.Session.LastStatusJson}}}");
-        App.Session.PlayersUpdated += () => Push($"{{\"type\":\"players\",\"players\":{App.Session.LastPlayersJson},\"selected\":{JsonSerializer.Serialize(App.Session.SelectedPlayerId == "" ? App.Settings.PlayerMac : App.Session.SelectedPlayerId)},\"own\":{JsonSerializer.Serialize(App.Settings.PlayerMac)}}}");
+        App.Session.PlayersUpdated += () => Push($"{{\"type\":\"players\",\"players\":{App.Session.LastPlayersJson},\"selected\":{JsonSerializer.Serialize(App.Session.SelectedPlayerId == "" ? App.Settings.PlayerMac : App.Session.SelectedPlayerId)},\"own\":{JsonSerializer.Serialize(App.Settings.PlayerMac)},\"syncGroups\":{App.Session.LastSyncGroupsJson},\"groupVolumes\":{App.Session.LastGroupVolumesJson}}}");
         App.Library.Changed += PushLibraryStatus;
         App.Library.IndexUpdated += () => Push("{\"type\":\"indexUpdated\"}");
         App.DownloadsChanged += () => _ = PushDownloadsAsync();
@@ -153,6 +153,7 @@ public partial class MainWindow : Window
                 case "historyClear": App.History.Clear(); break;
                 case "goOffline": await App.GoOfflineAsync(false); break;
                 case "goOnline": await App.GoOnlineAsync(); break;
+                case "playerCommand": await App.ServerRequestAsync(Text(message, "id"), CommandParts(message.GetProperty("command"))); if (!(message.TryGetProperty("quiet", out var quiet) && quiet.GetBoolean())) await App.Session.RefreshPlayersAsync(); break; // power, sync and volume of any player, not just the selected one
                 case "selectPlayer": App.Session.SelectedPlayerId = Text(message, "id") == App.Settings.PlayerMac ? "" : Text(message, "id"); await App.Session.RequestAsync(true, "status", "-", 1); break;
                 case "savePlaylist":
                     var urlQueries = App.Library.Queries;

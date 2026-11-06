@@ -1,5 +1,6 @@
 <script lang="ts">
   import { app } from '../state.svelte'
+  import { command } from '../bridge'
   import { queueEndMode, setQueueEnd, setPlayback, type QueueEnd } from '../lib/queueEnd.svelte'
   // "When the queue ends" in Up next: stop, repeat all or keep playing, and what Keep playing adds
   let open = $state(false)
@@ -11,17 +12,24 @@
   const mode = $derived(queueEndMode())
   const modes: [QueueEnd, string, string][] = [['stop', 'Stop', 'Stop'], ['repeat', 'Repeat all', 'Repeat all'], ['continue', 'Keep playing', 'Keep playing from the library']]
   const adds: [string, string][] = [['album', 'A whole album'], ['tracks', 'About ten tracks']]
+  // Play order is Lyrion's own shuffle (0 off, 1 tracks, 2 albums); the offline server plays in order only
+  const shuffle = $derived(Number(app.nowPlaying?.['playlist shuffle'] ?? 0))
+  const orders: [number, string][] = [[0, 'In order'], [1, 'Shuffle tracks'], [2, 'Shuffle albums']]
   const looks: [string, string][] = [['artist', 'Same artist, then genre'], ['genre', 'Same genre'], ['anything', 'Anything in the library']]
 </script>
 
 <svelte:window onmousedown={(event) => { if (open && !root.contains(event.target as Node) && !menu?.contains(event.target as Node)) open = false }} onkeydown={(event) => { if (open && event.key === 'Escape') { event.stopPropagation(); open = false } }} />
 
 <div class="queue-end" bind:this={root}>
-  <button class="current" class:open class:active={mode !== 'stop'} onclick={toggle} aria-haspopup="menu" aria-expanded={open} title="What happens when the queue ends">
-    <span class="text"><span class="label">At the end</span><span class="value">{modes.find(([value]) => value === mode)?.[1]}</span></span><svg class="chevron" viewBox="0 0 10 6" width="9" height="6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
+  <button class="current" class:open class:active={mode !== 'stop'} onclick={toggle} aria-haspopup="menu" aria-expanded={open} title="Play order, and what happens when the queue ends">
+    <span class="text"><span class="label">At the end</span><span class="value">{modes.find(([value]) => value === mode)?.[1]}</span>{#if shuffle}<span class="value" title="Shuffle is on">⤮</span>{/if}</span><svg class="chevron" viewBox="0 0 10 6" width="9" height="6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
   </button>
   {#if open}
     <div class="queue-end-menu" role="menu" bind:this={menu} use:portal style:top="{place.top}px" style:right="{place.right}px" style:max-height="calc(100vh - {place.top + 12}px)">
+      {#if !app.status?.offline}
+        <div class="menu-title">Play order</div>
+        {#each orders as [value, label] (value)}<button role="menuitemradio" aria-checked={shuffle === value} class:on={shuffle === value} onclick={() => command('playlist', 'shuffle', value)}><span>{label}</span>{#if shuffle === value}<span class="tick">✓</span>{/if}</button>{/each}
+      {/if}
       <div class="menu-title">When the queue ends</div>
       {#each modes as [value, unused, label] (value)}<button role="menuitemradio" aria-checked={mode === value} class:on={mode === value} onclick={() => { setQueueEnd(value); if (value !== 'continue') open = false }}><span>{label}</span>{#if mode === value}<span class="tick">✓</span>{/if}</button>{/each}
       {#if mode === 'continue'}

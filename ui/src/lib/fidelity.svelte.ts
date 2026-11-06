@@ -12,5 +12,7 @@ export function fidelity() {
   if (!status.exclusive) reasons.push('shared mode goes through the Windows mixer')
   else if (sourceRate > 0 && outputRate > 0 && sourceRate !== outputRate) reasons.push(`the device is running at a different rate (resampled)`)
   if (status.eqActive) reasons.push('the equaliser is on')
+  if (status.replayGain) reasons.push('ReplayGain is on (Settings › Playback)')
+  if (status.transitions) reasons.push('crossfade or fades are on (Settings › Playback)')
   return { format: codec.replace('FLC', 'FLAC').replace('ALC', 'ALAC'), lossy: !['FLC', 'FLAC', 'ALC', 'ALAC', 'WAV', 'AIF', 'AIFF', 'PCM'].includes(codec), state: volume < 100 ? 'scaled' : reasons.length ? 'blocked' : 'perfect', reasons }
 }
