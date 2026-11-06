@@ -120,7 +120,7 @@
   .fill { height: 100%; background: var(--accent); border-radius: 3px; }
   /* glowing segments over a soft pool of their own light, behind a faint glass edge */
   .pixel-meter { position: relative; display: flex; width: 76px; height: 46px; padding: 4px 4px 7px; background: none; border: 0; cursor: pointer; border-radius: 6px; } /* the analyser opens the EQ */
-  .pixel-meter :global(.bar) { filter: drop-shadow(0 0 4px rgba(92, 230, 200, 0.7)); }
+  .pixel-meter :global(canvas) { filter: drop-shadow(0 0 4px rgba(92, 230, 200, 0.7)); }
   .pixel-meter::before { content: ""; position: absolute; left: 6px; right: 6px; bottom: 0; height: 7px; border-radius: 50%; background: radial-gradient(closest-side, rgba(92, 230, 200, 0.25), transparent); filter: blur(2px); pointer-events: none; }
   .pixel-meter::after { content: ""; position: absolute; inset: 0; border-radius: 6px; pointer-events: none; border: 1px solid rgba(255, 255, 255, 0.07); background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), transparent 35%); }
   /* No bezel here: the bars sit straight on the glass bar */

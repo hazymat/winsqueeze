@@ -5,31 +5,68 @@
   let { levels, levelsRight = null, labels = [], segments = 30, scale = [], compact = false, title = '', fullRange = null }: { levels: number[]; levelsRight?: number[] | null; labels?: string[]; segments?: number; scale?: string[]; compact?: boolean; title?: string; fullRange?: number | null } = $props()
   const litCount = (level: number) => Math.max(0, Math.min(segments, Math.ceil(level * segments - 0.3)))
   // fullRange: 0..1 broadband level for the separate FULL RANGE column (null = no column)
-  // Segments repeat on a whole-device-pixel pitch (painted as a gradient, so no layout rounding drift): every row is identical at any window size
-  let columnsElement = $state<HTMLElement | null>(null), columnsHeight = $state(0)
-  $effect(() => { if (!columnsElement) return; const observer = new ResizeObserver(() => columnsHeight = columnsElement!.clientHeight); observer.observe(columnsElement); return () => observer.disconnect() })
-  const segmentStyle = $derived.by(() => {
-    if (!columnsHeight) return ''
-    const pixelRatio = window.devicePixelRatio || 1, gapPixels = Math.max(1, Math.round(pixelRatio)), pitchPixels = Math.max(gapPixels + 1, Math.floor(columnsHeight * pixelRatio / segments))
-    return `--segment-height: ${(pitchPixels - gapPixels) / pixelRatio}px; --segment-pitch: ${pitchPixels / pixelRatio}px`
+  // Segments are drawn on a canvas sized in whole device pixels, at whole-pixel positions, so every segment and gap is
+  // identical at any DPI, zoom or window position. The (invisible) bar boxes still do the layout, so legends line up.
+  let columnsElement = $state<HTMLElement | null>(null), canvasElement = $state<HTMLCanvasElement | null>(null), layoutVersion = $state(0)
+  const barLevels = $derived(levels.flatMap((level, index) => levelsRight ? [level, levelsRight[index] ?? 0] : [level]).concat(fullRange !== null ? [fullRange] : []))
+  // The canvas is nudged onto the device-pixel grid and its backing store matches its device size exactly, so it maps 1:1
+  let canvasPlacement = $state('')
+  function sizeCanvas() {
+    if (!canvasElement || !columnsElement || !columnsElement.clientWidth) return
+    const pixelRatio = window.devicePixelRatio || 1, columnsRect = columnsElement.getBoundingClientRect(), devicePerCss = pixelRatio * columnsRect.width / columnsElement.clientWidth // includes CSS zoom
+    const leftPixels = Math.ceil(columnsRect.left * pixelRatio - 0.01), topPixels = Math.ceil(columnsRect.top * pixelRatio - 0.01)
+    const widthPixels = Math.floor(columnsRect.right * pixelRatio + 0.01) - leftPixels, heightPixels = Math.floor(columnsRect.bottom * pixelRatio + 0.01) - topPixels
+    canvasPlacement = `left: ${(leftPixels - columnsRect.left * pixelRatio) / devicePerCss}px; top: ${(topPixels - columnsRect.top * pixelRatio) / devicePerCss}px; width: ${widthPixels / devicePerCss}px; height: ${heightPixels / devicePerCss}px`
+    if (canvasElement.width !== widthPixels || canvasElement.height !== heightPixels) { canvasElement.width = widthPixels; canvasElement.height = heightPixels }
+    layoutVersion++
+  }
+  $effect(() => {
+    if (!canvasElement) return
+    const observer = new ResizeObserver(sizeCanvas); observer.observe(columnsElement!); observer.observe(document.documentElement)
+    window.addEventListener('resize', sizeCanvas)
+    return () => { observer.disconnect(); window.removeEventListener('resize', sizeCanvas) }
+  })
+  $effect(() => {
+    layoutVersion; const context = canvasElement?.getContext('2d')
+    if (!context || !columnsElement || !canvasElement!.height) return
+    const canvasWidth = canvasElement!.width, canvasHeight = canvasElement!.height, columnsRect = columnsElement.getBoundingClientRect()
+    const devicePerCss = canvasHeight / columnsElement.clientHeight, gapPixels = Math.max(1, Math.round(devicePerCss * 0.6))
+    const pitchPixels = Math.max(gapPixels * 2, Math.floor(canvasHeight / segments)), segmentPixels = pitchPixels - gapPixels
+    const colours = getComputedStyle(columnsElement), onColour = colours.getPropertyValue('--segment-on'), offColour = colours.getPropertyValue('--segment-off')
+    context.clearRect(0, 0, canvasWidth, canvasHeight)
+    // Bars share one whole-pixel width and repeat on a whole-pixel column pitch (scaled about the middle), so gaps match too
+    const toPixels = (cssX: number) => (cssX - columnsRect.left) / columnsRect.width * canvasWidth
+    const columnElements = Array.from(columnsElement.querySelectorAll<HTMLElement>('.column')), columnStarts = columnElements.map(column => toPixels(column.getBoundingClientRect().left))
+    const columnPitch = columnStarts.length > 1 ? columnStarts[1] - columnStarts[0] : canvasWidth, pitchScale = Math.max(1, Math.round(columnPitch)) / columnPitch
+    const firstStart = Math.round(canvasWidth / 2 + (columnStarts[0] - canvasWidth / 2) * pitchScale)
+    let barIndex = 0, barWidthPixels = 0
+    columnElements.forEach((column, columnIndex) => column.querySelectorAll<HTMLElement>('.bar').forEach(bar => {
+      const barRect = bar.getBoundingClientRect(), lit = litCount(barLevels[barIndex++] ?? 0)
+      barWidthPixels ||= Math.max(1, Math.round(barRect.width / columnsRect.width * canvasWidth))
+      const leftPixels = firstStart + Math.round((columnStarts[columnIndex] - columnStarts[0]) * pitchScale) + Math.round((toPixels(barRect.left) - columnStarts[columnIndex]) * pitchScale)
+      for (let segmentIndex = 0; segmentIndex < segments; segmentIndex++) {
+        context.fillStyle = segmentIndex < lit ? onColour : offColour
+        context.fillRect(leftPixels, canvasHeight - segmentIndex * pitchPixels - segmentPixels, barWidthPixels, segmentPixels)
+      }
+    }))
   })
 </script>
 
 {#snippet column(columnLevels: number[])}
-  <div class="column">{#each columnLevels as barLevel}<div class="bar" style="--lit: {litCount(barLevel)}"></div>{/each}</div>
+  <div class="column">{#each columnLevels}<div class="bar"></div>{/each}</div>
 {/snippet}
 
 {#snippet scaleColumn(side: string)}
   <div class="scale {side}">{#each scale as mark}<span><b>{mark}</b><em></em></span>{/each}</div>
 {/snippet}
 
-<div class="analyser" class:compact class:labelled={labels.length > 0} style="--segments: {segments}; {segmentStyle}">
+<div class="analyser" class:compact class:labelled={labels.length > 0}>
   <div class="frame">
     {#if title}<div class="title-strip">{title}</div>{/if}
     <div class="window">
       {#if scale.length}{@render scaleColumn('left')}{/if}
       <div class="plot">
-        <div class="columns" bind:this={columnsElement}>
+        <div class="columns" bind:this={columnsElement}><canvas bind:this={canvasElement} style={canvasPlacement}></canvas>
           {#each levels as level, index}{@render column(levelsRight ? [level, levelsRight[index] ?? 0] : [level])}{/each}
           {#if fullRange !== null}<div class="full-gap"></div>{@render column([fullRange])}{/if}
         </div>
@@ -52,13 +89,12 @@
   /* A faint reflection across the glass */
   .window::after { content: ""; position: absolute; inset: 0; background: linear-gradient(162deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.015) 36%, transparent 38%); pointer-events: none; }
   .plot { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-  .columns { flex: 1; min-height: 0; display: flex; justify-content: space-between; }
+  .columns { flex: 1; min-height: 0; display: flex; position: relative; justify-content: space-between; }
   /* Narrow columns with wide gaps between them */
   .column { flex: 1; display: flex; justify-content: center; gap: 1px; min-width: 0; }
-  .bar { --pitch: var(--segment-pitch, 5px); --segment: var(--segment-height, 4px); flex: 1; max-width: min(12px, 46%);
-    background: repeating-linear-gradient(to top, var(--segment-on) 0 var(--segment), transparent 0 var(--pitch)) bottom / 100% calc(var(--lit) * var(--pitch)) no-repeat,
-      repeating-linear-gradient(to top, var(--segment-off) 0 var(--segment), transparent 0 var(--pitch)) bottom / 100% calc(var(--segments) * var(--pitch)) no-repeat; }
-  .analyser:not(.compact) .bar { filter: drop-shadow(0 0 2px var(--segment-glow)); }
+  .bar { flex: 1; max-width: min(12px, 46%); }
+  canvas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }
+  .analyser:not(.compact) canvas { filter: drop-shadow(0 0 2px var(--segment-glow)); }
   .full-gap { width: 9%; } /* the broadband meter stands apart from the bands */
   .scale { display: flex; flex-direction: column; justify-content: space-between; color: var(--legend); font-size: 7.5px; line-height: 1; font-variant-numeric: tabular-nums; }
   .labelled .scale { padding-bottom: 25px; } /* the scale spans the columns only, not the legend under them */
