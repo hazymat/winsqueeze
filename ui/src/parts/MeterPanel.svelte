@@ -1,12 +1,12 @@
 <script lang="ts" module>
   let panelCount = 0
   // Whole meter panels after classic decks and amps (style only, no makers' names), each with its own shape, light and mechanics
-  export const panelThemes: Record<string, { aspect: number }> = { deck: { aspect: 300 / 96 }, orange: { aspect: 240 / 120 }, monitor: { aspect: 440 / 110 }, blue: { aspect: 360 / 110 }, green: { aspect: 360 / 120 } }
+  export const panelThemes: Record<string, { aspect: number }> = { deck: { aspect: 300 / 96 }, orange: { aspect: 236 / 130 }, monitor: { aspect: 440 / 110 }, blue: { aspect: 360 / 110 }, green: { aspect: 360 / 120 } }
 </script>
 <script lang="ts">
   let { theme, levels, reference, size, idle, textureScale = 1 }: { theme: string, levels: number[], reference: number, size: string, idle: boolean, textureScale?: number } = $props()
   const id = `panel-${panelCount++}`
-  const height = $derived(theme === 'monitor' || theme === 'blue' ? 110 : theme === 'deck' ? 96 : 120)
+  const height = $derived(theme === 'monitor' || theme === 'blue' ? 110 : theme === 'deck' ? 96 : theme === 'orange' ? 130 : 120)
   const width = $derived(Math.round(panelThemes[theme].aspect * height))
   // Needle angles: VU faces keep the VU law, power meters are logarithmic (dB re full power spread evenly)
   const vuMarks: [number, number][] = [[-20, -48], [-10, -31], [-7, -21], [-5, -12], [-3, -1], [-2, 6], [-1, 13], [0, 21], [1, 29], [2, 37], [3, 46]]
@@ -29,8 +29,10 @@
   const deckWindows = [{ x: 12, channel: 'L' }, { x: 170, channel: 'R' }]
   const deckMarks = vuMarks.filter(([decibels]) => decibels !== -2)
   // Orange panel meters
-  const orangeMeters = [{ x: 4, channel: 'L' }, { x: 124, channel: 'R' }]
-  const orangeMarks: [number, string][] = [[-20, '20'], [-10, '10'], [-7, '7'], [-5, '5'], [-3, '3'], [-1, '1'], [0, '0'], [1, '1'], [3, '3']]
+  const orangeMeters = [{ x: 0, channel: 'L' }, { x: 120, channel: 'R' }]
+  // Packed scale of the small round meters: -20 to +5 squeezed into the top of the dome
+  const roundMarks: [number, number][] = [[-20, -58], [-10, -41], [-7, -31], [-5, -21], [-3, -9], [-2, -2], [-1, 5], [0, 13], [1, 23], [3, 40], [5, 56]]
+  const roundAngle = (vu: number) => { if (vu <= -20) return -64 + 6 * Math.max(0, Math.min(1, (vu + 30) / 10)); for (let mark = 1; mark < roundMarks.length; mark++) if (vu <= roundMarks[mark][0]) { const [lowDb, lowAngle] = roundMarks[mark - 1], [highDb, highAngle] = roundMarks[mark]; return lowAngle + (highAngle - lowAngle) * (vu - lowDb) / (highDb - lowDb) } return Math.min(62, 56 + (vu - 5) * 3) }
   // Power monitor: three meters in one window, the middle one reads both channels together
   const monitorMeters = $derived([{ centre: 12 + 416 / 6, decibels: relative(0), title: 'POWER MONITOR', channel: 'L' }, { centre: 220, decibels: sum, title: 'L + R', channel: '' }, { centre: 12 + 416 * 5 / 6, decibels: relative(1), title: 'POWER MONITOR', channel: 'R' }])
   const monitorLabels: [number, string][] = [[0.01, '.01'], [0.03, '.03'], [0.1, '.1'], [0.3, '.3'], [1, '1'], [3, '3'], [10, '10'], [30, '30'], [100, '100']]
@@ -85,34 +87,41 @@
     
 
   {:else if theme === 'orange'}
-    <!-- Panel meters with an arched window, the whole face glowing orange and the movement on show: bridge, coil and counterweighted needle -->
+    <!-- Small round panel meters: amber-lit domed window, a tightly packed scale up top and the movement on show below (chrome bridge, screws, copper coil) -->
     <defs>
-      <radialGradient id={id + '-orange'} cx="50%" cy="72%" r="75%"><stop offset="0%" stop-color="#fff0b0" /><stop offset="30%" stop-color="#ffc24a" /><stop offset="70%" stop-color="#f08a14" /><stop offset="100%" stop-color="#a14706" /></radialGradient>
-      {#each orangeMeters as meter}<clipPath id="{id}-orange-{meter.channel}"><path d="M{meter.x + 12} {106} V{50} A44 44 0 0 1 {meter.x + 100} {50} V{106} Z" /></clipPath>{/each}
+      <radialGradient id={id + '-amber'} cx="50%" cy="62%" r="62%"><stop offset="0%" stop-color="#fff6d6" /><stop offset="40%" stop-color="#ffe2a0" /><stop offset="78%" stop-color="#f6b65a" /><stop offset="100%" stop-color="#c7782a" /></radialGradient>
+      <linearGradient id={id + '-bridge'} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f4f4f2" /><stop offset="45%" stop-color="#a9aaa8" /><stop offset="100%" stop-color="#5c5d5c" /></linearGradient>
+      <radialGradient id={id + '-copper'} cx="50%" cy="40%" r="60%"><stop offset="0%" stop-color="#ff9a4a" /><stop offset="60%" stop-color="#b8461a" /><stop offset="100%" stop-color="#4a1406" /></radialGradient>
+      <radialGradient id={id + '-dome'} cx="35%" cy="25%" r="60%"><stop offset="0%" stop-color="#fff" stop-opacity="0.35" /><stop offset="45%" stop-color="#fff" stop-opacity="0.06" /><stop offset="100%" stop-color="#fff" stop-opacity="0" /></radialGradient>
+      {#each orangeMeters as meter}<clipPath id="{id}-orange-{meter.channel}"><path d="M{meter.x + 58 - 26.5} 96 A48 48 0 1 1 {meter.x + 58 + 26.5} 96 Z" /></clipPath>{/each}
     </defs>
     {#each orangeMeters as meter, channelIndex}
-      {@const centreX = meter.x + 56}{@const pivotY = 88}{@const angle = vuAngle(relative(channelIndex), 42)}{@const facePath = `M${meter.x + 12} 106 V50 A44 44 0 0 1 ${meter.x + 100} 50 V106 Z`}
-      <path d={facePath} fill="#ff9a1a" filter="url(#{id}-bloom)" class="spill" />
-      <rect x={meter.x} y="2" width="112" height="116" rx="12" fill="#151312" stroke="#34302c" stroke-width="1" />
-      {#each [[meter.x + 8, 10], [meter.x + 104, 10], [meter.x + 8, 110], [meter.x + 104, 110]] as [screwX, screwY]}<circle cx={screwX} cy={screwY} r="2.2" fill="#2a2724" stroke="#000" stroke-width="0.5" /><line x1={screwX - 1.4} y1={screwY} x2={screwX + 1.4} y2={screwY} stroke="#000" stroke-width="0.5" />{/each}
-      <path d={facePath} fill="url(#{id}-orange)" class="face" />
+      {@const centreX = meter.x + 58}{@const pivotY = 89}{@const angle = roundAngle(relative(channelIndex))}{@const facePath = `M${centreX - 26.5} 96 A48 48 0 1 1 ${centreX + 26.5} 96 Z`}
+      <path d={facePath} fill="#ffb24a" filter="url(#{id}-bloom)" class="spill" />
+      <rect x={meter.x + 2} y="2" width="112" height="126" rx="16" fill="#121212" stroke="#2c2c2c" stroke-width="1" />
+      <circle cx={centreX} cy="56" r="51" fill="#050505" stroke="#2a2a2a" stroke-width="0.8" />
+      <path d={facePath} fill="url(#{id}-amber)" class="face" />
       <g clip-path="url(#{id}-orange-{meter.channel})">
-        <path d={arc(centreX, pivotY, -42, vuAngle(0, 42), 48)} class="ink-line" /><path d={arc(centreX, pivotY, vuAngle(0, 42), 41, 48)} class="red-line" /><path d={arc(centreX, pivotY, vuAngle(0, 42), 41, 50.5)} class="red-band" />
-        {#each orangeMarks as [decibels, text]}{@const markAngle = vuAngle(decibels, 42)}{@const [innerX, innerY] = point(centreX, pivotY, markAngle, 48)}{@const [outerX, outerY] = point(centreX, pivotY, markAngle, 52.5)}{@const [labelX, labelY] = point(centreX, pivotY, markAngle, 58)}
-          <line x1={innerX} y1={innerY} x2={outerX} y2={outerY} class="ink-tick" class:red={decibels > 0} /><text x={labelX} y={labelY} class="orange-number" class:red={decibels > 0}>{text}</text>{/each}
-        {#each [[30, -10.46], [50, -6.02], [70, -3.1], [100, 0]] as [percent, decibels]}{@const markAngle = vuAngle(decibels, 42)}{@const [textX, textY] = point(centreX, pivotY, markAngle, 42.5)}<text x={textX} y={textY} class="orange-small">{percent}</text>{/each}
-        <text x={centreX - 30} y="62" class="orange-small">%</text><text x={centreX + 38} y="56" class="orange-sign">+</text><text x={centreX} y="70" class="orange-vu">VU</text>
-        <rect x={meter.x + 12} y="6" width="88" height="100" filter="url(#{id}-grain)" class="grain" />
-        <line x1={centreX + 1.6} y1={pivotY} x2={centreX + 1.6} y2={pivotY - 58} class="needle-shadow" filter="url(#{id}-soft)" transform="rotate({angle} {centreX} {pivotY - 2})" />
-        <!-- the movement: bridge plate with screws, copper coil, hub and the needle's counterweight -->
-        <path d="M{centreX - 30} 106 V94 Q{centreX - 30} 88 {centreX - 22} 87 H{centreX + 22} Q{centreX + 30} 88 {centreX + 30} 94 V106 Z" class="bridge" />
-        <circle cx={centreX - 21} cy="96" r="2.6" class="screw" /><circle cx={centreX + 21} cy="96" r="2.6" class="screw" /><line x1={centreX - 22.6} y1="96" x2={centreX - 19.4} y2="96" class="screw-slot" /><line x1={centreX + 19.4} y1="96" x2={centreX + 22.6} y2="96" class="screw-slot" />
-        <rect x={centreX - 9} y="91" width="18" height="10" rx="2" class="coil" />
-        <g transform="rotate({angle} {centreX} {pivotY})"><line x1={centreX} y1={pivotY + 9} x2={centreX} y2={pivotY - 58} class="needle orange-needle" /><circle cx={centreX} cy={pivotY + 9} r="2" class="counterweight" /></g>
-        <circle cx={centreX} cy={pivotY} r="3.4" class="hub" /><circle cx={centreX - 0.8} cy={pivotY - 0.8} r="1" fill="#fff" opacity="0.35" />
-        <path d={facePath} fill="url(#{id}-sheen)" />
+        <path d={arc(centreX, pivotY, -58, roundAngle(0), 44)} class="ink-line" /><path d={arc(centreX, pivotY, roundAngle(0), 57, 44)} class="red-line" /><path d={arc(centreX, pivotY, roundAngle(0), 57, 46)} class="red-band thin" />
+        {#each roundMarks as [decibels, markAngle]}{@const [innerX, innerY] = point(centreX, pivotY, markAngle, 44)}{@const [outerX, outerY] = point(centreX, pivotY, markAngle, 48)}{@const [labelX, labelY] = point(centreX, pivotY, markAngle, 52.5)}
+          <line x1={innerX} y1={innerY} x2={outerX} y2={outerY} class="ink-tick" class:red={decibels > 0} /><text x={labelX} y={labelY} class="round-number" class:red={decibels > 0}>{decibels === -20 ? '-20' : decibels === 5 ? '5+' : Math.abs(decibels)}</text>{/each}
+        {#each range(-20, 5, 0.5) as decibels}{@const markAngle = roundAngle(decibels)}{@const [innerX, innerY] = point(centreX, pivotY, markAngle, 44)}{@const [outerX, outerY] = point(centreX, pivotY, markAngle, 45.6)}<line x1={innerX} y1={innerY} x2={outerX} y2={outerY} class="ink-tick fine" class:red={decibels > 0} />{/each}
+        {#each [[20, -13.98], [40, -7.96], [60, -4.44], [80, -1.94], [100, 0]] as [percent, decibels]}{@const markAngle = roundAngle(decibels)}{@const [dotX, dotY] = point(centreX, pivotY, markAngle, 42)}{@const [textX, textY] = point(centreX, pivotY, markAngle, 38)}<circle cx={dotX} cy={dotY} r="0.55" class="ink-dot" /><text x={textX} y={textY} class="round-small">{percent}{percent === 100 ? '%' : ''}</text>{/each}
+        <text x={centreX} y="60" class="round-vu">VU</text>
+        <rect x={centreX - 50} y="6" width="100" height="90" filter="url(#{id}-grain)" class="grain" />
+        <!-- the movement: copper coil glowing behind a chrome bridge with two screws and the pivot in the middle -->
+        <ellipse cx={centreX} cy="82" rx="19" ry="9" fill="url(#{id}-copper)" /><ellipse cx={centreX} cy="82" rx="11" ry="5" fill="#2a0c04" opacity="0.6" />
+        <line x1={centreX + 1.4} y1={pivotY} x2={centreX + 1.4} y2={pivotY - 50} class="needle-shadow" filter="url(#{id}-soft)" transform="rotate({angle} {centreX} {pivotY - 2})" />
+        <line x1={centreX} y1={pivotY} x2={centreX} y2={pivotY - 50} class="needle round-needle" transform="rotate({angle} {centreX} {pivotY})" />
+        <rect x={centreX - 34} y="85" width="68" height="9" rx="1.5" fill="url(#{id}-bridge)" stroke="#3a3a3a" stroke-width="0.4" />
+        {#each [-26, 26] as offset}<circle cx={centreX + offset} cy="89.5" r="3.6" fill="url(#{id}-chrome)" stroke="#333" stroke-width="0.4" /><path d="M{centreX + offset - 2} 89.5 H{centreX + offset + 2} M{centreX + offset} 87.5 V91.5" stroke="#2a2a2a" stroke-width="0.7" />{/each}
+        {#each [-14, 14] as offset}<rect x={centreX + offset - 3} y="87" width="6" height="5" rx="0.8" fill="#2b2b2b" opacity="0.7" />{/each}
+        <circle cx={centreX} cy={pivotY} r="5" fill="url(#{id}-copper)" stroke="#d9d9d9" stroke-width="1.1" /><circle cx={centreX} cy={pivotY} r="1.8" fill="#f2c9a0" />
+        <path d={facePath} fill="url(#{id}-dome)" />
+        <path d={facePath} fill="none" stroke="#000" stroke-width="5" opacity="0.35" filter="url(#{id}-soft)" />
       </g>
-      <path d={facePath} fill="none" stroke="#000" stroke-width="1.2" opacity="0.6" />
+      <path d={facePath} fill="none" stroke="#000" stroke-width="1" opacity="0.7" />
+      <circle cx={centreX} cy="114" r="7" fill="#1c1c1c" stroke="#000" stroke-width="0.8" /><circle cx={centreX} cy="114" r="7" fill="url(#{id}-dome)" /><path d="M{centreX - 5} 114 H{centreX + 5}" stroke="#000" stroke-width="1.6" stroke-linecap="round" />
     {/each}
 
   {:else if theme === 'monitor'}
@@ -219,7 +228,9 @@
   .led { fill: #45ff6a; } .led-glow { fill: #45ff6a; opacity: 0.6; } .idle .led-glow { opacity: 0.25; }
   .orange-number { font-size: 7px; font-weight: 600; fill: #1c0f03; } .orange-number.red { fill: #9e1208; }
   .orange-small { font-size: 4.6px; fill: #1c0f03; } .orange-sign { font-size: 8px; font-weight: 700; fill: #9e1208; } .orange-vu { font-size: 10px; font-weight: 700; fill: #1c0f03; }
-  .spill { opacity: 0.55; }
+  .spill { opacity: 0.5; }
+  .round-number { font-size: 6px; font-weight: 600; fill: #241406; } .round-number.red { fill: #b3200e; } .round-small { font-size: 3.6px; fill: #3a2410; } .round-vu { font-size: 8px; fill: #6a3a10; font-weight: 600; letter-spacing: 0.5px; }
+  .round-needle { stroke: #3a1206; stroke-width: 0.8; }
   .bridge { fill: #2a1d0e; stroke: #0f0a04; stroke-width: 0.6; } .screw { fill: #8a7a62; stroke: #2b2216; stroke-width: 0.5; } .screw-slot { stroke: #2b2216; stroke-width: 0.6; }
   .coil { fill: #9c5a22; stroke: #4a2a0c; stroke-width: 0.5; } .hub { fill: #1a120a; stroke: #b38a52; stroke-width: 0.7; } .counterweight { fill: #1b0f04; }
   .needle { stroke-width: 0.9; stroke-linecap: round; } .needle.dark { stroke: #141210; } .orange-needle { stroke: #1b0f04; stroke-width: 1.1; }
