@@ -77,7 +77,7 @@ The app builds and keeps its own SQLite index of the whole library, one database
 - **Any credit:** the name appears in a multi-name album artist (e.g. "Keith Jarrett, Gary Peacock") or as a track artist, composer, conductor or band.
 - **Album artist text only:** the name appears within the album artist field.
 
-Name matching splits on common separators (`,` `;` `&` `/` `feat.` `with` `and`) and is case- and accent-insensitive. The separator list is configurable.
+Name matching splits on common separators (`,` `;` `&` `/` `feat.` `with` `and`) and is case- and accent-insensitive. The separator list is configurable. A name written "Surname, Forename" (one word before the comma, up to three after: "Kapustin, Nikolai", "Tchaikovsky, P.I.", "Bach, Johann Sebastian") is one person, not two, and is shown and matched as "Nikolai Kapustin".
 
 **Refresh:**
 
@@ -124,7 +124,7 @@ The built-in lists browse the whole library one way: pick a composer, see their 
 
 - **A view** has a name, an on/off switch, an optional group, a genre list (empty = whole library) and up to four steps, each one of Genre, Composer, Artist (album, track or guest artist) or Performer (conductors, bands and orchestras). After the last step it shows albums, with the usual Sort, Group and View toolbar.
 - **Scope:** a track belongs to a view when it has one of the view's genres and matches every step chosen so far. Genre steps list only the view's own genres. Counts are albums and tracks within the scope. Selecting rows and playing them plays only the tracks in scope.
-- **Sidebar:** switched-on views appear in the sidebar. Views sharing a group sit in one entry named after the group, which opens a list of them; a view with no group gets its own entry. They can be moved and hidden like any section.
+- **Sidebar:** switched-on views appear in the sidebar. Views sharing a group sit in one entry named after the group, which opens a page of cards, one per view: a mosaic of covers from inside it, its full name and steps, its album count, and its first step's biggest rows as chips with album counts that jump straight in; a view with no group gets its own entry. They can be moved and hidden like any section.
 - **Editing:** a Custom views page in the main window (from Customise sidebar, from a group's page, or Settings › Browsing, which also carries the explainer above). Changes save at once, in the settings file, so settings export and import carry them.
 - **Demos**, switched off out of the box, all in group "Classical" and limited to Baroque, Chamber Music, Choral, Classical, Minimalist, Opera, Orchestral, Piano Music, String Music and Symphony: Composers (composer, then albums), Composers by genre, Genres by composer, Composers by artist.
 
