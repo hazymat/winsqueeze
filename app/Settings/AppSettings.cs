@@ -26,7 +26,7 @@ public class ServerProfile
 
 public class AudioSettings
 {
-    public bool Exclusive { get; set; } = true;
+    public bool Exclusive { get; set; } // off by default: some drivers refuse exclusive mode; already-saved settings keep their choice
     public int LatencyMs { get; set; } = 200; // 40 ms made the DragonFly restart its stream every 10 s
     public string PlayerName { get; set; } = Environment.MachineName; // shown in the server's player list; user can rename
     public string ExtraArguments { get; set; } = "";
@@ -121,7 +121,7 @@ public class GeneralSettings
     public bool StartWithWindows { get; set; }
     public bool StartMinimised { get; set; }
     public bool ResumeOnStartup { get; set; } // carry on at startup only if the server was still playing to this player (off by default)
-    public bool CloseHidesToTray { get; set; } = true;
+    public bool CloseToTray { get; set; } // off: Close (X) quits. Was CloseHidesToTray (on by default), renamed so everyone gets the new default
     public bool CloseToTrayTipShown { get; set; }
     public OtherSqueezeliteAction OtherSqueezelite { get; set; } = OtherSqueezeliteAction.Ask;
     public bool AutoUpdate { get; set; } = true;

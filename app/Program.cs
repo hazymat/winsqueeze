@@ -10,5 +10,6 @@ public static class Program
         var app = new App();
         app.InitializeComponent();
         app.Run();
+        Environment.Exit(0); // don't wait on any thread still running after the window closes
     }
 }

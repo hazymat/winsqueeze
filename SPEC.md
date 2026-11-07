@@ -54,7 +54,7 @@ One Windows app with three parts: a C# shell, a web front end hosted in WebView2
 
 - **C# shell (.NET 8, WPF):** owns the window, tray, settings, server discovery, the Squeezelite process, and all HTTP calls to Lyrion. The UI never calls the server directly, which avoids CORS and keeps credentials out of the web layer.
 - **Web UI:** HTML/CSS/TypeScript in WebView2, served from app resources. Talks to the shell over the WebView2 message bridge. Queries the local index through the shell for all browsing and search.
-- **Squeezelite:** pinned FFmpeg build, launched hidden with `-s <server> -n <player name> -o "<device name> [<host API>]" -a 200:1` (exclusive; 40 ms latency caused stream restarts on the DragonFly), restarted on device or server change, stopped on quit. Registers with Lyrion as a normal player.
+- **Squeezelite:** pinned FFmpeg build, launched hidden with `-s <server> -n <player name> -o "<device name> [<host API>]" -a 200:0` (shared; `-a 200:1` when exclusive mode is on; 40 ms latency caused stream restarts on the DragonFly), restarted on device or server change, stopped on quit. Registers with Lyrion as a normal player.
 - **Live state:** current track, queue and transport state come from Lyrion via JSON-RPC polling (about 1 s while visible, slower when hidden) or the CometD subscription if reliable.
 
 ## Library model and cache
@@ -185,7 +185,7 @@ Building a playlist works like opening a case: start it, browse anywhere while i
 Fidelity is a headline feature, not an afterthought. Playback always goes through the bundled Squeezelite (FFmpeg build), never the browser engine.
 
 1. **Lossless end to end.** The server sends original files in their native format (FLAC, ALAC, WAV, AIFF, hi-res). Squeezelite decodes locally. No MP3 transcoding.
-2. **Bypass the Windows mixer.** Default output is the device's WASAPI endpoint in exclusive mode, giving bit-perfect output with no other system sounds mixed in. Falls back to shared mode with a visible warning if exclusive isn't available. Exclusive mode lets go of the device 10 seconds after a pause or stop (Squeezelite `-C 10`), and unticking it restarts Squeezelite in shared mode straight away, so other apps never need WinSqueeze closed. Settings shows an amber note saying so while it's on.
+2. **Bypass the Windows mixer.** Exclusive mode (Settings › Audio, off by default because some sound card drivers refuse it) uses the device's WASAPI endpoint exclusively, giving bit-perfect output with no other system sounds mixed in. If the device won't open in exclusive mode (e.g. "Invalid device"), WinSqueeze restarts Squeezelite in shared mode for that device until the app restarts, shows a tray note saying so, and the player status reads "shared (device refused exclusive)". Exclusive mode lets go of the device 10 seconds after a pause or stop (Squeezelite `-C 10`), and unticking it restarts Squeezelite in shared mode straight away, so other apps never need WinSqueeze closed. Settings shows an amber note saying so while it's on.
 3. **Native sample rates.** 44.1, 48, 88.2, 96, 176.4 and 192 kHz pass straight through; the DAC switches rate per track. Only rates the device can't take (e.g. 22.05 kHz internet radio in exclusive mode) are resampled (Squeezelite `-R hE`), so they play instead of failing.
 4. **Volume:** Squeezelite scales the audio, independent of Windows' volume (no link to the device's hardware volume). A badge above the volume slider shows a verified rosette and "Bit-perfect" when the source is lossless at its native rate, output is exclusive, volume is 100 and the EQ is off; below 100 it shows "Scaled", and clicking it explains that setting 100 and using Windows' volume (or the DAC's knob) gives bit-perfect playback.
 5. **Server-side check (read-only).** Read the player's bitrate-limit and transcoding prefs from the server. If anything would force transcoding, show a warning explaining which server setting to change. Never change it.
@@ -232,7 +232,7 @@ Albums (or any selection: artists, genres, folders, tracks, playlists) can be do
 ## Output device selection
 
 1. **Picker in the app:** a dropdown in the transport bar's device indicator, in settings (Audio tab) and in the tray menu.
-2. **Friendly names, grouped by driver:** WASAPI, ASIO (if present), DirectSound/MME. Each shows whether it supports exclusive mode.
+2. **Friendly names, grouped by driver:** WASAPI, ASIO (if present), DirectSound/MME. Names are shown as Windows gives them, with no exclusive label; whether exclusive is in use shows in the player status.
 3. **One-click switch:** restarts the hidden Squeezelite on the new device; if it was playing, playback resumes at the same position.
 4. **Remembered by name and driver, never by index.** Windows device numbers change when hardware is plugged in.
 5. **Player name:** the name this PC's player shows in the server's player list and in every other controller. Defaults to the Windows computer name; the user can change it in Settings › Audio, and the change applies straight away (Squeezelite restarts with the new `-n`). Each install also keeps its own stable player MAC, so it never collides with another Squeezelite on the same PC.
@@ -292,7 +292,9 @@ Chosen direction: **Frosted Dark**, frosted glass meets Squeezebox hardware. iOS
 
 **Playback at startup:** Lyrion restarts whatever a player was playing when it reconnects, so Squeezelite starts held (playing silence, `-H`) and WinSqueeze first asks the server what this player was doing. Playback carries on only if Settings › General › "Resume playing on startup" is ticked (off by default) and the server was still playing to this player; otherwise WinSqueeze pauses it (queue and position kept) before the hold lifts. A restart for an update always carries on.
 
-**Close (X):** hides to tray and keeps playing (default). The first time, a one-off toast explains this. Quit only from the tray menu or File ▸ Quit. Configurable in settings.
+**Close (X):** quits (default). Settings › General › "Close (X) keeps WinSqueeze running in the tray" makes it hide to tray and keep playing instead; the first time, a one-off toast explains this. Quitting always ends the process (a watchdog exits after 5 s if anything hangs), so its WebView2 and Squeezelite processes go too.
+
+**Single instance:** launching WinSqueeze while it runs (even hidden in the tray) brings the running window to the front. If the running copy doesn't answer within 8 s (hung, or stuck quitting), the new launch ends it and starts normally.
 
 **Media integration:**
 
@@ -343,7 +345,7 @@ A separate Settings window with tabs, in standard Windows style, listed in a sid
 
 | Tab | Settings |
 | --- | --- |
-| General | Settings export / import (JSON; everything except passwords and other secrets); Start with Windows; resume playing on startup (off; when both are on, an amber bracket joins them with a warning that music may start as soon as the PC restarts); start minimised to tray; other Squeezelite at launch (ask / always stop / leave); minimise to tray when minimised; close (X) hides to tray / quits; remember window position; language |
+| General | Settings export / import (JSON; everything except passwords and other secrets); Start with Windows; resume playing on startup (off; when both are on, an amber bracket joins them with a warning that music may start as soon as the PC restarts); start minimised to tray; other Squeezelite at launch (ask / always stop / leave); minimise to tray when minimised; close (X) quits / keeps running in the tray (off); remember window position; language |
 | Servers | Server finder (auto-discovery); profiles list (name, address, port, optional username/password); default profile; test connection |
 | Library (server) | Scan status and progress; Scan for changes; Playlists only; Clear and rescan everything (see Server library) |
 | Audio | Output device; driver type; exclusive mode on/off; volume mode (fixed / digital); player name (defaults to the computer name); extra Squeezelite arguments (advanced); fidelity warnings |

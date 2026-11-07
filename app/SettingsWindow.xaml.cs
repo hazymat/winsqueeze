@@ -37,7 +37,7 @@ public partial class SettingsWindow : Window
     {
         startWithWindowsBox.IsChecked = Settings.General.StartWithWindows;
         startMinimisedBox.IsChecked = Settings.General.StartMinimised;
-        closeHidesBox.IsChecked = Settings.General.CloseHidesToTray;
+        closeHidesBox.IsChecked = Settings.General.CloseToTray;
         resumeOnStartupBox.IsChecked = Settings.General.ResumeOnStartup;
         // Both ticked = music can start on boot: show the bracket and warning
         void ShowAutoPlayWarning() { var autoPlayVisibility = Settings.General.StartWithWindows && Settings.General.ResumeOnStartup ? Visibility.Visible : Visibility.Collapsed; autoPlayBracket.Visibility = autoPlayVisibility; autoPlayWarning.Visibility = autoPlayVisibility; }
@@ -48,7 +48,7 @@ public partial class SettingsWindow : Window
         showHintsBox.IsChecked = !Settings.General.HideHints;
         showHintsBox.Click += (sender, args) => { Settings.General.HideHints = showHintsBox.IsChecked != true; Settings.Save(); App.NotifyHintsChanged(); };
         resetHintsButton.Click += (sender, args) => { Settings.General.DismissedHints.Clear(); Settings.General.HideHints = false; showHintsBox.IsChecked = true; Settings.Save(); App.NotifyHintsChanged(); };
-        closeHidesBox.Click += (sender, args) => { Settings.General.CloseHidesToTray = closeHidesBox.IsChecked == true; Settings.Save(); };
+        closeHidesBox.Click += (sender, args) => { Settings.General.CloseToTray = closeHidesBox.IsChecked == true; Settings.Save(); };
         exportSettingsButton.Click += (sender, args) =>
         {
             var saveDialog = new Microsoft.Win32.SaveFileDialog { FileName = $"WinSqueeze-settings-{DateTime.Now:yyyy-MM-dd}.json", Filter = "WinSqueeze settings (*.json)|*.json" };
@@ -402,7 +402,7 @@ public partial class SettingsWindow : Window
     void ShowPlayerStatus()
     {
         var player = App.Player;
-        var detail = player.State == PlayerState.Running ? (player.ExclusiveActive ? " · WASAPI exclusive" : " · shared") + (player.OutputSampleRate > 0 ? $" · {player.OutputSampleRate / 1000.0:0.#} kHz" : "") : "";
+        var detail = player.State == PlayerState.Running ? (player.ExclusiveActive ? " · WASAPI exclusive" : player.ExclusiveRefused ? " · shared (device refused exclusive)" : " · shared") + (player.OutputSampleRate > 0 ? $" · {player.OutputSampleRate / 1000.0:0.#} kHz" : "") : "";
         playerStatusText.Text = player.StatusText + detail + (App.UsingFallbackDevice ? " (fallback)" : "");
     }
 
@@ -680,7 +680,7 @@ public partial class SettingsWindow : Window
         report.AppendLine($"WinSqueeze {App.Updater.CurrentVersion} · {Settings.General.UpdateChannel} channel{(AppPaths.IsPortable ? " · portable" : "")}");
         report.AppendLine($"Windows: {System.Runtime.InteropServices.RuntimeInformation.OSDescription} · {System.Runtime.InteropServices.RuntimeInformation.OSArchitecture} · .NET {Environment.Version}");
         report.AppendLine($"Server: {(profile is { Host.Length: > 0 } ? $"{profile.Host}:{profile.Port}" : "none set")}");
-        report.AppendLine($"Player: {audio.PlayerName} · {player.StatusText}{(player.State == PlayerState.Running ? (player.ExclusiveActive ? " · WASAPI exclusive" : " · shared") + (player.OutputSampleRate > 0 ? $" · {player.OutputSampleRate / 1000.0:0.#} kHz" : "") : "")}{(App.UsingFallbackDevice ? " (fallback device)" : "")}");
+        report.AppendLine($"Player: {audio.PlayerName} · {player.StatusText}{(player.State == PlayerState.Running ? (player.ExclusiveActive ? " · WASAPI exclusive" : player.ExclusiveRefused ? " · shared (device refused exclusive)" : " · shared") + (player.OutputSampleRate > 0 ? $" · {player.OutputSampleRate / 1000.0:0.#} kHz" : "") : "")}{(App.UsingFallbackDevice ? " (fallback device)" : "")}");
         report.AppendLine($"Output device: {(profile is null || profile.DeviceName == "" ? "Windows default" : $"{profile.DeviceName} ({profile.DeviceHostApi})")} · exclusive {(audio.Exclusive ? "on" : "off")}");
         report.AppendLine().AppendLine("--- crash.log (end) ---").AppendLine(LogTail("crash.log", 60));
         report.AppendLine().AppendLine("--- squeezelite.log (end) ---").AppendLine(LogTail("squeezelite.log", 60));
