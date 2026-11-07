@@ -123,9 +123,9 @@ public partial class SettingsWindow : Window
 
     // ---- Server › Library: start Lyrion scans and follow them (SPEC.md › Server library) ----
     readonly System.Windows.Threading.DispatcherTimer scanTimer = new() { Interval = TimeSpan.FromSeconds(2) };
-    bool scanWasRunning, scanPollBusy; DateTime scanStartedAt;
+    bool scanWasRunning, scanStepsSeen, scanPollBusy; DateTime? scanStartedAt; // when this page started the scan, or worked out from the server's own clock
     // Lyrion's internal step names (rescanprogress), in plain words; unknown ones are tidied up
-    static readonly (string prefix, string label)[] scanStepLabels = { ("discovering_files", "Finding files"), ("directory_deleted", "Removing deleted files"), ("directory_new", "Reading new files"), ("directory_changed", "Reading changed files"), ("directory", "Reading files"), ("playlist", "Playlists"), ("cleanup", "Tidying up"), ("mergeva", "Merging Various Artists albums"), ("dboptimize", "Optimising the database"), ("precacheartwork", "Preparing cover art"), ("artwork", "Cover art"), ("fulltext", "Building the search index"), ("wipedb", "Clearing the library"), ("onlinelibrary", "Online library"), ("persistent", "Ratings and play counts") };
+    static readonly (string prefix, string label)[] scanStepLabels = { ("discovering_playlist", "Finding playlists"), ("discovering", "Finding files"), ("directory_deleted", "Removing deleted files"), ("directory_new", "Reading new files"), ("directory_changed", "Reading changed files"), ("directory", "Reading files"), ("playlist_deleted", "Removing deleted playlists"), ("playlist", "Reading playlists"), ("cleanup", "Tidying up"), ("mergeva", "Merging Various Artists albums"), ("dboptimize", "Optimising the database"), ("precacheartwork", "Preparing cover art"), ("updatestandaloneartwork", "Cover art"), ("artwork", "Cover art"), ("fulltext", "Building the search index"), ("contributor_picture", "Artist pictures"), ("wipedb", "Clearing the library"), ("onlinelibrary", "Online library"), ("persistent", "Ratings and play counts") };
 
     void WireServerLibraryTab()
     {
@@ -143,7 +143,7 @@ public partial class SettingsWindow : Window
 
     async Task SendScanCommandAsync(params object[] command)
     {
-        try { await App.ServerRequestAsync("", command); scanActionText.Text = ""; }
+        try { await App.ServerRequestAsync("", command); scanActionText.Text = ""; if ((string)command[0] != "abortscan") scanStartedAt = DateTime.Now; }
         catch (Exception commandError) { scanActionText.Text = $"The server didn't take it: {commandError.Message}"; }
         await PollScanAsync();
     }
@@ -158,26 +158,32 @@ public partial class SettingsWindow : Window
             var status = await App.ServerRequestAsync("", "serverstatus", 0, 0);
             if (LyrionClient.ReadString(status, "rescan") != "1")
             {
-                if (scanWasRunning) { scanWasRunning = false; _ = App.Library.RefreshAsync(false); } // bring the new library into WinSqueeze straight away
+                if (scanWasRunning) { scanWasRunning = false; scanStepsSeen = false; scanStartedAt = null; _ = App.Library.RefreshAsync(false); } // bring the new library into WinSqueeze straight away
+                if (scanStartedAt is { } sentAt && DateTime.Now - sentAt > TimeSpan.FromSeconds(30)) scanStartedAt = null; // a scan asked for that never showed up
                 var lastScan = LyrionClient.ReadLong(status, "lastscan");
                 var totals = $"{LyrionClient.ReadInt(status, "info total songs"):N0} tracks · {LyrionClient.ReadInt(status, "info total albums"):N0} albums · {LyrionClient.ReadInt(status, "info total artists"):N0} artists";
-                var lastScanText = lastScan > 0 ? $"Last scan finished {DescribeWhen(DateTimeOffset.FromUnixTimeSeconds(lastScan).LocalDateTime)}" : "No scan recorded yet";
+                var lastScanText = lastScan > 0 ? $"Last library scan finished {DescribeWhen(DateTimeOffset.FromUnixTimeSeconds(lastScan).LocalDateTime)}" : "No scan recorded yet";
                 ShowScanIdle(lastScanText, totals, true);
                 var failure = LyrionClient.ReadString(status, "lastscanfailed");
                 scanFailedText.Text = $"The last scan didn't finish: {failure}"; scanFailedCallout.Visibility = failure == "" ? Visibility.Collapsed : Visibility.Visible;
                 return;
             }
             var progress = await App.ServerRequestAsync("", "rescanprogress");
-            if (!scanWasRunning) { scanWasRunning = true; scanStartedAt = DateTime.Now - ParseClock(LyrionClient.ReadString(progress, "totaltime")); } // started elsewhere: count from the server's own elapsed time
             var stepNames = LyrionClient.ReadString(progress, "steps").Split(',', StringSplitOptions.RemoveEmptyEntries);
+            // For its first seconds a new scan still reports the previous one's steps, all finished: show it as starting
+            var starting = !scanStepsSeen && stepNames.All(stepName => LyrionClient.ReadInt(progress, stepName) >= 100);
+            scanWasRunning = true; if (!starting) scanStepsSeen = true;
+            if (scanStartedAt == null && !starting) scanStartedAt = DateTime.Now - ParseClock(LyrionClient.ReadString(progress, "totaltime")); // started elsewhere: count from the server's own elapsed time
+            if (starting) stepNames = Array.Empty<string>();
             var activeStep = stepNames.FirstOrDefault(stepName => LyrionClient.ReadInt(progress, stepName) < 100) ?? stepNames.LastOrDefault() ?? "";
             var serverStepName = LyrionClient.ReadString(status, "progressname");
             var stepDone = LyrionClient.ReadLong(status, "progressdone"); var stepTotal = LyrionClient.ReadLong(status, "progresstotal");
             scanGlyph.Text = "\uE895"; scanGlyph.Foreground = new SolidColorBrush(Color.FromRgb(0x2F, 0x7F, 0xD8)); // sync arrows
-            scanHeadlineText.Text = serverStepName.Any(char.IsLower) ? serverStepName : activeStep == "" ? "Scanning" : ScanStepLabel(activeStep); // the server's own wording, unless it only has a code for this step
-            scanDetailText.Text = (stepTotal > 0 ? $"{stepDone:N0} of {stepTotal:N0}   ·   " : "") + $"{FormatElapsed(DateTime.Now - scanStartedAt)} so far";
-            scanBar.IsIndeterminate = stepTotal <= 0; if (stepTotal > 0) scanBar.Value = Math.Min(100, 100.0 * stepDone / stepTotal);
-            scanInfoText.Text = LyrionClient.ReadString(progress, "info");
+            scanHeadlineText.Text = starting ? "Starting the scan" : serverStepName.Any(char.IsLower) ? serverStepName : activeStep == "" ? "Scanning" : ScanStepLabel(activeStep); // the server's own wording, unless it only has a code for this step
+            var showCount = stepTotal > 0 && !starting;
+            scanDetailText.Text = (showCount ? $"{stepDone:N0} of {stepTotal:N0}" : "") + (showCount && scanStartedAt != null ? "   ·   " : "") + (scanStartedAt is { } startedAt ? $"{FormatElapsed(DateTime.Now - startedAt)} so far" : "");
+            scanBar.IsIndeterminate = !showCount; if (showCount) scanBar.Value = Math.Min(100, 100.0 * stepDone / stepTotal);
+            scanInfoText.Text = starting ? "" : LyrionClient.ReadString(progress, "info");
             scanStepsPanel.Children.Clear();
             foreach (var stepName in stepNames)
             {
@@ -205,7 +211,7 @@ public partial class SettingsWindow : Window
     static string ScanStepLabel(string stepName)
     {
         var plainName = stepName.Split('/', '\\')[0].Trim('_', ' '); // some steps carry the music folder's path
-        var compactName = plainName.Replace("_", "").Replace("-", "").ToLowerInvariant();
+        var compactName = plainName.Replace("_", "").Replace("-", "").ToLowerInvariant(); if (compactName.StartsWith("plugin")) compactName = compactName[6..];
         foreach (var (prefix, label) in scanStepLabels) if (compactName.StartsWith(prefix.Replace("_", ""))) return label;
         var spacedName = plainName.Replace('_', ' ').Trim();
         return spacedName == "" ? "Scanning" : char.ToUpper(spacedName[0]) + spacedName[1..].ToLowerInvariant();
