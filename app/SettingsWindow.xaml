@@ -112,6 +112,11 @@
               <TextBlock x:Name="scanInfoText" Style="{StaticResource Quiet}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
               <StackPanel x:Name="scanStepsPanel" Margin="0,8,0,0" />
             </StackPanel>
+            <Border x:Name="scanAddedCallout" Style="{StaticResource Callout}" Visibility="Collapsed"><DockPanel>
+              <Button x:Name="showNewMusicButton" DockPanel.Dock="Right" Content="Show in New music" VerticalAlignment="Top" Margin="8,0,0,0" />
+              <TextBlock Style="{StaticResource CalloutIcon}" />
+              <StackPanel><TextBlock x:Name="scanAddedTitle" FontWeight="SemiBold" Foreground="#2B3A4E" /><TextBlock x:Name="scanAddedList" Style="{StaticResource CalloutText}" Margin="0,2,0,0" /></StackPanel>
+            </DockPanel></Border>
             <Border x:Name="scanFailedCallout" Style="{StaticResource Warning}" Visibility="Collapsed"><DockPanel><TextBlock Style="{StaticResource WarningIcon}" /><TextBlock x:Name="scanFailedText" Style="{StaticResource CalloutText}" /></DockPanel></Border>
           </StackPanel>
         </Border>

@@ -123,6 +123,9 @@ public partial class SettingsWindow : Window
 
     // ---- Server › Library: start Lyrion scans and follow them (SPEC.md › Server library) ----
     readonly System.Windows.Threading.DispatcherTimer scanTimer = new() { Interval = TimeSpan.FromSeconds(2) };
+    // What the last scan this window watched added, kept for the session and shown while the server's last scan time still matches
+    static (long lastScan, string title, string albums, bool any)? lastScanReport;
+    static long scanBaseline; // the server's last scan time before the current scan: albums added after it are new
     bool scanWasRunning, scanStepsSeen, scanPollBusy; DateTime? scanStartedAt; // when this page started the scan, or worked out from the server's own clock
     // Lyrion's internal step names (rescanprogress), in plain words; unknown ones are tidied up
     static readonly (string prefix, string label)[] scanStepLabels = { ("discovering_playlist", "Finding playlists"), ("discovering", "Finding files"), ("directory_deleted", "Removing deleted files"), ("directory_new", "Reading new files"), ("directory_changed", "Reading changed files"), ("directory", "Reading files"), ("playlist_deleted", "Removing deleted playlists"), ("playlist", "Reading playlists"), ("cleanup", "Tidying up"), ("mergeva", "Merging Various Artists albums"), ("dboptimize", "Optimising the database"), ("precacheartwork", "Preparing cover art"), ("updatestandaloneartwork", "Cover art"), ("artwork", "Cover art"), ("fulltext", "Building the search index"), ("contributor_picture", "Artist pictures"), ("wipedb", "Clearing the library"), ("onlinelibrary", "Online library"), ("persistent", "Ratings and play counts") };
@@ -139,6 +142,28 @@ public partial class SettingsWindow : Window
             if (MessageBox.Show(this, "The server empties its library and reads every file again. Until it finishes, every player sees only part of the library.\n\nClear and rescan everything?", "Clear and rescan", MessageBoxButton.OKCancel, MessageBoxImage.Warning, MessageBoxResult.Cancel) == MessageBoxResult.OK) await SendScanCommandAsync("wipecache");
         };
         stopScanButton.Click += async (sender, args) => await SendScanCommandAsync("abortscan");
+        showNewMusicButton.Click += (sender, args) => App.OpenSection("new");
+    }
+
+    // After a scan: bring the new library into WinSqueeze, then list the albums the server first saw during it
+    async Task ReportNewAlbumsAsync(long addedAfter, long lastScan)
+    {
+        await App.Library.RefreshAsync(false);
+        if (addedAfter <= 0) return;
+        var queries = App.Library.Queries;
+        var newAlbums = await Task.Run(() => queries.AlbumsAddedAfter(addedAfter));
+        string Describe(Dictionary<string, object?> album) => $"{album["title"]}" + (album["artist"] is string artist && artist != "" ? $" · {artist}" : "");
+        lastScanReport = (lastScan, newAlbums.Count == 0 ? "No new albums" : $"This scan added {newAlbums.Count} {(newAlbums.Count == 1 ? "album" : "albums")}", string.Join("\n", newAlbums.Take(6).Select(Describe)) + (newAlbums.Count > 6 ? $"\nand {newAlbums.Count - 6} more" : ""), newAlbums.Count > 0);
+        ShowScanReport(lastScan);
+    }
+
+    void ShowScanReport(long lastScan)
+    {
+        var showing = lastScanReport is { } report && report.lastScan == lastScan;
+        scanAddedCallout.Visibility = showing ? Visibility.Visible : Visibility.Collapsed;
+        if (!showing) return;
+        var current = lastScanReport!.Value;
+        scanAddedTitle.Text = current.title; scanAddedList.Text = current.albums; scanAddedList.Visibility = current.any ? Visibility.Visible : Visibility.Collapsed; showNewMusicButton.Visibility = current.any ? Visibility.Visible : Visibility.Collapsed;
     }
 
     async Task SendScanCommandAsync(params object[] command)
@@ -158,12 +183,18 @@ public partial class SettingsWindow : Window
             var status = await App.ServerRequestAsync("", "serverstatus", 0, 0);
             if (LyrionClient.ReadString(status, "rescan") != "1")
             {
-                if (scanWasRunning) { scanWasRunning = false; scanStepsSeen = false; scanStartedAt = null; _ = App.Library.RefreshAsync(false); } // bring the new library into WinSqueeze straight away
-                if (scanStartedAt is { } sentAt && DateTime.Now - sentAt > TimeSpan.FromSeconds(30)) scanStartedAt = null; // a scan asked for that never showed up
                 var lastScan = LyrionClient.ReadLong(status, "lastscan");
+                if (scanWasRunning)
+                {
+                    var addedAfter = scanBaseline > 0 ? scanBaseline : scanStartedAt is { } began ? new DateTimeOffset(began).ToUnixTimeSeconds() - 5 : 0; // the page opened mid-scan: when it started, by this PC's clock
+                    scanWasRunning = false; scanStepsSeen = false; scanStartedAt = null;
+                    _ = ReportNewAlbumsAsync(addedAfter, lastScan);
+                }
+                scanBaseline = lastScan;
+                if (scanStartedAt is { } sentAt && DateTime.Now - sentAt > TimeSpan.FromSeconds(30)) scanStartedAt = null; // a scan asked for that never showed up
                 var totals = $"{LyrionClient.ReadInt(status, "info total songs"):N0} tracks · {LyrionClient.ReadInt(status, "info total albums"):N0} albums · {LyrionClient.ReadInt(status, "info total artists"):N0} artists";
                 var lastScanText = lastScan > 0 ? $"Last library scan finished {DescribeWhen(DateTimeOffset.FromUnixTimeSeconds(lastScan).LocalDateTime)}" : "No scan recorded yet";
-                ShowScanIdle(lastScanText, totals, true);
+                ShowScanIdle(lastScanText, totals, true); ShowScanReport(lastScan);
                 var failure = LyrionClient.ReadString(status, "lastscanfailed");
                 scanFailedText.Text = $"The last scan didn't finish: {failure}"; scanFailedCallout.Visibility = failure == "" ? Visibility.Collapsed : Visibility.Visible;
                 return;
@@ -193,7 +224,7 @@ public partial class SettingsWindow : Window
                 stepRow.Children.Add(new TextBlock { Text = ScanStepLabel(stepName), Foreground = new SolidColorBrush(finished ? Color.FromRgb(0x66, 0x66, 0x66) : Color.FromRgb(0x1B, 0x1B, 0x1B)), FontWeight = finished ? FontWeights.Normal : FontWeights.SemiBold });
                 scanStepsPanel.Children.Add(stepRow);
             }
-            scanRunningPanel.Visibility = Visibility.Visible; scanFailedCallout.Visibility = Visibility.Collapsed; stopScanButton.Visibility = Visibility.Visible;
+            scanRunningPanel.Visibility = Visibility.Visible; scanFailedCallout.Visibility = Visibility.Collapsed; scanAddedCallout.Visibility = Visibility.Collapsed; stopScanButton.Visibility = Visibility.Visible;
             foreach (var scanButton in new[] { rescanButton, rescanPlaylistsButton, wipeCacheButton }) scanButton.IsEnabled = false;
         }
         catch (Exception pollError) { ShowScanIdle("Can't reach the server", pollError.Message, false); }
@@ -204,7 +235,7 @@ public partial class SettingsWindow : Window
     {
         scanGlyph.Text = serverReachable ? "\uE73E" : "\uE7BA"; scanGlyph.Foreground = new SolidColorBrush(serverReachable ? Color.FromRgb(0x2E, 0x7D, 0x32) : Color.FromRgb(0xB2, 0x6B, 0x00));
         scanHeadlineText.Text = headline; scanDetailText.Text = detail;
-        scanRunningPanel.Visibility = Visibility.Collapsed; stopScanButton.Visibility = Visibility.Collapsed; if (!serverReachable) scanFailedCallout.Visibility = Visibility.Collapsed;
+        scanRunningPanel.Visibility = Visibility.Collapsed; stopScanButton.Visibility = Visibility.Collapsed; if (!serverReachable) { scanFailedCallout.Visibility = Visibility.Collapsed; scanAddedCallout.Visibility = Visibility.Collapsed; }
         foreach (var scanButton in new[] { rescanButton, rescanPlaylistsButton, wipeCacheButton }) scanButton.IsEnabled = serverReachable;
     }
 

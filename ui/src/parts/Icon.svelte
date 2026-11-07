@@ -1,6 +1,6 @@
 <script lang="ts">
   // Crisp transport icons as SVG: text glyphs (⏮ ▶ ⏭) render off-centre with colour fringes in WebView2
-  let { name, size = 18 }: { name: 'back' | 'history' | 'forward' | 'previous' | 'next' | 'play' | 'pause' | 'volume' | 'speaker' | 'pin' | 'favourites' | 'artists' | 'genres' | 'composers' | 'performers' | 'folders' | 'albums' | 'queue' | 'plus' | 'settings' | 'playlists' | 'verified' | 'grid-large' | 'grid-small' | 'list' | 'cards' | 'minimise' | 'maximise' | 'restore' | 'close' | 'download' | 'radio' | 'apps' | 'health'; size?: number } = $props()
+  let { name, size = 18 }: { name: 'back' | 'history' | 'forward' | 'previous' | 'next' | 'play' | 'pause' | 'volume' | 'speaker' | 'pin' | 'favourites' | 'artists' | 'genres' | 'composers' | 'performers' | 'folders' | 'albums' | 'new' | 'queue' | 'plus' | 'settings' | 'playlists' | 'verified' | 'grid-large' | 'grid-small' | 'list' | 'cards' | 'minimise' | 'maximise' | 'restore' | 'close' | 'download' | 'radio' | 'apps' | 'health'; size?: number } = $props()
 </script>
 
 <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" class="icon">
@@ -20,6 +20,7 @@
   {:else if name === 'composers'}<path d="M9 18V6l10-2v12" class="stroke" /><circle cx="6.5" cy="18" r="2.5" class="stroke" /><circle cx="16.5" cy="16" r="2.5" class="stroke" />
   {:else if name === 'performers'}<path d="M5 19l9-9M13 6.5l4.5 4.5M15.5 4l4.5 4.5-2.5 2.5L13 6.5z" class="stroke" />
   {:else if name === 'folders'}<path d="M3.5 7.5A1.5 1.5 0 0 1 5 6h4.5l2 2H19a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 19 19H5a1.5 1.5 0 0 1-1.5-1.5z" class="stroke" />
+  {:else if name === 'new'}<path d="M11 4l1.8 5.2L18 11l-5.2 1.8L11 18l-1.8-5.2L4 11l5.2-1.8z" class="stroke" /><path d="M18 15v5M15.5 17.5h5" class="stroke" />
   {:else if name === 'albums'}<circle cx="12" cy="12" r="8" class="stroke" /><circle cx="12" cy="12" r="2.2" class="stroke" />
   {:else if name === 'queue'}<path d="M4 6.5h16M4 12h16M4 17.5h10" class="stroke" />
   {:else if name === 'plus'}<path d="M12 5v14M5 12h14" class="stroke" />

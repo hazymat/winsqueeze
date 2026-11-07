@@ -101,6 +101,7 @@ Sidebar sections, in this order: Favourites, Radio, Apps, Artists, Genres, Compo
 | Composers | Everyone credited as composer | Albums (CDs) containing at least one work by them, not a list of works |
 | Performers | Merged conductors, bands/orchestras/ensembles and soloists, with a role filter chip | Albums they appear on |
 | Folders | The music folder tree as stored on disk | Subfolders; a folder of tracks opens as an album |
+| New music | Off by default (Customise sidebar adds it). The newest 100 albums by when the server first saw them (Lyrion's added time, kept through a clear and rescan; an album counts from its newest track), grouped by month added, newest first; no Sort menu | The album |
 | Queue | Current player's queue | — |
 
 **Search-as-you-type:**
@@ -333,7 +334,7 @@ Settings › Server › Library starts Lyrion's own library scans and follows th
 
 - **Status card** (polled every 2 s while the page is open, from `serverstatus` and `rescanprogress`): while scanning, the current step (the server's own wording), a progress bar with done / total, the time so far, the file or folder being read, and the list of steps with a tick on finished ones; a Stop scan button (`abortscan`). For its first seconds a new scan still reports the previous scan's steps, all finished: that shows as "Starting the scan". Otherwise a tick, "Last library scan finished <date, time> (<how long ago>)" (a playlists-only scan doesn't change it) and the server's track, album and artist totals; a warning callout if the last scan failed.
 - **Buttons:** Scan for changes (`rescan`), Playlists only (`rescan playlists`), Clear and rescan everything (`wipecache`, after a confirm saying every player sees a partial library until it finishes). An expandable table explains the three. Disabled while a scan runs, offline, or when the server can't be reached.
-- When a scan it saw running finishes, WinSqueeze refreshes its own index straight away.
+- When a scan it saw running finishes, WinSqueeze refreshes its own index straight away, then a callout lists the albums the server first saw after its previous scan ("This scan added 3 albums", up to six by name, "and N more") with Show in New music. It stays for the session while the server's last scan time is unchanged.
 - This page is the home for later server-side library features. Settings › Library & cache stays for WinSqueeze's own index.
 
 ## Settings and servers

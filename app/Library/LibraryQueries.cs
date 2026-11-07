@@ -48,6 +48,7 @@ public sealed class LibraryQueries
             "performerAlbums" => new { own = AlbumsByCredit(connection, Text("key"), new[] { "conductor", "band", "track" }, Text("sort")) },
             "genreAlbums" => new { own = Query(connection, $"SELECT DISTINCT {albumColumns} FROM albums a JOIN album_tracks at ON at.album_key=a.key JOIN track_genres tg ON tg.track_id=at.track_id WHERE a.source=$source AND tg.genre_id=$genre ORDER BY {AlbumOrder(Text("sort"))}", ("$source", albumSource), ("$genre", Text("key"))) },
             "albums" => new { own = Query(connection, $"SELECT {albumColumns} FROM albums a WHERE a.source=$source ORDER BY {AlbumOrder(Text("sort"))}", ("$source", albumSource)) },
+            "newAlbums" => new { own = NewAlbums(connection, 0, 100) }, // New music: the newest 100, as Lyrion's own New Music
             "folder" => Folder(connection, Text("key")),
             "album" => Album(connection, Text("key")),
             "albumTrackIds" => Query(connection, "SELECT track_id AS id FROM album_tracks WHERE album_key=$key ORDER BY disc_no, track_no", ("$key", Text("key"))).Select(row => row["id"]).ToList(),
@@ -206,6 +207,10 @@ public sealed class LibraryQueries
     public List<long> TrackIds(JsonElement items) => !HasIndex ? new() : WithConnection(connection => ((List<Dictionary<string, object?>>)TrackItems(connection, items)).Select(track => Convert.ToInt64(track["id"])).ToList());
     public Dictionary<string, long> TrackIdsByUrl(List<string> urls) => !HasIndex ? new() : WithConnection(connection => Query(connection, "SELECT url, id FROM tracks WHERE url IN (SELECT value FROM json_each($urls))", ("$urls", JsonSerializer.Serialize(urls))).GroupBy(row => (string)row["url"]!).ToDictionary(group => group.Key, group => Convert.ToInt64(group.First()["id"])));
     // Albums with any downloaded track; downloaded = how many of its tracks are on this PC
+    // Albums whose newest track the server first saw after a time (Lyrion's added time, which survives a clear and rescan)
+    List<Dictionary<string, object?>> NewAlbums(SqliteConnection connection, long addedAfter, int limit) => Query(connection, $"SELECT {albumColumns} FROM albums a WHERE a.source=$source AND a.added>$after ORDER BY a.added DESC, a.artist_norm, a.title_norm LIMIT $limit", ("$source", albumSource), ("$after", addedAfter), ("$limit", limit));
+    public List<Dictionary<string, object?>> AlbumsAddedAfter(long addedAfter) => !HasIndex ? new() : WithConnection(connection => NewAlbums(connection, addedAfter, 500));
+
     public object DownloadedAlbums(List<long> downloadedIds, string sort) => !HasIndex ? new { own = new List<object>() } : WithConnection<object>(connection => new { own = Query(connection, $"SELECT {albumColumns}, COUNT(DISTINCT at.track_id) AS downloaded FROM albums a JOIN album_tracks at ON at.album_key=a.key WHERE a.source=$source AND at.track_id IN (SELECT value FROM json_each($ids)) GROUP BY a.key ORDER BY {AlbumOrder(sort)}", ("$source", albumSource), ("$ids", JsonSerializer.Serialize(downloadedIds))) });
     public Dictionary<string, string> DownloadedAlbumKeys(List<long> downloadedIds) => !HasIndex || downloadedIds.Count == 0 ? new() : WithConnection(connection => Query(connection, "SELECT a.key, a.track_count, COUNT(DISTINCT at.track_id) AS downloaded FROM albums a JOIN album_tracks at ON at.album_key=a.key WHERE a.source=$source AND at.track_id IN (SELECT value FROM json_each($ids)) GROUP BY a.key", ("$source", albumSource), ("$ids", JsonSerializer.Serialize(downloadedIds))).ToDictionary(row => (string)row["key"]!, row => Convert.ToInt64(row["downloaded"]) >= Convert.ToInt64(row["track_count"]) ? "full" : "partial"));
 
