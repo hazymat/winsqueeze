@@ -206,9 +206,9 @@ public partial class App : Application
     public void OpenEqualiser()
     {
         if (equaliserWindow == null) { equaliserWindow = new EqualiserWindow(mainWindow); equaliserWindow.Closed += (sender, args) => equaliserWindow = null; }
-        equaliserWindow.Show(); equaliserWindow.Activate();
+        equaliserWindow.ShowByUser();
     }
-    public void ToggleEqualiser() { if (equaliserWindow is { IsVisible: true }) equaliserWindow.Close(); else OpenEqualiser(); } // the transport's analyser opens and closes it
+    public void ToggleEqualiser() { if (equaliserWindow is { IsVisible: true }) equaliserWindow.HideByUser(); else OpenEqualiser(); } // the transport's analyser opens and closes it
     public void ApplyMeters() { Visualiser.Tuning = Settings.Meters; mainWindow.PushMeterSettings(); }
 
     public async Task<string[]> ResumeArgumentsAsync()

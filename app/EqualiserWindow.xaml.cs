@@ -28,13 +28,14 @@ public partial class EqualiserWindow : Window
         Width = Math.Max(MinWidth, Tuning.WindowWidth); Height = Math.Max(MinHeight, Tuning.WindowHeight);
         if (Tuning.WindowLeft is double savedLeft && Tuning.WindowTop is double savedTop && !double.IsNaN(savedLeft)) { WindowStartupLocation = WindowStartupLocation.Manual; Left = savedLeft; Top = savedTop; }
         else WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        SourceInitialized += (sender, args) => { HwndSource.FromHwnd(Handle).AddHook(WindowMessageHook); HwndSource.FromHwnd(MainHandle)?.AddHook(OwnerMessageHook); FollowOwner(); };
+        // Opened cloaked (invisible but laid out, so WebView2 loads and paints) and revealed once the panel says it's ready: no black window while it starts
+        SourceInitialized += (sender, args) => { Cloak(true); _ = RevealAsync(3000); HwndSource.FromHwnd(Handle).AddHook(WindowMessageHook); HwndSource.FromHwnd(MainHandle)?.AddHook(OwnerMessageHook); FollowOwner(); };
         Closed += (sender, args) => HwndSource.FromHwnd(MainHandle)?.RemoveHook(OwnerMessageHook);
         Loaded += async (sender, args) => await InitWebViewAsync();
         Closing += (sender, args) => SaveBounds();
         EventHandler follow = (sender, args) => FollowOwner();
         SizeChangedEventHandler followSize = (sender, args) => FollowOwner();
-        DependencyPropertyChangedEventHandler showWithOwner = (sender, args) => { if (owner.IsVisible) Show(); else Hide(); };
+        DependencyPropertyChangedEventHandler showWithOwner = (sender, args) => { if (!owner.IsVisible) Hide(); else if (!HiddenByUser) Show(); };
         owner.LocationChanged += follow; owner.SizeChanged += followSize; owner.IsVisibleChanged += showWithOwner;
         App.Visualiser.AnalyserReady += OnAnalyser;
         Closed += (sender, args) => { owner.LocationChanged -= follow; owner.SizeChanged -= followSize; owner.IsVisibleChanged -= showWithOwner; App.Visualiser.AnalyserReady -= OnAnalyser; App.Visualiser.AnalyserWanted = false; };
@@ -45,6 +46,14 @@ public partial class EqualiserWindow : Window
         clipTimer.Start();
         Closed += (sender, args) => clipTimer.Stop();
     }
+
+    // Closing only hides it, so opening again is instant; it really closes with the main window
+    public bool HiddenByUser;
+    public void HideByUser() { SaveBounds(); HiddenByUser = true; Hide(); App.Visualiser.AnalyserWanted = false; }
+    public void ShowByUser() { HiddenByUser = false; App.Visualiser.AnalyserWanted = true; Show(); FollowOwner(); Activate(); }
+    bool revealed;
+    async Task RevealAsync(int delayMs) { await Task.Delay(delayMs); if (revealed) return; revealed = true; Cloak(false); }
+    void Cloak(bool cloaked) { var value = cloaked ? 1 : 0; DwmSetWindowAttribute(Handle, 13 /*DWMWA_CLOAK*/, ref value, sizeof(int)); }
 
     void OnAnalyser(string levelsJson) { if (webViewReady) Dispatcher.BeginInvoke(() => { if (IsVisible) webView.CoreWebView2?.PostWebMessageAsJson(levelsJson); }); }
 
@@ -72,7 +81,7 @@ public partial class EqualiserWindow : Window
         {
             switch (message.GetProperty("type").GetString())
             {
-                case "ready": webViewReady = true; PushState(); webView.CoreWebView2.PostWebMessageAsJson(JsonSerializer.Serialize(new { type = "eqPreamp", autoPreampDb = App.Equaliser.AutoPreampDb })); break;
+                case "ready": webViewReady = true; _ = RevealAsync(80); PushState(); webView.CoreWebView2.PostWebMessageAsJson(JsonSerializer.Serialize(new { type = "eqPreamp", autoPreampDb = App.Equaliser.AutoPreampDb })); break;
                 // The panel sends the whole EQ state; Commit (pointer up, button press) also saves it to disk
                 case "eqSet":
                     var incoming = message.GetProperty("eq").Deserialize<EqualiserSettings>();
@@ -86,7 +95,7 @@ public partial class EqualiserWindow : Window
                     webView.CoreWebView2.PostWebMessageAsJson(JsonSerializer.Serialize(new { type = "eqPreamp", autoPreampDb = App.Equaliser.AutoPreampDb }));
                     break;
                 case "dragWindow": ReleaseCapture(); SendMessage(Handle, 0xA1 /*WM_NCLBUTTONDOWN*/, (IntPtr)2 /*HTCAPTION*/, IntPtr.Zero); webView.Focus(); break;
-                case "close": Close(); break;
+                case "close": HideByUser(); break;
                 case "resizeWindow": if (resizeHitCodes.TryGetValue(message.GetProperty("edge").GetString() ?? "", out var hitCode)) { ReleaseCapture(); SendMessage(Handle, 0xA1, (IntPtr)hitCode, IntPtr.Zero); } break;
             }
         }
@@ -195,5 +204,6 @@ public partial class EqualiserWindow : Window
     [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr windowHandle, out Rect32 rectangle);
     [DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr windowHandle, IntPtr insertAfter, int x, int y, int width, int height, uint flags);
     [DllImport("user32.dll")] static extern bool ReleaseCapture();
+    [DllImport("dwmapi.dll")] static extern int DwmSetWindowAttribute(IntPtr windowHandle, int attribute, ref int value, int size);
     [DllImport("user32.dll")] static extern IntPtr SendMessage(IntPtr windowHandle, int messageId, IntPtr wParam, IntPtr lParam);
 }
