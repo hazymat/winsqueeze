@@ -137,6 +137,7 @@ static void usage(const char *argv0) {
 #endif
 #if WIN
 		   "  -F \t\t\tFixed full-level output: ignore server volume (WinSqueeze sets the device volume)\n"
+		   "  -H \t\t\tStart held: play silence until WinSqueeze releases the output (needs -v)\n"
 #endif
 # if ALSA
 		   "  -O <mixer device>\tSpecify mixer device, defaults to 'output device'\n"
@@ -223,6 +224,7 @@ static void usage(const char *argv0) {
 #if VISEXPORT && WIN
 		   " WINEQ"
 		   " WINREC"
+		   " WINHOLD"
 #endif
 #if IR
 		   " IR"
@@ -394,7 +396,7 @@ int main(int argc, char **argv) {
 						  "v"
 #endif
 #if WIN
-						  "F" // WinSqueeze: fixed full-level output
+						  "FH" // WinSqueeze: fixed full-level output, start held
 #endif
 #if IR
 						  "i"
@@ -605,6 +607,9 @@ int main(int argc, char **argv) {
 #if WIN
 		case 'F':
 			fixed_volume = true; // WinSqueeze: ignore the server's digital volume; the app drives the device's own volume instead
+			break;
+		case 'H':
+			start_held = true; // WinSqueeze: silent until the app has checked whether the server should be heard (output_eq_win.c)
 			break;
 #endif
 #if ALSA

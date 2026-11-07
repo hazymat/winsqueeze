@@ -3,6 +3,8 @@
  *  Graphic equaliser: WinSqueeze writes biquad coefficients for the current sample rate into the shared memory
  *  "Local\squeezelite-eq-<mac>" (sequence counter odd while it writes); the output thread runs them over the PCM it is
  *  about to play, then a safety limiter catches any peak the boosts push past full scale. When disabled (or the coefficients are for another rate) the samples are untouched, so bypass is bit-perfect.
+ *  The same block carries the startup hold (-H): while "hold" is set the output plays silence, so a server that restarts
+ *  playback on connect isn't heard until WinSqueeze has decided whether it should be (it then clears "hold").
  */
 #include "squeezelite.h"
 #include <math.h>
@@ -19,6 +21,7 @@ struct eq_win_t {
 	float preamp;             // linear gain before the filters (headroom for boosts)
 	float limiter_low;        // lowest limiter gain since WinSqueeze last reset it to 1 (its CLIP lamp)
 	float coeffs[2][EQ_MAX_STAGES][5]; // per channel: b0 b1 b2 a1 a2 (a0 = 1)
+	volatile u32_t hold;      // startup hold: nonzero = play silence (set from -H, cleared by WinSqueeze)
 };
 
 static struct eq_win_t *eq_map = NULL;
@@ -79,7 +82,9 @@ void eq_init(u8_t *mac) {
 	sprintf(name, "Local\\squeezelite-eq-%02x%02x%02x%02x%02x%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 	eq_handle = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(struct eq_win_t), name);
 	if (eq_handle) eq_map = (struct eq_win_t *)MapViewOfFile(eq_handle, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(struct eq_win_t));
-	if (eq_map) memset(eq_map, 0, sizeof(struct eq_win_t));
+	if (eq_map) { memset(eq_map, 0, sizeof(struct eq_win_t)); eq_map->hold = start_held; }
 }
+
+bool eq_held(void) { return eq_map && eq_map->hold; }
 
 #endif

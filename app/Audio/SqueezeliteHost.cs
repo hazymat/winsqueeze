@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using System.IO.MemoryMappedFiles;
 using System.Text.RegularExpressions;
 using WinSqueeze.Settings;
 namespace WinSqueeze.Audio;
@@ -25,7 +26,8 @@ public sealed partial class SqueezeliteHost : IDisposable
     [GeneratedRegex(@"opened device \d+ - (.+) at (\d+) latency")] private static partial Regex OpenedDeviceRegex();
 
     // serverAddress: the Lyrion host, or 127.0.0.1:<port> for the offline server
-    public void Start(string serverAddress, OutputDevice device, AudioSettings audio, string playerMac)
+    // startHeld: Squeezelite plays silence until ReleaseHold, so whatever the server restarts on connect isn't heard yet
+    public void Start(string serverAddress, OutputDevice device, AudioSettings audio, string playerMac, bool startHeld = false)
     {
         Stop();
         Device = device; ExclusiveActive = false; OutputSampleRate = 0;
@@ -38,6 +40,7 @@ public sealed partial class SqueezeliteHost : IDisposable
         // Exclusive mode: let go of the device 10 s after a pause or stop, so other apps can play without closing WinSqueeze
         if (audio.Exclusive && device.SupportsExclusive && !extraArguments.Contains("-C")) foreach (var argument in new[] { "-C", "10" }) startInfo.ArgumentList.Add(argument);
         if (SupportsVisualiser) startInfo.ArgumentList.Add("-v"); // share played samples for the meters
+        if (startHeld && SupportsHold) startInfo.ArgumentList.Add("-H");
         foreach (var extraArgument in extraArguments) startInfo.ArgumentList.Add(extraArgument);
         logWriter = new StreamWriter(Path.Combine(AppPaths.LogsFolder, "squeezelite.log"), false) { AutoFlush = true };
         logWriter.WriteLine($"[{DateTime.Now:O}] start: {string.Join(" ", startInfo.ArgumentList.Select(argument => argument.Contains(' ') ? $"\"{argument}\"" : argument))}");
@@ -67,6 +70,20 @@ public sealed partial class SqueezeliteHost : IDisposable
     public static bool SupportsVisualiser => (helpText ??= ReadHelpText()).Contains("VISEXPORT");
     public static bool SupportsEqualiser => (helpText ??= ReadHelpText()).Contains("WINEQ"); // rides on -v
     public static bool SupportsRecording => (helpText ??= ReadHelpText()).Contains("WINREC"); // rides on -v
+    public static bool SupportsHold => (helpText ??= ReadHelpText()).Contains("WINHOLD"); // rides on -v
+
+    // Clears the startup hold: "hold" sits after the EQ block in "Local\squeezelite-eq-<mac>" (vendor/squeezelite/src/output_eq_win.c)
+    public static void ReleaseHold(string playerMac)
+    {
+        const int HoldOffset = 24 + 2 * 12 * 5 * 4;
+        try
+        {
+            using var sharedFile = MemoryMappedFile.OpenExisting("Local\\squeezelite-eq-" + playerMac.Replace(":", "").ToLowerInvariant(), MemoryMappedFileRights.ReadWrite);
+            using var view = sharedFile.CreateViewAccessor(HoldOffset, 4, MemoryMappedFileAccess.ReadWrite);
+            view.Write(0, 0);
+        }
+        catch (Exception) { } // Squeezelite gone or not started held: nothing to release
+    }
     static string ReadHelpText()
     {
         try

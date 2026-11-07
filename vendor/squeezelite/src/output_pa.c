@@ -108,6 +108,7 @@ void list_devices(void) {
 }
 
 bool fixed_volume = false; // WinSqueeze: -F
+bool start_held = false; // WinSqueeze: -H
 
 void set_volume(unsigned left, unsigned right) {
 	if (fixed_volume) left = right = FIXED_ONE; // bit-perfect: no digital gain
@@ -469,6 +470,7 @@ static int _write_frames(frames_t out_frames, bool silence, s32_t gainL, s32_t g
 		if (output.outfmt == PCM)
 #endif
 		{
+			if (eq_held()) memset(outputbuf->readp, 0, out_frames * BYTES_PER_FRAME); // WinSqueeze: held silent at startup until the app has checked the server
 			rec_capture((s32_t *)outputbuf->readp, out_frames, output.current_sample_rate); // WinSqueeze recorder: the decoded audio, before EQ and volume
 			vis_capture((s32_t *)outputbuf->readp, out_frames, output.current_replay_gain, false); // WinSqueeze meters: before the EQ
 			eq_process((s32_t *)outputbuf->readp, out_frames, output.current_sample_rate); // WinSqueeze graphic equaliser, before volume

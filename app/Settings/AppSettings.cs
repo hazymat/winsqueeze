@@ -120,6 +120,7 @@ public class GeneralSettings
 {
     public bool StartWithWindows { get; set; }
     public bool StartMinimised { get; set; }
+    public bool ResumeOnStartup { get; set; } // carry on at startup only if the server was still playing to this player (off by default)
     public bool CloseHidesToTray { get; set; } = true;
     public bool CloseToTrayTipShown { get; set; }
     public OtherSqueezeliteAction OtherSqueezelite { get; set; } = OtherSqueezeliteAction.Ask;
