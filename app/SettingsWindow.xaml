@@ -166,7 +166,7 @@
           <StackPanel>
             <TextBlock Text="Exclusive mode" Style="{StaticResource CardTitle}" />
             <CheckBox x:Name="exclusiveBox" Content="Exclusive mode (bit-perfect, bypasses the Windows mixer)" Margin="0,4,0,0" />
-            <TextBlock x:Name="exclusiveNoteText" Style="{StaticResource Quiet}" Text="Shared mode only plays tracks whose sample rate matches the Windows mixer, and is not bit-perfect." />
+            <TextBlock x:Name="exclusiveNoteText" Style="{StaticResource Quiet}" Text="Off (default): plays through the Windows mixer, which resamples to its own rate, so it isn't bit-perfect. On: bit-perfect, but some sound card drivers refuse it; if yours does, WinSqueeze switches back to shared and says so." />
             <Border x:Name="exclusiveWarningText" Style="{StaticResource Warning}"><DockPanel><TextBlock Style="{StaticResource WarningIcon}" /><TextBlock Style="{StaticResource CalloutText}" Text="While WinSqueeze is playing, it has this device to itself: other apps can't play sound through it. It lets go 10 seconds after you pause or stop, or straight away when you untick this." /></DockPanel></Border>
           </StackPanel>
         </Border>
@@ -460,7 +460,7 @@
             </Grid>
             <Border x:Name="autoPlayWarning" Style="{StaticResource Warning}" Margin="0,8,0,2"><DockPanel><TextBlock Style="{StaticResource WarningIcon}" /><TextBlock Style="{StaticResource CalloutText}" Text="Music may start playing as soon as your PC restarts, if the server was still playing to this player when it shut down." /></DockPanel></Border>
             <CheckBox x:Name="startMinimisedBox" Content="Start minimised to tray" />
-            <CheckBox x:Name="closeHidesBox" Content="Close (X) hides to tray and keeps playing (otherwise it quits)" />
+            <CheckBox x:Name="closeHidesBox" Content="Close (X) keeps WinSqueeze running in the tray (otherwise it quits)" />
             <TextBlock Style="{StaticResource Label}" Text="When another Squeezelite is running at launch" Margin="0,14,0,3" />
             <ComboBox x:Name="otherSqueezeliteCombo" Width="320" HorizontalAlignment="Left">
               <ComboBoxItem Content="Ask me" Tag="Ask" />

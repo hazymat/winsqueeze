@@ -10,7 +10,7 @@ public record OutputDevice(int Index, string Name, string HostApi)
     public bool SupportsExclusive => HostApi == "Windows WASAPI";
     public string Driver => HostApi switch { "Windows WASAPI" => "WASAPI", "ASIO" => "ASIO", "Windows DirectSound" => "DirectSound", "MME" => "MME", "Windows WDM-KS" => "WDM-KS", _ => HostApi };
     public int DriverOrder => Driver switch { "WASAPI" => 0, "ASIO" => 1, "DirectSound" => 2, "MME" => 3, _ => 4 };
-    public string DisplayName => SupportsExclusive ? $"{Name}  (exclusive)" : Name;
+    public string DisplayName => Name; // the list is grouped by driver; whether exclusive is in use shows in the player status
     public bool Matches(string deviceName, string hostApi) => Name == deviceName && HostApi == hostApi;
 }
 

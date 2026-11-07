@@ -388,7 +388,7 @@ public partial class MainWindow : Window
     {
         if (App.IsQuitting) return;
         closingArgs.Cancel = true;
-        if (!App.Settings.General.CloseHidesToTray) { App.Quit(); return; }
+        if (!App.Settings.General.CloseToTray) { Dispatcher.BeginInvoke(App.Quit); return; } // after this Closing: Close() inside it throws
         SaveBounds(); App.Settings.Save();
         Hide();
         if (!App.Settings.General.CloseToTrayTipShown)

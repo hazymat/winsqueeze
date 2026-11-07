@@ -19,6 +19,10 @@ public sealed partial class SqueezeliteHost : IDisposable
     public string StatusText { get; private set; } = "Stopped";
     public OutputDevice? Device { get; private set; }
     public bool ExclusiveActive { get; private set; }
+    // Devices that wouldn't open in exclusive mode this run (some drivers say "Invalid device"): they play shared until the app restarts
+    readonly HashSet<string> exclusiveRefused = new();
+    public bool ExclusiveRefused => Device != null && exclusiveRefused.Contains(Device.SqueezeliteId);
+    public event Action<string>? ExclusiveFailed; // device name, on Squeezelite's reader thread; the app restarts it shared
     public int OutputSampleRate { get; private set; }
     public event Action? StatusChanged;
     public event Action<string>? DecodeLine; // lines DamagedFiles cares about, on Squeezelite's reader thread
@@ -31,14 +35,15 @@ public sealed partial class SqueezeliteHost : IDisposable
     {
         Stop();
         Device = device; ExclusiveActive = false; OutputSampleRate = 0;
+        var useExclusive = audio.Exclusive && device.SupportsExclusive && !exclusiveRefused.Contains(device.SqueezeliteId);
         var startInfo = new ProcessStartInfo(AppPaths.SqueezeliteExe) { CreateNoWindow = true, UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, WorkingDirectory = AppPaths.SqueezeliteFolder };
         // -s takes the slimproto host (port 3483), not the web port
-        foreach (var argument in new[] { "-s", serverAddress, "-n", audio.PlayerName, "-m", playerMac, "-o", device.SqueezeliteId, "-a", $"{audio.LatencyMs}:{(audio.Exclusive && device.SupportsExclusive ? 1 : 0)}", "-d", "output=info", "-d", "stream=info", "-d", "decode=info" }) startInfo.ArgumentList.Add(argument);
+        foreach (var argument in new[] { "-s", serverAddress, "-n", audio.PlayerName, "-m", playerMac, "-o", device.SqueezeliteId, "-a", $"{audio.LatencyMs}:{(useExclusive ? 1 : 0)}", "-d", "output=info", "-d", "stream=info", "-d", "decode=info" }) startInfo.ArgumentList.Add(argument);
         var extraArguments = SplitArguments(audio.ExtraArguments).ToList();
         // Resample only tracks the device can't take natively (e.g. 22.05 kHz radio in exclusive mode); without it Squeezelite retries the open forever
         if (!extraArguments.Any(argument => argument is "-R" or "-u")) foreach (var argument in new[] { "-R", "hE" }) startInfo.ArgumentList.Add(argument);
         // Exclusive mode: let go of the device 10 s after a pause or stop, so other apps can play without closing WinSqueeze
-        if (audio.Exclusive && device.SupportsExclusive && !extraArguments.Contains("-C")) foreach (var argument in new[] { "-C", "10" }) startInfo.ArgumentList.Add(argument);
+        if (useExclusive && !extraArguments.Contains("-C")) foreach (var argument in new[] { "-C", "10" }) startInfo.ArgumentList.Add(argument);
         if (SupportsVisualiser) startInfo.ArgumentList.Add("-v"); // share played samples for the meters
         if (startHeld && SupportsHold) startInfo.ArgumentList.Add("-H");
         foreach (var extraArgument in extraArguments) startInfo.ArgumentList.Add(extraArgument);
@@ -108,7 +113,7 @@ public sealed partial class SqueezeliteHost : IDisposable
         var openedMatch = OpenedDeviceRegex().Match(logLine);
         if (logLine.Contains("opening WASAPI device in exclusive mode")) ExclusiveActive = true;
         else if (openedMatch.Success) { OutputSampleRate = int.Parse(openedMatch.Groups[2].Value); if (State == PlayerState.Failed) SetStatus(PlayerState.Running, $"Playing to {openedMatch.Groups[1].Value}"); else StatusChanged?.Invoke(); }
-        else if (logLine.Contains("AUDCLNT_E_EXCLUSIVE_MODE_NOT_ALLOWED")) SetStatus(PlayerState.Failed, "Windows blocks exclusive mode for this device. Tick \"Allow applications to take exclusive control\" in Sound settings › device › Advanced.");
+        else if (ExclusiveActive && Device != null && (logLine.Contains("error opening device") || logLine.Contains("AUDCLNT_E_EXCLUSIVE_MODE_NOT_ALLOWED")) && exclusiveRefused.Add(Device.SqueezeliteId)) ExclusiveFailed?.Invoke(Device.Name);
         else if (logLine.Contains("Invalid sample rate")) SetStatus(PlayerState.Failed, "The device rejected this track's sample rate. Remove any -R override from Extra arguments so WinSqueeze can resample it.");
     }
 

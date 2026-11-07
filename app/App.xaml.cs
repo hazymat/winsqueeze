@@ -41,8 +41,7 @@ public partial class App : Application
     MainWindow mainWindow = null!;
     TrayIcon trayIcon = null!;
     SettingsWindow? settingsWindow;
-    Mutex? singleInstanceMutex;
-    EventWaitHandle? showWindowSignal;
+    readonly SingleInstance singleInstance = new();
     readonly DispatcherTimer deviceChangeTimer = new() { Interval = TimeSpan.FromMilliseconds(1500) };
     const int WM_DEVICECHANGE = 0x0219, DBT_DEVNODES_CHANGED = 0x0007, WM_HOTKEY = 0x0312;
 
@@ -123,16 +122,15 @@ public partial class App : Application
 
     protected override async void OnStartup(StartupEventArgs startupArgs)
     {
-        singleInstanceMutex = new Mutex(true, "WinSqueeze.SingleInstance", out var isFirstInstance);
-        showWindowSignal = new EventWaitHandle(false, EventResetMode.AutoReset, "WinSqueeze.ShowWindow");
-        if (!isFirstInstance) { showWindowSignal.Set(); Shutdown(); return; } // second launch just shows the running app
-        ThreadPool.RegisterWaitForSingleObject(showWindowSignal, (state, timedOut) => Dispatcher.BeginInvoke(ShowMainWindow), null, -1, false);
+        if (!singleInstance.Claim()) { Shutdown(); return; } // second launch just brings the running app forward
+        singleInstance.OnShowRequest(() => Dispatcher.BeginInvoke(() => { ShowMainWindow(); singleInstance.Answer(); }));
         if (AppPaths.IsPortable) AppUpdater.CleanUpAfterPortableUpdate();
         CrashReporter.Install(this);
         Settings = AppSettings.Load();
         mainWindow = new MainWindow();
         trayIcon = new TrayIcon();
         Player.StatusChanged += () => Dispatcher.BeginInvoke(OnPlayerStatusChanged);
+        Player.ExclusiveFailed += deviceName => Dispatcher.BeginInvoke(async () => { trayIcon.ShowTip("Playing in shared mode", $"{deviceName} wouldn't open in exclusive mode, so WinSqueeze switched to shared mode. To stop it trying, untick Exclusive mode in Settings › Audio."); await StartPlayerAsync(true); });
         Damaged.Load(); Damaged.PlayerRequest = command => ServerRequestAsync(Settings.PlayerMac, command);
         Player.DecodeLine += decodeLine => Dispatcher.BeginInvoke(() => Damaged.OnLogLine(decodeLine));
         Damaged.Found += OnDamagedFound;
@@ -228,7 +226,7 @@ public partial class App : Application
         Recorder.Dispose(); // finish any recording before Squeezelite stops
         Player.Dispose();
         trayIcon.Dispose();
-        singleInstanceMutex?.ReleaseMutex(); singleInstanceMutex?.Dispose(); singleInstanceMutex = null;
+        singleInstance.Release();
     }
 
     // Another Squeezelite (even renamed) can hold the output device and shows up as a second player
@@ -513,14 +511,13 @@ public partial class App : Application
 
     public void Quit()
     {
-        mainWindow.SaveBounds(); Settings.Save();
+        if (IsQuitting) return;
         IsQuitting = true;
-        Recorder.Dispose(); // finish any recording before Squeezelite stops
-        Player.Dispose();
-        Downloads.Dispose(); Offline?.Dispose();
-        trayIcon.Dispose();
-        settingsWindow?.Close();
-        mainWindow.Close();
+        // The process always ends: a copy left running would keep its WebView2 processes and block the next launch
+        new Thread(() => { Thread.Sleep(5000); Environment.Exit(0); }) { IsBackground = true, Name = "Quit watchdog" }.Start();
+        // Recorder first: finish any recording before Squeezelite stops
+        foreach (var quitStep in new Action[] { () => { mainWindow.SaveBounds(); Settings.Save(); }, Recorder.Dispose, Player.Dispose, Downloads.Dispose, () => Offline?.Dispose(), trayIcon.Dispose, () => settingsWindow?.Close(), mainWindow.Close })
+            try { quitStep(); } catch (Exception error) { CrashReporter.Write("Quit step failed", error, false); }
         Shutdown();
     }
 }
