@@ -249,13 +249,14 @@
           <StackPanel>
             <TextBlock Text="Lists" Style="{StaticResource CardTitle}" />
             <Grid Margin="0,4,0,0">
-              <Grid.ColumnDefinitions><ColumnDefinition Width="230" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-              <Grid.RowDefinitions><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
-              <TextBlock Text="Counts in Genres, Artists and other lists" VerticalAlignment="Center" TextWrapping="Wrap" />
-              <ComboBox x:Name="listCountsBox" Grid.Column="1" Width="230" />
-              <TextBlock Grid.Row="1" Text="Show how many items graphically" VerticalAlignment="Center" Margin="0,8,0,0" />
-              <ComboBox x:Name="listGraphicBox" Grid.Row="1" Grid.Column="1" Width="230" VerticalAlignment="Center" Margin="0,8,0,0" />
-              <Border Grid.Row="1" Grid.Column="2" Background="#1B2233" CornerRadius="6" Padding="10,6" Margin="14,8,0,0" HorizontalAlignment="Left"><StackPanel x:Name="listGraphicPreview" Width="230" /></Border>
+              <!-- Preview sits under its dropdown at the same width: a third column was squeezed to ~50 px and clipped the dots and counts -->
+              <Grid.ColumnDefinitions><ColumnDefinition Width="210" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+              <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+              <TextBlock Text="Counts in Genres, Artists and other lists" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,12,0" />
+              <ComboBox x:Name="listCountsBox" Grid.Column="1" Width="300" HorizontalAlignment="Left" VerticalAlignment="Center" />
+              <TextBlock Grid.Row="1" Text="Show how many items graphically" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,8,12,0" />
+              <ComboBox x:Name="listGraphicBox" Grid.Row="1" Grid.Column="1" Width="300" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0,8,0,0" />
+              <Border Grid.Row="2" Grid.Column="1" Width="300" HorizontalAlignment="Left" Background="#1B2233" CornerRadius="6" Padding="10,6" Margin="0,8,0,0"><StackPanel x:Name="listGraphicPreview" /></Border>
             </Grid>
           </StackPanel>
         </Border>

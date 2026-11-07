@@ -311,7 +311,7 @@ public partial class SettingsWindow : Window
                     for (var dot = 1; dot <= 5; dot++) dots.Children.Add(new System.Windows.Shapes.Ellipse { Width = 5, Height = 5, Margin = new Thickness(0, 0, 3, 0), Fill = dot <= lit ? accent : new SolidColorBrush(Color.FromArgb(0x30, 0xFF, 0xFF, 0xFF)) });
                     Grid.SetColumn(dots, 1); row.Children.Add(dots);
                 }
-                if (library.ListSizeGraphic == "bar") { var bar = new Border { Height = 2, CornerRadius = new CornerRadius(1), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Bottom, Width = share * 150, Background = new LinearGradientBrush(Color.FromRgb(0x5A, 0xC8, 0xFF), Color.FromRgb(0xB4, 0x8C, 0xFF), 0), Opacity = 0.35 + share * 0.65, Margin = new Thickness(0, 0, 0, 2) }; Grid.SetColumnSpan(bar, 3); row.Children.Add(bar); }
+                if (library.ListSizeGraphic == "bar") { var bar = new Border { Height = 2, CornerRadius = new CornerRadius(1), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Bottom, Width = share * 280, Background = new LinearGradientBrush(Color.FromRgb(0x5A, 0xC8, 0xFF), Color.FromRgb(0xB4, 0x8C, 0xFF), 0), Opacity = 0.35 + share * 0.65, Margin = new Thickness(0, 0, 0, 2) }; Grid.SetColumnSpan(bar, 3); row.Children.Add(bar); }
                 var countText = new TextBlock { Text = $"{count} album{(count == 1 ? "" : "s")}", Foreground = new SolidColorBrush(Color.FromRgb(0x8B, 0x94, 0xAD)), FontSize = 11, VerticalAlignment = VerticalAlignment.Center };
                 Grid.SetColumn(countText, 2); row.Children.Add(countText); listGraphicPreview.Children.Add(row);
             }
