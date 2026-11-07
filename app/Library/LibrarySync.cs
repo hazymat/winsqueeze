@@ -22,7 +22,7 @@ public sealed partial class LibrarySync
 
     [GeneratedRegex(@"^(cd|disc|disk)\s*[-_]?\s*(\d+)\b", RegexOptions.IgnoreCase)] private static partial Regex DiscFolderRegex();
 
-    // Polls serverstatus; rebuilds only when the scan time or totals changed (or when forced)
+    // Polls serverstatus; rebuilds only when the scan time or totals changed (or when forced), never while the server is scanning
     public async Task<bool> SyncIfChangedAsync(ServerProfile profile, LibrarySettings librarySettings, bool force)
     {
         if (IsRunning) return false;
@@ -31,6 +31,7 @@ public sealed partial class LibrarySync
         {
             using var lyrionClient = new LyrionClient(profile);
             var serverStatus = await lyrionClient.GetServerStatusAsync();
+            if (serverStatus.Scanning) return false; // mid-scan the server's library is partial; sync once the scan finishes
             var signature = $"{serverStatus.LastScan}|{serverStatus.TotalSongs}|{serverStatus.TotalAlbums}|{serverStatus.TotalArtists}|{librarySettings.NameSeparators}|derive5|{librarySettings.NameOrder}|{librarySettings.ReadSurnameFirst}";
             var databasePath = DatabasePath(profile);
             if (!force && File.Exists(databasePath))
