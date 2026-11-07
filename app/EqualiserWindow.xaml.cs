@@ -10,7 +10,7 @@ using WinSqueeze.Shell;
 namespace WinSqueeze;
 
 // The graphic equaliser's own window (SPEC.md › Equaliser). It keeps its own size, snaps magnetically to any edge of the main
-// window and then moves with it; dragging it away undocks it.
+// window and then moves with it; dragging it away undocks it. Docking works both ways: the main window dragged near it snaps to it and docks it too.
 public partial class EqualiserWindow : Window
 {
     const int SnapPixels = 20, SizeSnapPixels = 12;
@@ -28,7 +28,8 @@ public partial class EqualiserWindow : Window
         Width = Math.Max(MinWidth, Tuning.WindowWidth); Height = Math.Max(MinHeight, Tuning.WindowHeight);
         if (Tuning.WindowLeft is double savedLeft && Tuning.WindowTop is double savedTop && !double.IsNaN(savedLeft)) { WindowStartupLocation = WindowStartupLocation.Manual; Left = savedLeft; Top = savedTop; }
         else WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        SourceInitialized += (sender, args) => { HwndSource.FromHwnd(Handle).AddHook(WindowMessageHook); FollowOwner(); };
+        SourceInitialized += (sender, args) => { HwndSource.FromHwnd(Handle).AddHook(WindowMessageHook); HwndSource.FromHwnd(MainHandle)?.AddHook(OwnerMessageHook); FollowOwner(); };
+        Closed += (sender, args) => HwndSource.FromHwnd(MainHandle)?.RemoveHook(OwnerMessageHook);
         Loaded += async (sender, args) => await InitWebViewAsync();
         Closing += (sender, args) => SaveBounds();
         EventHandler follow = (sender, args) => FollowOwner();
@@ -109,16 +110,7 @@ public partial class EqualiserWindow : Window
         {
             var moving = Marshal.PtrToStructure<Rect32>(lParam);
             GetWindowRect(MainHandle, out var main);
-            int width = moving.Right - moving.Left, height = moving.Bottom - moving.Top;
-            bool overlapsVertically = moving.Bottom > main.Top && moving.Top < main.Bottom, overlapsHorizontally = moving.Right > main.Left && moving.Left < main.Right;
-            if (overlapsVertically && Math.Abs(moving.Left - main.Right) < SnapPixels) moving.Left = main.Right;
-            else if (overlapsVertically && Math.Abs(moving.Right - main.Left) < SnapPixels) moving.Left = main.Left - width;
-            else if (overlapsHorizontally && Math.Abs(moving.Top - main.Bottom) < SnapPixels) moving.Top = main.Bottom;
-            else if (overlapsHorizontally && Math.Abs(moving.Bottom - main.Top) < SnapPixels) moving.Top = main.Top - height;
-            // Line the ends up with the main window's when nearly aligned
-            if (Math.Abs(moving.Top - main.Top) < SnapPixels) moving.Top = main.Top; else if (Math.Abs(moving.Top + height - main.Bottom) < SnapPixels) moving.Top = main.Bottom - height;
-            if (Math.Abs(moving.Left - main.Left) < SnapPixels) moving.Left = main.Left; else if (Math.Abs(moving.Left + width - main.Right) < SnapPixels) moving.Left = main.Right - width;
-            moving.Right = moving.Left + width; moving.Bottom = moving.Top + height;
+            SnapTo(ref moving, main);
             Marshal.StructureToPtr(moving, lParam, false);
             handled = true; return (IntPtr)1;
         }
@@ -135,6 +127,37 @@ public partial class EqualiserWindow : Window
             if (topEdge && Math.Abs(sizing.Top - main.Top) < SizeSnapPixels && sizing.Bottom - main.Top >= minimumHeight) sizing.Top = main.Top;
             if (bottomEdge && Math.Abs(sizing.Bottom - main.Bottom) < SizeSnapPixels && main.Bottom - sizing.Top >= minimumHeight) sizing.Bottom = main.Bottom;
             Marshal.StructureToPtr(sizing, lParam, false);
+            handled = true; return (IntPtr)1;
+        }
+        if (messageId == WM_EXITSIZEMOVE) { UpdateDock(); SaveBounds(); }
+        return IntPtr.Zero;
+    }
+
+    // Pulls a window being dragged flush against any edge of the other window it comes within SnapPixels of, and lines the ends up when close
+    static void SnapTo(ref Rect32 moving, Rect32 other)
+    {
+        int width = moving.Right - moving.Left, height = moving.Bottom - moving.Top;
+        bool overlapsVertically = moving.Bottom > other.Top && moving.Top < other.Bottom, overlapsHorizontally = moving.Right > other.Left && moving.Left < other.Right;
+        if (overlapsVertically && Math.Abs(moving.Left - other.Right) < SnapPixels) moving.Left = other.Right;
+        else if (overlapsVertically && Math.Abs(moving.Right - other.Left) < SnapPixels) moving.Left = other.Left - width;
+        else if (overlapsHorizontally && Math.Abs(moving.Top - other.Bottom) < SnapPixels) moving.Top = other.Bottom;
+        else if (overlapsHorizontally && Math.Abs(moving.Bottom - other.Top) < SnapPixels) moving.Top = other.Top - height;
+        if (Math.Abs(moving.Top - other.Top) < SnapPixels) moving.Top = other.Top; else if (Math.Abs(moving.Top + height - other.Bottom) < SnapPixels) moving.Top = other.Bottom - height;
+        if (Math.Abs(moving.Left - other.Left) < SnapPixels) moving.Left = other.Left; else if (Math.Abs(moving.Left + width - other.Right) < SnapPixels) moving.Left = other.Right - width;
+        moving.Right = moving.Left + width; moving.Bottom = moving.Top + height;
+    }
+
+    // The main window dragged while this one is undocked: it snaps to this window's edges, and on release this window docks to it (then follows it)
+    IntPtr OwnerMessageHook(IntPtr windowHandle, int messageId, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        const int WM_MOVING = 0x0216, WM_EXITSIZEMOVE = 0x0232;
+        if (Tuning.DockSide != "" || !IsVisible || Handle == IntPtr.Zero) return IntPtr.Zero; // docked: this window just follows
+        if (messageId == WM_MOVING)
+        {
+            var moving = Marshal.PtrToStructure<Rect32>(lParam);
+            GetWindowRect(Handle, out var equaliser);
+            SnapTo(ref moving, equaliser);
+            Marshal.StructureToPtr(moving, lParam, false);
             handled = true; return (IntPtr)1;
         }
         if (messageId == WM_EXITSIZEMOVE) { UpdateDock(); SaveBounds(); }
