@@ -401,6 +401,7 @@
             <TextBlock Text="Starting and closing" Style="{StaticResource CardTitle}" />
             <CheckBox x:Name="startWithWindowsBox" Content="Start with Windows" Margin="0,4,0,0" />
             <CheckBox x:Name="startMinimisedBox" Content="Start minimised to tray" />
+            <CheckBox x:Name="resumeOnStartupBox" Content="Resume playing on startup (if the server is still playing to this player)" />
             <CheckBox x:Name="closeHidesBox" Content="Close (X) hides to tray and keeps playing (otherwise it quits)" />
             <TextBlock Style="{StaticResource Label}" Text="When another Squeezelite is running at launch" Margin="0,14,0,3" />
             <ComboBox x:Name="otherSqueezeliteCombo" Width="320" HorizontalAlignment="Left">

@@ -163,10 +163,11 @@ public partial class App : Application
         Library.Start();
         await CheckOtherPlayersAsync();
         await RefreshDevicesAsync();
+        // After an update or version switch, carry on from where playback was (no startup check: it was playing a moment ago)
+        var resumeArgument = startupArgs.Args.FirstOrDefault(argument => argument.StartsWith("--resume="));
+        startupPlaybackChecked = startupArgs.Args.Any(argument => argument.StartsWith("--window="));
         await StartPlayerAsync(false);
         _ = CheckServerTranscodingAsync();
-        // After an update or version switch, carry on from where playback was
-        var resumeArgument = startupArgs.Args.FirstOrDefault(argument => argument.StartsWith("--resume="));
         if (resumeArgument != null && Player.State == PlayerState.Running && double.TryParse(resumeArgument["--resume=".Length..], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var resumeSeconds)) await ResumeAtAsync(resumeSeconds);
     }
 
@@ -298,15 +299,60 @@ public partial class App : Application
         }
         (string mode, double seconds) resumeState = ("", 0);
         if (resumePosition && Player.State == PlayerState.Running) resumeState = await ReadPlaybackStateAsync();
+        // First start of this run: read what the server is doing before Squeezelite connects, then start it held (silent)
+        var checkStartup = !startupPlaybackChecked; startupPlaybackChecked = true;
+        (string mode, double seconds) serverBefore = checkStartup ? await ReadPlaybackStateAsync() : ("", 0);
         Recorder.Flush(); // finish the file cleanly; it carries on in a new one once Squeezelite is back
         Damaged.Reset();
-        Player.Start(Offline is { } offlineServer ? $"127.0.0.1:{offlineServer.SlimPort}" : profile.Host, outputDevice, Settings.Audio, Settings.PlayerMac);
+        Player.Start(Offline is { } offlineServer ? $"127.0.0.1:{offlineServer.SlimPort}" : profile.Host, outputDevice, Settings.Audio, Settings.PlayerMac, checkStartup);
         if (SqueezeliteHost.SupportsRecording) Recorder.Start(Settings.PlayerMac);
         Visualiser.Tuning = Settings.Meters;
         if (SqueezeliteHost.SupportsVisualiser) Visualiser.Start(Settings.PlayerMac, Settings.Audio.LatencyMs);
         Equaliser.Tuning = Settings.Equaliser; Equaliser.CurrentRate = () => Visualiser.SampleRate;
         if (SqueezeliteHost.SupportsEqualiser) Equaliser.Start(Settings.PlayerMac);
         if (resumeState.mode == "play") await ResumeAtAsync(resumeState.seconds);
+        if (checkStartup) _ = SettleStartupPlaybackAsync(serverBefore.mode == "play", serverBefore.seconds);
+    }
+
+    // Lyrion restarts whatever a reconnecting player was playing (SPEC.md › Windows integration). Squeezelite starts held, so nothing is heard
+    // until this decides: carry on only if "Resume playing on startup" is ticked and the server was playing to this player
+    bool startupPlaybackChecked;
+    async Task SettleStartupPlaybackAsync(bool serverWasPlaying, double seconds)
+    {
+        try
+        {
+            if (!await WaitForPlayerConnectedAsync()) return;
+            if (Settings.General.ResumeOnStartup && serverWasPlaying)
+            {
+                SqueezeliteHost.ReleaseHold(Settings.PlayerMac);
+                if ((await ReadPlaybackStateAsync()).mode != "play") await ResumeAtAsync(seconds);
+                return;
+            }
+            for (var check = 0; check < 6; check++) // the server decides as the player connects; look a few times in case it's slow
+            {
+                if ((await ReadPlaybackStateAsync()).mode == "play")
+                {
+                    await ServerRequestAsync(Settings.PlayerMac, "pause", "1"); // keeps the queue and position
+                    for (var wait = 0; wait < 10 && (await ReadPlaybackStateAsync()).mode == "play"; wait++) await Task.Delay(200);
+                    if ((await ReadPlaybackStateAsync()).mode == "play") await ServerRequestAsync(Settings.PlayerMac, "stop");
+                    await Task.Delay(300); // let Squeezelite act on it before the hold lifts
+                    return;
+                }
+                await Task.Delay(250);
+            }
+        }
+        catch (Exception error) { CrashReporter.Write("Startup playback check failed", error, false); }
+        finally { SqueezeliteHost.ReleaseHold(Settings.PlayerMac); }
+    }
+
+    async Task<bool> WaitForPlayerConnectedAsync()
+    {
+        for (var attempt = 0; attempt < 20; attempt++)
+        {
+            await Task.Delay(500);
+            try { if (LyrionClient.ReadString(await ServerRequestAsync(Settings.PlayerMac, "connected", "?"), "_connected") == "1") return true; } catch { }
+        }
+        return false;
     }
 
     async Task<(string mode, double seconds)> ReadPlaybackStateAsync()
@@ -322,19 +368,8 @@ public partial class App : Application
     // After a restart, wait for the player to reconnect, then continue from the same position
     async Task ResumeAtAsync(double seconds)
     {
-        for (var attempt = 0; attempt < 20; attempt++)
-        {
-            await Task.Delay(500);
-            try
-            {
-                var connected = await ServerRequestAsync(Settings.PlayerMac, "connected", "?");
-                if (LyrionClient.ReadString(connected, "_connected") != "1") continue;
-                await ServerRequestAsync(Settings.PlayerMac, "play");
-                await ServerRequestAsync(Settings.PlayerMac, "time", seconds.ToString(System.Globalization.CultureInfo.InvariantCulture));
-                return;
-            }
-            catch { }
-        }
+        if (!await WaitForPlayerConnectedAsync()) return;
+        try { await ServerRequestAsync(Settings.PlayerMac, "play"); await ServerRequestAsync(Settings.PlayerMac, "time", seconds.ToString(System.Globalization.CultureInfo.InvariantCulture)); } catch { }
     }
 
     // Every player and server command goes through here, so offline the same commands reach the offline server

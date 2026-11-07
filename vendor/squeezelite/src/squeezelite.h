@@ -722,9 +722,11 @@ void output_close_alsa(void);
 // output_pa.c
 #if PORTAUDIO
 extern bool fixed_volume; // WinSqueeze: -F (fixed full-level output)
+extern bool start_held; // WinSqueeze: -H (silent until the app releases the output)
 #if VISEXPORT && WIN
 void eq_init(u8_t *mac); // WinSqueeze: graphic equaliser (output_eq_win.c)
 void eq_process(s32_t *samples, frames_t frames, unsigned rate);
+bool eq_held(void);
 void rec_init(log_level level, u8_t *mac); // WinSqueeze: radio recorder (output_rec_win.c)
 void rec_capture(s32_t *samples, frames_t frames, unsigned rate);
 #endif

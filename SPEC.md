@@ -288,6 +288,8 @@ Chosen direction: **Frosted Dark**, frosted glass meets Squeezebox hardware. iOS
 
 **Other Squeezelite instances:** at launch, WinSqueeze looks for any other Squeezelite running on the PC, even one whose exe has been renamed. Candidates are processes connected to a server's player port (TCP 3483) or with "squeezelite" in their name, confirmed by Squeezelite's own banner text inside the exe. For each one it offers to stop it, and if a Startup-folder shortcut or HKCU Run entry launches it at login, to switch that off (moved aside, never deleted). Settings › General sets this to Ask (default), Always stop or Leave it running.
 
+**Playback at startup:** Lyrion restarts whatever a player was playing when it reconnects, so Squeezelite starts held (playing silence, `-H`) and WinSqueeze first asks the server what this player was doing. Playback carries on only if Settings › General › "Resume playing on startup" is ticked (off by default) and the server was still playing to this player; otherwise WinSqueeze pauses it (queue and position kept) before the hold lifts. A restart for an update always carries on.
+
 **Close (X):** hides to tray and keeps playing (default). The first time, a one-off toast explains this. Quit only from the tray menu or File ▸ Quit. Configurable in settings.
 
 **Media integration:**
@@ -330,7 +332,7 @@ A separate Settings window with tabs, in standard Windows style. Changes apply i
 
 | Tab | Settings |
 | --- | --- |
-| General | Settings export / import (JSON; everything except passwords and other secrets); Start with Windows; start minimised to tray; other Squeezelite at launch (ask / always stop / leave); minimise to tray when minimised; close (X) hides to tray / quits; remember window position; language |
+| General | Settings export / import (JSON; everything except passwords and other secrets); Start with Windows; start minimised to tray; resume playing on startup (off); other Squeezelite at launch (ask / always stop / leave); minimise to tray when minimised; close (X) hides to tray / quits; remember window position; language |
 | Servers | Server finder (auto-discovery); profiles list (name, address, port, optional username/password); default profile; test connection |
 | Audio | Output device; driver type; exclusive mode on/off; volume mode (fixed / digital); player name (defaults to the computer name); extra Squeezelite arguments (advanced); fidelity warnings |
 | Playback | For the selected player (Lyrion player prefs, written only when changed): between tracks (nothing/gapless, crossfade, fade in, fade out, fade out and in), its length, smart (no crossfade within an album); ReplayGain (off, track, album, smart). On this PC these break bit-perfect, and the fidelity badge says so |

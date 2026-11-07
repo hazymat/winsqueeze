@@ -40,6 +40,8 @@ public partial class SettingsWindow : Window
         closeHidesBox.IsChecked = Settings.General.CloseHidesToTray;
         startWithWindowsBox.Click += (sender, args) => { Settings.General.StartWithWindows = startWithWindowsBox.IsChecked == true; StartupRegistration.Apply(Settings.General.StartWithWindows); Settings.Save(); };
         startMinimisedBox.Click += (sender, args) => { Settings.General.StartMinimised = startMinimisedBox.IsChecked == true; Settings.Save(); };
+        resumeOnStartupBox.IsChecked = Settings.General.ResumeOnStartup;
+        resumeOnStartupBox.Click += (sender, args) => { Settings.General.ResumeOnStartup = resumeOnStartupBox.IsChecked == true; Settings.Save(); };
         showHintsBox.IsChecked = !Settings.General.HideHints;
         showHintsBox.Click += (sender, args) => { Settings.General.HideHints = showHintsBox.IsChecked != true; Settings.Save(); App.NotifyHintsChanged(); };
         resetHintsButton.Click += (sender, args) => { Settings.General.DismissedHints.Clear(); Settings.General.HideHints = false; showHintsBox.IsChecked = true; Settings.Save(); App.NotifyHintsChanged(); };
