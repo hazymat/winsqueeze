@@ -45,7 +45,7 @@
     </Style>
   </Window.Resources>
   <TabControl x:Name="settingsTabs">
-    <TabItem Header="Player" Style="{StaticResource SectionHeader}" />
+    <TabItem Header="Server" Style="{StaticResource SectionHeader}" />
     <TabItem Header="Servers" x:Name="serversTab">
       <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel Margin="20,8,20,16">
@@ -93,6 +93,53 @@
       </StackPanel>
       </ScrollViewer>
     </TabItem>
+    <TabItem Header="Library" x:Name="serverLibraryTab">
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel Margin="20,8,20,16">
+        <!-- Scan status: polled every 2 s while this page is open -->
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <DockPanel>
+              <Button x:Name="stopScanButton" DockPanel.Dock="Right" Content="Stop scan" Margin="8,0,0,0" Visibility="Collapsed" VerticalAlignment="Top" />
+              <TextBlock x:Name="scanGlyph" DockPanel.Dock="Left" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="#2E7D32" Text="&#xE73E;" Margin="0,2,10,0" />
+              <StackPanel>
+                <TextBlock x:Name="scanHeadlineText" Style="{StaticResource CardTitle}" Text="Checking the server" />
+                <TextBlock x:Name="scanDetailText" Style="{StaticResource Quiet}" Margin="0,0,0,0" />
+              </StackPanel>
+            </DockPanel>
+            <StackPanel x:Name="scanRunningPanel" Visibility="Collapsed" Margin="0,10,0,0">
+              <ProgressBar x:Name="scanBar" Height="8" Maximum="100" Foreground="#2F7FD8" Background="#E8EBEF" BorderThickness="0" />
+              <TextBlock x:Name="scanInfoText" Style="{StaticResource Quiet}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+              <StackPanel x:Name="scanStepsPanel" Margin="0,8,0,0" />
+            </StackPanel>
+            <Border x:Name="scanFailedCallout" Style="{StaticResource Warning}" Visibility="Collapsed"><DockPanel><TextBlock Style="{StaticResource WarningIcon}" /><TextBlock x:Name="scanFailedText" Style="{StaticResource CalloutText}" /></DockPanel></Border>
+          </StackPanel>
+        </Border>
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <TextBlock Text="Scan the server's library" Style="{StaticResource CardTitle}" />
+            <Border Style="{StaticResource Callout}" Margin="0,4,0,0"><DockPanel><TextBlock Style="{StaticResource CalloutIcon}" /><TextBlock Style="{StaticResource CalloutText}" Text="After adding or retagging music, scan so Lyrion and every player see the changes. WinSqueeze picks them up when the scan finishes." /></DockPanel></Border>
+            <WrapPanel Margin="0,12,0,0">
+              <Button x:Name="rescanButton" Content="Scan for changes" Margin="0,0,8,6" />
+              <Button x:Name="rescanPlaylistsButton" Content="Playlists only" Margin="0,0,8,6" />
+              <Button x:Name="wipeCacheButton" Content="Clear and rescan everything…" Margin="0,0,8,6" />
+            </WrapPanel>
+            <TextBlock x:Name="scanActionText" Style="{StaticResource Quiet}" />
+            <Expander Header="Which scan?" Style="{StaticResource More}">
+              <Border Style="{StaticResource Callout}" Margin="0,6,0,0"><Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+                <TextBlock Text="Scan for changes" FontWeight="SemiBold" Margin="0,2,16,4" /><TextBlock Grid.Column="1" Style="{StaticResource CalloutText}" Margin="0,2,0,4" Text="New, changed and deleted files. Quickest; use this normally." />
+                <TextBlock Grid.Row="1" Text="Playlists only" FontWeight="SemiBold" Margin="0,2,16,4" /><TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource CalloutText}" Margin="0,2,0,4" Text="Just the server's playlist folder." />
+                <TextBlock Grid.Row="2" Text="Clear and rescan" FontWeight="SemiBold" Margin="0,2,16,0" /><TextBlock Grid.Row="2" Grid.Column="1" Style="{StaticResource CalloutText}" Margin="0,2,0,0" Text="Empties the server's library and reads every file again. Slow; for when the library looks wrong. Players see a partial library until it finishes." />
+              </Grid></Border>
+            </Expander>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+      </ScrollViewer>
+    </TabItem>
+    <TabItem Header="Player" Style="{StaticResource SectionHeader}" />
     <TabItem Header="Audio" x:Name="audioTab">
       <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel Margin="20,8,20,16">

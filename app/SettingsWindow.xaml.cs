@@ -20,7 +20,7 @@ public partial class SettingsWindow : Window
     public SettingsWindow()
     {
         InitializeComponent(); settingsTabs.SelectedItem = generalTab; // the first sidebar item is a section heading
-        WireGeneralTab(); WireServersTab(); WireAudioTab(); WirePlaybackTab(); WireLibraryTab(); WireBrowsingTab(); WireAppearanceTab(); WireMetersTab(); WireShortcutsAndNotifications(); WireRecordingTab(); WireAboutTab();
+        WireGeneralTab(); WireServersTab(); WireServerLibraryTab(); WireAudioTab(); WirePlaybackTab(); WireLibraryTab(); WireBrowsingTab(); WireAppearanceTab(); WireMetersTab(); WireShortcutsAndNotifications(); WireRecordingTab(); WireAboutTab();
         App.DevicesChanged += LoadDevices;
         App.StatusChanged += ShowPlayerStatus;
         Closed += (sender, args) => { App.DevicesChanged -= LoadDevices; App.StatusChanged -= ShowPlayerStatus; };
@@ -29,7 +29,7 @@ public partial class SettingsWindow : Window
 
     public void SelectTab(string tabName)
     {
-        var tabByName = new Dictionary<string, TabItem> { ["General"] = generalTab, ["Servers"] = serversTab, ["Audio"] = audioTab, ["Playback"] = playbackTab, ["Library"] = libraryTab, ["Browsing"] = browsingTab, ["About"] = aboutTab };
+        var tabByName = new Dictionary<string, TabItem> { ["General"] = generalTab, ["Servers"] = serversTab, ["ServerLibrary"] = serverLibraryTab, ["Audio"] = audioTab, ["Playback"] = playbackTab, ["Library"] = libraryTab, ["Browsing"] = browsingTab, ["About"] = aboutTab };
         settingsTabs.SelectedItem = tabByName.TryGetValue(tabName, out var selectedTab) ? selectedTab : generalTab; // the first item is a section heading
     }
 
@@ -119,6 +119,105 @@ public partial class SettingsWindow : Window
         if (loadingControls || playbackPlayerId == "" || App.IsOffline) return;
         try { await App.ServerRequestAsync(playbackPlayerId, "playerpref", prefName, value); playbackStatusText.Text = ""; if (playbackPlayerId == Settings.PlayerMac) await App.LoadOwnPlayerPrefsAsync(); }
         catch (Exception writeError) { playbackStatusText.Text = $"Could not change it: {writeError.Message}"; }
+    }
+
+    // ---- Server › Library: start Lyrion scans and follow them (SPEC.md › Server library) ----
+    readonly System.Windows.Threading.DispatcherTimer scanTimer = new() { Interval = TimeSpan.FromSeconds(2) };
+    bool scanWasRunning, scanPollBusy; DateTime scanStartedAt;
+    // Lyrion's internal step names (rescanprogress), in plain words; unknown ones are tidied up
+    static readonly (string prefix, string label)[] scanStepLabels = { ("discovering_files", "Finding files"), ("directory_deleted", "Removing deleted files"), ("directory_new", "Reading new files"), ("directory_changed", "Reading changed files"), ("directory", "Reading files"), ("playlist", "Playlists"), ("cleanup", "Tidying up"), ("mergeva", "Merging Various Artists albums"), ("dboptimize", "Optimising the database"), ("precacheartwork", "Preparing cover art"), ("artwork", "Cover art"), ("fulltext", "Building the search index"), ("wipedb", "Clearing the library"), ("onlinelibrary", "Online library"), ("persistent", "Ratings and play counts") };
+
+    void WireServerLibraryTab()
+    {
+        scanTimer.Tick += async (sender, args) => await PollScanAsync();
+        settingsTabs.SelectionChanged += async (sender, args) => { if (args.Source != settingsTabs) return; if (settingsTabs.SelectedItem == serverLibraryTab) { scanTimer.Start(); await PollScanAsync(); } else scanTimer.Stop(); };
+        Closed += (sender, args) => scanTimer.Stop();
+        rescanButton.Click += async (sender, args) => await SendScanCommandAsync("rescan");
+        rescanPlaylistsButton.Click += async (sender, args) => await SendScanCommandAsync("rescan", "playlists");
+        wipeCacheButton.Click += async (sender, args) =>
+        {
+            if (MessageBox.Show(this, "The server empties its library and reads every file again. Until it finishes, every player sees only part of the library.\n\nClear and rescan everything?", "Clear and rescan", MessageBoxButton.OKCancel, MessageBoxImage.Warning, MessageBoxResult.Cancel) == MessageBoxResult.OK) await SendScanCommandAsync("wipecache");
+        };
+        stopScanButton.Click += async (sender, args) => await SendScanCommandAsync("abortscan");
+    }
+
+    async Task SendScanCommandAsync(params object[] command)
+    {
+        try { await App.ServerRequestAsync("", command); scanActionText.Text = ""; }
+        catch (Exception commandError) { scanActionText.Text = $"The server didn't take it: {commandError.Message}"; }
+        await PollScanAsync();
+    }
+
+    async Task PollScanAsync()
+    {
+        if (scanPollBusy) return;
+        scanPollBusy = true;
+        try
+        {
+            if (App.IsOffline) { ShowScanIdle("Not available while playing offline", "", false); return; }
+            var status = await App.ServerRequestAsync("", "serverstatus", 0, 0);
+            if (LyrionClient.ReadString(status, "rescan") != "1")
+            {
+                if (scanWasRunning) { scanWasRunning = false; _ = App.Library.RefreshAsync(false); } // bring the new library into WinSqueeze straight away
+                var lastScan = LyrionClient.ReadLong(status, "lastscan");
+                var totals = $"{LyrionClient.ReadInt(status, "info total songs"):N0} tracks · {LyrionClient.ReadInt(status, "info total albums"):N0} albums · {LyrionClient.ReadInt(status, "info total artists"):N0} artists";
+                var lastScanText = lastScan > 0 ? $"Last scan finished {DescribeWhen(DateTimeOffset.FromUnixTimeSeconds(lastScan).LocalDateTime)}" : "No scan recorded yet";
+                ShowScanIdle(lastScanText, totals, true);
+                var failure = LyrionClient.ReadString(status, "lastscanfailed");
+                scanFailedText.Text = $"The last scan didn't finish: {failure}"; scanFailedCallout.Visibility = failure == "" ? Visibility.Collapsed : Visibility.Visible;
+                return;
+            }
+            var progress = await App.ServerRequestAsync("", "rescanprogress");
+            if (!scanWasRunning) { scanWasRunning = true; scanStartedAt = DateTime.Now - ParseClock(LyrionClient.ReadString(progress, "totaltime")); } // started elsewhere: count from the server's own elapsed time
+            var stepNames = LyrionClient.ReadString(progress, "steps").Split(',', StringSplitOptions.RemoveEmptyEntries);
+            var activeStep = stepNames.FirstOrDefault(stepName => LyrionClient.ReadInt(progress, stepName) < 100) ?? stepNames.LastOrDefault() ?? "";
+            var serverStepName = LyrionClient.ReadString(status, "progressname");
+            var stepDone = LyrionClient.ReadLong(status, "progressdone"); var stepTotal = LyrionClient.ReadLong(status, "progresstotal");
+            scanGlyph.Text = "\uE895"; scanGlyph.Foreground = new SolidColorBrush(Color.FromRgb(0x2F, 0x7F, 0xD8)); // sync arrows
+            scanHeadlineText.Text = serverStepName.Any(char.IsLower) ? serverStepName : activeStep == "" ? "Scanning" : ScanStepLabel(activeStep); // the server's own wording, unless it only has a code for this step
+            scanDetailText.Text = (stepTotal > 0 ? $"{stepDone:N0} of {stepTotal:N0}   ·   " : "") + $"{FormatElapsed(DateTime.Now - scanStartedAt)} so far";
+            scanBar.IsIndeterminate = stepTotal <= 0; if (stepTotal > 0) scanBar.Value = Math.Min(100, 100.0 * stepDone / stepTotal);
+            scanInfoText.Text = LyrionClient.ReadString(progress, "info");
+            scanStepsPanel.Children.Clear();
+            foreach (var stepName in stepNames)
+            {
+                var finished = LyrionClient.ReadInt(progress, stepName) >= 100;
+                var stepRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 0) };
+                stepRow.Children.Add(new TextBlock { FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 11, Width = 20, VerticalAlignment = VerticalAlignment.Center, Text = finished ? "\uE73E" : "\uE76C", Foreground = new SolidColorBrush(finished ? Color.FromRgb(0x2E, 0x7D, 0x32) : Color.FromRgb(0x2F, 0x7F, 0xD8)) });
+                stepRow.Children.Add(new TextBlock { Text = ScanStepLabel(stepName), Foreground = new SolidColorBrush(finished ? Color.FromRgb(0x66, 0x66, 0x66) : Color.FromRgb(0x1B, 0x1B, 0x1B)), FontWeight = finished ? FontWeights.Normal : FontWeights.SemiBold });
+                scanStepsPanel.Children.Add(stepRow);
+            }
+            scanRunningPanel.Visibility = Visibility.Visible; scanFailedCallout.Visibility = Visibility.Collapsed; stopScanButton.Visibility = Visibility.Visible;
+            foreach (var scanButton in new[] { rescanButton, rescanPlaylistsButton, wipeCacheButton }) scanButton.IsEnabled = false;
+        }
+        catch (Exception pollError) { ShowScanIdle("Can't reach the server", pollError.Message, false); }
+        finally { scanPollBusy = false; }
+    }
+
+    void ShowScanIdle(string headline, string detail, bool serverReachable)
+    {
+        scanGlyph.Text = serverReachable ? "\uE73E" : "\uE7BA"; scanGlyph.Foreground = new SolidColorBrush(serverReachable ? Color.FromRgb(0x2E, 0x7D, 0x32) : Color.FromRgb(0xB2, 0x6B, 0x00));
+        scanHeadlineText.Text = headline; scanDetailText.Text = detail;
+        scanRunningPanel.Visibility = Visibility.Collapsed; stopScanButton.Visibility = Visibility.Collapsed; if (!serverReachable) scanFailedCallout.Visibility = Visibility.Collapsed;
+        foreach (var scanButton in new[] { rescanButton, rescanPlaylistsButton, wipeCacheButton }) scanButton.IsEnabled = serverReachable;
+    }
+
+    static string ScanStepLabel(string stepName)
+    {
+        var plainName = stepName.Split('/', '\\')[0].Trim('_', ' '); // some steps carry the music folder's path
+        var compactName = plainName.Replace("_", "").Replace("-", "").ToLowerInvariant();
+        foreach (var (prefix, label) in scanStepLabels) if (compactName.StartsWith(prefix.Replace("_", ""))) return label;
+        var spacedName = plainName.Replace('_', ' ').Trim();
+        return spacedName == "" ? "Scanning" : char.ToUpper(spacedName[0]) + spacedName[1..].ToLowerInvariant();
+    }
+
+    static TimeSpan ParseClock(string clockText) => TimeSpan.TryParseExact(clockText, @"hh\:mm\:ss", System.Globalization.CultureInfo.InvariantCulture, out var parsed) ? parsed : TimeSpan.Zero;
+    static string FormatElapsed(TimeSpan elapsed) => elapsed.TotalHours >= 1 ? $"{(int)elapsed.TotalHours}:{elapsed.Minutes:00}:{elapsed.Seconds:00}" : $"{(int)elapsed.TotalMinutes}:{elapsed.Seconds:00}";
+    static string DescribeWhen(DateTime when)
+    {
+        var ago = DateTime.Now - when;
+        var agoText = ago.TotalMinutes < 1 ? "just now" : ago.TotalHours < 1 ? $"{(int)ago.TotalMinutes} min ago" : ago.TotalDays < 1 ? $"{(int)ago.TotalHours} h ago" : (int)ago.TotalDays == 1 ? "yesterday" : $"{(int)ago.TotalDays} days ago";
+        return $"{when:ddd d MMM, HH:mm} ({agoText})";
     }
 
     // ---- Servers ----

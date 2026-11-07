@@ -25,7 +25,7 @@ Why it exists:
 
 ## Goals
 
-1. **Server untouched.** Read-only use of the library API. Never write server settings or plugin state. The only commands sent are normal player control (play, pause, queue, volume, shuffle, power, sleep), the player's own crossfade and ReplayGain prefs when the user changes them in Settings › Playback, and favourites or saved playlists the user explicitly asks for.
+1. **Server untouched.** Read-only use of the library API. Never write server settings or plugin state. The only commands sent are normal player control (play, pause, queue, volume, shuffle, power, sleep), the player's own crossfade and ReplayGain prefs when the user changes them in Settings › Playback, favourites or saved playlists the user explicitly asks for, and library scans the user starts in Settings › Server › Library.
 2. **Self-contained playback.** Squeezelite is bundled and run hidden. Quitting the app stops it cleanly. No console windows, shortcuts or Task Manager.
 3. **Local-first.** A full local index of the library and cached cover art. Browsing and search are served from the cache and feel instant.
 4. **Slow-link friendly.** Works well over VPN or poor Wi-Fi. Only playback, control and cache deltas cross the network.
@@ -84,6 +84,7 @@ Name matching splits on common separators (`,` `;` `&` `/` `feat.` `with` `and`)
 - On launch and every few minutes, poll `serverstatus` for last-scan time and library totals. If unchanged, do nothing.
 - If changed, fetch a delta (tracks added or modified since the last sync) and remove tracks that no longer exist. Fall back to a full background rebuild if the delta can't be trusted. Browsing keeps working from the old cache meanwhile.
 - Manual "Refresh library" and "Rebuild cache" in settings.
+- Never sync while the server is scanning (`serverstatus` `rescan` 1): its library is partial until the scan ends.
 - The first build shows a progress bar; the app is usable as soon as the first pages land.
 
 ## Browsing
@@ -326,14 +327,24 @@ Unhandled errors, background task errors, WebView2 renderer failures and UI-thre
 
 **Copy diagnostics** (Settings › About) copies a plain-text report to the clipboard: version and channel, Windows, server address, player state, output device, and the end of crash.log and squeezelite.log. No passwords.
 
+## Server library
+
+Settings › Server › Library starts Lyrion's own library scans and follows them, for when music was added or retagged.
+
+- **Status card** (polled every 2 s while the page is open, from `serverstatus` and `rescanprogress`): while scanning, the current step (the server's own wording), a progress bar with done / total, the time so far, the file or folder being read, and the list of steps with a tick on finished ones; a Stop scan button (`abortscan`). Otherwise a tick, "Last scan finished <date, time> (<how long ago>)" and the server's track, album and artist totals; a warning callout if the last scan failed.
+- **Buttons:** Scan for changes (`rescan`), Playlists only (`rescan playlists`), Clear and rescan everything (`wipecache`, after a confirm saying every player sees a partial library until it finishes). An expandable table explains the three. Disabled while a scan runs, offline, or when the server can't be reached.
+- When a scan it saw running finishes, WinSqueeze refreshes its own index straight away.
+- This page is the home for later server-side library features. Settings › Library & cache stays for WinSqueeze's own index.
+
 ## Settings and servers
 
-A separate Settings window with tabs, in standard Windows style. Changes apply immediately (no OK/Apply). Each page is a column of cards with headings; explanations are info or warning callouts, longer detail sits in expandable panels (with tables where it helps, e.g. how names are split), and keyboard shortcuts are tables of keycaps. First run opens it straight on the Servers tab.
+A separate Settings window with tabs, in standard Windows style, listed in a sidebar under section headings: Server (Servers, Library), Player (Audio, Playback, Recording), Library (Library & cache, Browsing), Look, App. Changes apply immediately (no OK/Apply). Each page is a column of cards with headings; explanations are info or warning callouts, longer detail sits in expandable panels (with tables where it helps, e.g. how names are split), and keyboard shortcuts are tables of keycaps. First run opens it straight on the Servers tab.
 
 | Tab | Settings |
 | --- | --- |
 | General | Settings export / import (JSON; everything except passwords and other secrets); Start with Windows; resume playing on startup (off; when both are on, an amber bracket joins them with a warning that music may start as soon as the PC restarts); start minimised to tray; other Squeezelite at launch (ask / always stop / leave); minimise to tray when minimised; close (X) hides to tray / quits; remember window position; language |
 | Servers | Server finder (auto-discovery); profiles list (name, address, port, optional username/password); default profile; test connection |
+| Library (server) | Scan status and progress; Scan for changes; Playlists only; Clear and rescan everything (see Server library) |
 | Audio | Output device; driver type; exclusive mode on/off; volume mode (fixed / digital); player name (defaults to the computer name); extra Squeezelite arguments (advanced); fidelity warnings |
 | Playback | For the selected player (Lyrion player prefs, written only when changed): between tracks (nothing/gapless, crossfade, fade in, fade out, fade out and in), its length, smart (no crossfade within an album); ReplayGain (off, track, album, smart). On this PC these break bit-perfect, and the fidelity badge says so |
 | Library & cache | Album source (tags / folders); contributor grouping (any credit / album artist text only); name separators; refresh interval; Refresh now; Rebuild cache; cache size and location; clear art cache; Library health (damaged file count, Open library health) |

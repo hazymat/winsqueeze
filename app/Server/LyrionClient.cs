@@ -5,7 +5,7 @@ using System.Text.Json;
 using WinSqueeze.Settings;
 namespace WinSqueeze.Server;
 
-public record ServerStatus(string Version, int PlayerCount, long LastScan, int TotalSongs, int TotalAlbums, int TotalArtists);
+public record ServerStatus(string Version, int PlayerCount, long LastScan, int TotalSongs, int TotalAlbums, int TotalArtists, bool Scanning);
 
 // Lyrion JSON-RPC (slim.request). The shell is the only part that talks to the server.
 public sealed class LyrionClient : IDisposable
@@ -29,7 +29,7 @@ public sealed class LyrionClient : IDisposable
     public async Task<ServerStatus> GetServerStatusAsync()
     {
         var status = await RequestAsync("", "serverstatus", 0, 0);
-        return new ServerStatus(ReadString(status, "version"), ReadInt(status, "player count"), ReadLong(status, "lastscan"), ReadInt(status, "info total songs"), ReadInt(status, "info total albums"), ReadInt(status, "info total artists"));
+        return new ServerStatus(ReadString(status, "version"), ReadInt(status, "player count"), ReadLong(status, "lastscan"), ReadInt(status, "info total songs"), ReadInt(status, "info total albums"), ReadInt(status, "info total artists"), ReadString(status, "rescan") == "1");
     }
 
     // Lyrion returns numbers as numbers or strings depending on the field
