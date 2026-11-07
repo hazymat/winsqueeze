@@ -41,7 +41,7 @@
   // Switched-on custom views (SPEC.md › Custom views): one entry each, or one per group for views that share a group
   const levelGlyphs: Record<string, string> = { genre: 'genres', composer: 'composers', artist: 'artists', performer: 'performers' }
   const customSections = $derived(((app.librarySettings.CustomViews ?? []) as any[]).filter(view => view.Enabled).reduce((entries: string[][], view) => { const key = view.Group ? 'customgroup:' + view.Group : 'custom:' + view.Id; if (!entries.some(entry => entry[0] === key)) entries.push([key, view.Group || view.Name, levelGlyphs[view.Levels?.[view.Levels.length - 1]] ?? 'albums']); return entries }, []))
-  const allSections = $derived([['queue', 'Now playing', 'queue'], ['favourites', 'Favourites', 'favourites'], ['radio', 'Radio', 'radio'], ['apps', 'Apps', 'apps'], ['playlists', 'Playlists', 'playlists'], ['artists', 'Artists', 'artists'], ['genres', 'Genres', 'genres'], ['composers', 'Composers', 'composers'], ['performers', 'Performers', 'performers'], ['folders', folderMode ? 'Folders' : 'Albums', folderMode ? 'folders' : 'albums'], ['downloads', 'Downloaded', 'download'], ['history', 'History', 'history'], ['health', 'Library health', 'health']].concat(customSections) as [string, string, any][])
+  const allSections = $derived([['queue', 'Now playing', 'queue'], ['favourites', 'Favourites', 'favourites'], ['radio', 'Radio', 'radio'], ['apps', 'Apps', 'apps'], ['playlists', 'Playlists', 'playlists'], ['artists', 'Artists', 'artists'], ['genres', 'Genres', 'genres'], ['composers', 'Composers', 'composers'], ['performers', 'Performers', 'performers'], ['folders', folderMode ? 'Folders' : 'Albums', folderMode ? 'folders' : 'albums'], ['new', 'New music', 'new'], ['downloads', 'Downloaded', 'download'], ['history', 'History', 'history'], ['health', 'Library health', 'health']].concat(customSections) as [string, string, any][])
   const pinGlyphs: Record<string, string> = { genre: 'genres', artist: 'artists', composer: 'composers', performer: 'performers', album: 'albums', folder: 'folders', playlist: 'playlists', app: 'apps' }
   const pinSections = $derived(Object.entries(pins.views).map(([key, view]) => [key, view.title ?? '', pinGlyphs[view.kind] ?? 'pin']) as [string, string, any][])
   // Sidebar and bottom-bar customisation (one shared setting): every section shows by default; order, spacers and hidden ones are remembered per PC
@@ -65,7 +65,7 @@
   const cancelHold = () => clearTimeout(holdTimer)
   let hiddenSections = $state<string[]>(JSON.parse(readSetting('hiddenSections', '[]')))
   // Sections that start hidden (Customise sidebar adds them): each is hidden once, the first time this PC sees it
-  const startHidden = ['downloads', 'history'], hiddenOnce: string[] = JSON.parse(readSetting('hiddenOnce', '[]')), newlyHidden = startHidden.filter(key => !hiddenOnce.includes(key))
+  const startHidden = ['downloads', 'history', 'new'], hiddenOnce: string[] = JSON.parse(readSetting('hiddenOnce', '[]')), newlyHidden = startHidden.filter(key => !hiddenOnce.includes(key))
   if (newlyHidden.length) { hiddenSections = hiddenSections.concat(newlyHidden.filter(key => !hiddenSections.includes(key))); writeSetting('hiddenSections', JSON.stringify(hiddenSections)); writeSetting('hiddenOnce', JSON.stringify(hiddenOnce.concat(newlyHidden))) }
   let customising = $state(false)
   const toggleSection = (key: string) => { hiddenSections = hiddenSections.includes(key) ? hiddenSections.filter(hidden => hidden !== key) : hiddenSections.concat([key]); writeSetting('hiddenSections', JSON.stringify(hiddenSections)) }
@@ -264,6 +264,8 @@
             <SearchView bind:this={searchView} {searchBox} />
           {:else if view.kind === 'artists' || view.kind === 'composers' || view.kind === 'performers' || view.kind === 'genres'}
             {#key view.kind}<PeopleList kind={view.kind} title={({ artists: 'Artists', composers: 'Composers', performers: 'Performers', genres: 'Genres' } as Record<string, string>)[view.kind]} />{/key}
+          {:else if view.kind === 'new'}
+            <AlbumsOf kind="new" title="New music" />
           {:else if view.kind === 'folders'}
             {#if folderMode}<FolderView />{:else}<AlbumsOf kind="albums" title="Albums" />{/if}
           {:else if view.kind === 'folder'}

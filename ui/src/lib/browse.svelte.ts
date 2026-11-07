@@ -4,7 +4,7 @@ import { sendToShell } from '../bridge'
 export const sortOptions: [string, string][] = [['artist', 'Album artist'], ['title', 'Title'], ['year', 'Year'], ['added', 'Recently added']]
 export const groupOptions: [string, string][] = [['none', 'None'], ['artist', 'Album artist'], ['year', 'Year'], ['decade', 'Decade'], ['added', 'Date added'], ['format', 'Format'], ['initial', 'First letter']]
 export const sizeOptions: [string, string][] = [['large', 'Large'], ['compact', 'Compact'], ['list', 'List']]
-export const builtInGroupDefaults: Record<string, string> = { genre: 'artist', artist: 'none', composer: 'artist', performer: 'artist', albums: 'none', custom: 'artist' }
+export const builtInGroupDefaults: Record<string, string> = { genre: 'artist', artist: 'none', composer: 'artist', performer: 'artist', albums: 'none', custom: 'artist', new: 'added' }
 // Custom views (SPEC.md › Custom views): the steps a view can take before its albums
 export const levelNames: Record<string, string> = { genre: 'Genres', composer: 'Composers', artist: 'Artists', performer: 'Performers' }
 export const customViewsExplainer = 'The built-in lists browse your whole library one way: pick a composer, see their albums. A custom view first narrows the library to genres you choose, then steps through the order you choose, such as Genre, then Composer, then albums. So a Classical view lists only classical composers, without the pop songwriters credited on your other albums, and lets you ask questions the built-in lists can\'t, like which composers you have in Choral, or which genres you have of Bach.'
