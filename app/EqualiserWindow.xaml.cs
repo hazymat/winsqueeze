@@ -13,7 +13,7 @@ namespace WinSqueeze;
 // window and then moves with it; dragging it away undocks it. Docking works both ways: the main window dragged near it snaps to it and docks it too.
 public partial class EqualiserWindow : Window
 {
-    const int SnapPixels = 20, SizeSnapPixels = 12;
+    const int SnapPixels = 8, SizeSnapPixels = 8; // small, so a short drag pulls a window away again
     bool webViewReady;
     App App => App.Instance;
     EqualiserSettings Tuning => App.Settings.Equaliser;
