@@ -120,6 +120,8 @@ public partial class MainWindow : Window
                     var queryParameters = message.TryGetProperty("params", out var parameters) ? parameters : default;
                     var queries = App.Library.Queries;
                     if (queryName == "history") { var before = queryParameters.ValueKind == JsonValueKind.Object && queryParameters.TryGetProperty("before", out var beforeValue) ? beforeValue.GetInt64() : 0; Reply(message, await Task.Run(() => App.History.Recent(before, 400))); break; }
+                    if (queryName == "health") { Reply(message, await App.Library.HealthAsync(queryParameters.ValueKind == JsonValueKind.Object && queryParameters.TryGetProperty("rescan", out var rescan) && rescan.ValueKind == JsonValueKind.True)); break; }
+                    if (queryName == "damaged") { Reply(message, App.Damaged.Files.OrderByDescending(damagedFile => damagedFile.Unplayable).ThenByDescending(damagedFile => damagedFile.Errors).Select(damagedFile => new { id = damagedFile.Id, title = damagedFile.Title, artist = damagedFile.Artist, album = damagedFile.Album, errors = damagedFile.Errors, unplayable = damagedFile.Unplayable, firstError = damagedFile.FirstError, path = damagedFile.Path })); break; }
                     if (queryName == "downloadedAlbums") { var sortName = queryParameters.ValueKind == JsonValueKind.Object ? Text(queryParameters, "sort") : ""; Reply(message, await Task.Run(() => queries.DownloadedAlbums(App.Downloads.DownloadedIds(), sortName))); break; }
                     Reply(message, await Task.Run(() => queries.Run(queryName, queryParameters)));
                     break;
@@ -155,6 +157,7 @@ public partial class MainWindow : Window
                 case "openDownloads": Directory.CreateDirectory(App.Downloads.Folder); System.Diagnostics.Process.Start("explorer.exe", $"\"{App.Downloads.Folder}\""); break;
                 case "historyDelete": App.History.Delete(Ids(message.GetProperty("ids"))); break;
                 case "historyClear": App.History.Clear(); break;
+                case "damagedClear": App.Damaged.Clear(); break;
                 case "goOffline": await App.GoOfflineAsync(false); break;
                 case "goOnline": await App.GoOnlineAsync(); break;
                 case "playerCommand": await App.ServerRequestAsync(Text(message, "id"), CommandParts(message.GetProperty("command"))); if (!(message.TryGetProperty("quiet", out var quiet) && quiet.GetBoolean())) await App.Session.RefreshPlayersAsync(); break; // power, sync and volume of any player, not just the selected one

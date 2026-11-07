@@ -303,7 +303,20 @@ Chosen direction: **Frosted Dark**, frosted glass meets Squeezebox hardware. iOS
 
 ## Damaged files
 
-Squeezelite logs each decode error (for example a FLAC frame it can't read). WinSqueeze ties the errors to the track they belong to (decoding runs ahead of playback, so "codec open" and "track start" log lines are matched up), and only counts library files, not radio. On the first error it says the file has damaged frames and is playing past them, and Now playing shows the same note. It never skips a damaged file: the decoder resyncs past bad frames and plays as much of the file as it can. The first error message is kept with the file. A file the decoder rejects outright is reported as unplayable. Damaged files are remembered (`damaged-files.json` in the data folder): track lists mark them with ⚠, and Settings › Library & cache lists their server paths and first error, with Copy list and Clear list buttons. There is no up-front scan of the library.
+Squeezelite logs each decode error (for example a FLAC frame it can't read). WinSqueeze ties the errors to the track they belong to (decoding runs ahead of playback, so "codec open" and "track start" log lines are matched up), and only counts library files, not radio. On the first error it says the file has damaged frames and is playing past them, and Now playing shows the same note. It never skips a damaged file: the decoder resyncs past bad frames and plays as much of the file as it can. The first error message is kept with the file. A file the decoder rejects outright is reported as unplayable. Damaged files are remembered (`damaged-files.json` in the data folder): track lists mark them with ⚠, and Library health lists them with their server paths and first error, with Copy list and Clear list buttons. There is no up-front scan of the library.
+
+## Library health
+
+A sidebar section (and a button in Settings › Library & cache) listing what in the library needs fixing in a tagger. WinSqueeze never changes files or the server. Checks run on the local index, per album folder (one folder = one CD), or per tag album when the library has no folders:
+
+- **Missing cover art:** no cover in the files or folder, or the server only has its placeholder (each cover is fetched once at list size, which also warms the art cache).
+- **Missing composer:** albums with tracks that have no composer tag, with how many. Shows classical albums (a conductor or orchestra credit, or a classical genre) by default, or all albums.
+- **Duplicate albums:** folders with identical track lists, or the same artist and title with at least half the tracks in common.
+- **Tag problems:** no artist at all; album artist missing on some tracks, differing between tracks, or missing on a multi-artist album; a folder the server reads as several albums; missing, repeated or skipped track numbers (per disc); no year, an odd year (before 1900 or in the future) or mixed years.
+- **Name problems:** two names (same role) that only ever appear together where one is a single word or together they make a name already in the library ("Earth" + "Wind & Fire"); one person spelled two ways (same words in another order or punctuation).
+- **Damaged files** (see Damaged files).
+
+Each row opens its album (a damaged file opens its album at that track; a person opens their page). Summary tiles jump to each section; each section has Copy list (artist — title — folder — problem). The report is cached per profile (`health.json`) until the index changes; Rescan asks the server for changes, checks missing covers again and rebuilds the report.
 
 ## Diagnostics
 
@@ -321,7 +334,7 @@ A separate Settings window with tabs, in standard Windows style. Changes apply i
 | Servers | Server finder (auto-discovery); profiles list (name, address, port, optional username/password); default profile; test connection |
 | Audio | Output device; driver type; exclusive mode on/off; volume mode (fixed / digital); player name (defaults to the computer name); extra Squeezelite arguments (advanced); fidelity warnings |
 | Playback | For the selected player (Lyrion player prefs, written only when changed): between tracks (nothing/gapless, crossfade, fade in, fade out, fade out and in), its length, smart (no crossfade within an album); ReplayGain (off, track, album, smart). On this PC these break bit-perfect, and the fidelity badge says so |
-| Library & cache | Album source (tags / folders); contributor grouping (any credit / album artist text only); name separators; refresh interval; Refresh now; Rebuild cache; cache size and location; clear art cache |
+| Library & cache | Album source (tags / folders); contributor grouping (any credit / album artist text only); name separators; refresh interval; Refresh now; Rebuild cache; cache size and location; clear art cache; Library health (damaged file count, Open library health) |
 | Appearance | Skin; auto-switch rule (follow Windows / schedule / fixed); light and dark skin pair; meter style (VU needle / OLED VU / OLED bars); album list default (grid / list); accent from cover art on/off; reduce transparency |
 | Shortcuts | Rebind in-app shortcuts; enable global hotkeys; media keys on/off |
 | Notifications | Track-change toasts; device missing alerts |

@@ -1,5 +1,6 @@
 using System.IO;
 using System.Net.Http;
+using System.Text.Json;
 using System.Windows.Threading;
 using Microsoft.Web.WebView2.Core;
 using WinSqueeze.Settings;
@@ -39,6 +40,38 @@ public sealed class LibraryService
             if (await librarySync.SyncIfChangedAsync(profile, App.Settings.Library, forceRebuild)) IndexUpdated?.Invoke();
         }
         catch (Exception syncError) { ProgressText = $"Library sync failed: {syncError.Message}"; Changed?.Invoke(); }
+    }
+
+    // Library health (SPEC.md › Library health): built from the local index and kept until the index changes. Rescan asks the server for changes first and checks covers known to be missing again
+    Task<JsonElement>? healthRun;
+    public Task<JsonElement> HealthAsync(bool rescan) => healthRun is { IsCompleted: false } && !rescan ? healthRun : healthRun = BuildHealthAsync(rescan); // a page opening mid-check waits for the same report
+    async Task<JsonElement> BuildHealthAsync(bool rescan)
+    {
+        var profile = App.Settings.ActiveProfile;
+        var databasePath = profile == null ? "" : LibraryDatabase.DatabasePath(profile);
+        if (profile == null || !File.Exists(databasePath)) return JsonDocument.Parse("{\"empty\":true}").RootElement.Clone();
+        if (rescan) await RefreshAsync(false);
+        var cachePath = Path.Combine(LibraryDatabase.ProfileFolder(profile), "health.json");
+        var cacheKey = await Task.Run(() => { using var connection = LibraryDatabase.Open(databasePath, true); return $"{LibraryDatabase.Meta(connection, "signature")}|{LibraryHealth.Version}"; });
+        if (!rescan) try { using var cached = JsonDocument.Parse(await File.ReadAllTextAsync(cachePath)); if (cached.RootElement.GetProperty("cacheKey").GetString() == cacheKey) return cached.RootElement.Clone(); } catch { }
+        if (rescan && !App.IsOffline) foreach (var emptyFile in new DirectoryInfo(LibraryDatabase.ArtFolder(profile)).EnumerateFiles().Where(file => file.Length == 0).ToList()) try { emptyFile.Delete(); } catch { }
+        var coverIds = await Task.Run(() => LibraryHealth.CoverIds(databasePath));
+        var coversWithoutArt = new System.Collections.Concurrent.ConcurrentDictionary<string, bool>();
+        if (!App.IsOffline) await PlaceholderAsync(profile, 120); // fetched once before the parallel checks share it
+        using (var gate = new SemaphoreSlim(8))
+            await Task.WhenAll(coverIds.Select(async coverId => { await gate.WaitAsync(); try { if (!await HasArtAsync(profile, coverId)) coversWithoutArt[coverId] = true; } finally { gate.Release(); } }));
+        var reportJson = await Task.Run(() => JsonSerializer.Serialize(LibraryHealth.Build(databasePath, cacheKey, coversWithoutArt.Keys)));
+        try { await File.WriteAllTextAsync(cachePath, reportJson); } catch { }
+        return JsonDocument.Parse(reportJson).RootElement.Clone();
+    }
+
+    // Whether the server has real art for a cover; offline, a cover not seen yet counts as fine
+    async Task<bool> HasArtAsync(ServerProfile profile, string coverId)
+    {
+        coverId = new string(coverId.Where(char.IsLetterOrDigit).ToArray());
+        var cachePath = Path.Combine(LibraryDatabase.ArtFolder(profile), $"{coverId}_120");
+        if (App.IsOffline) return !File.Exists(cachePath) || new FileInfo(cachePath).Length > 0;
+        try { return await GetArtAsync(coverId, 120) != null; } catch { return true; }
     }
 
     // https://art.winsqueeze/<coverId>/<size> -> cached copy of the server's resized cover

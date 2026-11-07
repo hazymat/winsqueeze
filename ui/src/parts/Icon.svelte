@@ -1,6 +1,6 @@
 <script lang="ts">
   // Crisp transport icons as SVG: text glyphs (⏮ ▶ ⏭) render off-centre with colour fringes in WebView2
-  let { name, size = 18 }: { name: 'back' | 'history' | 'forward' | 'previous' | 'next' | 'play' | 'pause' | 'volume' | 'speaker' | 'pin' | 'favourites' | 'artists' | 'genres' | 'composers' | 'performers' | 'folders' | 'albums' | 'queue' | 'plus' | 'settings' | 'playlists' | 'verified' | 'grid-large' | 'grid-small' | 'list' | 'cards' | 'minimise' | 'maximise' | 'restore' | 'close' | 'download' | 'radio' | 'apps'; size?: number } = $props()
+  let { name, size = 18 }: { name: 'back' | 'history' | 'forward' | 'previous' | 'next' | 'play' | 'pause' | 'volume' | 'speaker' | 'pin' | 'favourites' | 'artists' | 'genres' | 'composers' | 'performers' | 'folders' | 'albums' | 'queue' | 'plus' | 'settings' | 'playlists' | 'verified' | 'grid-large' | 'grid-small' | 'list' | 'cards' | 'minimise' | 'maximise' | 'restore' | 'close' | 'download' | 'radio' | 'apps' | 'health'; size?: number } = $props()
 </script>
 
 <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" class="icon">
@@ -34,6 +34,7 @@
   {:else if name === 'maximise'}<rect x="6.5" y="6.5" width="11" height="11" rx="1.5" class="stroke thin" />
   {:else if name === 'restore'}<rect x="6" y="8.5" width="9.5" height="9.5" rx="1.5" class="stroke thin" /><path d="M9 8.5V7.5A1.5 1.5 0 0 1 10.5 6h6A1.5 1.5 0 0 1 18 7.5v6a1.5 1.5 0 0 1-1.5 1.5h-1" class="stroke thin" />
   {:else if name === 'close'}<path d="M7 7l10 10M17 7L7 17" class="stroke thin" />
+  {:else if name === 'health'}<path d="M3.5 12h4l2-4.5 4 9 2-4.5h5" class="stroke" />
   {:else if name === 'download'}<path d="M12 4.5v10M7.5 10.5L12 15l4.5-4.5M5 19h14" class="stroke" />
   {:else if name === 'radio'}<rect x="3.5" y="8.5" width="17" height="11" rx="2" class="stroke" /><path d="M7 8.5l9-4.5" class="stroke" /><circle cx="15.5" cy="14" r="2.4" class="stroke" /><path d="M6.5 12.5h4M6.5 15.5h4" class="stroke" />
   {:else if name === 'apps'}<rect x="4" y="4" width="6.5" height="6.5" rx="1.6" class="stroke" /><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6" class="stroke" /><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6" class="stroke" /><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6" class="stroke" />{/if}

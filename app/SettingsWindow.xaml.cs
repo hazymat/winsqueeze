@@ -321,14 +321,13 @@ public partial class SettingsWindow : Window
         App.Library.Changed += ShowLibraryStatus;
         Closed += (sender, args) => App.Library.Changed -= ShowLibraryStatus;
         ShowLibraryStatus();
-        // Damaged files: one per line, worst first, with the server's path so they can be found and replaced
-        void ShowDamagedFiles() => damagedFilesBox.Text = App.Damaged.Files.Count == 0 ? "None found yet." : string.Join(Environment.NewLine, App.Damaged.Files.OrderByDescending(damagedFile => damagedFile.Unplayable).ThenByDescending(damagedFile => damagedFile.Errors).Select(damagedFile => $"{(damagedFile.Unplayable ? "unplayable" : $"{damagedFile.Errors} errors")}  {damagedFile.Path}{(damagedFile.FirstError == "" ? "" : "  (" + damagedFile.FirstError + ")")}"));
-        void OnDamagedChanged() => Dispatcher.BeginInvoke(ShowDamagedFiles);
+        // Library health lives in the main window (SPEC.md › Library health); this card says how many damaged files it lists
+        void ShowDamagedCount() => damagedCountText.Text = App.Damaged.Files.Count == 0 ? "No damaged files found while playing." : $"{App.Damaged.Files.Count} damaged {(App.Damaged.Files.Count == 1 ? "file" : "files")} found while playing.";
+        void OnDamagedChanged() => Dispatcher.BeginInvoke(ShowDamagedCount);
         App.Damaged.Changed += OnDamagedChanged;
         Closed += (sender, args) => App.Damaged.Changed -= OnDamagedChanged;
-        copyDamagedButton.Click += (sender, args) => { try { Clipboard.SetText(damagedFilesBox.Text); } catch { } };
-        clearDamagedButton.Click += (sender, args) => App.Damaged.Clear();
-        ShowDamagedFiles();
+        openHealthButton.Click += (sender, args) => { App.OpenSection("health"); Close(); };
+        ShowDamagedCount();
     }
 
     void ShowLibraryStatus()
