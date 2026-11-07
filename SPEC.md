@@ -311,7 +311,7 @@ Unhandled errors, background task errors, WebView2 renderer failures and UI-thre
 
 ## Settings and servers
 
-A separate Settings window with tabs, in standard Windows style. Changes apply immediately (no OK/Apply). First run opens it straight on the Servers tab.
+A separate Settings window with tabs, in standard Windows style. Changes apply immediately (no OK/Apply). Each page is a column of cards with headings; explanations are info or warning callouts, longer detail sits in expandable panels (with tables where it helps, e.g. how names are split), and keyboard shortcuts are tables of keycaps. First run opens it straight on the Servers tab.
 
 | Tab | Settings |
 | --- | --- |
