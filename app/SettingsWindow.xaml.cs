@@ -38,10 +38,13 @@ public partial class SettingsWindow : Window
         startWithWindowsBox.IsChecked = Settings.General.StartWithWindows;
         startMinimisedBox.IsChecked = Settings.General.StartMinimised;
         closeHidesBox.IsChecked = Settings.General.CloseHidesToTray;
-        startWithWindowsBox.Click += (sender, args) => { Settings.General.StartWithWindows = startWithWindowsBox.IsChecked == true; StartupRegistration.Apply(Settings.General.StartWithWindows); Settings.Save(); };
-        startMinimisedBox.Click += (sender, args) => { Settings.General.StartMinimised = startMinimisedBox.IsChecked == true; Settings.Save(); };
         resumeOnStartupBox.IsChecked = Settings.General.ResumeOnStartup;
-        resumeOnStartupBox.Click += (sender, args) => { Settings.General.ResumeOnStartup = resumeOnStartupBox.IsChecked == true; Settings.Save(); };
+        // Both ticked = music can start on boot: show the bracket and warning
+        void ShowAutoPlayWarning() { var autoPlayVisibility = Settings.General.StartWithWindows && Settings.General.ResumeOnStartup ? Visibility.Visible : Visibility.Collapsed; autoPlayBracket.Visibility = autoPlayVisibility; autoPlayWarning.Visibility = autoPlayVisibility; }
+        ShowAutoPlayWarning();
+        startWithWindowsBox.Click += (sender, args) => { Settings.General.StartWithWindows = startWithWindowsBox.IsChecked == true; StartupRegistration.Apply(Settings.General.StartWithWindows); Settings.Save(); ShowAutoPlayWarning(); };
+        startMinimisedBox.Click += (sender, args) => { Settings.General.StartMinimised = startMinimisedBox.IsChecked == true; Settings.Save(); };
+        resumeOnStartupBox.Click += (sender, args) => { Settings.General.ResumeOnStartup = resumeOnStartupBox.IsChecked == true; Settings.Save(); ShowAutoPlayWarning(); };
         showHintsBox.IsChecked = !Settings.General.HideHints;
         showHintsBox.Click += (sender, args) => { Settings.General.HideHints = showHintsBox.IsChecked != true; Settings.Save(); App.NotifyHintsChanged(); };
         resetHintsButton.Click += (sender, args) => { Settings.General.DismissedHints.Clear(); Settings.General.HideHints = false; showHintsBox.IsChecked = true; Settings.Save(); App.NotifyHintsChanged(); };
