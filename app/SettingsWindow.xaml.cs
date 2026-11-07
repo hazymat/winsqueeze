@@ -379,8 +379,32 @@ public partial class SettingsWindow : Window
         foreach (var (area, box) in areaBoxes) box.SelectionChanged += (sender, args) => { if (!filling && box.SelectedItem is ComboBoxItem { Tag: string value }) { library.DefaultGrouping[area] = value; SaveAndPush(); } };
     }
 
+    // Each row: keys ("Ctrl+F", alternatives split by " / ") shown as keycaps, then what they do
+    void FillShortcutTable(Grid table, (string keys, string action)[] rows)
+    {
+        var keycapStyle = (Style)FindResource("Keycap"); var greyText = new SolidColorBrush(Color.FromRgb(0x88, 0x88, 0x88));
+        foreach (var (keys, action) in rows)
+        {
+            var rowIndex = table.RowDefinitions.Count; table.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            var keyPanel = new WrapPanel { Margin = new Thickness(0, 3, 12, 3) };
+            var alternatives = keys.Split(" / ");
+            for (var altIndex = 0; altIndex < alternatives.Length; altIndex++)
+            {
+                if (altIndex > 0) keyPanel.Children.Add(new TextBlock { Text = "or", Foreground = greyText, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(2, 0, 6, 0) });
+                foreach (var keyName in alternatives[altIndex].Split('+')) keyPanel.Children.Add(new Border { Style = keycapStyle, Child = new TextBlock { Text = keyName, FontFamily = new FontFamily("Segoe UI Semibold"), FontSize = 12 } });
+            }
+            var actionText = new TextBlock { Text = action, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 3, 0, 3) };
+            Grid.SetRow(keyPanel, rowIndex); Grid.SetRow(actionText, rowIndex); Grid.SetColumn(actionText, 1);
+            if (rowIndex > 0) { var divider = new Border { BorderBrush = new SolidColorBrush(Color.FromRgb(0xEE, 0xEF, 0xF1)), BorderThickness = new Thickness(0, 1, 0, 0) }; Grid.SetRow(divider, rowIndex); Grid.SetColumnSpan(divider, 2); table.Children.Add(divider); }
+            table.Children.Add(keyPanel); table.Children.Add(actionText);
+        }
+    }
+
     void WireShortcutsAndNotifications()
     {
+        FillShortcutTable(windowShortcutsTable, new[] { ("Space", "Play / pause"), ("Ctrl+Left / Ctrl+Right", "Previous / next track"), ("Ctrl+Up / Ctrl+Down", "Volume up / down"), ("Ctrl+F", "Search"), ("Ctrl+N", "New playlist"), ("Ctrl+Z", "Undo (press again to keep going back)"), ("Ctrl+Y / Ctrl+Shift+Z", "Redo"), ("Ctrl+1 / Ctrl+2 / Ctrl+3", "Window mode"), ("Ctrl+,", "Settings"), ("Ctrl+Q", "Quit"), ("Esc", "Close one thing at a time (menu, selection, search), then go back") });
+        FillShortcutTable(selectionShortcutsTable, new[] { ("Enter", "Play now"), ("N", "Play next"), ("E", "Add to end"), ("I", "Info"), ("Del", "Remove") });
+        FillShortcutTable(globalShortcutsTable, new[] { ("Ctrl+Alt+Space", "Play / pause"), ("Ctrl+Alt+Left / Ctrl+Alt+Right", "Previous / next track"), ("Ctrl+Alt+Up / Ctrl+Alt+Down", "Volume up / down") });
         var general = Settings.General;
         globalHotkeysBox.IsChecked = general.GlobalHotkeys;
         globalHotkeysBox.Click += (sender, args) =>

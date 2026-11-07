@@ -2,7 +2,18 @@
         Title="WinSqueeze Settings" Icon="Assets/WinSqueeze.ico" Width="820" Height="580" MinWidth="680" MinHeight="460" WindowStartupLocation="CenterScreen">
   <Window.Resources>
     <Style TargetType="TextBlock" x:Key="Label"><Setter Property="Margin" Value="0,10,0,3" /></Style>
-    <Style TargetType="TextBlock" x:Key="Quiet"><Setter Property="Foreground" Value="#666" /><Setter Property="TextWrapping" Value="Wrap" /><Setter Property="Margin" Value="0,4,0,0" /></Style>
+    <Style TargetType="TextBlock" x:Key="Quiet"><Setter Property="Foreground" Value="#666" /><Setter Property="FontSize" Value="12" /><Setter Property="TextWrapping" Value="Wrap" /><Setter Property="Margin" Value="0,4,0,0" /></Style>
+    <!-- Each page is a column of white cards; explanations sit in tinted callouts, longer ones in expandable panels -->
+    <Style TargetType="Border" x:Key="Card"><Setter Property="Background" Value="White" /><Setter Property="BorderBrush" Value="#E3E5E8" /><Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="8" /><Setter Property="Padding" Value="16,12,16,14" /><Setter Property="Margin" Value="0,0,0,12" /></Style>
+    <Style TargetType="TextBlock" x:Key="CardTitle"><Setter Property="FontSize" Value="14" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Margin" Value="0,0,0,4" /></Style>
+    <Style TargetType="Border" x:Key="Callout"><Setter Property="Background" Value="#EEF4FC" /><Setter Property="BorderBrush" Value="#D3E2F5" /><Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="6" /><Setter Property="Padding" Value="10,8" /><Setter Property="Margin" Value="0,10,0,0" /></Style>
+    <Style TargetType="Border" x:Key="Warning" BasedOn="{StaticResource Callout}"><Setter Property="Background" Value="#FFF6E5" /><Setter Property="BorderBrush" Value="#F0DCAF" /></Style>
+    <Style TargetType="TextBlock" x:Key="CalloutIcon"><Setter Property="FontFamily" Value="Segoe MDL2 Assets" /><Setter Property="FontSize" Value="14" /><Setter Property="Foreground" Value="#2F7FD8" /><Setter Property="Margin" Value="0,1,10,0" /><Setter Property="Text" Value="&#xE946;" /><Setter Property="DockPanel.Dock" Value="Left" /></Style>
+    <Style TargetType="TextBlock" x:Key="WarningIcon" BasedOn="{StaticResource CalloutIcon}"><Setter Property="Foreground" Value="#B26B00" /><Setter Property="Text" Value="&#xE7BA;" /></Style>
+    <Style TargetType="TextBlock" x:Key="CalloutText"><Setter Property="TextWrapping" Value="Wrap" /><Setter Property="Foreground" Value="#2B3A4E" /><Setter Property="LineHeight" Value="19" /></Style>
+    <Style TargetType="Expander" x:Key="More"><Setter Property="Margin" Value="0,10,0,0" /><Setter Property="Foreground" Value="#2F6FB8" /></Style>
+    <!-- Keycaps for the shortcut tables -->
+    <Style TargetType="Border" x:Key="Keycap"><Setter Property="Background" Value="#F3F4F6" /><Setter Property="BorderBrush" Value="#CDD1D7" /><Setter Property="BorderThickness" Value="1,1,1,2" /><Setter Property="CornerRadius" Value="4" /><Setter Property="Padding" Value="6,1" /><Setter Property="Margin" Value="0,2,4,2" /></Style>
     <Style TargetType="Button"><Setter Property="Padding" Value="12,4" /><Setter Property="Margin" Value="0,0,8,0" /></Style>
     <Style TargetType="CheckBox"><Setter Property="Margin" Value="0,8,0,0" /></Style>
     <!-- Settings pages in a left sidebar, grouped under small section headings; the page's name heads its content -->
@@ -10,7 +21,7 @@
       <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TabControl">
         <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="190" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
           <Border Background="#F3F3F3" BorderBrush="#E2E2E2" BorderThickness="0,0,1,0"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel IsItemsHost="True" Margin="8,10" /></ScrollViewer></Border>
-          <DockPanel Grid.Column="1"><TextBlock DockPanel.Dock="Top" Text="{Binding SelectedItem.Header, RelativeSource={RelativeSource TemplatedParent}}" FontSize="20" FontWeight="SemiBold" Margin="16,14,16,0" />
+          <DockPanel Grid.Column="1" Background="#F7F8FA"><TextBlock DockPanel.Dock="Top" Text="{Binding SelectedItem.Header, RelativeSource={RelativeSource TemplatedParent}}" FontSize="22" FontWeight="SemiBold" Margin="20,16,20,4" />
             <ContentPresenter ContentSource="SelectedContent" /></DockPanel>
         </Grid>
       </ControlTemplate></Setter.Value></Setter>
@@ -36,302 +47,476 @@
   <TabControl x:Name="settingsTabs">
     <TabItem Header="Player" Style="{StaticResource SectionHeader}" />
     <TabItem Header="Servers" x:Name="serversTab">
-      <Grid Margin="16">
-        <Grid.ColumnDefinitions><ColumnDefinition Width="230" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-        <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-        <DockPanel Grid.Column="0" Margin="0,0,16,0">
-          <TextBlock DockPanel.Dock="Top" Text="Profiles" FontWeight="SemiBold" Margin="0,0,0,4" />
-          <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
-            <Button x:Name="addProfileButton" Content="Add" />
-            <Button x:Name="removeProfileButton" Content="Remove" />
-            <Button x:Name="defaultProfileButton" Content="Use" ToolTip="Make this the active profile" />
-          </StackPanel>
-          <ListBox x:Name="profilesList" />
-        </DockPanel>
-        <StackPanel Grid.Column="1">
-          <TextBlock Style="{StaticResource Label}" Text="Name" Margin="0,0,0,3" />
-          <TextBox x:Name="profileNameBox" />
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel Margin="20,8,20,16">
+        <Border Style="{StaticResource Card}">
           <Grid>
-            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="90" /></Grid.ColumnDefinitions>
-            <StackPanel><TextBlock Style="{StaticResource Label}" Text="Address" /><TextBox x:Name="profileHostBox" Margin="0,0,8,0" /></StackPanel>
-            <StackPanel Grid.Column="1"><TextBlock Style="{StaticResource Label}" Text="Port" /><TextBox x:Name="profilePortBox" /></StackPanel>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="210" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+            <DockPanel Margin="0,0,16,0">
+              <TextBlock DockPanel.Dock="Top" Text="Profiles" Style="{StaticResource CardTitle}" />
+              <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
+                <Button x:Name="addProfileButton" Content="Add" />
+                <Button x:Name="removeProfileButton" Content="Remove" />
+                <Button x:Name="defaultProfileButton" Content="Use" ToolTip="Make this the active profile" />
+              </StackPanel>
+              <ListBox x:Name="profilesList" MinHeight="150" />
+            </DockPanel>
+            <StackPanel Grid.Column="1">
+              <TextBlock Style="{StaticResource Label}" Text="Name" Margin="0,0,0,3" />
+              <TextBox x:Name="profileNameBox" />
+              <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="90" /></Grid.ColumnDefinitions>
+                <StackPanel><TextBlock Style="{StaticResource Label}" Text="Address" /><TextBox x:Name="profileHostBox" Margin="0,0,8,0" /></StackPanel>
+                <StackPanel Grid.Column="1"><TextBlock Style="{StaticResource Label}" Text="Port" /><TextBox x:Name="profilePortBox" /></StackPanel>
+              </Grid>
+              <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                <StackPanel><TextBlock Style="{StaticResource Label}" Text="Username (optional)" /><TextBox x:Name="profileUserBox" Margin="0,0,8,0" /></StackPanel>
+                <StackPanel Grid.Column="1"><TextBlock Style="{StaticResource Label}" Text="Password (optional)" /><PasswordBox x:Name="profilePasswordBox" /></StackPanel>
+              </Grid>
+              <StackPanel Orientation="Horizontal" Margin="0,12,0,0"><Button x:Name="testConnectionButton" Content="Test connection" /></StackPanel>
+              <TextBlock x:Name="testResultText" Style="{StaticResource Quiet}" />
+            </StackPanel>
           </Grid>
-          <Grid>
-            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-            <StackPanel><TextBlock Style="{StaticResource Label}" Text="Username (optional)" /><TextBox x:Name="profileUserBox" Margin="0,0,8,0" /></StackPanel>
-            <StackPanel Grid.Column="1"><TextBlock Style="{StaticResource Label}" Text="Password (optional)" /><PasswordBox x:Name="profilePasswordBox" /></StackPanel>
-          </Grid>
-          <StackPanel Orientation="Horizontal" Margin="0,12,0,0"><Button x:Name="testConnectionButton" Content="Test connection" /></StackPanel>
-          <TextBlock x:Name="testResultText" Style="{StaticResource Quiet}" />
-        </StackPanel>
-        <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Margin="0,16,0,0">
-          <StackPanel Orientation="Horizontal">
-            <Button x:Name="findServersButton" Content="Find servers on this network" />
-            <Button x:Name="useServerButton" Content="Use selected" IsEnabled="False" />
+        </Border>
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <TextBlock Text="Find a server" Style="{StaticResource CardTitle}" />
+            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+              <Button x:Name="findServersButton" Content="Find servers on this network" />
+              <Button x:Name="useServerButton" Content="Use selected" IsEnabled="False" />
+            </StackPanel>
+            <ListBox x:Name="discoveredList" Height="80" Margin="0,8,0,0" />
+            <TextBlock x:Name="findResultText" Style="{StaticResource Quiet}" Text="For a VPN or another subnet, type the address above." />
           </StackPanel>
-          <ListBox x:Name="discoveredList" Height="80" Margin="0,8,0,0" />
-          <TextBlock x:Name="findResultText" Style="{StaticResource Quiet}" Text="For a VPN or another subnet, type the address above." />
-        </StackPanel>
-      </Grid>
+        </Border>
+      </StackPanel>
+      </ScrollViewer>
     </TabItem>
     <TabItem Header="Audio" x:Name="audioTab">
       <ScrollViewer VerticalScrollBarVisibility="Auto">
-      <StackPanel Margin="16">
-        <TextBlock Text="Output device" FontWeight="SemiBold" />
-        <DockPanel Margin="0,4,0,0">
-          <Button x:Name="refreshDevicesButton" DockPanel.Dock="Right" Content="Refresh" Margin="8,0,0,0" />
-          <ComboBox x:Name="deviceCombo" DisplayMemberPath="DisplayName">
-            <ComboBox.GroupStyle><GroupStyle><GroupStyle.HeaderTemplate><DataTemplate><TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="#555" Margin="4,6,0,2" /></DataTemplate></GroupStyle.HeaderTemplate></GroupStyle></ComboBox.GroupStyle>
-          </ComboBox>
-        </DockPanel>
-        <TextBlock x:Name="playerStatusText" Style="{StaticResource Quiet}" />
-        <CheckBox x:Name="exclusiveBox" Content="Exclusive mode (bit-perfect, bypasses the Windows mixer)" Margin="0,14,0,0" />
-        <TextBlock x:Name="exclusiveNoteText" Style="{StaticResource Quiet}" Text="Shared mode only plays tracks whose sample rate matches the Windows mixer, and is not bit-perfect." />
-        <TextBlock x:Name="exclusiveWarningText" Foreground="#B26B00" TextWrapping="Wrap" Margin="0,4,0,0" Text="⚠ While WinSqueeze is playing, it has this device to itself: other apps can't play sound through it. It lets go 10 seconds after you pause or stop, or straight away when you untick this." />
-        <Grid Margin="0,4,0,0">
-          <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="140" /></Grid.ColumnDefinitions>
-          <StackPanel><TextBlock Style="{StaticResource Label}" Text="Player name (shown on the server)" /><TextBox x:Name="playerNameBox" Margin="0,0,8,0" /></StackPanel>
-          <StackPanel Grid.Column="1"><TextBlock Style="{StaticResource Label}" Text="Buffer (ms)" /><TextBox x:Name="latencyBox" ToolTip="200 ms is the safe default. Raise it if playback stutters or restarts." /></StackPanel>
-        </Grid>
-        <TextBlock Style="{StaticResource Label}" Text="If the chosen device is missing" />
-        <ComboBox x:Name="fallbackCombo" DisplayMemberPath="DisplayName" />
-        <Expander Header="Advanced" Margin="0,12,0,0">
+      <StackPanel Margin="20,8,20,16">
+        <Border Style="{StaticResource Card}">
           <StackPanel>
-            <TextBlock Style="{StaticResource Label}" Text="Extra Squeezelite arguments" />
-            <TextBox x:Name="extraArgumentsBox" FontFamily="Consolas" />
+            <TextBlock Text="Output device" Style="{StaticResource CardTitle}" />
+            <DockPanel Margin="0,4,0,0">
+              <Button x:Name="refreshDevicesButton" DockPanel.Dock="Right" Content="Refresh" Margin="8,0,0,0" />
+              <ComboBox x:Name="deviceCombo" DisplayMemberPath="DisplayName">
+                <ComboBox.GroupStyle><GroupStyle><GroupStyle.HeaderTemplate><DataTemplate><TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="#555" Margin="4,6,0,2" /></DataTemplate></GroupStyle.HeaderTemplate></GroupStyle></ComboBox.GroupStyle>
+              </ComboBox>
+            </DockPanel>
+            <TextBlock x:Name="playerStatusText" Style="{StaticResource Quiet}" />
+            <TextBlock Style="{StaticResource Label}" Text="If the chosen device is missing" />
+            <ComboBox x:Name="fallbackCombo" DisplayMemberPath="DisplayName" />
           </StackPanel>
-        </Expander>
-        <TextBlock Style="{StaticResource Quiet}" Text="Volume mode and fidelity warnings arrive in Phase 4." Margin="0,12,0,0" />
+        </Border>
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <TextBlock Text="Exclusive mode" Style="{StaticResource CardTitle}" />
+            <CheckBox x:Name="exclusiveBox" Content="Exclusive mode (bit-perfect, bypasses the Windows mixer)" Margin="0,4,0,0" />
+            <TextBlock x:Name="exclusiveNoteText" Style="{StaticResource Quiet}" Text="Shared mode only plays tracks whose sample rate matches the Windows mixer, and is not bit-perfect." />
+            <Border x:Name="exclusiveWarningText" Style="{StaticResource Warning}"><DockPanel><TextBlock Style="{StaticResource WarningIcon}" /><TextBlock Style="{StaticResource CalloutText}" Text="While WinSqueeze is playing, it has this device to itself: other apps can't play sound through it. It lets go 10 seconds after you pause or stop, or straight away when you untick this." /></DockPanel></Border>
+          </StackPanel>
+        </Border>
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <TextBlock Text="Player" Style="{StaticResource CardTitle}" />
+            <Grid>
+              <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="140" /></Grid.ColumnDefinitions>
+              <StackPanel><TextBlock Style="{StaticResource Label}" Text="Name (shown on the server)" /><TextBox x:Name="playerNameBox" Margin="0,0,8,0" /></StackPanel>
+              <StackPanel Grid.Column="1"><TextBlock Style="{StaticResource Label}" Text="Buffer (ms)" /><TextBox x:Name="latencyBox" ToolTip="200 ms is the safe default. Raise it if playback stutters or restarts." /></StackPanel>
+            </Grid>
+            <Expander Header="Advanced" Style="{StaticResource More}">
+              <StackPanel>
+                <TextBlock Style="{StaticResource Label}" Text="Extra Squeezelite arguments" />
+                <TextBox x:Name="extraArgumentsBox" FontFamily="Consolas" />
+              </StackPanel>
+            </Expander>
+          </StackPanel>
+        </Border>
       </StackPanel>
       </ScrollViewer>
     </TabItem>
     <TabItem Header="Playback" x:Name="playbackTab">
       <ScrollViewer VerticalScrollBarVisibility="Auto">
-      <StackPanel Margin="16">
-        <TextBlock x:Name="playbackPlayerText" FontWeight="SemiBold" />
-        <TextBlock Style="{StaticResource Quiet}" Text="These are the player's own settings on the server, so every controller sees the same. Choose another player at the top of the main window to change its settings." />
-        <TextBlock Style="{StaticResource Label}" Text="Between tracks" Margin="0,16,0,3" />
-        <ComboBox x:Name="transitionTypeCombo" Width="260" HorizontalAlignment="Left">
-          <ComboBoxItem Content="Nothing (gapless)" Tag="0" />
-          <ComboBoxItem Content="Crossfade" Tag="1" />
-          <ComboBoxItem Content="Fade in" Tag="2" />
-          <ComboBoxItem Content="Fade out" Tag="3" />
-          <ComboBoxItem Content="Fade out and in" Tag="4" />
-        </ComboBox>
-        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-          <TextBlock Text="Length" Width="60" VerticalAlignment="Center" />
-          <Slider x:Name="transitionDurationSlider" Minimum="0" Maximum="10" Width="200" IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center" />
-          <TextBlock x:Name="transitionDurationText" Width="60" Margin="8,0,0,0" VerticalAlignment="Center" />
-        </StackPanel>
-        <CheckBox x:Name="transitionSmartBox" Content="Smart: no crossfade between tracks of the same album" />
-        <TextBlock Style="{StaticResource Label}" Text="ReplayGain (evens out loudness using the files' ReplayGain tags)" Margin="0,16,0,3" />
-        <ComboBox x:Name="replayGainCombo" Width="260" HorizontalAlignment="Left">
-          <ComboBoxItem Content="Off" Tag="0" />
-          <ComboBoxItem Content="Track gain" Tag="1" />
-          <ComboBoxItem Content="Album gain" Tag="2" />
-          <ComboBoxItem Content="Smart (album gain for whole albums)" Tag="3" />
-        </ComboBox>
-        <TextBlock Style="{StaticResource Quiet}" Margin="0,14,0,0" Text="On this PC, crossfades, fades and ReplayGain change the samples, so playback is no longer bit-perfect while they're on. The fidelity badge says so." />
+      <StackPanel Margin="20,8,20,16">
+        <Border Style="{StaticResource Callout}" Margin="0,0,0,12"><DockPanel><TextBlock Style="{StaticResource CalloutIcon}" /><StackPanel><TextBlock x:Name="playbackPlayerText" FontWeight="SemiBold" Foreground="#2B3A4E" /><TextBlock Style="{StaticResource CalloutText}" Text="These are the player's own settings on the server, so every controller sees the same. Choose another player at the top of the main window to change its settings." /></StackPanel></DockPanel></Border>
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <TextBlock Text="Between tracks" Style="{StaticResource CardTitle}" />
+            <ComboBox x:Name="transitionTypeCombo" Width="260" HorizontalAlignment="Left" Margin="0,4,0,0">
+              <ComboBoxItem Content="Nothing (gapless)" Tag="0" />
+              <ComboBoxItem Content="Crossfade" Tag="1" />
+              <ComboBoxItem Content="Fade in" Tag="2" />
+              <ComboBoxItem Content="Fade out" Tag="3" />
+              <ComboBoxItem Content="Fade out and in" Tag="4" />
+            </ComboBox>
+            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+              <TextBlock Text="Length" Width="60" VerticalAlignment="Center" />
+              <Slider x:Name="transitionDurationSlider" Minimum="0" Maximum="10" Width="200" IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center" />
+              <TextBlock x:Name="transitionDurationText" Width="60" Margin="8,0,0,0" VerticalAlignment="Center" />
+            </StackPanel>
+            <CheckBox x:Name="transitionSmartBox" Content="Smart: no crossfade between tracks of the same album" />
+          </StackPanel>
+        </Border>
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <TextBlock Text="ReplayGain" Style="{StaticResource CardTitle}" />
+            <TextBlock Style="{StaticResource Quiet}" Margin="0,0,0,6" Text="Evens out loudness using the files' ReplayGain tags." />
+            <ComboBox x:Name="replayGainCombo" Width="260" HorizontalAlignment="Left">
+              <ComboBoxItem Content="Off" Tag="0" />
+              <ComboBoxItem Content="Track gain" Tag="1" />
+              <ComboBoxItem Content="Album gain" Tag="2" />
+              <ComboBoxItem Content="Smart (album gain for whole albums)" Tag="3" />
+            </ComboBox>
+          </StackPanel>
+        </Border>
+        <Border Style="{StaticResource Callout}" Margin="0"><DockPanel><TextBlock Style="{StaticResource CalloutIcon}" /><TextBlock Style="{StaticResource CalloutText}" Text="On this PC, crossfades, fades and ReplayGain change the samples, so playback is no longer bit-perfect while they're on. The fidelity badge says so." /></DockPanel></Border>
         <TextBlock x:Name="playbackStatusText" Style="{StaticResource Quiet}" Foreground="#B26B00" />
       </StackPanel>
       </ScrollViewer>
     </TabItem>
     <TabItem Header="Recording" x:Name="recordingTab">
       <ScrollViewer VerticalScrollBarVisibility="Auto">
-      <StackPanel Margin="16">
-        <CheckBox x:Name="recordButtonBox" Content="Show a record button while a radio station or other live stream plays" Margin="0" />
-        <CheckBox x:Name="recordSplitBox" Content="Start a new file whenever the station announces a new song" />
-        <RadioButton x:Name="recordFolderPerRecordingRadio" GroupName="recordFolders" Content="A folder for each recording (&quot;BBC Radio 3 - 2026-11-05, 23.05.20&quot;), songs numbered inside" Margin="0,12,0,0" />
-        <RadioButton x:Name="recordFolderPerStationRadio" GroupName="recordFolders" Content="One folder per station, every file named with its date and time" Margin="0,6,0,0" />
-        <TextBlock Style="{StaticResource Label}" Text="Save recordings in (one folder per recording)" Margin="0,14,0,3" />
-        <DockPanel>
-          <Button x:Name="openRecordFolderButton" DockPanel.Dock="Right" Content="Open" Margin="8,0,0,0" />
-          <Button x:Name="chooseRecordFolderButton" DockPanel.Dock="Right" Content="Choose…" Margin="8,0,0,0" />
-          <TextBox x:Name="recordFolderBox" IsReadOnly="True" VerticalContentAlignment="Center" />
-        </DockPanel>
-        <TextBlock Style="{StaticResource Quiet}" Margin="0,10,0,0" Text="Recordings are FLAC files of exactly what this PC's player plays, taken before the equaliser and volume, tagged with the station, song and date. They're for your own listening: broadcasts are copyright, so don't share them." />
+      <StackPanel Margin="20,8,20,16">
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <TextBlock Text="Recording radio" Style="{StaticResource CardTitle}" />
+            <CheckBox x:Name="recordButtonBox" Content="Show a record button while a radio station or other live stream plays" Margin="0,4,0,0" />
+            <CheckBox x:Name="recordSplitBox" Content="Start a new file whenever the station announces a new song" />
+          </StackPanel>
+        </Border>
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <TextBlock Text="Where recordings go" Style="{StaticResource CardTitle}" />
+            <RadioButton x:Name="recordFolderPerRecordingRadio" GroupName="recordFolders" Margin="0,4,0,0"><TextBlock TextWrapping="Wrap"><Run FontWeight="SemiBold" Text="A folder for each recording" /><Run Foreground="#666" Text="  (&quot;BBC Radio 3 - 2026-11-05, 23.05.20&quot;), songs numbered inside" /></TextBlock></RadioButton>
+            <RadioButton x:Name="recordFolderPerStationRadio" GroupName="recordFolders" Margin="0,6,0,0"><TextBlock TextWrapping="Wrap"><Run FontWeight="SemiBold" Text="One folder per station" /><Run Foreground="#666" Text="  every file named with its date and time" /></TextBlock></RadioButton>
+            <TextBlock Style="{StaticResource Label}" Text="Save recordings in" Margin="0,14,0,3" />
+            <DockPanel>
+              <Button x:Name="openRecordFolderButton" DockPanel.Dock="Right" Content="Open" Margin="8,0,0,0" />
+              <Button x:Name="chooseRecordFolderButton" DockPanel.Dock="Right" Content="Choose…" Margin="8,0,0,0" />
+              <TextBox x:Name="recordFolderBox" IsReadOnly="True" VerticalContentAlignment="Center" />
+            </DockPanel>
+          </StackPanel>
+        </Border>
+        <Border Style="{StaticResource Warning}" Margin="0"><DockPanel><TextBlock Style="{StaticResource WarningIcon}" /><TextBlock Style="{StaticResource CalloutText}" Text="Recordings are FLAC files of exactly what this PC's player plays, taken before the equaliser and volume, tagged with the station, song and date. They're for your own listening: broadcasts are copyright, so don't share them." /></DockPanel></Border>
       </StackPanel>
       </ScrollViewer>
     </TabItem>
     <TabItem Header="Library" Style="{StaticResource SectionHeader}" />
     <TabItem Header="Library &amp; cache" x:Name="libraryTab">
       <ScrollViewer VerticalScrollBarVisibility="Auto">
-      <StackPanel Margin="16">
-        <TextBlock Text="Albums are built from" FontWeight="SemiBold" />
-        <RadioButton x:Name="folderAlbumsRadio" GroupName="albumSource" Content="Folders: one folder is one album or CD (CD1/CD2 subfolders join their parent)" Margin="0,6,0,0" />
-        <RadioButton x:Name="tagAlbumsRadio" GroupName="albumSource" Content="Tags: Lyrion's own albums" Margin="0,4,0,0" />
-        <TextBlock Text="An artist's &quot;Also appears on&quot; includes" FontWeight="SemiBold" Margin="0,16,0,0" />
-        <RadioButton x:Name="anyCreditRadio" GroupName="grouping" Content="Any credit: album artist, track artist, composer, conductor or band" Margin="0,6,0,0" />
-        <RadioButton x:Name="albumArtistRadio" GroupName="grouping" Content="Album artist text only" Margin="0,4,0,0" />
-        <StackPanel Orientation="Horizontal" Margin="0,10,0,0"><TextBlock Text="Composer and conductor names" VerticalAlignment="Center" Margin="0,0,10,0" /><ComboBox x:Name="nameOrderBox" Width="260"><ComboBoxItem Tag="surname" Content="Surname, Forename (Kapustin, Nikolai)" /><ComboBoxItem Tag="forename" Content="Forename Surname (Nikolai Kapustin)" /></ComboBox></StackPanel>
-        <CheckBox x:Name="readSurnameFirstBox" Margin="0,8,0,0" Content="Read composer and conductor tags like &quot;Kapustin, Nikolai&quot; as one person (artists are never split on commas)" />
-        <CheckBox x:Name="hideOwnComposersBox" Content="Composers list: leave out artists credited as composer only on their own albums (singer-songwriters)" Margin="0,10,0,0" />
-        <StackPanel Orientation="Horizontal" Margin="0,10,0,0"><TextBlock Text="Counts in Genres, Artists and other lists" VerticalAlignment="Center" Margin="0,0,10,0" /><ComboBox x:Name="listCountsBox" Width="260" /></StackPanel>
-        <StackPanel Orientation="Horizontal" Margin="0,10,0,0"><TextBlock Text="Show how many items graphically" VerticalAlignment="Center" Margin="0,0,10,0" /><ComboBox x:Name="listGraphicBox" Width="200" VerticalAlignment="Center" /><Border Background="#1B2233" CornerRadius="6" Padding="10,6" Margin="14,0,0,0"><StackPanel x:Name="listGraphicPreview" Width="230" /></Border></StackPanel>
-        <Grid Margin="0,12,0,0">
-          <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="160" /></Grid.ColumnDefinitions>
-          <StackPanel><TextBlock Style="{StaticResource Label}" Text="Name separators (space between each)" /><TextBox x:Name="separatorsBox" Margin="0,0,8,0" /></StackPanel>
-          <StackPanel Grid.Column="1"><TextBlock Style="{StaticResource Label}" Text="Check every (minutes)" /><TextBox x:Name="refreshMinutesBox" /></StackPanel>
-        </Grid>
-        <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
-          <Button x:Name="refreshLibraryButton" Content="Refresh now" />
-          <Button x:Name="rebuildLibraryButton" Content="Rebuild cache" />
-          <Button x:Name="clearArtButton" Content="Clear art cache" />
-        </StackPanel>
-        <TextBlock x:Name="libraryStatusText" Style="{StaticResource Quiet}" />
-        <TextBlock Text="Damaged files" FontWeight="SemiBold" Margin="0,20,0,0" />
-        <TextBlock Style="{StaticResource Quiet}" TextWrapping="Wrap" Text="Tracks that failed to decode while playing, so they skip or go quiet. Restore them from a backup or re-rip them, then clear the list." />
-        <TextBox x:Name="damagedFilesBox" IsReadOnly="True" Height="140" Margin="0,6,0,0" TextWrapping="NoWrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" FontFamily="Consolas" />
-        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-          <Button x:Name="copyDamagedButton" Content="Copy list" />
-          <Button x:Name="clearDamagedButton" Content="Clear list" />
-        </StackPanel>
+      <StackPanel Margin="20,8,20,16">
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <TextBlock Text="Albums are built from" Style="{StaticResource CardTitle}" />
+            <RadioButton x:Name="folderAlbumsRadio" GroupName="albumSource" Margin="0,4,0,0"><TextBlock TextWrapping="Wrap"><Run FontWeight="SemiBold" Text="Folders" /><Run Foreground="#666" Text="  one folder is one album or CD (CD1/CD2 subfolders join their parent)" /></TextBlock></RadioButton>
+            <RadioButton x:Name="tagAlbumsRadio" GroupName="albumSource" Margin="0,6,0,0"><TextBlock TextWrapping="Wrap"><Run FontWeight="SemiBold" Text="Tags" /><Run Foreground="#666" Text="  Lyrion's own albums" /></TextBlock></RadioButton>
+          </StackPanel>
+        </Border>
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <TextBlock Text="An artist's &quot;Also appears on&quot; includes" Style="{StaticResource CardTitle}" />
+            <RadioButton x:Name="anyCreditRadio" GroupName="grouping" Margin="0,4,0,0"><TextBlock TextWrapping="Wrap"><Run FontWeight="SemiBold" Text="Any credit" /><Run Foreground="#666" Text="  album artist, track artist, composer, conductor or band" /></TextBlock></RadioButton>
+            <RadioButton x:Name="albumArtistRadio" GroupName="grouping" Margin="0,6,0,0"><TextBlock><Run FontWeight="SemiBold" Text="Album artist text only" /></TextBlock></RadioButton>
+          </StackPanel>
+        </Border>
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <TextBlock Text="Names" Style="{StaticResource CardTitle}" />
+            <Grid Margin="0,4,0,0">
+              <Grid.ColumnDefinitions><ColumnDefinition Width="230" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+              <Grid.RowDefinitions><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+              <TextBlock Text="Composer and conductor names" VerticalAlignment="Center" />
+              <ComboBox x:Name="nameOrderBox" Grid.Column="1" Width="260" HorizontalAlignment="Left"><ComboBoxItem Tag="surname" Content="Surname, Forename (Kapustin, Nikolai)" /><ComboBoxItem Tag="forename" Content="Forename Surname (Nikolai Kapustin)" /></ComboBox>
+              <TextBlock Grid.Row="1" Text="Name separators" VerticalAlignment="Center" Margin="0,8,0,0" />
+              <TextBox x:Name="separatorsBox" Grid.Row="1" Grid.Column="1" Margin="0,8,0,0" ToolTip="Space between each" />
+            </Grid>
+            <CheckBox x:Name="readSurnameFirstBox" Content="Read composer and conductor tags like &quot;Kapustin, Nikolai&quot; as one person" />
+            <CheckBox x:Name="hideOwnComposersBox" Content="Composers list: leave out artists credited as composer only on their own albums (singer-songwriters)" />
+            <Expander Header="How names are split" Style="{StaticResource More}">
+              <Border Style="{StaticResource Callout}" Margin="0,6,0,0"><Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+                <TextBlock Text="Artists" FontWeight="SemiBold" Margin="0,2,16,4" /><TextBlock Grid.Column="1" Style="{StaticResource CalloutText}" Margin="0,2,0,4" Text="Split on the separators, never on commas: &quot;Earth, Wind &amp; Fire&quot; stays whole." />
+                <TextBlock Grid.Row="1" Text="Composers, conductors" FontWeight="SemiBold" Margin="0,2,16,4" /><TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource CalloutText}" Margin="0,2,0,4" Text="Also split on commas, except &quot;Surname, Forename&quot; (one word before the comma) when the tickbox above is on." />
+                <TextBlock Grid.Row="2" Text="Word separators" FontWeight="SemiBold" Margin="0,2,16,0" /><TextBlock Grid.Row="2" Grid.Column="1" Style="{StaticResource CalloutText}" Margin="0,2,0,0" Text="Words like &quot;and&quot; or &quot;with&quot; only split when they have spaces round them." />
+              </Grid></Border>
+            </Expander>
+          </StackPanel>
+        </Border>
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <TextBlock Text="Lists" Style="{StaticResource CardTitle}" />
+            <Grid Margin="0,4,0,0">
+              <Grid.ColumnDefinitions><ColumnDefinition Width="230" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+              <Grid.RowDefinitions><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+              <TextBlock Text="Counts in Genres, Artists and other lists" VerticalAlignment="Center" TextWrapping="Wrap" />
+              <ComboBox x:Name="listCountsBox" Grid.Column="1" Width="230" />
+              <TextBlock Grid.Row="1" Text="Show how many items graphically" VerticalAlignment="Center" Margin="0,8,0,0" />
+              <ComboBox x:Name="listGraphicBox" Grid.Row="1" Grid.Column="1" Width="230" VerticalAlignment="Center" Margin="0,8,0,0" />
+              <Border Grid.Row="1" Grid.Column="2" Background="#1B2233" CornerRadius="6" Padding="10,6" Margin="14,8,0,0" HorizontalAlignment="Left"><StackPanel x:Name="listGraphicPreview" Width="230" /></Border>
+            </Grid>
+          </StackPanel>
+        </Border>
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <TextBlock Text="Cache" Style="{StaticResource CardTitle}" />
+            <StackPanel Orientation="Horizontal" Margin="0,4,0,0"><TextBlock Text="Check the server for changes every" VerticalAlignment="Center" Margin="0,0,8,0" /><TextBox x:Name="refreshMinutesBox" Width="50" /><TextBlock Text="minutes" VerticalAlignment="Center" Margin="8,0,0,0" /></StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+              <Button x:Name="refreshLibraryButton" Content="Refresh now" />
+              <Button x:Name="rebuildLibraryButton" Content="Rebuild cache" />
+              <Button x:Name="clearArtButton" Content="Clear art cache" />
+            </StackPanel>
+            <TextBlock x:Name="libraryStatusText" Style="{StaticResource Quiet}" />
+          </StackPanel>
+        </Border>
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <TextBlock Text="Damaged files" Style="{StaticResource CardTitle}" />
+            <Border Style="{StaticResource Warning}" Margin="0,4,0,0"><DockPanel><TextBlock Style="{StaticResource WarningIcon}" /><TextBlock Style="{StaticResource CalloutText}" Text="Tracks with frames that failed to decode while playing. They play past the bad parts, which may skip or go quiet. Restore them from a backup or re-rip them, then clear the list." /></DockPanel></Border>
+            <TextBox x:Name="damagedFilesBox" IsReadOnly="True" Height="140" Margin="0,10,0,0" TextWrapping="NoWrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" FontFamily="Consolas" />
+            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+              <Button x:Name="copyDamagedButton" Content="Copy list" />
+              <Button x:Name="clearDamagedButton" Content="Clear list" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
       </StackPanel>
       </ScrollViewer>
     </TabItem>
     <TabItem Header="Browsing" x:Name="browsingTab">
       <ScrollViewer VerticalScrollBarVisibility="Auto">
-      <StackPanel Margin="16">
-        <TextBlock Text="Group by options offered at the top of each view" FontWeight="SemiBold" />
-        <WrapPanel x:Name="groupingChoicesPanel" Margin="0,6,0,0" />
-        <TextBlock Text="Starting grouping for each area (change it any time from the view's Group menu)" FontWeight="SemiBold" Margin="0,18,0,0" />
-        <Grid x:Name="defaultGroupingGrid" Margin="0,6,0,0">
-          <Grid.ColumnDefinitions><ColumnDefinition Width="120" /><ColumnDefinition Width="200" /></Grid.ColumnDefinitions>
-        </Grid>
-        <TextBlock Style="{StaticResource Quiet}" Margin="0,12,0,0" TextWrapping="Wrap" Text="Sort and View (Large, Compact or List) are remembered per area from the toolbar in the main window." />
-        <TextBlock Text="Custom views" FontWeight="SemiBold" Margin="0,22,0,0" />
-        <TextBlock x:Name="customViewsText" Margin="0,6,0,0" TextWrapping="Wrap" Text="The built-in lists browse your whole library one way: pick a composer, see their albums. A custom view first narrows the library to genres you choose, then steps through the order you choose, such as Genre, then Composer, then albums. So a Classical view lists only classical composers, without the pop songwriters credited on your other albums, and lets you ask questions the built-in lists can't, like which composers you have in Choral, or which genres you have of Bach." />
-        <Button x:Name="customViewsButton" Content="Edit custom views…" HorizontalAlignment="Left" Margin="0,10,0,0" Padding="12,4" />
+      <StackPanel Margin="20,8,20,16">
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <TextBlock Text="Group by options" Style="{StaticResource CardTitle}" />
+            <TextBlock Style="{StaticResource Quiet}" Margin="0,0,0,4" Text="Offered in the Group menu at the top of each view." />
+            <WrapPanel x:Name="groupingChoicesPanel" />
+          </StackPanel>
+        </Border>
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <TextBlock Text="Starting grouping for each area" Style="{StaticResource CardTitle}" />
+            <TextBlock Style="{StaticResource Quiet}" Margin="0,0,0,4" Text="Change it any time from the view's Group menu." />
+            <Grid x:Name="defaultGroupingGrid">
+              <Grid.ColumnDefinitions><ColumnDefinition Width="120" /><ColumnDefinition Width="200" /></Grid.ColumnDefinitions>
+            </Grid>
+            <Border Style="{StaticResource Callout}"><DockPanel><TextBlock Style="{StaticResource CalloutIcon}" /><TextBlock Style="{StaticResource CalloutText}" Text="Sort and View are remembered per area from the toolbar in the main window." /></DockPanel></Border>
+          </StackPanel>
+        </Border>
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <TextBlock Text="Custom views" Style="{StaticResource CardTitle}" />
+            <TextBlock Style="{StaticResource Quiet}" Text="Your own browse paths, like Genre → Composer → albums, limited to the genres you choose." />
+            <Expander Header="How custom views differ from the built-in lists" Style="{StaticResource More}">
+              <Border Style="{StaticResource Callout}" Margin="0,6,0,0"><DockPanel><TextBlock Style="{StaticResource CalloutIcon}" /><TextBlock x:Name="customViewsText" Style="{StaticResource CalloutText}" Text="The built-in lists browse your whole library one way: pick a composer, see their albums. A custom view first narrows the library to genres you choose, then steps through the order you choose, such as Genre, then Composer, then albums. So a Classical view lists only classical composers, without the pop songwriters credited on your other albums, and lets you ask questions the built-in lists can't, like which composers you have in Choral, or which genres you have of Bach." /></DockPanel></Border>
+            </Expander>
+            <Button x:Name="customViewsButton" Content="Edit custom views…" HorizontalAlignment="Left" Margin="0,12,0,0" />
+          </StackPanel>
+        </Border>
       </StackPanel>
       </ScrollViewer>
     </TabItem>
     <TabItem Header="Look" Style="{StaticResource SectionHeader}" />
     <TabItem Header="Appearance" x:Name="appearanceTab">
       <ScrollViewer VerticalScrollBarVisibility="Auto">
-      <StackPanel Margin="16">
-        <TextBlock Style="{StaticResource Label}" Text="Skin (changes the main window as you pick)" />
-        <ComboBox x:Name="skinBox" Width="260" HorizontalAlignment="Left" Margin="0,0,0,14" />
-        <TextBlock Style="{StaticResource Label}" Text="Accent colour" />
-        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-          <Border x:Name="accentSwatch" Width="28" Height="22" CornerRadius="4" BorderBrush="#40FFFFFF" BorderThickness="1" Margin="0,0,8,0" />
-          <Button x:Name="accentChooseButton" Content="Choose…" Padding="10,2" Margin="0,0,6,0" />
-          <Button x:Name="accentResetButton" Content="Reset to default blue" Padding="10,2" />
-        </StackPanel>
-        <CheckBox x:Name="coverAccentBox" Content="Or take it from the playing album's cover (frosted skins)" Margin="0,0,0,8" />
-        <CheckBox x:Name="coverBackdropBox" Content="Tint Now playing with the album cover's colours" Margin="0,0,0,14" />
-        <TextBlock Style="{StaticResource Label}" Text="Size of everything in the main window" />
-        <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
-          <TextBlock Text="Scale" Width="100" VerticalAlignment="Center" />
-          <Slider x:Name="uiScaleSlider" Minimum="75" Maximum="150" Width="220" IsSnapToTickEnabled="True" TickFrequency="5" VerticalAlignment="Center" />
-          <TextBlock x:Name="uiScaleText" Width="50" Margin="8,0,0,0" VerticalAlignment="Center" />
-          <Button x:Name="uiScaleResetButton" Content="Reset to 100%" Padding="10,2" />
-        </StackPanel>
-        <TextBlock Style="{StaticResource Label}" Text="Glass (frosted skins with glass on)" />
-        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-          <TextBlock Text="Transparency" Width="100" VerticalAlignment="Center" />
-          <Slider x:Name="glassTransparencySlider" Minimum="0" Maximum="100" Width="220" IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center" />
-          <TextBlock x:Name="glassTransparencyText" Width="70" Margin="8,0,0,0" VerticalAlignment="Center" />
-        </StackPanel>
-        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-          <TextBlock Text="Tint" Width="100" VerticalAlignment="Center" />
-          <Slider x:Name="glassTintSlider" Minimum="0" Maximum="360" Width="220" IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center" />
-          <Border x:Name="glassTintSwatch" Width="22" Height="16" CornerRadius="3" Margin="8,0,0,0" BorderBrush="#40FFFFFF" BorderThickness="1" />
-          <TextBlock x:Name="glassTintText" Width="60" Margin="6,0,0,0" VerticalAlignment="Center" />
-        </StackPanel>
-        <Button x:Name="glassResetButton" Content="Reset glass to default" HorizontalAlignment="Left" Padding="10,2" Margin="100,2,0,8" />
-        <CheckBox x:Name="glassInactiveBox" Content="Keep the glass when WinSqueeze isn't the active window" Margin="0,0,0,14" />
-        <CheckBox x:Name="glassBox" Content="Glass: let the desktop show through the window, frosted (Windows 11)" />
-        <CheckBox x:Name="framelessBox" Content="Frameless window (default): no title bar or standard border. Drag from the top strip, resize from the edges. Untick for the standard Windows title bar." Margin="0,8,0,0" />
-        <TextBlock Style="{StaticResource Quiet}" Margin="0,12,0,0" TextWrapping="Wrap" Text="Meter style: click the meters in Now playing to cycle VU, OLED VU and bars." />
+      <StackPanel Margin="20,8,20,16">
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <TextBlock Text="Skin" Style="{StaticResource CardTitle}" />
+            <TextBlock Style="{StaticResource Quiet}" Margin="0,0,0,6" Text="The main window changes as you pick." />
+            <ComboBox x:Name="skinBox" Width="260" HorizontalAlignment="Left" />
+          </StackPanel>
+        </Border>
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <TextBlock Text="Colour" Style="{StaticResource CardTitle}" />
+            <StackPanel Orientation="Horizontal" Margin="0,4,0,6">
+              <Border x:Name="accentSwatch" Width="28" Height="22" CornerRadius="4" BorderBrush="#40FFFFFF" BorderThickness="1" Margin="0,0,8,0" />
+              <Button x:Name="accentChooseButton" Content="Choose…" Margin="0,0,6,0" />
+              <Button x:Name="accentResetButton" Content="Reset to default blue" />
+            </StackPanel>
+            <CheckBox x:Name="coverAccentBox" Content="Or take the accent from the playing album's cover (frosted skins)" />
+            <CheckBox x:Name="coverBackdropBox" Content="Tint Now playing with the album cover's colours" />
+          </StackPanel>
+        </Border>
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <TextBlock Text="Size" Style="{StaticResource CardTitle}" />
+            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+              <TextBlock Text="Scale" Width="100" VerticalAlignment="Center" />
+              <Slider x:Name="uiScaleSlider" Minimum="75" Maximum="150" Width="220" IsSnapToTickEnabled="True" TickFrequency="5" VerticalAlignment="Center" />
+              <TextBlock x:Name="uiScaleText" Width="50" Margin="8,0,0,0" VerticalAlignment="Center" />
+              <Button x:Name="uiScaleResetButton" Content="Reset to 100%" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <TextBlock Text="Glass" Style="{StaticResource CardTitle}" />
+            <CheckBox x:Name="glassBox" Content="Let the desktop show through the window, frosted (Windows 11)" Margin="0,4,0,8" />
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+              <TextBlock Text="Transparency" Width="100" VerticalAlignment="Center" />
+              <Slider x:Name="glassTransparencySlider" Minimum="0" Maximum="100" Width="220" IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center" />
+              <TextBlock x:Name="glassTransparencyText" Width="70" Margin="8,0,0,0" VerticalAlignment="Center" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+              <TextBlock Text="Tint" Width="100" VerticalAlignment="Center" />
+              <Slider x:Name="glassTintSlider" Minimum="0" Maximum="360" Width="220" IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center" />
+              <Border x:Name="glassTintSwatch" Width="22" Height="16" CornerRadius="3" Margin="8,0,0,0" BorderBrush="#40FFFFFF" BorderThickness="1" />
+              <TextBlock x:Name="glassTintText" Width="60" Margin="6,0,0,0" VerticalAlignment="Center" />
+            </StackPanel>
+            <Button x:Name="glassResetButton" Content="Reset glass to default" HorizontalAlignment="Left" Margin="100,2,0,0" />
+            <CheckBox x:Name="glassInactiveBox" Content="Keep the glass when WinSqueeze isn't the active window" />
+          </StackPanel>
+        </Border>
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <TextBlock Text="Window" Style="{StaticResource CardTitle}" />
+            <CheckBox x:Name="framelessBox" Content="Frameless window (default)" Margin="0,4,0,0" />
+            <TextBlock Style="{StaticResource Quiet}" Margin="22,2,0,0" Text="No title bar or standard border: drag from the top strip, resize from the edges. Untick for the standard Windows title bar." />
+          </StackPanel>
+        </Border>
+        <Border Style="{StaticResource Callout}" Margin="0"><DockPanel><TextBlock Style="{StaticResource CalloutIcon}" /><TextBlock Style="{StaticResource CalloutText}" Text="Meter style: click the meters in Now playing to cycle VU, OLED VU and bars." /></DockPanel></Border>
       </StackPanel>
       </ScrollViewer>
     </TabItem>
     <TabItem Header="Meters" x:Name="metersTab">
       <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="16">
-          <TextBlock Style="{StaticResource Quiet}" TextWrapping="Wrap" Margin="0,0,0,12" Text="All meters read the exact samples sent to your DAC (with hardware volume on, that's the full-level signal, before the device's volume). Changes show live." />
-          <StackPanel x:Name="metersPanel" />
-          <Button x:Name="metersResetButton" Content="Reset to defaults" HorizontalAlignment="Left" Padding="10,3" Margin="0,8,0,0" />
+        <StackPanel Margin="20,8,20,16">
+          <Border Style="{StaticResource Callout}" Margin="0,0,0,12"><DockPanel><TextBlock Style="{StaticResource CalloutIcon}" /><TextBlock Style="{StaticResource CalloutText}" Text="All meters read the exact samples sent to your DAC (with hardware volume on, that's the full-level signal, before the device's volume). Changes show live." /></DockPanel></Border>
+          <Border Style="{StaticResource Card}">
+            <StackPanel>
+              <StackPanel x:Name="metersPanel" />
+              <Button x:Name="metersResetButton" Content="Reset to defaults" HorizontalAlignment="Left" Margin="0,8,0,0" />
+            </StackPanel>
+          </Border>
         </StackPanel>
       </ScrollViewer>
     </TabItem>
     <TabItem Header="App" Style="{StaticResource SectionHeader}" />
     <TabItem Header="General" x:Name="generalTab">
       <ScrollViewer VerticalScrollBarVisibility="Auto">
-      <StackPanel Margin="16">
-        <CheckBox x:Name="startWithWindowsBox" Content="Start with Windows" />
-        <CheckBox x:Name="startMinimisedBox" Content="Start minimised to tray" />
-        <CheckBox x:Name="closeHidesBox" Content="Close (X) hides to tray and keeps playing (otherwise it quits)" />
-        <StackPanel Orientation="Horizontal" Margin="0,4,0,0"><CheckBox x:Name="showHintsBox" Content="Show hints around the app" VerticalAlignment="Center" /><Button x:Name="resetHintsButton" Content="Show all hints again" Margin="12,0,0,0" Padding="10,2" /></StackPanel>
-        <TextBlock Style="{StaticResource Label}" Text="When another Squeezelite is running at launch" Margin="0,16,0,3" />
-        <ComboBox x:Name="otherSqueezeliteCombo" Width="320" HorizontalAlignment="Left">
-          <ComboBoxItem Content="Ask me" Tag="Ask" />
-          <ComboBoxItem Content="Always stop it" Tag="Stop" />
-          <ComboBoxItem Content="Leave it running" Tag="Leave" />
-        </ComboBox>
-        <TextBlock Text="Settings file" FontWeight="SemiBold" Margin="0,20,0,4" />
-        <StackPanel Orientation="Horizontal">
-          <Button x:Name="exportSettingsButton" Content="Export settings…" />
-          <Button x:Name="importSettingsButton" Content="Import settings…" />
-        </StackPanel>
-        <TextBlock x:Name="settingsFileText" Style="{StaticResource Quiet}" Text="Exports everything except passwords, as a JSON file you can keep or copy to another PC." />
+      <StackPanel Margin="20,8,20,16">
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <TextBlock Text="Starting and closing" Style="{StaticResource CardTitle}" />
+            <CheckBox x:Name="startWithWindowsBox" Content="Start with Windows" Margin="0,4,0,0" />
+            <CheckBox x:Name="startMinimisedBox" Content="Start minimised to tray" />
+            <CheckBox x:Name="closeHidesBox" Content="Close (X) hides to tray and keeps playing (otherwise it quits)" />
+            <TextBlock Style="{StaticResource Label}" Text="When another Squeezelite is running at launch" Margin="0,14,0,3" />
+            <ComboBox x:Name="otherSqueezeliteCombo" Width="320" HorizontalAlignment="Left">
+              <ComboBoxItem Content="Ask me" Tag="Ask" />
+              <ComboBoxItem Content="Always stop it" Tag="Stop" />
+              <ComboBoxItem Content="Leave it running" Tag="Leave" />
+            </ComboBox>
+          </StackPanel>
+        </Border>
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <TextBlock Text="Hints" Style="{StaticResource CardTitle}" />
+            <StackPanel Orientation="Horizontal" Margin="0,4,0,0"><CheckBox x:Name="showHintsBox" Content="Show hints around the app" VerticalAlignment="Center" Margin="0" /><Button x:Name="resetHintsButton" Content="Show all hints again" Margin="12,0,0,0" /></StackPanel>
+          </StackPanel>
+        </Border>
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <TextBlock Text="Settings file" Style="{StaticResource CardTitle}" />
+            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+              <Button x:Name="exportSettingsButton" Content="Export settings…" />
+              <Button x:Name="importSettingsButton" Content="Import settings…" />
+            </StackPanel>
+            <TextBlock x:Name="settingsFileText" Style="{StaticResource Quiet}" Text="Exports everything except passwords, as a JSON file you can keep or copy to another PC." />
+          </StackPanel>
+        </Border>
       </StackPanel>
       </ScrollViewer>
     </TabItem>
     <TabItem Header="Shortcuts" x:Name="shortcutsTab">
       <ScrollViewer VerticalScrollBarVisibility="Auto">
-      <StackPanel Margin="16">
-        <TextBlock Text="In the window" FontWeight="SemiBold" />
-        <TextBlock Style="{StaticResource Quiet}" TextWrapping="Wrap" Margin="0,4,0,0" Text="Space play/pause · Ctrl+Left/Right previous/next · Ctrl+Up/Down volume · Ctrl+F search · Ctrl+N new playlist · Ctrl+Z undo (keeps going back) · Ctrl+Y or Ctrl+Shift+Z redo · Ctrl+1/2/3 window mode · Ctrl+, settings · Ctrl+Q quit · Esc back or clear selection · With items selected: Enter play now, N play next, E add to end, I info, Del remove" />
-        <TextBlock Text="Keyboard media keys" FontWeight="SemiBold" Margin="0,16,0,0" />
-        <TextBlock Style="{StaticResource Quiet}" TextWrapping="Wrap" Margin="0,4,0,0" Text="Play/pause, next and previous keys control WinSqueeze through the Windows media overlay." />
-        <CheckBox x:Name="globalHotkeysBox" Content="Global hotkeys: Ctrl+Alt+Space play/pause, Ctrl+Alt+Left/Right previous/next, Ctrl+Alt+Up/Down volume, from any app" Margin="0,16,0,0" />
-        <TextBlock x:Name="hotkeyStatusText" Style="{StaticResource Quiet}" TextWrapping="Wrap" />
+      <StackPanel Margin="20,8,20,16">
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <TextBlock Text="In the window" Style="{StaticResource CardTitle}" />
+            <Grid x:Name="windowShortcutsTable" Margin="0,4,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="230" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions></Grid>
+          </StackPanel>
+        </Border>
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <TextBlock Text="With items selected" Style="{StaticResource CardTitle}" />
+            <Grid x:Name="selectionShortcutsTable" Margin="0,4,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="230" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions></Grid>
+          </StackPanel>
+        </Border>
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <TextBlock Text="From any app" Style="{StaticResource CardTitle}" />
+            <TextBlock Style="{StaticResource Quiet}" Margin="0,0,0,6" Text="Keyboard media keys (play/pause, next, previous) always control WinSqueeze through the Windows media overlay." />
+            <CheckBox x:Name="globalHotkeysBox" Content="Global hotkeys" Margin="0,0,0,4" />
+            <Grid x:Name="globalShortcutsTable"><Grid.ColumnDefinitions><ColumnDefinition Width="230" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions></Grid>
+            <TextBlock x:Name="hotkeyStatusText" Style="{StaticResource Quiet}" />
+          </StackPanel>
+        </Border>
       </StackPanel>
       </ScrollViewer>
     </TabItem>
     <TabItem Header="Notifications" x:Name="notificationsTab">
       <ScrollViewer VerticalScrollBarVisibility="Auto">
-      <StackPanel Margin="16">
-        <CheckBox x:Name="trackToastsBox" Content="Show a notification when a new track starts" />
-        <TextBlock Style="{StaticResource Quiet}" TextWrapping="Wrap" Margin="0,10,0,0" Text="Output device missing and update-ready alerts are always shown." />
+      <StackPanel Margin="20,8,20,16">
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <TextBlock Text="Notifications" Style="{StaticResource CardTitle}" />
+            <CheckBox x:Name="trackToastsBox" Content="Show a notification when a new track starts" Margin="0,4,0,0" />
+            <Border Style="{StaticResource Callout}"><DockPanel><TextBlock Style="{StaticResource CalloutIcon}" /><TextBlock Style="{StaticResource CalloutText}" Text="Output device missing and update-ready alerts are always shown." /></DockPanel></Border>
+          </StackPanel>
+        </Border>
       </StackPanel>
       </ScrollViewer>
     </TabItem>
     <TabItem Header="About" x:Name="aboutTab">
       <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="16">
-          <TextBlock x:Name="versionText" FontSize="16" FontWeight="SemiBold" />
-          <TextBlock x:Name="dataFolderText" Style="{StaticResource Quiet}" />
-          <TextBlock Text="Updates" FontWeight="SemiBold" Margin="0,16,0,4" />
-          <StackPanel Orientation="Horizontal">
-            <TextBlock Text="Channel" VerticalAlignment="Center" Margin="0,0,8,0" />
-            <ComboBox x:Name="channelCombo" Width="200" Margin="0,0,12,0">
-              <ComboBoxItem Content="Stable releases" Tag="stable" />
-              <ComboBoxItem Content="Dev builds (every change)" Tag="dev" />
-            </ComboBox>
-            <CheckBox x:Name="autoUpdateBox" Content="Download updates automatically" VerticalAlignment="Center" Margin="0" />
-          </StackPanel>
-          <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-            <Button x:Name="checkNowButton" Content="Check now" />
-            <Button x:Name="restartToUpdateButton" Content="Restart to update" Visibility="Collapsed" FontWeight="SemiBold" />
-          </StackPanel>
-          <TextBlock x:Name="updateStatusText" Style="{StaticResource Quiet}" />
-          <TextBlock Text="Versions" FontWeight="SemiBold" Margin="0,16,0,4" />
-          <DockPanel>
-            <StackPanel DockPanel.Dock="Right" Margin="8,0,0,0">
-              <Button x:Name="refreshVersionsButton" Content="Refresh" Margin="0,0,0,6" />
-              <Button x:Name="switchVersionButton" Content="Switch to this" IsEnabled="False" />
+        <StackPanel Margin="20,8,20,16">
+          <Border Style="{StaticResource Card}">
+            <StackPanel>
+              <TextBlock x:Name="versionText" FontSize="16" FontWeight="SemiBold" />
+              <TextBlock x:Name="dataFolderText" Style="{StaticResource Quiet}" />
+              <StackPanel Orientation="Horizontal" Margin="0,10,0,0"><Button x:Name="openLogsButton" Content="Open logs folder" /></StackPanel>
             </StackPanel>
-            <ListBox x:Name="versionsList" Height="130">
-              <ListBox.ItemTemplate><DataTemplate><StackPanel Orientation="Horizontal"><TextBlock Text="{Binding Label}" /><TextBlock Text="  ✔ running now" Foreground="#2E9E44" FontWeight="SemiBold" Visibility="{Binding CurrentVisibility}" /></StackPanel></DataTemplate></ListBox.ItemTemplate>
-            </ListBox>
-          </DockPanel>
-          <TextBlock x:Name="versionNotesText" Style="{StaticResource Quiet}" />
-          <TextBlock Margin="0,4,0,0"><Hyperlink x:Name="versionDiscussionLink">Comments for this version</Hyperlink></TextBlock>
-          <TextBlock Style="{StaticResource Quiet}" Margin="0,16,0,0" Text="WinSqueeze is free software under the GNU GPL v3. It bundles Squeezelite 2.0.0-1610 (Adrian Smith, Ralph Irving), GPL v3; its licence is in the squeezelite folder next to WinSqueeze.exe." />
-          <TextBlock Margin="0,4,0,0"><Hyperlink x:Name="squeezeliteSourceLink" NavigateUri="https://github.com/ralph-irving/squeezelite">Squeezelite source code</Hyperlink></TextBlock>
-          <StackPanel Orientation="Horizontal" Margin="0,16,0,0"><Button x:Name="openLogsButton" Content="Open logs folder" /></StackPanel>
+          </Border>
+          <Border Style="{StaticResource Card}">
+            <StackPanel>
+              <TextBlock Text="Updates" Style="{StaticResource CardTitle}" />
+              <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                <TextBlock Text="Channel" VerticalAlignment="Center" Margin="0,0,8,0" />
+                <ComboBox x:Name="channelCombo" Width="200" Margin="0,0,12,0">
+                  <ComboBoxItem Content="Stable releases" Tag="stable" />
+                  <ComboBoxItem Content="Dev builds (every change)" Tag="dev" />
+                </ComboBox>
+                <CheckBox x:Name="autoUpdateBox" Content="Download updates automatically" VerticalAlignment="Center" Margin="0" />
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                <Button x:Name="checkNowButton" Content="Check now" />
+                <Button x:Name="restartToUpdateButton" Content="Restart to update" Visibility="Collapsed" FontWeight="SemiBold" />
+              </StackPanel>
+              <TextBlock x:Name="updateStatusText" Style="{StaticResource Quiet}" />
+            </StackPanel>
+          </Border>
+          <Border Style="{StaticResource Card}">
+            <StackPanel>
+              <TextBlock Text="Versions" Style="{StaticResource CardTitle}" />
+              <DockPanel Margin="0,4,0,0">
+                <StackPanel DockPanel.Dock="Right" Margin="8,0,0,0">
+                  <Button x:Name="refreshVersionsButton" Content="Refresh" Margin="0,0,0,6" />
+                  <Button x:Name="switchVersionButton" Content="Switch to this" IsEnabled="False" />
+                </StackPanel>
+                <ListBox x:Name="versionsList" Height="130">
+                  <ListBox.ItemTemplate><DataTemplate><StackPanel Orientation="Horizontal"><TextBlock Text="{Binding Label}" /><TextBlock Text="  ✔ running now" Foreground="#2E9E44" FontWeight="SemiBold" Visibility="{Binding CurrentVisibility}" /></StackPanel></DataTemplate></ListBox.ItemTemplate>
+                </ListBox>
+              </DockPanel>
+              <TextBlock x:Name="versionNotesText" Style="{StaticResource Quiet}" />
+              <TextBlock Margin="0,4,0,0"><Hyperlink x:Name="versionDiscussionLink">Comments for this version</Hyperlink></TextBlock>
+            </StackPanel>
+          </Border>
+          <Border Style="{StaticResource Callout}" Margin="0"><DockPanel><TextBlock Style="{StaticResource CalloutIcon}" /><StackPanel><TextBlock Style="{StaticResource CalloutText}" Text="WinSqueeze is free software under the GNU GPL v3. It bundles Squeezelite 2.0.0-1610 (Adrian Smith, Ralph Irving), GPL v3; its licence is in the squeezelite folder next to WinSqueeze.exe." /><TextBlock Margin="0,4,0,0"><Hyperlink x:Name="squeezeliteSourceLink" NavigateUri="https://github.com/ralph-irving/squeezelite">Squeezelite source code</Hyperlink></TextBlock></StackPanel></DockPanel></Border>
         </StackPanel>
       </ScrollViewer>
     </TabItem>
