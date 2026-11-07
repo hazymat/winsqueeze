@@ -541,7 +541,7 @@ public partial class SettingsWindow : Window
         report.AppendLine($"Windows: {System.Runtime.InteropServices.RuntimeInformation.OSDescription} · {System.Runtime.InteropServices.RuntimeInformation.OSArchitecture} · .NET {Environment.Version}");
         report.AppendLine($"Server: {(profile is { Host.Length: > 0 } ? $"{profile.Host}:{profile.Port}" : "none set")}");
         report.AppendLine($"Player: {audio.PlayerName} · {player.StatusText}{(player.State == PlayerState.Running ? (player.ExclusiveActive ? " · WASAPI exclusive" : " · shared") + (player.OutputSampleRate > 0 ? $" · {player.OutputSampleRate / 1000.0:0.#} kHz" : "") : "")}{(App.UsingFallbackDevice ? " (fallback device)" : "")}");
-        report.AppendLine($"Output device: {(audio.DeviceName == "" ? "Windows default" : audio.DeviceName)} ({audio.DeviceHostApi}) · exclusive {(audio.Exclusive ? "on" : "off")}");
+        report.AppendLine($"Output device: {(profile is null || profile.DeviceName == "" ? "Windows default" : $"{profile.DeviceName} ({profile.DeviceHostApi})")} · exclusive {(audio.Exclusive ? "on" : "off")}");
         report.AppendLine().AppendLine("--- crash.log (end) ---").AppendLine(LogTail("crash.log", 60));
         report.AppendLine().AppendLine("--- squeezelite.log (end) ---").AppendLine(LogTail("squeezelite.log", 60));
         return report.ToString();
