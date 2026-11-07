@@ -479,7 +479,7 @@
             <StackPanel>
               <TextBlock x:Name="versionText" FontSize="16" FontWeight="SemiBold" />
               <TextBlock x:Name="dataFolderText" Style="{StaticResource Quiet}" />
-              <StackPanel Orientation="Horizontal" Margin="0,10,0,0"><Button x:Name="openLogsButton" Content="Open logs folder" /></StackPanel>
+              <StackPanel Orientation="Horizontal" Margin="0,10,0,0"><Button x:Name="openLogsButton" Content="Open logs folder" /><Button x:Name="copyDiagnosticsButton" Content="Copy diagnostics" Margin="8,0,0,0" ToolTip="Copies version, Windows, server, player and audio details plus the end of the logs, ready to paste into a bug report" /><TextBlock x:Name="copyDiagnosticsDone" Style="{StaticResource Quiet}" VerticalAlignment="Center" Margin="10,0,0,0" /></StackPanel>
             </StackPanel>
           </Border>
           <Border Style="{StaticResource Card}">

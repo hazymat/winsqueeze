@@ -31,6 +31,7 @@
   import { accentFromCover } from './lib/coverAccent'
 
   let searchBox = $state<HTMLInputElement>()
+  let searchView = $state<SearchView>()
   let width = $state(window.innerWidth)
   let height = $state(window.innerHeight)
   const mini = $derived(height < 400 || width < 460) // short or narrow windows snap to the mini player, with big meters
@@ -237,7 +238,7 @@
       <header class="topbar" role="presentation" onmousedown={dragWindow}>
         {#if nav.stack.length || forwardHistory.views.length}<div class="history"><button class="ghost back" onclick={back} disabled={!nav.stack.length} aria-label="Back" title="Back (Alt+Left)"><Icon name="back" size={18} /></button><button class="ghost back" onclick={forward} disabled={!forwardHistory.views.length} aria-label="Forward" title="Forward (Alt+Right)"><Icon name="forward" size={18} /></button></div>{/if}
         <div class="search">
-          <input bind:this={searchBox} bind:value={ui.search} placeholder={ui.scope === 'everything' ? 'Search everything' : 'Search this list'} aria-label="Search" />
+          <input bind:this={searchBox} bind:value={ui.search} onkeydown={(event) => { if (event.key === 'ArrowDown' && everything && searchView) { event.preventDefault(); searchView.focusFirstResult() } }} placeholder={ui.scope === 'everything' ? 'Search everything' : 'Search this list'} aria-label="Search" />
           <div class="scope">
             <button class:on={ui.scope === 'list'} onclick={() => ui.scope = 'list'}>This list</button>
             <button class:on={ui.scope === 'everything'} onclick={() => ui.scope = 'everything'}>Everything</button>
@@ -259,7 +260,7 @@
         {#if view.kind === 'queue' && !everything}<main class="content now-playing-host"><NowPlaying /></main>{:else}
         <main class="content">
           {#if everything}
-            <SearchView />
+            <SearchView bind:this={searchView} {searchBox} />
           {:else if view.kind === 'artists' || view.kind === 'composers' || view.kind === 'performers' || view.kind === 'genres'}
             {#key view.kind}<PeopleList kind={view.kind} title={({ artists: 'Artists', composers: 'Composers', performers: 'Performers', genres: 'Genres' } as Record<string, string>)[view.kind]} />{/key}
           {:else if view.kind === 'folders'}

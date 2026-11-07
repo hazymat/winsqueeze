@@ -402,7 +402,7 @@ public partial class SettingsWindow : Window
 
     void WireShortcutsAndNotifications()
     {
-        FillShortcutTable(windowShortcutsTable, new[] { ("Space", "Play / pause"), ("Ctrl+Left / Ctrl+Right", "Previous / next track"), ("Ctrl+Up / Ctrl+Down", "Volume up / down"), ("Ctrl+F", "Search"), ("Ctrl+N", "New playlist"), ("Ctrl+Z", "Undo (press again to keep going back)"), ("Ctrl+Y / Ctrl+Shift+Z", "Redo"), ("Ctrl+1 / Ctrl+2 / Ctrl+3", "Window mode"), ("Ctrl+,", "Settings"), ("Ctrl+Q", "Quit"), ("Esc", "Close one thing at a time (menu, selection, search), then go back") });
+        FillShortcutTable(windowShortcutsTable, new[] { ("Space", "Play / pause"), ("Ctrl+Left / Ctrl+Right", "Previous / next track"), ("Ctrl+Up / Ctrl+Down", "Volume up / down"), ("Ctrl+F", "Search (then ↓ into the results, arrows to move, Enter to play or open)"), ("Ctrl+N", "New playlist"), ("Ctrl+Z", "Undo (press again to keep going back)"), ("Ctrl+Y / Ctrl+Shift+Z", "Redo"), ("Ctrl+1 / Ctrl+2 / Ctrl+3", "Window mode"), ("Ctrl+,", "Settings"), ("Ctrl+Q", "Quit"), ("Esc", "Close one thing at a time (menu, selection, search), then go back") });
         FillShortcutTable(selectionShortcutsTable, new[] { ("Enter", "Play now"), ("N", "Play next"), ("E", "Add to end"), ("I", "Info"), ("Del", "Remove") });
         FillShortcutTable(globalShortcutsTable, new[] { ("Ctrl+Alt+Space", "Play / pause"), ("Ctrl+Alt+Left / Ctrl+Alt+Right", "Previous / next track"), ("Ctrl+Alt+Up / Ctrl+Alt+Down", "Volume up / down") });
         var general = Settings.General;
@@ -525,12 +525,35 @@ public partial class SettingsWindow : Window
         openRecordFolderButton.Click += (sender, args) => { System.IO.Directory.CreateDirectory(App.Recorder.Folder); Process.Start("explorer.exe", App.Recorder.Folder); };
     }
 
+    // Everything a bug report needs, as plain text (SPEC.md › Diagnostics). No passwords
+    string DiagnosticsReport()
+    {
+        static string LogTail(string fileName, int lineCount)
+        {
+            var path = System.IO.Path.Combine(AppPaths.LogsFolder, fileName);
+            if (!System.IO.File.Exists(path)) return "(none)";
+            using var reader = new System.IO.StreamReader(new System.IO.FileStream(path, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.ReadWrite | System.IO.FileShare.Delete)); // Squeezelite's log is open for writing
+            var lines = reader.ReadToEnd().Split('\n'); return string.Join("\n", lines.Skip(Math.Max(0, lines.Length - lineCount))).TrimEnd();
+        }
+        var player = App.Player; var audio = Settings.Audio; var profile = Settings.ActiveProfile;
+        var report = new System.Text.StringBuilder();
+        report.AppendLine($"WinSqueeze {App.Updater.CurrentVersion} · {Settings.General.UpdateChannel} channel{(AppPaths.IsPortable ? " · portable" : "")}");
+        report.AppendLine($"Windows: {System.Runtime.InteropServices.RuntimeInformation.OSDescription} · {System.Runtime.InteropServices.RuntimeInformation.OSArchitecture} · .NET {Environment.Version}");
+        report.AppendLine($"Server: {(profile is { Host.Length: > 0 } ? $"{profile.Host}:{profile.Port}" : "none set")}");
+        report.AppendLine($"Player: {audio.PlayerName} · {player.StatusText}{(player.State == PlayerState.Running ? (player.ExclusiveActive ? " · WASAPI exclusive" : " · shared") + (player.OutputSampleRate > 0 ? $" · {player.OutputSampleRate / 1000.0:0.#} kHz" : "") : "")}{(App.UsingFallbackDevice ? " (fallback device)" : "")}");
+        report.AppendLine($"Output device: {(profile is null || profile.DeviceName == "" ? "Windows default" : $"{profile.DeviceName} ({profile.DeviceHostApi})")} · exclusive {(audio.Exclusive ? "on" : "off")}");
+        report.AppendLine().AppendLine("--- crash.log (end) ---").AppendLine(LogTail("crash.log", 60));
+        report.AppendLine().AppendLine("--- squeezelite.log (end) ---").AppendLine(LogTail("squeezelite.log", 60));
+        return report.ToString();
+    }
+
     void WireAboutTab()
     {
         versionText.Text = $"WinSqueeze {App.Updater.CurrentVersion}";
         dataFolderText.Text = (AppPaths.IsPortable ? "Portable mode. " : "") + $"Settings and logs: {AppPaths.DataFolder}";
         squeezeliteSourceLink.RequestNavigate += (sender, args) => OpenUrl(args.Uri.AbsoluteUri);
         openLogsButton.Click += (sender, args) => Process.Start(new ProcessStartInfo(AppPaths.LogsFolder) { UseShellExecute = true });
+        copyDiagnosticsButton.Click += (sender, args) => { try { Clipboard.SetText(DiagnosticsReport()); copyDiagnosticsDone.Text = "Copied. Check it before posting anywhere public: it includes your server address."; } catch (Exception error) { copyDiagnosticsDone.Text = "Couldn't copy: " + error.Message; } };
         channelCombo.SelectedItem = channelCombo.Items.Cast<ComboBoxItem>().First(item => (string)item.Tag == Settings.General.UpdateChannel);
         channelCombo.SelectionChanged += async (sender, args) =>
         {

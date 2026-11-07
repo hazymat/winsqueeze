@@ -297,7 +297,7 @@ Chosen direction: **Frosted Dark**, frosted glass meets Squeezebox hardware. iOS
 - Taskbar thumbnail buttons: previous, play/pause, next.
 - Track-change toast notifications: available, off by default.
 
-**Keyboard shortcuts (rebindable in settings):** Space play/pause; Ctrl+Left/Right previous/next; Ctrl+Up/Down volume; Ctrl+F search; Ctrl+N new playlist; Ctrl+1/2/3 window mode; Ctrl+, settings; Ctrl+Q quit. Optional global hotkeys, off by default.
+**Keyboard shortcuts (rebindable in settings):** Space play/pause; Ctrl+Left/Right previous/next; Ctrl+Up/Down volume; Ctrl+F search (Down from the search box moves into the results; arrows move between them, by row in grids; Enter plays or opens; Esc goes back to the search box); Ctrl+N new playlist; Ctrl+1/2/3 window mode; Ctrl+, settings; Ctrl+Q quit. Optional global hotkeys, off by default.
 
 **Esc closes one layer per press, innermost first:** an open menu, dropdown, popover or drag; then sidebar editing; info panels; full-window meters; a multi-selection; a toast; the search text; and only then goes back a level.
 
@@ -308,6 +308,8 @@ Squeezelite logs each decode error (for example a FLAC frame it can't read). Win
 ## Diagnostics
 
 Unhandled errors, background task errors, WebView2 renderer failures and UI-thread freezes over 8 seconds (hang watchdog) are written to `logs\crash.log` with the version and the last shell activity. The next launch shows a tip pointing to it. Squeezelite's log keeps at most 50 lines a second, so a retry loop can't flood it.
+
+**Copy diagnostics** (Settings › About) copies a plain-text report to the clipboard: version and channel, Windows, server address, player state, output device, and the end of crash.log and squeezelite.log. No passwords.
 
 ## Settings and servers
 
