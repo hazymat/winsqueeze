@@ -427,7 +427,7 @@ public partial class App : Application
         DamagedFound?.Invoke(damagedFile, what);
         if (mainWindow.IsVisible && mainWindow.WindowState != WindowState.Minimized) return;
         var heading = what switch { "skipped" => "Skipped a damaged file", "unplayable" => "Can't play a damaged file", _ => "This file is damaged" };
-        trayIcon.ShowTip(heading, $"{damagedFile.Title} · {damagedFile.Artist}. Settings › Library & cache lists damaged files.");
+        trayIcon.ShowTip(heading, $"{damagedFile.Title} · {damagedFile.Artist}. Library health lists damaged files.");
     }
 
     public string StatusJson() => JsonSerializer.Serialize(new

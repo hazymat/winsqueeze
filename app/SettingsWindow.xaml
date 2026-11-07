@@ -273,13 +273,10 @@
         </Border>
         <Border Style="{StaticResource Card}">
           <StackPanel>
-            <TextBlock Text="Damaged files" Style="{StaticResource CardTitle}" />
-            <Border Style="{StaticResource Warning}" Margin="0,4,0,0"><DockPanel><TextBlock Style="{StaticResource WarningIcon}" /><TextBlock Style="{StaticResource CalloutText}" Text="Tracks with frames that failed to decode while playing. They play past the bad parts, which may skip or go quiet. Restore them from a backup or re-rip them, then clear the list." /></DockPanel></Border>
-            <TextBox x:Name="damagedFilesBox" IsReadOnly="True" Height="140" Margin="0,10,0,0" TextWrapping="NoWrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" FontFamily="Consolas" />
-            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-              <Button x:Name="copyDamagedButton" Content="Copy list" />
-              <Button x:Name="clearDamagedButton" Content="Clear list" />
-            </StackPanel>
+            <TextBlock Text="Library health" Style="{StaticResource CardTitle}" />
+            <Border Style="{StaticResource Callout}" Margin="0,4,0,0"><DockPanel><TextBlock Style="{StaticResource CalloutIcon}" /><TextBlock Style="{StaticResource CalloutText}" Text="A report of albums missing cover art or composers, duplicate albums, inconsistent tags and names, and files with damaged frames found while playing. Each entry opens the album, so you can see what to fix in your tagger. WinSqueeze never changes your files." /></DockPanel></Border>
+            <TextBlock x:Name="damagedCountText" Style="{StaticResource Quiet}" />
+            <StackPanel Orientation="Horizontal" Margin="0,8,0,0"><Button x:Name="openHealthButton" Content="Open library health" /></StackPanel>
           </StackPanel>
         </Border>
       </StackPanel>
