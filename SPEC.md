@@ -332,7 +332,7 @@ A separate Settings window with tabs, in standard Windows style. Changes apply i
 
 | Tab | Settings |
 | --- | --- |
-| General | Settings export / import (JSON; everything except passwords and other secrets); Start with Windows; start minimised to tray; resume playing on startup (off); other Squeezelite at launch (ask / always stop / leave); minimise to tray when minimised; close (X) hides to tray / quits; remember window position; language |
+| General | Settings export / import (JSON; everything except passwords and other secrets); Start with Windows; resume playing on startup (off; when both are on, an amber bracket joins them with a warning that music may start as soon as the PC restarts); start minimised to tray; other Squeezelite at launch (ask / always stop / leave); minimise to tray when minimised; close (X) hides to tray / quits; remember window position; language |
 | Servers | Server finder (auto-discovery); profiles list (name, address, port, optional username/password); default profile; test connection |
 | Audio | Output device; driver type; exclusive mode on/off; volume mode (fixed / digital); player name (defaults to the computer name); extra Squeezelite arguments (advanced); fidelity warnings |
 | Playback | For the selected player (Lyrion player prefs, written only when changed): between tracks (nothing/gapless, crossfade, fade in, fade out, fade out and in), its length, smart (no crossfade within an album); ReplayGain (off, track, album, smart). On this PC these break bit-perfect, and the fidelity badge says so |
