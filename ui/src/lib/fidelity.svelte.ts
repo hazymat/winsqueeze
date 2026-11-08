@@ -9,10 +9,11 @@ export function fidelity() {
   const sourceRate = Number(track.samplerate ?? 0), outputRate = Number(status.sampleRate ?? 0)
   const volume = Math.abs(Number(app.nowPlaying?.['mixer volume'] ?? 100))
   const reasons: string[] = []
-  if (!status.exclusive) reasons.push('shared mode goes through the Windows mixer')
-  else if (sourceRate > 0 && outputRate > 0 && sourceRate !== outputRate) reasons.push(`the device is running at a different rate (resampled)`)
-  if (status.eqActive) reasons.push('the equaliser is on')
+  // Each reason stands alone (shown as its own bullet)
+  if (!status.exclusive) reasons.push('Shared mode goes through the Windows mixer')
+  else if (sourceRate > 0 && outputRate > 0 && sourceRate !== outputRate) reasons.push('The device runs at a different sample rate (resampled)')
+  if (status.eqActive) reasons.push('The equaliser is on')
   if (status.replayGain) reasons.push('ReplayGain is on (Settings › Playback)')
-  if (status.transitions) reasons.push('crossfade or fades are on (Settings › Playback)')
+  if (status.transitions) reasons.push('Crossfade or fades are on (Settings › Playback)')
   return { format: codec.replace('FLC', 'FLAC').replace('ALC', 'ALAC'), lossy: !['FLC', 'FLAC', 'ALC', 'ALAC', 'WAV', 'AIF', 'AIFF', 'PCM'].includes(codec), state: volume < 100 ? 'scaled' : reasons.length ? 'blocked' : 'perfect', reasons }
 }

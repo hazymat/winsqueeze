@@ -12,7 +12,7 @@
 </script>
 
 {#if track}
-  <div class="readout" title={ownPlayer ? (check.state === 'perfect' ? 'Bit-perfect' : check.reasons.length ? `Not bit-perfect: ${check.reasons.join(', ')}` : 'Signal path') : 'Another player'}>
+  <div class="readout" title={ownPlayer ? (check.state === 'perfect' ? 'Bit-perfect' : check.reasons.length ? 'Not bit-perfect:\n• ' + check.reasons.join('\n• ') : 'Signal path') : 'Another player'}>
     <span>{codec}{bits ? ` ${bits}` : ''}{sourceRate ? `/${formatRate(sourceRate).replace(' kHz', '')}` : ''}</span>
     {#if ownPlayer && app.status?.state === 'Running'}<span class="arrow">→</span><span>{app.status.exclusive ? 'WASAPI EXCL' : 'SHARED'}</span>{#if outputRate}<span class="arrow">→</span><span>{formatRate(outputRate)}</span>{/if}{/if}
   </div>
