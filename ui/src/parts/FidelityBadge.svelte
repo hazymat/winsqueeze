@@ -38,8 +38,8 @@
         {#if check.lossy}<p class="quiet">The source file is lossy (e.g. MP3), so it's a perfect copy of the decoded file, not of the original recording.</p>{/if}
       {:else if check.state === 'scaled'}<strong>Volume scaled</strong>
         <p>WinSqueeze is turning the audio down digitally, so it isn't bit-perfect. For bit-perfect playback, set this volume to 100 and use Windows' volume (or your DAC's own knob) to control the level.</p>
-        {#if check.reasons.length}<p class="quiet">Also not bit-perfect because {check.reasons.join(', ')}.</p>{/if}
-      {:else}<strong>Not bit-perfect</strong><p>Because {check.reasons.join(', ')}.</p>{/if}
+        {#if check.reasons.length}<p class="quiet">Also:</p><ul class="quiet">{#each check.reasons as reason}<li>{reason}</li>{/each}</ul>{/if}
+      {:else}<strong>Not bit-perfect</strong><ul>{#each check.reasons as reason}<li>{reason}</li>{/each}</ul>{/if}
       <button class="close" onclick={() => noteOpen = false}>OK</button>
     </div>
   {/if}
@@ -55,6 +55,7 @@
   .scaled:hover, .scaled.open { color: var(--fg); text-decoration: underline; text-underline-offset: 2px; }
   .note { position: absolute; right: 0; bottom: calc(100% + 8px); z-index: 50; width: 260px; padding: 12px 14px; background: var(--panel-solid); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 12px 32px var(--shadow); font-size: 12px; line-height: 1.45; color: var(--fg); }
   .note p { margin: 6px 0 0; } .note .quiet { color: var(--fg-quiet); }
+  .note ul { margin: 6px 0 0; padding-left: 16px; } .note li + li { margin-top: 3px; }
   .close { margin-top: 10px; float: right; background: var(--accent-soft); color: var(--fg); border: 0; border-radius: 6px; padding: 4px 12px; font: inherit; font-size: 12px; cursor: pointer; }
   .format:hover, .format.open { color: var(--fg); }
   .info { width: 300px; }
