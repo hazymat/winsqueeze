@@ -159,6 +159,30 @@ static int pa_callback(const void *pa_input, void *pa_output, unsigned long pa_f
 static int pa_callback(void *pa_input, void *pa_output, unsigned long pa_frames_wanted, 
 			   PaTimestamp outTime, void *userData);
 #endif
+#if WIN && !defined(PA18API)
+// WinSqueeze: PortAudio reports most WASAPI exclusive failures as "Invalid device"; log the Windows HRESULT behind it so the app can say why.
+// Some drivers refuse exclusive mode in event (pull) mode but accept polling (push) mode: retry once that way and keep using it if it works
+static bool wasapi_polling = false;
+static PaError open_output_stream(PaStreamParameters *params, double rate, PaStreamFlags flags) {
+	PaWasapiStreamInfo *wasapiInfo = (PaWasapiStreamInfo *)params->hostApiSpecificStreamInfo;
+	PaError err = Pa_OpenStream(&pa.stream, NULL, params, rate, paFramesPerBufferUnspecified, flags, pa_callback, NULL);
+	if (!wasapiInfo || (err != paInvalidDevice && err != paUnanticipatedHostError)) return err;
+	const PaHostErrorInfo *hostError = Pa_GetLastHostErrorInfo();
+	LOG_WARN("WASAPI exclusive open at %u refused: %s, hr 0x%08lX", (unsigned)rate, Pa_GetErrorText(err), hostError ? (unsigned long)hostError->errorCode : 0UL);
+	if (wasapiInfo->flags & paWinWasapiPolling) return err;
+	wasapiInfo->flags |= paWinWasapiPolling;
+	if ((err = Pa_OpenStream(&pa.stream, NULL, params, rate, paFramesPerBufferUnspecified, flags, pa_callback, NULL)) == paNoError) {
+		if (!wasapi_polling) LOG_INFO("WASAPI exclusive: event mode refused, using polling mode");
+		wasapi_polling = true;
+		return err;
+	}
+	hostError = Pa_GetLastHostErrorInfo();
+	LOG_WARN("WASAPI exclusive open at %u refused in polling mode too: %s, hr 0x%08lX", (unsigned)rate, Pa_GetErrorText(err), hostError ? (unsigned long)hostError->errorCode : 0UL);
+	wasapiInfo->flags &= ~paWinWasapiPolling;
+	return err;
+}
+#endif
+
 bool test_open(const char *device, unsigned rates[], bool userdef_rates) {
 	PaStreamParameters outputParameters;
 	PaError err;
@@ -196,7 +220,7 @@ bool test_open(const char *device, unsigned rates[], bool userdef_rates) {
 				wasapiInfo.size = sizeof(PaWasapiStreamInfo);
 				wasapiInfo.hostApiType = paWASAPI;
 				wasapiInfo.version = 1;
-				wasapiInfo.flags = paWinWasapiExclusive;
+				wasapiInfo.flags = paWinWasapiExclusive | (wasapi_polling ? paWinWasapiPolling : 0); // WinSqueeze: polling if event mode was refused
 				outputParameters.hostApiSpecificStreamInfo = &wasapiInfo;
 				LOG_INFO("opening WASAPI device in exclusive mode");
 			}
@@ -209,8 +233,12 @@ bool test_open(const char *device, unsigned rates[], bool userdef_rates) {
 	// Note use Pa_OpenStream as it appears more reliable than Pa_IsFormatSupported on some windows apis
 	for (i = 0, ind = 0; ref[i]; ++i) {
 #ifndef PA18API
+#if WIN
+		err = open_output_stream(&outputParameters, (double)ref[i], paNoFlag); // WinSqueeze
+#else
 		err = Pa_OpenStream(&pa.stream, NULL, &outputParameters, (double)ref[i],
 			paFramesPerBufferUnspecified, paNoFlag, pa_callback, NULL);
+#endif
 #else
 		err = Pa_OpenStream(&pa.stream, paNoDevice, 0, 0, NULL, outputParameters.device,
 			outputParameters.channelCount, outputParameters.sampleFormat, NULL, (double)ref[i],
@@ -386,7 +414,7 @@ void _pa_open(void) {
 					wasapiInfo.size = sizeof(PaWasapiStreamInfo);
 					wasapiInfo.hostApiType = paWASAPI;
 					wasapiInfo.version = 1;
-					wasapiInfo.flags = paWinWasapiExclusive;
+					wasapiInfo.flags = paWinWasapiExclusive | (wasapi_polling ? paWinWasapiPolling : 0); // WinSqueeze: polling if event mode was refused
 					outputParameters.hostApiSpecificStreamInfo = &wasapiInfo;
 					LOG_INFO("opening WASAPI device in exclusive mode");
 				}
@@ -397,8 +425,12 @@ void _pa_open(void) {
 
 	if (!err &&
 #ifndef PA18API
+#if WIN
+		(err = open_output_stream(&outputParameters, (double)output.current_sample_rate, paPrimeOutputBuffersUsingStreamCallback | paDitherOff)) != paNoError) { // WinSqueeze
+#else
 		(err = Pa_OpenStream(&pa.stream, NULL, &outputParameters, (double)output.current_sample_rate, paFramesPerBufferUnspecified,
 							 paPrimeOutputBuffersUsingStreamCallback | paDitherOff, pa_callback, NULL)) != paNoError) {
+#endif
 		LOG_WARN("error opening device %i - %s [%s] : %s", outputParameters.device, Pa_GetDeviceInfo(outputParameters.device)->name, 
 				  Pa_GetHostApiInfo(Pa_GetDeviceInfo(outputParameters.device)->hostApi)->name, Pa_GetErrorText(err));
 #else

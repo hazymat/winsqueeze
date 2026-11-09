@@ -494,7 +494,7 @@ public partial class SettingsWindow : Window
     void ShowPlayerStatus()
     {
         var player = App.Player;
-        var detail = player.State == PlayerState.Running ? (player.ExclusiveActive ? " · WASAPI exclusive" : player.ExclusiveRefused ? " · shared (device refused exclusive)" : " · shared") + (player.OutputSampleRate > 0 ? $" · {player.OutputSampleRate / 1000.0:0.#} kHz" : "") : "";
+        var detail = player.State == PlayerState.Running ? (player.ExclusiveActive ? " · WASAPI exclusive" : player.ExclusiveRefused ? $" · shared (exclusive refused: {player.ExclusiveRefusedReason})" : " · shared") + (player.OutputSampleRate > 0 ? $" · {player.OutputSampleRate / 1000.0:0.#} kHz" : "") : "";
         playerStatusText.Text = player.StatusText + detail + (App.UsingFallbackDevice ? " (fallback)" : "");
     }
 
@@ -772,7 +772,7 @@ public partial class SettingsWindow : Window
         report.AppendLine($"WinSqueeze {App.Updater.CurrentVersion} · {Settings.General.UpdateChannel} channel{(AppPaths.IsPortable ? " · portable" : "")}");
         report.AppendLine($"Windows: {System.Runtime.InteropServices.RuntimeInformation.OSDescription} · {System.Runtime.InteropServices.RuntimeInformation.OSArchitecture} · .NET {Environment.Version}");
         report.AppendLine($"Server: {(profile is { Host.Length: > 0 } ? $"{profile.Host}:{profile.Port}" : "none set")}");
-        report.AppendLine($"Player: {audio.PlayerName} · {player.StatusText}{(player.State == PlayerState.Running ? (player.ExclusiveActive ? " · WASAPI exclusive" : player.ExclusiveRefused ? " · shared (device refused exclusive)" : " · shared") + (player.OutputSampleRate > 0 ? $" · {player.OutputSampleRate / 1000.0:0.#} kHz" : "") : "")}{(App.UsingFallbackDevice ? " (fallback device)" : "")}");
+        report.AppendLine($"Player: {audio.PlayerName} · {player.StatusText}{(player.State == PlayerState.Running ? (player.ExclusiveActive ? " · WASAPI exclusive" : player.ExclusiveRefused ? $" · shared (exclusive refused: {player.ExclusiveRefusedReason})" : " · shared") + (player.OutputSampleRate > 0 ? $" · {player.OutputSampleRate / 1000.0:0.#} kHz" : "") : "")}{(App.UsingFallbackDevice ? " (fallback device)" : "")}");
         report.AppendLine($"Output device: {(profile is null || profile.DeviceName == "" ? $"Windows default ({App.WindowsDefaultName})" : $"{profile.DeviceName} ({profile.DeviceHostApi})")} · exclusive {(audio.Exclusive ? "on" : "off")}");
         report.AppendLine().AppendLine("--- crash.log (end) ---").AppendLine(LogTail("crash.log", 60));
         report.AppendLine().AppendLine("--- squeezelite.log (end) ---").AppendLine(LogTail("squeezelite.log", 60));
