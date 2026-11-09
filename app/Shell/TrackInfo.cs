@@ -12,6 +12,12 @@ public sealed class TrackInfo
     public record Result(bool Found, string Heading = "", string Subheading = "", string Text = "", string Image = "", string Source = "", string Link = "", object? Events = null)
     { public object ToJson() => new { found = Found, heading = Heading, subheading = Subheading, text = Text, image = Image, source = Source, link = Link, events = Events }; }
 
+    public static Request RequestFrom(JsonElement parameters)
+    {
+        string Text(string name) => parameters.ValueKind == JsonValueKind.Object && parameters.TryGetProperty(name, out var value) ? value.ValueKind == JsonValueKind.String ? value.GetString() ?? "" : value.GetRawText() : "";
+        return new(Text("kind"), long.TryParse(Text("id"), out var trackId) ? trackId : 0, Text("artistId"), Text("albumId"), Text("artist"), Text("album"), Text("title"), double.TryParse(Text("duration"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var duration) ? duration : 0, Text("remote") == "1");
+    }
+
     static App App => App.Instance;
     static readonly HttpClient web = NewWebClient();
     readonly Dictionary<string, Task<Result>> lookups = new(); // finished and in-flight, so switching tabs and track changes never ask twice
@@ -82,7 +88,7 @@ public sealed class TrackInfo
         if (request.TrackId <= 0 || App.IsOffline) return null;
         var songInfo = await App.ServerRequestAsync("", "songinfo", 0, 100, $"track_id:{request.TrackId}", "tags:W");
         if (!songInfo.TryGetProperty("songinfo_loop", out var fields)) return null;
-        foreach (var field in fields.EnumerateArray()) if (LyrionClient.ReadString(field, "lyrics") is { Length: > 0 } lyrics) return Found(request, CleanLyrics(lyrics), "The file's own tags");
+        foreach (var field in fields.EnumerateArray()) if (LyrionClient.ReadString(field, "lyrics") is { Length: > 0 } lyrics) return LyricsFound(request, lyrics, "The file's own tags");
         return null;
     }
 
@@ -107,7 +113,7 @@ public sealed class TrackInfo
                 parameters.Add("lyrics");
                 if (request.TrackId > 0) parameters.Add($"track_id:{request.TrackId}"); else parameters.AddRange(new object[] { $"artist:{request.Artist}", $"title:{request.Title}" });
                 var lyrics = await App.ServerRequestAsync(request.Remote ? App.Session.PlayerId : "", parameters.ToArray());
-                return LyrionClient.ReadString(lyrics, "lyrics") is { Length: > 0 } lyricsText && LyrionClient.ReadString(lyrics, "error") == "" ? Found(request, CleanLyrics(lyricsText), source) : null;
+                return LyrionClient.ReadString(lyrics, "lyrics") is { Length: > 0 } lyricsText && LyrionClient.ReadString(lyrics, "error") == "" ? LyricsFound(request, lyricsText, source) : null;
         }
     }
 
@@ -117,14 +123,21 @@ public sealed class TrackInfo
         if (request.Artist == "" || request.Title == "") return null;
         var address = $"https://lrclib.net/api/get?artist_name={Uri.EscapeDataString(request.Artist)}&track_name={Uri.EscapeDataString(request.Title)}" + (request.Album != "" ? $"&album_name={Uri.EscapeDataString(request.Album)}" : "") + (request.Duration > 0 ? $"&duration={Math.Round(request.Duration)}" : "");
         var record = await GetJsonAsync(address);
-        if (record is not { ValueKind: JsonValueKind.Object }) // no exact match (album or length differ): the best search hit
-        {
-            var hits = await GetJsonAsync($"https://lrclib.net/api/search?artist_name={Uri.EscapeDataString(request.Artist)}&track_name={Uri.EscapeDataString(request.Title)}");
-            record = hits is { ValueKind: JsonValueKind.Array } ? hits.Value.EnumerateArray().Select(hit => (JsonElement?)hit).FirstOrDefault(hit => LyrionClient.ReadString(hit!.Value, "plainLyrics") != "" && (request.Duration <= 0 || Math.Abs(LyrionClient.ReadDouble(hit!.Value, "duration") - request.Duration) < 5)) : null;
-        }
-        if (record is not { } found) return null;
-        if (found.TryGetProperty("instrumental", out var instrumental) && instrumental.ValueKind == JsonValueKind.True) return Found(request, "Instrumental", "LRCLIB", link: "https://lrclib.net");
-        return LyrionClient.ReadString(found, "plainLyrics") is { Length: > 0 } plainLyrics ? Found(request, CleanLyrics(plainLyrics), "LRCLIB", link: "https://lrclib.net") : null;
+        var exact = record is { ValueKind: JsonValueKind.Object } ? record : null;
+        if (exact is { } exactRecord && (Instrumental(exactRecord) || LyrionClient.ReadString(exactRecord, "syncedLyrics") != "")) return LrclibResult(request, exactRecord);
+        // No exact match (album or length differ) or it isn't timed: the best search hit of the right length, timed ones first
+        var hits = await GetJsonAsync($"https://lrclib.net/api/search?artist_name={Uri.EscapeDataString(request.Artist)}&track_name={Uri.EscapeDataString(request.Title)}");
+        var fitting = hits is { ValueKind: JsonValueKind.Array } ? hits.Value.EnumerateArray().Where(hit => LyrionClient.ReadString(hit, "plainLyrics") != "" && (request.Duration <= 0 || Math.Abs(LyrionClient.ReadDouble(hit, "duration") - request.Duration) < 5)).ToList() : new List<JsonElement>();
+        var timed = fitting.Where(hit => LyrionClient.ReadString(hit, "syncedLyrics") != "").Select(hit => (JsonElement?)hit).FirstOrDefault();
+        var found = timed ?? exact ?? fitting.Select(hit => (JsonElement?)hit).FirstOrDefault();
+        return found is { } chosen ? LrclibResult(request, chosen) : null;
+    }
+    static bool Instrumental(JsonElement record) => record.TryGetProperty("instrumental", out var instrumental) && instrumental.ValueKind == JsonValueKind.True;
+    Result? LrclibResult(Request request, JsonElement record)
+    {
+        if (Instrumental(record)) return Found(request, "Instrumental", "LRCLIB", link: "https://lrclib.net");
+        string synced = LyrionClient.ReadString(record, "syncedLyrics"), plain = LyrionClient.ReadString(record, "plainLyrics");
+        return plain != "" || synced != "" ? LyricsFound(request, plain != "" ? plain : synced, "LRCLIB", "https://lrclib.net", synced) : null;
     }
 
     async Task<Result?> FromWikipediaAsync(Request request)
@@ -388,5 +401,25 @@ public sealed class TrackInfo
         text = WebUtility.HtmlDecode(Regex.Replace(text, "<[^>]+>", ""));
         return Regex.Replace(text.Replace("\r\n", "\n"), @"\n{3,}", "\n\n").Trim();
     }
-    static string CleanLyrics(string lyrics) => Regex.Replace(lyrics.Replace("\r\n", "\n").Replace('\r', '\n'), @"^(\[\d+:\d+(?:[.:]\d+)?\])+\s?", "", RegexOptions.Multiline).Trim(); // timestamps from synced (LRC) lyrics
+    static string CleanLyrics(string lyrics) => Regex.Replace(Regex.Replace(lyrics.Replace("\r\n", "\n").Replace('\r', '\n'), @"^\[[a-z]+:[^\]]*\]\s*$", "", RegexOptions.Multiline | RegexOptions.IgnoreCase), @"^(\[\d+:\d+(?:[.:]\d+)?\])+\s?", "", RegexOptions.Multiline).Replace("\n\n\n", "\n\n").Trim(); // timestamps and [ar:…] tags from synced (LRC) lyrics
+    // Lyrics with their timed lines (when the text is synced LRC), so Now playing can follow the song line by line
+    Result LyricsFound(Request request, string lyrics, string source, string link = "", string synced = "") => Found(request, CleanLyrics(lyrics), source, link: link) with { Events = TimedLines(synced != "" ? synced : lyrics) };
+    static List<object>? TimedLines(string lyrics)
+    {
+        var offsetMatch = Regex.Match(lyrics, @"\[offset:\s*([+-]?\d+)\s*\]", RegexOptions.IgnoreCase);
+        var offsetSeconds = offsetMatch.Success ? int.Parse(offsetMatch.Groups[1].Value) / 1000.0 : 0; // LRC offset: positive shows lines sooner
+        var timed = new List<(double Seconds, string Text)>();
+        foreach (var line in lyrics.Replace("\r\n", "\n").Split('\n'))
+        {
+            var stamps = Regex.Match(line, @"^\s*((?:\[\d+:\d+(?:[.:]\d+)?\])+)(.*)$");
+            if (!stamps.Success) continue;
+            var text = Regex.Replace(stamps.Groups[2].Value, @"<\d+:\d+(?:[.:]\d+)?>", "").Trim(); // enhanced LRC's per-word stamps
+            foreach (Match stamp in Regex.Matches(stamps.Groups[1].Value, @"\[(\d+):(\d+)(?:[.:](\d+))?\]"))
+            {
+                var fraction = stamp.Groups[3].Success ? double.Parse("0." + stamp.Groups[3].Value, System.Globalization.CultureInfo.InvariantCulture) : 0;
+                timed.Add((Math.Max(0, int.Parse(stamp.Groups[1].Value) * 60 + int.Parse(stamp.Groups[2].Value) + fraction - offsetSeconds), text));
+            }
+        }
+        return timed.Count(line => line.Text != "") < 2 ? null : timed.OrderBy(line => line.Seconds).Select(line => (object)new { t = Math.Round(line.Seconds, 2), text = line.Text }).ToList();
+    }
 }

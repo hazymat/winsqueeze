@@ -156,6 +156,7 @@ public class GeneralSettings
     public OtherSqueezeliteAction OtherSqueezelite { get; set; } = OtherSqueezeliteAction.Ask;
     public bool AutoUpdate { get; set; } = true;
     public Dictionary<string, double[]> ModeSizes { get; set; } = new();
+    public double[] LyricsBounds { get; set; } = Array.Empty<double>(); // the popped-out lyrics window: left, top, width, height
     public string UpdateChannel { get; set; } = "stable"; // stable | dev
     public bool Glass { get; set; } = true; // Windows 11 acrylic backdrop behind a see-through UI
     // No title bar or standard border by default; the UI draws its own drag strip and buttons (stored as ShowTitleBar so older "Frameless": false files get the new default)

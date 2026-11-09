@@ -6,6 +6,7 @@
   --fg: #eceef3; --fg-quiet: #8e94a0; --accent: #5ccfff; --accent-soft: rgba(92, 207, 255, 0.15); --on-accent: #06202c; --warn: #ffb74d;
   --readout: #5ee7ff; --readout-glow: rgba(94, 231, 255, 0.45); --meter-face: #f3e6c4; --meter-face-idle: #9a927f; --meter-ink: #2a2218; --meter-needle: #c0392b;
   --font-ui: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; --font-display: "Cascadia Mono", Consolas, monospace;
+  --font-text: "Newsreader Variable", "Sitka Text", Georgia, serif; /* lyrics: a book face, bundled (OFL) */
   color-scheme: dark;
 }
 :root[data-skin="light"] {

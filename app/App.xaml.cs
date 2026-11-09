@@ -31,6 +31,7 @@ public partial class App : Application
     public bool IsOffline => Offline != null;
     public bool ServerBack { get; private set; } // offline, and the server answers again
     EqualiserWindow? equaliserWindow;
+    LyricsWindow? lyricsWindow;
     public List<OutputDevice> Devices { get; private set; } = new();
     public bool UsingFallbackDevice { get; private set; }
     public bool IsQuitting { get; private set; }
@@ -209,6 +210,22 @@ public partial class App : Application
         equaliserWindow.ShowByUser();
     }
     public void ToggleEqualiser() { if (equaliserWindow is { IsVisible: true }) equaliserWindow.HideByUser(); else OpenEqualiser(); } // the transport's analyser opens and closes it
+    // Lyrics on their own (SPEC.md › Lyrics view): full screen from the big player, a window of their own from the mini player
+    public void OpenLyrics(bool fullScreen)
+    {
+        if (lyricsWindow == null)
+        {
+            lyricsWindow = new LyricsWindow { OpenedFullScreen = fullScreen };
+            lyricsWindow.Closed += (sender, args) => lyricsWindow = null;
+            lyricsWindow.PlaceOn(mainWindow);
+            if (fullScreen) lyricsWindow.SourceInitialized += (sender, args) => lyricsWindow?.SetFullScreen(true);
+            lyricsWindow.Show();
+        }
+        else if (fullScreen) lyricsWindow.SetFullScreen(true);
+        lyricsWindow?.Activate();
+    }
+    // Lyrion is polled every second while either window is on screen
+    public void UpdatePolling() => Session.SetVisible(mainWindow.IsVisible || lyricsWindow is { IsVisible: true });
     public void ApplyMeters() { Visualiser.Tuning = Settings.Meters; mainWindow.PushMeterSettings(); }
 
     public async Task<string[]> ResumeArgumentsAsync()
@@ -519,7 +536,7 @@ public partial class App : Application
         // The process always ends: a copy left running would keep its WebView2 processes and block the next launch
         new Thread(() => { Thread.Sleep(5000); Environment.Exit(0); }) { IsBackground = true, Name = "Quit watchdog" }.Start();
         // Recorder first: finish any recording before Squeezelite stops
-        foreach (var quitStep in new Action[] { () => { mainWindow.SaveBounds(); Settings.Save(); }, Recorder.Dispose, Player.Dispose, Downloads.Dispose, () => Offline?.Dispose(), trayIcon.Dispose, () => settingsWindow?.Close(), mainWindow.Close })
+        foreach (var quitStep in new Action[] { () => { mainWindow.SaveBounds(); Settings.Save(); }, Recorder.Dispose, Player.Dispose, Downloads.Dispose, () => Offline?.Dispose(), trayIcon.Dispose, () => settingsWindow?.Close(), () => lyricsWindow?.Close(), mainWindow.Close })
             try { quitStep(); } catch (Exception error) { CrashReporter.Write("Quit step failed", error, false); }
         Shutdown();
     }
