@@ -191,7 +191,7 @@
                       {#each people as person}
                         <div class="credit-row" class:here={person.tracks.has(number)} title={person.detail.join('\n')}>
                           <div class="credit-name">{#if group + '|' + person.name === edgeHintFor && app.hints.dismissed.includes('credits-strip')}<Hint id="credits-edge" bubble align="start" text="Highlighted: playing on this track" />{/if}{person.name}</div><div class="credit-roles">{person.roles.join(', ')}</div>
-                          <div class="track-map" style:width={`${credits.tracks.length * 6 - 2}px`} >{#if group + '|' + person.name === stripHintFor}<Hint id="credits-strip" bubble align="end" text="One bar per track, lit where they play" />{/if}{#if person.tracks.size}{#each credits.tracks as item}<i class:on={person.tracks.has(item.n)} class:current={item.n === number} title={`${item.label}. ${item.title}`}></i>{/each}{/if}</div>
+                          <div class="track-map" style:width={`${credits.tracks.length * 6 - 2}px`} >{#if group + '|' + person.name === stripHintFor}<Hint id="credits-strip" bubble align="end" text="Each bar is a track in the album" />{/if}{#if person.tracks.size}{#each credits.tracks as item}<i class:on={person.tracks.has(item.n)} class:current={item.n === number} title={`${item.label}. ${item.title}`}></i>{/each}{/if}</div>
                         </div>
                       {/each}
                     </div>
