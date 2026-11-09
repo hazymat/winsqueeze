@@ -22,6 +22,21 @@
   const arc = (centreX: number, centreY: number, fromAngle: number, toAngle: number, radius: number) => { const [startX, startY] = point(centreX, centreY, fromAngle, radius); const [endX, endY] = point(centreX, centreY, toAngle, radius); return `M${startX} ${startY} A${radius} ${radius} 0 0 1 ${endX} ${endY}` }
   // A tap or a window drag jogs the needles (meters.jog), never below their rest pin
   const jogged = (angle: number, rest: number, channelIndex: number) => Math.max(rest, angle + (meters.jog[channelIndex % 2] ?? 0))
+  // Needle shadows: the light sits below the scale's centre, so a shadow falls on the outer side of a tilted needle and hides behind an upright one
+  const shadowShift = (angle: number, size: number) => size * 1.4 * Math.sin(angle * Math.PI / 180)
+  // Blade needles: wide at the pivot, tapering to a fine point
+  const blade = (centreX: number, pivotY: number, length: number, halfWidth: number) => `M${centreX - halfWidth} ${pivotY} L${centreX - 0.17} ${pivotY - length} L${centreX + 0.17} ${pivotY - length} L${centreX + halfWidth} ${pivotY} Z`
+  // Switching on: bulb-lit faces warm up through orange; fluorescent and backlit ones strike with a flicker
+  let power = $state(1)
+  const filament = $derived(theme === 'deck' || theme === 'orange')
+  $effect(() => {
+    theme; const started = performance.now(); let frame = 0; const lit = theme === 'deck' || theme === 'orange'
+    const strike = (elapsed: number) => elapsed < 120 ? 0.1 : elapsed < 180 ? 1 : elapsed < 320 ? 0.15 : elapsed < 380 ? 0.8 : elapsed < 520 ? 0.3 : Math.min(1, 0.3 + (elapsed - 520) / 260)
+    const step = (time: number) => { const elapsed = time - started; power = lit ? Math.min(1, 1 - Math.exp(-elapsed / 420) + 0.004) : strike(elapsed); frame = power < 1 ? requestAnimationFrame(step) : 0 }
+    frame = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(frame)
+  })
+  const warmFilter = $derived(power >= 1 ? null : filament ? `brightness(${0.15 + 0.85 * power}) sepia(${(1 - power) * 0.9}) saturate(${1 + (1 - power) * 1.5})` : `brightness(${power})`)
   const relative = (channelIndex: number) => (levels[channelIndex] ?? -90) - reference
   const sum = $derived(10 * Math.log10((Math.pow(10, relative(0) / 10) + Math.pow(10, relative(1) / 10)) / 2 + 1e-12))
   const wattsAt = (wattage: number, full = 100) => 10 * Math.log10(wattage / full)
@@ -49,7 +64,7 @@
 <!-- Three stacked copies: the textured face, the needles alone on their own compositor layer, and the glass and caps in front.
      A moving needle then repaints only its own thin layer, never the filtered face (repainting that every frame stalled the needles) -->
 {#snippet layerSvg(layer: string)}
-<svg viewBox="0 0 {width} {height}" class="panel {theme} layer-{layer}" class:idle aria-hidden="true" style:--aspect={panelThemes[theme].aspect}>
+<svg viewBox="0 0 {width} {height}" class="panel {theme} layer-{layer}" class:idle aria-hidden="true" style:--aspect={panelThemes[theme].aspect} style:filter={layer === 'face' ? warmFilter : null}>
   <defs>
     <filter id={id + '-grain'} x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency={grainFrequency} numOctaves="1" seed="7" /><feColorMatrix values="0 0 0 0 0.2  0 0 0 0 0.15  0 0 0 0 0.08  0 0 0 1.1 -0.5" /></filter>
     <filter id={id + '-brushed'} x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.004 0.9" numOctaves="2" seed="3" /><feColorMatrix values="0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0 0.52  0 0 0 0.6 0" /></filter>
@@ -82,8 +97,8 @@
         <text x={deck.x + 24} y="52" class="deck-small">%</text><text x={deck.x + 12} y="56" class="deck-sign">−</text><text x={deck.x + 106} y="56" class="deck-sign red">+</text>
         <text x={centreX} y="64" class="deck-vu">VU</text><text x={centreX} y="73" class="deck-channel">{deck.channel}</text>
         <rect x={deck.x + 4} y="14" width="110" height="68" filter="url(#{id}-grain)" class="grain" />
-        <line x1={centreX + 1.6} y1={pivotY} x2={centreX + 1.6} y2={pivotY - 86} class="needle-shadow" filter="url(#{id}-soft)" transform="rotate({angle} {centreX} {pivotY - 2})" />
-        <line x1={centreX} y1={pivotY} x2={centreX} y2={pivotY - 86} class="needle dark" transform="rotate({angle} {centreX} {pivotY})" />
+        <line x1={centreX + shadowShift(angle, 1.6)} y1={pivotY} x2={centreX + shadowShift(angle, 1.6)} y2={pivotY - 86} class="needle-shadow" filter="url(#{id}-soft)" transform="rotate({angle} {centreX} {pivotY - 2})" />
+        <path d={blade(centreX, pivotY, 86, 0.9)} class="needle dark blade" transform="rotate({angle} {centreX} {pivotY})" />
         <g class="front"><ellipse cx={centreX} cy="82" rx="13" ry="5.5" fill="url(#{id}-brass)" /><rect x={deck.x + 4} y="14" width="110" height="68" fill="none" stroke="#000" stroke-width="3" opacity="0.18" filter="url(#{id}-soft)" /></g>
       </g>
     {/each}
@@ -117,8 +132,8 @@
         <rect x={centreX - 50} y="6" width="100" height="90" filter="url(#{id}-grain)" class="grain" />
         <!-- the movement: copper coil glowing behind a chrome bridge with two screws and the pivot in the middle -->
         <ellipse cx={centreX} cy="82" rx="19" ry="9" fill="url(#{id}-copper)" /><ellipse cx={centreX} cy="82" rx="11" ry="5" fill="#2a0c04" opacity="0.6" />
-        <line x1={centreX + 1.4} y1={pivotY} x2={centreX + 1.4} y2={pivotY - 50} class="needle-shadow" filter="url(#{id}-soft)" transform="rotate({angle} {centreX} {pivotY - 2})" />
-        <line x1={centreX} y1={pivotY} x2={centreX} y2={pivotY - 50} class="needle round-needle" transform="rotate({angle} {centreX} {pivotY})" />
+        <line x1={centreX + shadowShift(angle, 1.4)} y1={pivotY} x2={centreX + shadowShift(angle, 1.4)} y2={pivotY - 50} class="needle-shadow" filter="url(#{id}-soft)" transform="rotate({angle} {centreX} {pivotY - 2})" />
+        <path d={blade(centreX, pivotY, 50, 0.65)} class="needle round-needle blade" transform="rotate({angle} {centreX} {pivotY})" />
         <g class="front">
         <rect x={centreX - 34} y="85" width="68" height="9" rx="1.5" fill="url(#{id}-bridge)" stroke="#3a3a3a" stroke-width="0.4" />
         {#each [-26, 26] as offset}<circle cx={centreX + offset} cy="89.5" r="3.6" fill="url(#{id}-chrome)" stroke="#333" stroke-width="0.4" /><path d="M{centreX + offset - 2} 89.5 H{centreX + offset + 2} M{centreX + offset} 87.5 V91.5" stroke="#2a2a2a" stroke-width="0.7" />{/each}
@@ -153,8 +168,8 @@
         {@const [clipX, clipY] = point(meter.centre, pivotY, 33, 95)}<text x={clipX} y={clipY} class="monitor-number red">CLIP</text>
         {#each range(-40, 3, 2.5) as decibels}{@const markAngle = powerAngle(decibels, 34)}{@const [innerX, innerY] = point(meter.centre, pivotY, markAngle, 100)}{@const [outerX, outerY] = point(meter.centre, pivotY, markAngle, 98.4)}<line x1={innerX} y1={innerY} x2={outerX} y2={outerY} class="ink-tick fine" />{/each}
         <text x={meter.centre} y="48" class="monitor-title">{meter.title}</text>{#if meter.channel}<text x={meter.centre} y="56" class="monitor-channel">{meter.channel}</text>{/if}
-        <line x1={meter.centre + 1.8} y1={pivotY} x2={meter.centre + 1.8} y2={pivotY - 106} class="needle-shadow" filter="url(#{id}-soft)" transform="rotate({angle} {meter.centre} {pivotY - 2})" />
-        <line x1={meter.centre} y1={pivotY} x2={meter.centre} y2={pivotY - 106} class="needle dark" transform="rotate({angle} {meter.centre} {pivotY})" />
+        <line x1={meter.centre + shadowShift(angle, 1.8)} y1={pivotY} x2={meter.centre + shadowShift(angle, 1.8)} y2={pivotY - 106} class="needle-shadow" filter="url(#{id}-soft)" transform="rotate({angle} {meter.centre} {pivotY - 2})" />
+        <path d={blade(meter.centre, pivotY, 106, 1)} class="needle dark blade" transform="rotate({angle} {meter.centre} {pivotY})" />
       {/each}
       <g class="front">
       <rect x="12" y="12" width="416" height="70" filter="url(#{id}-grain)" class="grain" />
@@ -230,7 +245,7 @@
   /* display: none, not visibility: hidden: hidden filtered shapes still cost (and drew their noise) in each copy */
   .layer-needles :not(:has(.needle, .needle-shadow), .needle, .needle-shadow, defs, defs *), .layer-front :not(:has(.front), .front, .front *, defs, defs *) { display: none; }
   .face { stroke: rgba(0, 0, 0, 0.4); stroke-width: 0.5; }
-  .idle .face, .idle .lamp, .idle .spill { opacity: 0.7; } .idle .lamp { opacity: 0.45; }
+  .idle .face, .idle .lamp, .idle .spill { opacity: 0.7; } .idle .lamp { opacity: 0.45; } .face, .lamp, .spill { transition: opacity 0.9s; } /* lamps dim and come up gently, like bulbs */
   .idle :is(.blue-ink, .green-ink) { opacity: 0.6; }
   .grain { opacity: 0.35; pointer-events: none; } .dark-grain { opacity: 0.18; }
   .ink-line { fill: none; stroke: #1e1b16; stroke-width: 0.9; stroke-linecap: round; } .ink-line.thin { stroke-width: 0.5; }
@@ -248,7 +263,7 @@
   .orange-small { font-size: 4.6px; fill: #1c0f03; } .orange-sign { font-size: 8px; font-weight: 700; fill: #9e1208; } .orange-vu { font-size: 10px; font-weight: 700; fill: #1c0f03; }
   .spill { opacity: 0.5; }
   .round-number { font-size: 6px; font-weight: 600; fill: #241406; } .round-number.red { fill: #b3200e; } .round-small { font-size: 3.6px; fill: #3a2410; } .round-vu { font-size: 8px; fill: #6a3a10; font-weight: 600; letter-spacing: 0.5px; }
-  .round-needle { stroke: #3a1206; stroke-width: 0.8; }
+  .round-needle { stroke: #3a1206; stroke-width: 0.8; } .needle.blade { stroke: none; } .needle.dark.blade { fill: #141210; } .round-needle.blade { fill: #3a1206; }
   .bridge { fill: #2a1d0e; stroke: #0f0a04; stroke-width: 0.6; } .screw { fill: #8a7a62; stroke: #2b2216; stroke-width: 0.5; } .screw-slot { stroke: #2b2216; stroke-width: 0.6; }
   .coil { fill: #9c5a22; stroke: #4a2a0c; stroke-width: 0.5; } .hub { fill: #1a120a; stroke: #b38a52; stroke-width: 0.7; } .counterweight { fill: #1b0f04; }
   .needle { stroke-width: 0.9; stroke-linecap: round; } .needle.dark { stroke: #141210; } .orange-needle { stroke: #1b0f04; stroke-width: 1.1; }

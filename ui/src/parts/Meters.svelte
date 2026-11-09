@@ -72,6 +72,7 @@
   const grabScrew = (event: PointerEvent) => { if (size === 'small' || event.button !== 0) return; event.stopPropagation(); (event.currentTarget as Element).setPointerCapture(event.pointerId); screwDrag = { startX: event.clientX, startReference: Math.round(meters.reference), reference: Math.round(meters.reference), turned: false } }
   const turnScrew = (event: PointerEvent) => { if (!screwDrag) return; const reference = Math.max(-24, Math.min(-8, Math.round(screwDrag.startReference - (event.clientX - screwDrag.startX) / 6))); if (reference !== screwDrag.reference || !screwDrag.turned && Math.abs(event.clientX - screwDrag.startX) > 3) { screwDrag.reference = reference; screwDrag.turned = true; setReference(reference) } }
   const releaseScrew = () => { if (!screwDrag) return; if (screwDrag.turned) { sendToShell({ type: 'setMeterReference', referenceDbfs: screwDrag.reference }); showScrewNote(screwNote, 1500) } screwDrag = null }
+  const nudgeScrew = (event: KeyboardEvent) => { const step = event.key === 'ArrowRight' ? -1 : event.key === 'ArrowLeft' ? 1 : 0; if (!step) return; event.preventDefault(); const reference = Math.max(-24, Math.min(-8, Math.round(meters.reference) + step)); setReference(reference); sendToShell({ type: 'setMeterReference', referenceDbfs: reference }); showScrewNote(screwNote, 1500) }
   const autoScrew = (event: MouseEvent) => { event.stopPropagation(); if (size === 'small') return; app.meterSettings = { referenceDbfs: app.meterSettings.referenceDbfs, autoReference: true, styles: app.meterSettings.styles }; sendToShell({ type: 'setMeterReference', auto: true }); showScrewNote('Automatic 0 VU', 1500) }
   // OLED VU: one even scale line; above it, a tick per mark and dense detents across the 0..+3 zone (like the Transporter display)
   // Its pivot sits just below the display, closer than the analogue meter's, so the scale is a wider arc and the resting needle lies flatter
@@ -158,7 +159,7 @@
         <!-- Movement cover: a dark Bakelite dome the needle rises out of, its rim catching the lamp, with the zero-adjust screw -->
         <g clip-path="url(#{gradientId}-clip)"><ellipse cx="60" cy="74" rx="25" ry="16" fill="url(#{gradientId}-shroud)" /><path d="M35.6 74 A24.4 15.4 0 0 1 84.4 74" class="shroud-rim" /><ellipse cx="60" cy="74" rx="25" ry="16" class="shroud-edge" />
           <circle cx="60" cy="64" r="2.6" fill="url(#{gradientId}-screw)" class="screw" /><line x1="57.8" y1="64" x2="62.2" y2="64" class="screw-slot" transform="rotate({screwAngle} 60 64)" /></g>
-        {#if size !== 'small'}<circle cx="60" cy="64" r="4.5" class="screw-grip" role="slider" tabindex="-1" aria-label="0 VU" aria-valuenow={meters.reference} onpointerdown={grabScrew} onpointermove={turnScrew} onpointerup={releaseScrew} onpointercancel={releaseScrew} onclick={(event) => event.stopPropagation()} ondblclick={autoScrew}><title>Drag to set 0 VU · double-click for automatic</title></circle>{/if}
+        {#if size !== 'small'}<circle cx="60" cy="64" r="4.5" class="screw-grip" role="slider" tabindex="-1" aria-label="0 VU" aria-valuenow={meters.reference} onpointerdown={grabScrew} onpointermove={turnScrew} onpointerup={releaseScrew} onpointercancel={releaseScrew} onclick={(event) => event.stopPropagation()} onkeydown={nudgeScrew} ondblclick={autoScrew}><title>Drag to set 0 VU · double-click for automatic</title></circle>{/if}
         <rect x="7" y="65.6" width="106" height="1" class="lit-edge" />
         <!-- Acrylic window edge: light bends through the thick rim, a bright band with a darker inner seam -->
         <rect x="5.7" y="5.7" width="108.6" height="60.6" rx="1.6" class="rim-glow" /><rect x="7.3" y="7.3" width="105.4" height="57.4" rx="1" class="rim-seam" /><path d="M6 6.2 H114" class="rim-catch" />
@@ -222,13 +223,15 @@
   .bezel { fill: #15161a; stroke: #2c2e34; stroke-width: 1; }
   .face { stroke: rgba(0, 0, 0, 0.5); stroke-width: 0.8; }
   .scale { fill: none; stroke: #1d1a14; stroke-width: 0.9; stroke-linecap: round; }
-  .red-line { fill: none; stroke: #c4291c; stroke-width: 0.9; }
-  .red-band { fill: none; stroke: #c4291c; stroke-width: 3; }
-  .tick { stroke: #1d1a14; stroke-width: 0.9; stroke-linecap: round; } .tick.minor { stroke-width: 0.6; } .tick.hot { stroke: #c4291c; }
+  /* Red ink is only as bright as the lamp behind the face: cold, it sinks into the dark brown like the black print does */
+  .meters { --red-ink: color-mix(in srgb, #c4291c calc(min(1, var(--lamp-glow) * 1.4) * 100%), #2a0d07); }
+  .red-line { fill: none; stroke: var(--red-ink); stroke-width: 0.9; }
+  .red-band { fill: none; stroke: var(--red-ink); stroke-width: 3; }
+  .tick { stroke: #1d1a14; stroke-width: 0.9; stroke-linecap: round; } .tick.minor { stroke-width: 0.6; } .tick.hot { stroke: var(--red-ink); }
   .number { fill: #1d1a14; font-size: 6.5px; text-anchor: middle; dominant-baseline: middle; font-family: "Segoe UI", Arial, sans-serif; font-weight: 600; }
-  .number.hot { fill: #c4291c; }
+  .number.hot { fill: var(--red-ink); }
   .vu-label { fill: #1d1a14; font-size: 9px; font-weight: 700; font-family: "Segoe UI", Arial, sans-serif; }
-  .sign { fill: #1d1a14; font-size: 8px; font-weight: 700; text-anchor: middle; font-family: Arial, sans-serif; } .sign.hot { fill: #c4291c; }
+  .sign { fill: #1d1a14; font-size: 8px; font-weight: 700; text-anchor: middle; font-family: Arial, sans-serif; } .sign.hot { fill: var(--red-ink); }
   .channel { fill: rgba(29, 26, 20, 0.55); font-size: 6px; text-anchor: middle; font-family: var(--font-display); }
   .needle { stroke: #111; stroke-width: 0.9; } .needle.blade { stroke: none; } /* ballistics (a damped spring) in the shell, easing and window jog per frame in state.svelte.ts */
   .shroud-rim { fill: none; stroke: #fff3d6; stroke-width: 0.45; opacity: 0.45; transition: opacity 1s; } .idle .shroud-rim { opacity: 0.3; } .shroud-edge { fill: none; stroke: #000; stroke-width: 0.5; opacity: 0.6; }
