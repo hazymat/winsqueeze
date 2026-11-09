@@ -158,7 +158,7 @@
               </ComboBox>
             </DockPanel>
             <TextBlock x:Name="playerStatusText" Style="{StaticResource Quiet}" />
-            <TextBlock Style="{StaticResource Label}" Text="If the chosen device is missing" />
+            <TextBlock x:Name="fallbackLabel" Style="{StaticResource Label}" Text="If the chosen device is missing" />
             <ComboBox x:Name="fallbackCombo" DisplayMemberPath="DisplayName" />
           </StackPanel>
         </Border>

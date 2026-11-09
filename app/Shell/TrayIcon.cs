@@ -1,5 +1,6 @@
 using System.Drawing;
 using System.Windows.Forms;
+using WinSqueeze.Audio;
 namespace WinSqueeze.Shell;
 
 // Tray icon and menu (WinForms NotifyIcon runs fine on the WPF dispatcher)
@@ -36,6 +37,10 @@ public sealed class TrayIcon : IDisposable
     {
         outputMenu.DropDownItems.Clear();
         var profile = App.Settings.ActiveProfile;
+        var defaultChoice = OutputDevice.WindowsDefault(App.WindowsDefaultName);
+        var defaultItem = new ToolStripMenuItem(defaultChoice.DisplayName) { Checked = profile != null && profile.DeviceName == "" };
+        defaultItem.Click += async (sender, args) => await App.SelectDeviceAsync(defaultChoice);
+        outputMenu.DropDownItems.Add(defaultItem);
         foreach (var driverGroup in App.Devices.GroupBy(device => device.Driver))
         {
             outputMenu.DropDownItems.Add(new ToolStripMenuItem(driverGroup.Key) { Enabled = false });
@@ -46,7 +51,7 @@ public sealed class TrayIcon : IDisposable
                 outputMenu.DropDownItems.Add(deviceItem);
             }
         }
-        if (outputMenu.DropDownItems.Count == 0) outputMenu.DropDownItems.Add(new ToolStripMenuItem("No devices found") { Enabled = false });
+        if (App.Devices.Count == 0) outputMenu.DropDownItems.Add(new ToolStripMenuItem("No devices found") { Enabled = false });
     }
 
     void RebuildPlayerMenu()

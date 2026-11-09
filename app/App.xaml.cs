@@ -34,6 +34,8 @@ public partial class App : Application
     LyricsWindow? lyricsWindow;
     public List<OutputDevice> Devices { get; private set; } = new();
     public bool UsingFallbackDevice { get; private set; }
+    readonly WindowsDefaultDevice windowsDefault = new();
+    public string WindowsDefaultName => windowsDefault.Name;
     public bool IsQuitting { get; private set; }
     public event Action? DevicesChanged;
     public event Action? StatusChanged;
@@ -138,6 +140,7 @@ public partial class App : Application
         Damaged.Found += OnDamagedFound;
         HwndSource.FromHwnd(new WindowInteropHelper(mainWindow).EnsureHandle()).AddHook(WindowMessageHook);
         deviceChangeTimer.Tick += async (sender, args) => { deviceChangeTimer.Stop(); await OnDevicesChangedAsync(); };
+        windowsDefault.Changed += () => Dispatcher.BeginInvoke(() => { deviceChangeTimer.Stop(); deviceChangeTimer.Start(); });
         // A restart for an update brings the window back exactly as it was (--window=normal|maximised|minimised|hidden,left,top,width,height); otherwise the start-minimised setting applies
         mainWindow.RestoreBoundsForDisplays();
         var windowArgument = startupArgs.Args.FirstOrDefault(argument => argument.StartsWith("--window="));
@@ -287,15 +290,24 @@ public partial class App : Application
         await RefreshDevicesAsync();
         var profile = Settings.ActiveProfile;
         if (profile == null) return;
-        var preferredPresent = FindDevice(profile.DeviceName, profile.DeviceHostApi) != null;
+        var preferredDevice = profile.DeviceName == "" ? DefaultDevice() : FindDevice(profile.DeviceName, profile.DeviceHostApi);
         var currentPresent = Player.Device != null && FindDevice(Player.Device.Name, Player.Device.HostApi) != null;
-        // Restart when waiting and the device is back, when the device vanished, or when the preferred device returns while on the fallback
-        if (Player.State is PlayerState.WaitingForDevice or PlayerState.Failed && preferredPresent) await StartPlayerAsync(false);
+        // Restart when waiting and the device is back, when the device vanished, when the preferred device returns while on the fallback, or when Windows' default moved
+        if (Player.State is PlayerState.WaitingForDevice or PlayerState.Failed && preferredDevice != null) await StartPlayerAsync(false);
         else if (Player.State == PlayerState.Running && !currentPresent) await StartPlayerAsync(false);
-        else if (UsingFallbackDevice && preferredPresent) await StartPlayerAsync(true);
+        else if (UsingFallbackDevice && preferredDevice != null) await StartPlayerAsync(true);
+        else if (Player.State == PlayerState.Running && preferredDevice != null && Player.Device != null && !preferredDevice.Matches(Player.Device.Name, Player.Device.HostApi)) await StartPlayerAsync(true);
     }
 
     public OutputDevice? FindDevice(string deviceName, string hostApi) => deviceName == "" ? null : Devices.FirstOrDefault(device => device.Matches(deviceName, hostApi));
+
+    // Windows' default output as Squeezelite names it: its WASAPI endpoint (so exclusive mode still works), else the MME Sound Mapper, which follows the default by itself
+    public OutputDevice? DefaultDevice()
+    {
+        var defaultName = windowsDefault.Name;
+        if (defaultName == "") return null;
+        return Devices.FirstOrDefault(device => device.Name == defaultName && device.Driver == "WASAPI") ?? Devices.FirstOrDefault(device => device.Name == defaultName) ?? Devices.FirstOrDefault(device => device.Name.StartsWith("Microsoft Sound Mapper"));
+    }
 
     public async Task StartPlayerAsync(bool resumePosition)
     {
@@ -303,8 +315,9 @@ public partial class App : Application
         var profile = Settings.ActiveProfile;
         Downloads.Open(profile); History.Open(profile);
         if (profile is not { Host.Length: > 0 }) { Player.SetWaiting("No server set. Open Settings › Servers."); return; }
-        if (profile.DeviceName == "") { Player.SetWaiting("Choose an output device in Settings › Audio."); return; }
-        var outputDevice = FindDevice(profile.DeviceName, profile.DeviceHostApi);
+        // No device chosen: play to the Windows default
+        var outputDevice = profile.DeviceName == "" ? DefaultDevice() : FindDevice(profile.DeviceName, profile.DeviceHostApi);
+        if (outputDevice == null && profile.DeviceName == "") { Player.SetWaiting("No output device found. Waiting for one."); return; }
         UsingFallbackDevice = false;
         if (outputDevice == null)
         {
@@ -465,7 +478,7 @@ public partial class App : Application
     {
         var profile = Settings.ActiveProfile;
         if (profile == null) return;
-        profile.DeviceName = device.Name; profile.DeviceHostApi = device.HostApi;
+        profile.DeviceName = device.IsWindowsDefault ? "" : device.Name; profile.DeviceHostApi = device.IsWindowsDefault ? "" : device.HostApi;
         Settings.Save();
         await StartPlayerAsync(true);
     }
@@ -536,7 +549,7 @@ public partial class App : Application
         // The process always ends: a copy left running would keep its WebView2 processes and block the next launch
         new Thread(() => { Thread.Sleep(5000); Environment.Exit(0); }) { IsBackground = true, Name = "Quit watchdog" }.Start();
         // Recorder first: finish any recording before Squeezelite stops
-        foreach (var quitStep in new Action[] { () => { mainWindow.SaveBounds(); Settings.Save(); }, Recorder.Dispose, Player.Dispose, Downloads.Dispose, () => Offline?.Dispose(), trayIcon.Dispose, () => settingsWindow?.Close(), () => lyricsWindow?.Close(), mainWindow.Close })
+        foreach (var quitStep in new Action[] { () => { mainWindow.SaveBounds(); Settings.Save(); }, Recorder.Dispose, Player.Dispose, windowsDefault.Dispose, Downloads.Dispose, () => Offline?.Dispose(), trayIcon.Dispose, () => settingsWindow?.Close(), () => lyricsWindow?.Close(), mainWindow.Close })
             try { quitStep(); } catch (Exception error) { CrashReporter.Write("Quit step failed", error, false); }
         Shutdown();
     }

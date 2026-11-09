@@ -256,8 +256,9 @@ Albums (or any selection: artists, genres, folders, tracks, playlists) can be do
 3. **One-click switch:** restarts the hidden Squeezelite on the new device; if it was playing, playback resumes at the same position.
 4. **Remembered by name and driver, never by index.** Windows device numbers change when hardware is plugged in.
 5. **Player name:** the name this PC's player shows in the server's player list and in every other controller. Defaults to the Windows computer name; the user can change it in Settings › Audio, and the change applies straight away (Squeezelite restarts with the new `-n`). Each install also keeps its own stable player MAC, so it never collides with another Squeezelite on the same PC.
-6. **Missing device at startup:** show a clear warning and either wait for it to return or use a user-chosen fallback. Never silently play through laptop speakers.
-7. **Hot-plug:** device list refreshes automatically when a USB DAC is connected or removed; if the chosen device returns, switch back to it.
+6. **Windows default until the user picks one:** "Windows default (<device>)" is the first choice in every picker and is what a new install uses, so music plays straight away. It plays through that device's WASAPI endpoint (so exclusive mode still applies) and follows Windows when the default output is switched there. It never needs a fallback.
+7. **Missing device at startup:** show a clear warning and either wait for it to return or use a user-chosen fallback. Never silently play through laptop speakers.
+8. **Hot-plug:** device list refreshes automatically when a USB DAC is connected or removed; if the chosen device returns, switch back to it.
 
 ## Window modes and layout
 
