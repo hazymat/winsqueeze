@@ -10,7 +10,7 @@
   let { kind, key = '', title = '', params = {} }: { kind: string; key?: string; title?: string; params?: Record<string, unknown> } = $props()
   let result = $state<any>({ own: [], appearsOn: [] })
   const view = browseState(kind)
-  const queryName: Record<string, string> = { artist: 'artistAlbums', composer: 'composerAlbums', performer: 'performerAlbums', genre: 'genreAlbums', albums: 'albums', downloads: 'downloadedAlbums', custom: 'customAlbums', new: 'newAlbums' }
+  const queryName: Record<string, string> = { artist: 'artistAlbums', composer: 'composerAlbums', performer: 'performerAlbums', genre: 'genreAlbums', albums: 'albums', downloads: 'downloadedAlbums', custom: 'customAlbums', new: 'newAlbums', compilations: 'compilations' }
   $effect(() => { app.indexVersion; if (kind === 'downloads') downloads.finishedTracks; app.librarySettings.AlbumSource; app.librarySettings.ContributorGrouping; query(queryName[kind], Object.assign({ key, sort: view.sort }, params)).then(data => result = data ?? { own: [] }) })
   // An artist keeps "Albums" and "Also appears on" as sections, with the chosen grouping inside each
   const sections = $derived(kind === 'artist' ? [['Albums', result.own ?? []], ['Also appears on', result.appearsOn ?? []]].filter(([, albums]) => (albums as any[]).length) as [string, any[]][] : [['', result.own ?? []]] as [string, any[]][])

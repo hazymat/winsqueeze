@@ -35,7 +35,7 @@ CREATE INDEX track_contributors_track ON track_contributors(track_id);
 CREATE INDEX track_contributors_contributor ON track_contributors(contributor_id, role);
 CREATE TABLE track_genres(track_id INTEGER, genre_id INTEGER);
 CREATE INDEX track_genres_genre ON track_genres(genre_id);
-CREATE TABLE albums(key TEXT PRIMARY KEY, source TEXT, title TEXT, title_norm TEXT, artist TEXT, artist_norm TEXT, year INTEGER, cover_id TEXT, track_count INTEGER, duration REAL, added INTEGER, folder_id INTEGER, format TEXT);
+CREATE TABLE albums(key TEXT PRIMARY KEY, source TEXT, title TEXT, title_norm TEXT, artist TEXT, artist_norm TEXT, year INTEGER, cover_id TEXT, track_count INTEGER, duration REAL, added INTEGER, folder_id INTEGER, format TEXT, compilation INTEGER DEFAULT 0);
 CREATE INDEX albums_source ON albums(source, artist_norm, year);
 CREATE TABLE album_tracks(album_key TEXT, track_id INTEGER, disc_no INTEGER, track_no INTEGER);
 CREATE INDEX album_tracks_album ON album_tracks(album_key);
