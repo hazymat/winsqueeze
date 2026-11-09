@@ -129,7 +129,6 @@
           <path d="M104.35 13.9 A1.75 1.75 0 0 1 105.5 11.85" class="lens-streak" filter="url(#{gradientId}-lens-glint)" />
           <circle cx="107.15" cy="12.55" r="0.22" class="lens-speck" />
         </g>
-        <text x="105" y="57" class="sign hot">+</text><text x="14" y="57" class="sign">−</text>
         <text x="60" y="53" class="channel" class:note={screwNote}>{screwNote || channel}</text>
         <rect x="5" y="5" width="110" height="62" fill="url(#{gradientId}{channel}-blob)" class="shade" /><rect x="5" y="5" width="110" height="62" filter="url(#{gradientId}{channel}-mottle)" class="shade mottle" />
         <rect x="5" y="5" width="110" height="62" fill="url(#{gradientId}{channel}-falloff)" class="shade" /><rect x="5" y="5" width="110" height="62" fill="url(#{gradientId}-lip)" class="shade" /><g clip-path="url(#{gradientId}-clip)"><rect x="5" y="6.6" width="110" height="62" class="shade inset" filter="url(#{gradientId}-inset)" /></g>
@@ -210,7 +209,6 @@
   .number { fill: #1d1a14; font-size: 6.5px; text-anchor: middle; dominant-baseline: middle; font-family: "Segoe UI", Arial, sans-serif; font-weight: 600; }
   .number.hot { fill: #c4291c; }
   .vu-label { fill: #1d1a14; font-size: 9px; font-weight: 700; font-family: "Segoe UI", Arial, sans-serif; }
-  .sign { fill: #1d1a14; font-size: 8px; font-weight: 700; text-anchor: middle; font-family: Arial, sans-serif; } .sign.hot { fill: #c4291c; }
   .channel { fill: rgba(29, 26, 20, 0.55); font-size: 6px; text-anchor: middle; font-family: var(--font-display); }
   .needle { stroke: #111; stroke-width: 0.9; } .needle.blade { stroke: none; } /* ballistics (a damped spring) in the shell, easing and window jog per frame in state.svelte.ts */
   .shroud-rim { fill: none; stroke: #fff3d6; stroke-width: 0.45; opacity: 0.45; transition: opacity 1s; } .idle .shroud-rim { opacity: 0.3; } .shroud-edge { fill: none; stroke: #000; stroke-width: 0.5; opacity: 0.6; }
