@@ -11,7 +11,8 @@ import italian from '../../../locales/it.json'
 import dutch from '../../../locales/nl.json'
 import portuguese from '../../../locales/pt.json'
 import swedish from '../../../locales/sv.json'
-const dictionaries: Record<string, Record<string, string>> = { de: german, uk: ukrainian, es: spanish, fr: french, ja: japanese, zh: chinese, pl: polish, it: italian, nl: dutch, pt: portuguese, sv: swedish }
+import czech from '../../../locales/cs.json'
+const dictionaries: Record<string, Record<string, string>> = { de: german, uk: ukrainian, es: spanish, fr: french, ja: japanese, zh: chinese, pl: polish, it: italian, nl: dutch, pt: portuguese, sv: swedish, cs: czech }
 export const language = new URLSearchParams(location.search).get('lang') ?? 'en'
 const dictionary = dictionaries[language] ?? {}
 if (typeof document !== 'undefined') document.documentElement.lang = language
@@ -24,8 +25,8 @@ export function t(english: string, values?: Record<string, unknown>) {
 }
 // Singular or plural by count, both forms being keys: tn(albums, '{count} album', '{count} albums')
 export const tn = (count: number, one: string, other: string, values?: Record<string, unknown>) => t(count === 1 ? one : other, Object.assign({ count }, values))
-// Which of a translation's "|" forms a count takes: one, few, many (Ukrainian and Polish); other languages have one form
+// Which of a translation's "|" forms a count takes: one, few, many (Ukrainian, Polish and Czech); other languages have one form
 function pluralForm(count: number) {
   const lastDigit = count % 10, lastTwo = count % 100, few = lastDigit >= 2 && lastDigit <= 4 && (lastTwo < 12 || lastTwo > 14)
-  return language === 'uk' ? (lastDigit === 1 && lastTwo !== 11 ? 0 : few ? 1 : 2) : language === 'pl' ? (count === 1 ? 0 : few ? 1 : 2) : 0
+  return language === 'uk' ? (lastDigit === 1 && lastTwo !== 11 ? 0 : few ? 1 : 2) : language === 'pl' ? (count === 1 ? 0 : few ? 1 : 2) : language === 'cs' ? (count === 1 ? 0 : count >= 2 && count <= 4 ? 1 : 2) : 0
 }
