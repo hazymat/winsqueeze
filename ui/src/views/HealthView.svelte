@@ -1,6 +1,7 @@
 <script lang="ts">
   import { t, tn } from '../lib/i18n'
-  import { query, artUrl, noArtUrl, sendToShell } from '../bridge'
+  import { query, request, artUrl, noArtUrl, sendToShell } from '../bridge'
+  import { healthExportJson, healthExportText } from '../lib/healthExport'
   import { app, openView, toast, readSetting, writeSetting } from '../state.svelte'
   import { damaged } from '../lib/damaged.svelte'
   import PageHead from '../parts/PageHead.svelte'
@@ -25,6 +26,7 @@
   const jump = (section: string) => document.getElementById('health-' + section)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   function copy(lines: string[], noun: string) { navigator.clipboard.writeText(lines.join('\n')); toast(noun === 'albums' ? tn(lines.length, 'Copied {count} album', 'Copied {count} albums') : noun === 'files' ? tn(lines.length, 'Copied {count} file', 'Copied {count} files') : tn(lines.length, 'Copied {count} line', 'Copied {count} lines')) }
   const albumLine = (row: any, detail = '') => [row.artist, row.title, row.folder, detail].filter(Boolean).join(' — ')
+  async function exportReport() { const saved = await request({ type: 'saveHealthExport', json: healthExportJson(report, damagedFiles), text: healthExportText(report, damagedFiles) }); if (saved?.file) toast(t('Saved “{name}”', { name: saved.file })) }
   const setClassicalOnly = (value: boolean) => { classicalOnly = value; writeSetting('health.classicalOnly', value ? '1' : '0') }
 </script>
 
@@ -42,6 +44,7 @@
 <PageHead title={t('Library health')} detail={report?.albums ? (report.folders ? tn(report.albums, '{count} album folder', '{count} album folders') : tn(report.albums, '{count} album', '{count} albums')) + ' · ' + tn(report.tracks, '{count} track', '{count} tracks') + ' · ' + t('checked {when}', { when: checkedAt }) : ''}>
   {#if checking}<span class="quiet">{app.library.text || 'Checking…'}</span>{/if}
   <button class="ghost" disabled={checking} onclick={() => load(true)} title={t('Ask the server for changes, then check everything again')}>{t('Rescan')}</button>
+  {#if report && !report.empty}<button class="ghost" disabled={checking} onclick={exportReport} title={t('Save every problem, with file paths, as a JSON or text file')}>{t('Export…')}</button>{/if}
 </PageHead>
 
 {#if report?.empty}<p class="quiet">{t('The library hasn’t been read from the server yet.')}</p>

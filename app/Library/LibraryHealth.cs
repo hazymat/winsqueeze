@@ -6,12 +6,12 @@ namespace WinSqueeze.Library;
 // Library health (SPEC.md › Library health): tag and file problems found in the local index. Read-only: nothing on the server or in the files changes
 public static partial class LibraryHealth
 {
-    public const int Version = 2; // bump when the checks change, so cached reports are rebuilt
+    public const int Version = 3; // bump when the checks change, so cached reports are rebuilt
     static readonly string[] classicalGenreWords = { "classical", "baroque", "opera", "choral", "chamber", "orchestral", "symphon", "concert", "renaissance", "medieval", "early music", "lieder", "oratorio", "sacred" };
     [GeneratedRegex(@"[^\p{L}\p{N}]+")] private static partial Regex NonWordRegex();
 
-    sealed class UnitTrack { public long Id, TagAlbumId; public int Disc, TrackNo, Year; public string TitleNorm = "", Composer = "", AlbumArtistTag = "", ArtistTag = ""; }
-    sealed class Unit { public string Key = "", Title = "", Artist = "", Cover = "", Folder = "", Format = ""; public bool Compilation; public List<UnitTrack> Tracks = new(); }
+    sealed class UnitTrack { public long Id, TagAlbumId; public int Disc, TrackNo, Year; public string TitleNorm = "", Composer = "", AlbumArtistTag = "", ArtistTag = "", FilePath = ""; }
+    sealed class Unit { public string Key = "", Title = "", Artist = "", Cover = "", Folder = "", FolderPath = "", Format = ""; public bool Compilation; public List<UnitTrack> Tracks = new(); }
 
     // Each check walks folder albums (one folder = one CD) when the library has files, else tag albums
     static string UnitSource(Microsoft.Data.Sqlite.SqliteConnection connection) => Convert.ToInt64(Query(connection, "SELECT COUNT(*) AS albums FROM albums WHERE source='f'")[0]["albums"]) > 0 ? "f" : "t";
@@ -29,23 +29,23 @@ public static partial class LibraryHealth
         var unitSource = UnitSource(connection);
         string Relative(object? path) { var folderPath = path as string ?? ""; var rootPath = rootPaths.FirstOrDefault(root => folderPath.StartsWith(root)); return rootPath != null ? folderPath[rootPath.Length..].TrimStart('/') : folderPath; }
         var units = Query(connection, "SELECT a.key, a.title, a.artist, a.cover_id, a.format, a.compilation, f.path FROM albums a LEFT JOIN folders f ON f.id=a.folder_id WHERE a.source=$source", ("$source", unitSource))
-            .ToDictionary(row => (string)row["key"]!, row => new Unit { Key = (string)row["key"]!, Title = row["title"] as string ?? "", Artist = row["artist"] as string ?? "", Cover = row["cover_id"] as string ?? "", Format = row["format"] as string ?? "", Compilation = Convert.ToInt64(row["compilation"] ?? 0L) == 1, Folder = Relative(row["path"]) });
+            .ToDictionary(row => (string)row["key"]!, row => new Unit { Key = (string)row["key"]!, Title = row["title"] as string ?? "", Artist = row["artist"] as string ?? "", Cover = row["cover_id"] as string ?? "", Format = row["format"] as string ?? "", Compilation = Convert.ToInt64(row["compilation"] ?? 0L) == 1, Folder = Relative(row["path"]), FolderPath = row["path"] as string ?? "" });
         // Raw artist and album artist tags per track, names sorted so the order on the track doesn't matter
         var creditNames = new Dictionary<(long trackId, string role), List<string>>();
         foreach (var row in Query(connection, "SELECT tc.track_id, tc.role, c.name FROM track_contributors tc JOIN contributors c ON c.id=tc.contributor_id WHERE tc.role IN ('albumartist','artist')"))
         { var creditKey = ((long)row["track_id"]!, (string)row["role"]!); if (!creditNames.TryGetValue(creditKey, out var names)) creditNames[creditKey] = names = new(); names.Add(row["name"] as string ?? ""); }
         string Credit(long trackId, string role) => creditNames.TryGetValue((trackId, role), out var names) ? string.Join(", ", names.Where(name => name != "").OrderBy(name => name)) : "";
-        foreach (var row in Query(connection, "SELECT at.album_key, at.disc_no, t.id, t.track_no, t.title_norm, t.year, t.composer, t.tag_album_id FROM album_tracks at JOIN albums a ON a.key=at.album_key AND a.source=$source JOIN tracks t ON t.id=at.track_id ORDER BY at.disc_no, t.track_no, t.url", ("$source", unitSource)))
+        foreach (var row in Query(connection, "SELECT at.album_key, at.disc_no, t.id, t.track_no, t.title_norm, t.year, t.composer, t.tag_album_id, t.url FROM album_tracks at JOIN albums a ON a.key=at.album_key AND a.source=$source JOIN tracks t ON t.id=at.track_id ORDER BY at.disc_no, t.track_no, t.url", ("$source", unitSource)))
         {
             var trackId = (long)row["id"]!;
-            units[(string)row["album_key"]!].Tracks.Add(new UnitTrack { Id = trackId, Disc = Convert.ToInt32(row["disc_no"] ?? 0L), TrackNo = Convert.ToInt32(row["track_no"] ?? 0L), Year = Convert.ToInt32(row["year"] ?? 0L), TitleNorm = row["title_norm"] as string ?? "", Composer = (row["composer"] as string ?? "").Trim(), TagAlbumId = Convert.ToInt64(row["tag_album_id"] ?? 0L), AlbumArtistTag = Credit(trackId, "albumartist"), ArtistTag = Credit(trackId, "artist") });
+            units[(string)row["album_key"]!].Tracks.Add(new UnitTrack { Id = trackId, Disc = Convert.ToInt32(row["disc_no"] ?? 0L), TrackNo = Convert.ToInt32(row["track_no"] ?? 0L), Year = Convert.ToInt32(row["year"] ?? 0L), TitleNorm = row["title_norm"] as string ?? "", Composer = (row["composer"] as string ?? "").Trim(), TagAlbumId = Convert.ToInt64(row["tag_album_id"] ?? 0L), AlbumArtistTag = Credit(trackId, "albumartist"), ArtistTag = Credit(trackId, "artist"), FilePath = FilePathOf(row["url"] as string ?? "") });
         }
         var tagAlbums = Query(connection, "SELECT key, title, title_norm, artist, artist_norm FROM albums WHERE source='t'").ToDictionary(row => (string)row["key"]!);
         var genreTest = string.Join(" OR ", classicalGenreWords.Select(word => $"g.name_norm LIKE '%{word}%'"));
         var classicalKeys = Query(connection, $"SELECT album_key AS key FROM album_credits WHERE credit IN ('conductor','band') UNION SELECT at.album_key FROM album_tracks at JOIN track_genres tg ON tg.track_id=at.track_id JOIN genres g ON g.id=tg.genre_id WHERE {genreTest}").Select(row => (string)row["key"]!).ToHashSet();
         var unitByTrack = new Dictionary<long, string>();
         foreach (var unit in units.Values) foreach (var track in unit.Tracks) unitByTrack.TryAdd(track.Id, unit.Key);
-        Dictionary<string, object?> Row(Unit unit) => new() { ["key"] = unit.Key, ["title"] = unit.Title, ["artist"] = unit.Artist, ["cover"] = unit.Cover, ["folder"] = unit.Folder, ["tracks"] = unit.Tracks.Count, ["format"] = unit.Format };
+        Dictionary<string, object?> Row(Unit unit) => new() { ["key"] = unit.Key, ["title"] = unit.Title, ["artist"] = unit.Artist, ["cover"] = unit.Cover, ["folder"] = unit.Folder, ["path"] = unit.FolderPath != "" ? unit.FolderPath : FolderOf(unit.Tracks.FirstOrDefault()?.FilePath ?? ""), ["tracks"] = unit.Tracks.Count, ["format"] = unit.Format };
         var ordered = units.Values.Where(unit => unit.Tracks.Count > 0).OrderBy(unit => unit.Artist, StringComparer.OrdinalIgnoreCase).ThenBy(unit => unit.Title, StringComparer.OrdinalIgnoreCase).ToList();
 
         // Missing art: no cover in the files, or the server only has its placeholder for it
@@ -59,6 +59,7 @@ public static partial class LibraryHealth
             if (missing == 0) continue;
             var row = Row(unit); row["missing"] = missing; row["classical"] = classicalKeys.Contains(unit.Key) || unit.Tracks.Any(track => track.TagAlbumId > 0 && classicalKeys.Contains("t:" + track.TagAlbumId));
             row["detail"] = missing == unit.Tracks.Count ? L.T("No composer on any track") : L.T("No composer on {count} of {total} tracks", ("count", missing), ("total", unit.Tracks.Count));
+            if (missing < unit.Tracks.Count) row["files"] = unit.Tracks.Where(track => track.Composer == "").Select(track => track.FilePath).ToList(); // the export names the tracks when only some are affected
             missingComposer.Add(row);
         }
 
@@ -96,12 +97,12 @@ public static partial class LibraryHealth
         var tags = new List<Dictionary<string, object?>>();
         foreach (var unit in ordered)
         {
-            var problems = new List<Dictionary<string, string>>();
-            void Problem(string kind, string text) => problems.Add(new() { ["kind"] = kind, ["text"] = text });
+            var problems = new List<Dictionary<string, object?>>();
+            void Problem(string kind, string text, IEnumerable<UnitTrack>? affected = null) { var problem = new Dictionary<string, object?> { ["kind"] = kind, ["text"] = text }; if (affected != null) problem["files"] = affected.Select(track => track.FilePath).ToList(); problems.Add(problem); } // files: only some tracks affected, named in the export
             var tracks = unit.Tracks;
             var withAlbumArtist = tracks.Where(track => track.AlbumArtistTag != "").ToList();
             if (tracks.All(track => track.AlbumArtistTag == "" && track.ArtistTag == "")) Problem("artist", L.T("No artist or album artist on any track"));
-            else if (withAlbumArtist.Count > 0 && withAlbumArtist.Count < tracks.Count) Problem("artist", L.T("Album artist missing on {count} of {total} tracks", ("count", tracks.Count - withAlbumArtist.Count), ("total", tracks.Count)));
+            else if (withAlbumArtist.Count > 0 && withAlbumArtist.Count < tracks.Count) Problem("artist", L.T("Album artist missing on {count} of {total} tracks", ("count", tracks.Count - withAlbumArtist.Count), ("total", tracks.Count)), tracks.Where(track => track.AlbumArtistTag == ""));
             else if (withAlbumArtist.Select(track => track.AlbumArtistTag).Distinct().Count() > 1) Problem("artist", L.T("Album artist differs between tracks: {names}", ("names", Few(withAlbumArtist.Select(track => track.AlbumArtistTag).Distinct().ToList(), 3, " / "))));
             // A compilation (Lyrion's flag, or no artist on most tracks) is meant to have different artists and often no album artist
             else if (withAlbumArtist.Count == 0 && !unit.Compilation && tracks.Select(track => track.ArtistTag).Where(artist => artist != "").Distinct().Count() > 1) Problem("artist", L.T("No album artist, and the tracks have different artists"));
@@ -117,9 +118,9 @@ public static partial class LibraryHealth
                 var discTracks = disc.ToList();
                 var unnumbered = discTracks.Count(track => track.TrackNo <= 0);
                 if (unnumbered == discTracks.Count) { Problem("numbers", prefix + L.T("No track numbers")); continue; }
-                if (unnumbered > 0) Problem("numbers", prefix + L.N(unnumbered, "No track number on {count} track", "No track number on {count} tracks"));
+                if (unnumbered > 0) Problem("numbers", prefix + L.N(unnumbered, "No track number on {count} track", "No track number on {count} tracks"), discTracks.Where(track => track.TrackNo <= 0));
                 var repeated = discTracks.Where(track => track.TrackNo > 0).GroupBy(track => track.TrackNo).Where(group => group.Count() > 1).Select(group => group.Key).OrderBy(number => number).ToList();
-                if (repeated.Count > 0) Problem("numbers", prefix + L.N(repeated.Count, "Track {numbers} appears more than once", "Tracks {numbers} appear more than once", ("numbers", Few(repeated.Select(number => number.ToString()).ToList(), 6, ", "))));
+                if (repeated.Count > 0) Problem("numbers", prefix + L.N(repeated.Count, "Track {numbers} appears more than once", "Tracks {numbers} appear more than once", ("numbers", Few(repeated.Select(number => number.ToString()).ToList(), 6, ", "))), discTracks.Where(track => repeated.Contains(track.TrackNo)));
                 var numbers = discTracks.Where(track => track.TrackNo > 0).Select(track => track.TrackNo).ToHashSet();
                 var highest = numbers.Max();
                 var gaps = highest <= 199 ? Enumerable.Range(1, highest).Where(number => !numbers.Contains(number)).ToList() : new List<int>();
@@ -127,7 +128,7 @@ public static partial class LibraryHealth
             }
             var years = tracks.Select(track => track.Year).Where(year => year > 0).Distinct().OrderBy(year => year).ToList();
             if (years.Count == 0) Problem("year", L.T("No year"));
-            foreach (var oddYear in years.Where(year => year < 1900 || year > currentYear + 1)) Problem("year", L.T("Odd year: {year}", ("year", oddYear)));
+            foreach (var oddYear in years.Where(year => year < 1900 || year > currentYear + 1)) Problem("year", L.T("Odd year: {year}", ("year", oddYear)), tracks.Where(track => track.Year == oddYear));
             if (years.Count > 1) Problem("year", L.T("Tracks have different years: {years}", ("years", Few(years.Select(year => year.ToString()).ToList(), 4, ", "))));
             if (problems.Count == 0) continue;
             var row = Row(unit); row["problems"] = problems;
@@ -159,7 +160,7 @@ public static partial class LibraryHealth
             var (firstName, secondName) = (contributorNames.GetValueOrDefault(firstId, ""), contributorNames.GetValueOrDefault(secondId, ""));
             var joined = knownNames.Contains(TextNormaliser.Normalise(firstName + ", " + secondName)) || knownNames.Contains(TextNormaliser.Normalise(firstName + " & " + secondName));
             if (!joined && !SingleWord(firstName) && !SingleWord(secondName)) continue;
-            splitNames[(firstId, secondId)] = new() { ["names"] = new[] { firstName, secondName }, ["role"] = role, ["tracks"] = together, ["key"] = unitByTrack.GetValueOrDefault(trackId, ""), ["title"] = units.TryGetValue(unitByTrack.GetValueOrDefault(trackId, ""), out var unitOfTrack) ? unitOfTrack.Title : "", ["sure"] = joined };
+            splitNames[(firstId, secondId)] = new() { ["names"] = new[] { firstName, secondName }, ["role"] = role, ["tracks"] = together, ["key"] = unitByTrack.GetValueOrDefault(trackId, ""), ["title"] = units.TryGetValue(unitByTrack.GetValueOrDefault(trackId, ""), out var unitOfTrack) ? unitOfTrack.Title : "", ["path"] = unitOfTrack == null ? "" : Row(unitOfTrack)["path"], ["sure"] = joined };
         }
 
         // One person spelled two ways: the same words in another order or with other punctuation ("Bach, Johann Sebastian" and "Johann Sebastian Bach")
@@ -177,5 +178,7 @@ public static partial class LibraryHealth
         };
     }
 
+    static string FilePathOf(string url) => url.StartsWith("file:", StringComparison.OrdinalIgnoreCase) && Uri.TryCreate(url, UriKind.Absolute, out var fileUri) ? Uri.UnescapeDataString(fileUri.AbsolutePath) : url; // as the server sees it, like the folders table
+    static string FolderOf(string filePath) => filePath[..Math.Max(0, filePath.LastIndexOfAny(new[] { '/', '\\' }))];
     static string Few(List<string> items, int limit, string separator) => string.Join(separator, items.Take(limit)) + (items.Count > limit ? " " + L.T("and {count} more", ("count", items.Count - limit)) : "");
 }

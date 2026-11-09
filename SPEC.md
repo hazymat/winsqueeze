@@ -348,7 +348,7 @@ A sidebar section (and a button in Settings › Library & cache) listing what in
 - **Name problems:** two names (same role) that only ever appear together where one is a single word or together they make a name already in the library ("Earth" + "Wind & Fire"); one person spelled two ways (same words in another order or punctuation).
 - **Damaged files** (see Damaged files).
 
-Each row opens its album (a damaged file opens its album at that track; a person opens their page). Summary tiles jump to each section; each section has Copy list (artist — title — folder — problem). The report is cached per profile (`health.json`) until the index changes; Rescan asks the server for changes, checks missing covers again and rebuilds the report.
+Each row opens its album (a damaged file opens its album at that track; a person opens their page). Summary tiles jump to each section; each section has Copy list (artist — title — folder — problem). **Export…** (next to Rescan) saves every problem as one flat list, JSON or plain text (picked by file type in the Save dialog), for a script or an AI to work through: each problem has a type id (missing-cover-art, missing-composer, duplicate-album, album-artist, split-album, track-numbers, year, split-name, spelled-twice, damaged-file), artist, album, the folder's server path and the problem text, plus the affected files when only some tracks are affected; a short description of each type heads the file. Missing composer exports every album, flagged classical or not. The report is cached per profile (`health.json`) until the index changes; Rescan asks the server for changes, checks missing covers again and rebuilds the report.
 
 ## Diagnostics
 
