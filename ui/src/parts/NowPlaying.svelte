@@ -9,6 +9,7 @@
   import Hint from './Hint.svelte'
   import Readout from './Readout.svelte'
   import QueueView from '../views/QueueView.svelte'
+  import LyricsText from './LyricsText.svelte'
   // The one Now playing view: blurred-art backdrop, big art, track details, and the queue in its own scrolling glass panel
   const track = $derived(currentTrack())
   const cover = $derived(trackArt(track, 600))
@@ -150,7 +151,7 @@
           {#if !track}<p class="quiet">Nothing playing</p>
           {:else if infoKey === 'lyrics'}
             {#if pending(result)}<p class="quiet">Looking…</p>{:else if !result.found}<p class="quiet">No lyrics found for this track</p>
-            {:else}<div class="info-head"><div><h2>{result.heading}</h2>{#if result.subheading}<div class="quiet">{result.subheading}</div>{/if}</div></div><pre>{result.text}</pre>{@render source(result.source, result.link, 'Read more')}{/if}
+            {:else}<button class="lyrics-full" onclick={() => sendToShell({ type: 'openLyrics', fullScreen: true })} title="Full screen lyrics" aria-label="Full screen lyrics"><Icon name="full-screen" size={17} /></button><div class="info-head"><div><h2>{result.heading}</h2>{#if result.subheading}<div class="quiet">{result.subheading}</div>{/if}</div></div><LyricsText lyrics={result} />{@render source(result.source, result.link, 'Read more')}{/if}
           {:else if infoKey === 'artist'}
             {#if showTimeline && info.timeline?.found}
               <button class="back" onclick={() => showTimeline = false}>← Artist bio</button>
@@ -301,7 +302,9 @@
   .credit-name { position: relative; font-size: 13.5px; font-weight: 600; line-height: 1.35; } .credit-roles { font-size: 13px; color: var(--fg-quiet); line-height: 1.35; }
   .track-map { position: relative; display: flex; gap: 2px; align-self: center; max-width: 120px; } .track-map i { flex: 1; min-width: 2px; max-width: 4px; width: 4px; height: 12px; border-radius: 1px; background: color-mix(in srgb, var(--fg) 12%, transparent); }
   .track-map i.on { background: color-mix(in srgb, var(--fg) 55%, transparent); } .track-map i.on.current { background: var(--accent); }
-  .lyrics pre { margin: 14px 0 0; font: inherit; font-size: 15px; line-height: 1.7; white-space: pre-wrap; }
+  .lyrics .info-head { margin-bottom: 14px; } .lyrics h2 { font-family: var(--font-text); font-style: italic; font-weight: 500; font-size: 22px; }
+  /* Full screen stays to hand while the lyrics scroll */
+  .lyrics-full { position: sticky; top: 0; z-index: 1; float: right; width: 32px; height: 32px; display: grid; place-items: center; border: 0; border-radius: 50%; color: var(--fg); background: color-mix(in srgb, var(--panel-solid) 55%, transparent); backdrop-filter: blur(8px); opacity: 0.7; cursor: pointer; } .lyrics-full:hover { opacity: 1; background: var(--hover); }
   .source { margin-top: 18px; padding-top: 10px; border-top: 1px solid var(--line); color: var(--fg-quiet); font-size: 11.5px; } .source .link { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
   @media (max-width: 1100px) { .layout { grid-template-columns: minmax(180px, 0.8fr) minmax(280px, 1.2fr); grid-template-rows: auto 1fr; } .art-column { grid-row: 1; } .meta { grid-row: 1; } .queue-panel { grid-column: 1 / 3; } .art { max-width: min(260px, 42cqh); } }
   @media (max-width: 900px) { .queue-panel.tabbed, .queue-body, .info { overflow: visible; } .now-playing { overflow-y: auto; } .layout { height: auto; min-height: 100%; grid-template-columns: 1fr; padding: 20px 14px; } .art-column, .meta, .queue-panel { grid-column: 1; grid-row: auto; } .art { max-width: min(340px, 62cqh, 100cqw - 28px); } .meta { align-items: center; text-align: center; overflow: visible; max-height: none; } .queue-panel { overflow: visible; } }

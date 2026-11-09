@@ -28,7 +28,7 @@ public partial class MainWindow : Window
         SourceInitialized += (sender, args) => ApplyWindowStyle();
         Activated += (sender, args) => OnFirstActivation();
         StateChanged += (sender, args) => { UpdateFrameMargin(); PushWindowState(); };
-        IsVisibleChanged += (sender, args) => App.Session.SetVisible(IsVisible);
+        IsVisibleChanged += (sender, args) => App.UpdatePolling();
         App.StatusChanged += () => Push(App.StatusJson());
         App.HistoryChanged += () => Push("{\"type\":\"historyChanged\"}");
         App.Session.StatusUpdated += () => Push($"{{\"type\":\"nowPlaying\",\"status\":{App.Session.LastStatusJson}}}");
@@ -121,7 +121,7 @@ public partial class MainWindow : Window
                     var queryName = Text(message, "name");
                     var queryParameters = message.TryGetProperty("params", out var parameters) ? parameters : default;
                     var queries = App.Library.Queries;
-                    if (queryName == "nowPlayingInfo") { Reply(message, (await App.TrackInfo.LookupAsync(new TrackInfo.Request(Text(queryParameters, "kind"), long.TryParse(Text(queryParameters, "id"), out var infoTrackId) ? infoTrackId : 0, Text(queryParameters, "artistId"), Text(queryParameters, "albumId"), Text(queryParameters, "artist"), Text(queryParameters, "album"), Text(queryParameters, "title"), double.TryParse(Text(queryParameters, "duration"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var infoDuration) ? infoDuration : 0, Text(queryParameters, "remote") == "1"))).ToJson()); break; }
+                    if (queryName == "nowPlayingInfo") { Reply(message, (await App.TrackInfo.LookupAsync(TrackInfo.RequestFrom(queryParameters))).ToJson()); break; }
                     if (queryName == "history") { var before = queryParameters.ValueKind == JsonValueKind.Object && queryParameters.TryGetProperty("before", out var beforeValue) ? beforeValue.GetInt64() : 0; Reply(message, await Task.Run(() => App.History.Recent(before, 400))); break; }
                     if (queryName == "health") { Reply(message, await App.Library.HealthAsync(queryParameters.ValueKind == JsonValueKind.Object && queryParameters.TryGetProperty("rescan", out var rescan) && rescan.ValueKind == JsonValueKind.True)); break; }
                     if (queryName == "damaged") { Reply(message, App.Damaged.Files.OrderByDescending(damagedFile => damagedFile.Unplayable).ThenByDescending(damagedFile => damagedFile.Errors).Select(damagedFile => new { id = damagedFile.Id, title = damagedFile.Title, artist = damagedFile.Artist, album = damagedFile.Album, errors = damagedFile.Errors, unplayable = damagedFile.Unplayable, firstError = damagedFile.FirstError, path = damagedFile.Path })); break; }
@@ -187,6 +187,7 @@ public partial class MainWindow : Window
                 case "loadDraft": ReplyRaw(message, File.Exists(Shell.PlayerSession.DraftPath) ? File.ReadAllText(Shell.PlayerSession.DraftPath) : "null"); break;
                 case "saveDraft": Directory.CreateDirectory(AppPaths.DataFolder); if (Text(message, "draft") == "null") File.Delete(Shell.PlayerSession.DraftPath); else File.WriteAllText(Shell.PlayerSession.DraftPath, message.GetProperty("draft").GetRawText()); break;
                 case "openEq": App.OpenEqualiser(); break;
+                case "openLyrics": App.OpenLyrics(message.TryGetProperty("fullScreen", out var lyricsFullScreen) && lyricsFullScreen.GetBoolean()); break;
                 case "toggleEq": App.ToggleEqualiser(); break;
                 case "toggleRecording": App.Recorder.Toggle(App.Session.LastStatus); break;
                 case "openRecordings": Directory.CreateDirectory(App.Recorder.Folder); System.Diagnostics.Process.Start("explorer.exe", App.Recorder.Folder); break;

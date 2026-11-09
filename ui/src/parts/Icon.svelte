@@ -1,6 +1,6 @@
 <script lang="ts">
   // Crisp transport icons as SVG: text glyphs (⏮ ▶ ⏭) render off-centre with colour fringes in WebView2
-  let { name, size = 18 }: { name: 'back' | 'history' | 'forward' | 'previous' | 'next' | 'play' | 'pause' | 'volume' | 'speaker' | 'pin' | 'favourites' | 'artists' | 'genres' | 'composers' | 'performers' | 'folders' | 'albums' | 'new' | 'queue' | 'plus' | 'settings' | 'playlists' | 'verified' | 'grid-large' | 'grid-small' | 'list' | 'cards' | 'minimise' | 'maximise' | 'restore' | 'close' | 'download' | 'radio' | 'apps' | 'health'; size?: number } = $props()
+  let { name, size = 18 }: { name: 'back' | 'history' | 'forward' | 'previous' | 'next' | 'play' | 'pause' | 'volume' | 'speaker' | 'pin' | 'favourites' | 'artists' | 'genres' | 'composers' | 'performers' | 'folders' | 'albums' | 'new' | 'queue' | 'plus' | 'settings' | 'playlists' | 'verified' | 'grid-large' | 'grid-small' | 'list' | 'cards' | 'minimise' | 'maximise' | 'restore' | 'close' | 'full-screen' | 'exit-full-screen' | 'lyrics' | 'download' | 'radio' | 'apps' | 'health'; size?: number } = $props()
 </script>
 
 <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" class="icon">
@@ -34,6 +34,9 @@
   {:else if name === 'minimise'}<path d="M6 12h12" class="stroke thin" />
   {:else if name === 'maximise'}<rect x="6.5" y="6.5" width="11" height="11" rx="1.5" class="stroke thin" />
   {:else if name === 'restore'}<rect x="6" y="8.5" width="9.5" height="9.5" rx="1.5" class="stroke thin" /><path d="M9 8.5V7.5A1.5 1.5 0 0 1 10.5 6h6A1.5 1.5 0 0 1 18 7.5v6a1.5 1.5 0 0 1-1.5 1.5h-1" class="stroke thin" />
+  {:else if name === 'full-screen'}<path d="M4.5 9V5.5a1 1 0 0 1 1-1H9M15 4.5h3.5a1 1 0 0 1 1 1V9M19.5 15v3.5a1 1 0 0 1-1 1H15M9 19.5H5.5a1 1 0 0 1-1-1V15" class="stroke" />
+  {:else if name === 'exit-full-screen'}<path d="M9 4.5V8a1 1 0 0 1-1 1H4.5M19.5 9H16a1 1 0 0 1-1-1V4.5M15 19.5V16a1 1 0 0 1 1-1h3.5M4.5 15H8a1 1 0 0 1 1 1v3.5" class="stroke" />
+  {:else if name === 'lyrics'}<path d="M4.5 6.5h10M4.5 10.5h12M4.5 14.5h6" class="stroke" /><path d="M18.5 12.5v6" class="stroke" /><ellipse cx="16.6" cy="18.8" rx="1.9" ry="1.5" /><path d="M18.5 12.5l2 .8" class="stroke" />
   {:else if name === 'close'}<path d="M7 7l10 10M17 7L7 17" class="stroke thin" />
   {:else if name === 'health'}<path d="M3.5 12h4l2-4.5 4 9 2-4.5h5" class="stroke" />
   {:else if name === 'download'}<path d="M12 4.5v10M7.5 10.5L12 15l4.5-4.5M5 19h14" class="stroke" />

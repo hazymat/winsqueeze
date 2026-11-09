@@ -6,6 +6,7 @@
   import FidelityBadge from './FidelityBadge.svelte'
   import Icon from './Icon.svelte'
   import Meters from './Meters.svelte'
+  import { infoQuery } from '../lib/nowPlayingInfo'
   let { mini = false }: { mini?: boolean } = $props()
   let now = $state(Date.now())
   let volumeOpen = $state(false)
@@ -33,6 +34,14 @@
     if (Date.now() - lastVolumeSent > 60) { lastVolumeSent = Date.now(); command('mixer', 'volume', draggingVolume) }
   }
   function releaseVolume(event: Event) { command('mixer', 'volume', (event.target as HTMLInputElement).value); volumeReleaseTimer = window.setTimeout(() => draggingVolume = null, 1200) }
+  // Mini: lyrics pop out into a window of their own, offered when the playing track has some
+  let hasLyrics = $state(false), lyricsFor = ''
+  $effect(() => {
+    const playing = track, key = mini && playing ? [playing.id, playing.artist, playing.album, playing.title].join('|') : ''
+    if (key === lyricsFor) return
+    lyricsFor = key; hasLyrics = false
+    if (key && app.trackInfoTabs.includes('lyrics')) infoQuery('lyrics', playing).then(result => { if (lyricsFor === key) hasLyrics = !!result?.found })
+  })
   const ownSelected = $derived(!app.selectedPlayer || app.selectedPlayer === app.ownPlayer)
   // Record (SPEC.md › Recording): only while this PC's player plays a radio station or other stream (never library files), or while a recording runs
   const recording = $derived(app.status?.recording ?? {})
@@ -84,7 +93,7 @@
       <button class="volume-icon" onclick={() => volumeOpen = !volumeOpen} aria-label="Volume"><Icon name="volume" /></button>
       {#if volumeOpen}<div class="volume-pop"><input type="range" min="0" max="100" value={volume} oninput={dragVolume} onchange={releaseVolume} aria-label="Volume" /></div>{/if}
     </div>
-    {#if mini}<div class="mini-meters"><Meters size="large" /></div><button class="mini-speaker" class:on={miniVolume} onclick={() => miniVolume ? miniVolume = false : showMiniVolume()} title="Volume (or scroll)"><Icon name="volume" size={16} /></button><button class="pin" class:on={ui.pinned} onclick={() => { ui.pinned = !ui.pinned; sendToShell({ type: 'setTopmost', on: ui.pinned }) }} title="Always on top"><Icon name="pin" size={16} /></button>{/if}
+    {#if mini}<div class="mini-meters"><Meters size="large" /></div>{#if hasLyrics}<button class="mini-speaker" onclick={() => sendToShell({ type: 'openLyrics' })} title="Lyrics in a window of their own"><Icon name="lyrics" size={16} /></button>{/if}<button class="mini-speaker" class:on={miniVolume} onclick={() => miniVolume ? miniVolume = false : showMiniVolume()} title="Volume (or scroll)"><Icon name="volume" size={16} /></button><button class="pin" class:on={ui.pinned} onclick={() => { ui.pinned = !ui.pinned; sendToShell({ type: 'setTopmost', on: ui.pinned }) }} title="Always on top"><Icon name="pin" size={16} /></button>{/if}
   </div>
 </footer>
 </div>
