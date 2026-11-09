@@ -9,7 +9,7 @@ namespace WinSqueeze;
 // The web UI gets the same files and the chosen code as ?lang=
 public static class L
 {
-    public static readonly (string code, string name)[] Languages = { ("en", "English"), ("de", "Deutsch"), ("uk", "Українська"), ("es", "Español") };
+    public static readonly (string code, string name)[] Languages = { ("en", "English"), ("de", "Deutsch"), ("uk", "Українська"), ("es", "Español"), ("fr", "Français") };
     public static string Code { get; private set; } = "en";
     static Dictionary<string, string> dictionary = new();
 
