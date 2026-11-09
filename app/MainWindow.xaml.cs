@@ -28,6 +28,7 @@ public partial class MainWindow : Window
         SourceInitialized += (sender, args) => ApplyWindowStyle();
         Activated += (sender, args) => OnFirstActivation();
         StateChanged += (sender, args) => { UpdateFrameMargin(); PushWindowState(); };
+        LocationChanged += (sender, args) => { if (double.IsFinite(Left) && double.IsFinite(Top)) Push(JsonSerializer.Serialize(new { type = "windowMoved", x = (int)Left, y = (int)Top })); }; // the VU needles jog when the window is dragged
         IsVisibleChanged += (sender, args) => App.UpdatePolling();
         App.StatusChanged += () => Push(App.StatusJson());
         App.HistoryChanged += () => Push("{\"type\":\"historyChanged\"}");
@@ -199,6 +200,10 @@ public partial class MainWindow : Window
                 case "windowControl":
                     switch (Text(message, "action")) { case "minimise": WindowState = WindowState.Minimized; break; case "maximise": WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized; break; case "close": Close(); break; }
                     break;
+                case "setMeterReference": // the VU meter's zero-adjust screw: a fixed 0 VU, or back to automatic
+                    if (message.TryGetProperty("auto", out var autoReference) && autoReference.GetBoolean()) App.Settings.Meters.AutoReference = true;
+                    else if (message.TryGetProperty("referenceDbfs", out var referenceValue) && referenceValue.TryGetDouble(out var referenceDbfs)) { App.Settings.Meters.ReferenceDbfs = Math.Clamp(Math.Round(referenceDbfs), -24, -8); App.Settings.Meters.AutoReference = false; }
+                    App.Settings.Save(); App.ApplyMeters(); break;
                 case "theme": darkTheme = message.TryGetProperty("dark", out var darkValue) && darkValue.GetBoolean(); ApplyWindowStyle(); break;
                 case "setTopmost": Topmost = message.GetProperty("on").GetBoolean(); break;
                 case "windowMode": SetWindowMode(Text(message, "mode")); break;
