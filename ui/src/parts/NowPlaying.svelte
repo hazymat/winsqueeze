@@ -210,14 +210,14 @@
               {#if info.credits?.found}<button class="callout-button" onclick={() => showCredits = true}><svg class="drawing" viewBox="0 0 64 24" aria-hidden="true"><path d="M2 4h14M2 12h11M2 20h16" /><rect x="26" y="1.5" width="4" height="5" rx="0.8" class="on" /><rect x="33" y="1.5" width="4" height="5" rx="0.8" class="on" /><rect x="40" y="1.5" width="4" height="5" rx="0.8" class="on" /><rect x="47" y="1.5" width="4" height="5" rx="0.8" class="on" /><rect x="54" y="1.5" width="4" height="5" rx="0.8" class="on" /><rect x="26" y="9.5" width="4" height="5" rx="0.8" /><rect x="33" y="9.5" width="4" height="5" rx="0.8" class="on" /><rect x="40" y="9.5" width="4" height="5" rx="0.8" /><rect x="47" y="9.5" width="4" height="5" rx="0.8" class="on" /><rect x="54" y="9.5" width="4" height="5" rx="0.8" /><rect x="26" y="17.5" width="4" height="5" rx="0.8" class="on" /><rect x="33" y="17.5" width="4" height="5" rx="0.8" /><rect x="40" y="17.5" width="4" height="5" rx="0.8" /><rect x="47" y="17.5" width="4" height="5" rx="0.8" /><rect x="54" y="17.5" width="4" height="5" rx="0.8" class="on" /></svg><span class="callout-text">View album credits<small>Who plays on each track</small></span><span class="chevron" aria-hidden="true">›</span></button>{/if}
               {#if albumTags}
                 <h2 class="album-title">{albumTags.title}</h2>
-                <div class="from">From your music files</div>
+                <div class="section-head">From your music files</div>
                 <dl class="tag-table">{#each tagRows(albumTags) as [label, value] (label)}<dt>{label}</dt><dd>{value}</dd>{/each}</dl>
               {/if}
               {#if pending(result)}<p class="quiet">{albumTags ? 'Looking online…' : 'Looking…'}</p>
               {:else if !result.found}{#if !albumTags && !info.credits?.found}<p class="quiet">Nothing found about this album</p>{/if}
               {:else if albumTags}
               {@const blocks = blocksOf(result.text)}{@const shown = expanded ? blocks.length : shortCount(blocks)}
-                <div class="from">From {result.source}{#if result.link}<button class="link" onclick={() => sendToShell({ type: 'openUrl', url: result.link })}>Read more</button>{/if}</div>
+                <div class="section-head">From {result.source}{#if result.link}<button class="link" onclick={() => sendToShell({ type: 'openUrl', url: result.link })}>Read more</button>{/if}</div>
               {#each blocks.slice(0, shown) as block}{#if block.startsWith('## ')}<h3>{block.slice(3)}</h3>{:else if block.startsWith('• ')}<ul>{#each block.split('\n') as item}<li>{item.replace(/^• /, '')}</li>{/each}</ul>{:else}<p>{block}</p>{/if}{/each}
               {#if shown < blocks.length}<button class="more" onclick={() => expanded = true}>Show more</button>{/if}
               {:else}
@@ -295,9 +295,7 @@
   .back { background: none; border: 0; padding: 0; margin: 0 0 12px; color: var(--accent); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; } .back:hover { text-decoration: underline; }
   /* Album: what comes from your files and what comes from online, each under its own label */
   .info h2.album-title { margin: 2px 0 0; font-size: 18px; }
-  .from { display: flex; align-items: baseline; gap: 10px; margin: 18px 0 6px; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-quiet); font-weight: 700; } .from .link { margin-left: auto; text-transform: none; letter-spacing: 0; font-weight: 500; color: var(--fg-quiet); text-decoration: underline; text-underline-offset: 2px; }
-  .from + p { margin-top: 4px; }
-  .tag-table { display: grid; grid-template-columns: minmax(90px, 0.6fr) 1.4fr; margin: 0; border-top: 1px solid var(--line); } .tag-table dt, .tag-table dd { margin: 0; padding: 6px 4px; border-bottom: 1px solid var(--line); font-size: 13px; line-height: 1.4; } .tag-table dt { color: var(--fg-quiet); } .tag-table dd { white-space: pre-line; }
+  .section-head + p { margin-top: 4px; }
   /* Credits: liner-notes table. Name, roles, and a strip with a cell per track; the playing track's column is lit down the whole list */
   .info h3.credit-group { margin: 22px 0 6px; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-quiet); font-weight: 700; } .info .back + h3.credit-group { margin-top: 4px; } .track-pointer { position: relative; float: right; height: 10px; margin: 4px 4px 0 0; } .track-pointer i { position: absolute; bottom: 0; border: 4px solid transparent; border-top: 5px solid var(--accent); border-bottom: 0; } /* points down at the playing track's column of the strips */
   .credit-list { border-top: 1px solid var(--line); }

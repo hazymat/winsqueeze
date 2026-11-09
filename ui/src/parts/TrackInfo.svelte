@@ -1,44 +1,49 @@
 <script lang="ts">
   import { query } from '../bridge'
   import { ui, formatTime } from '../state.svelte'
-  // Info for one or several tracks: total length, what they all share, and a per-track table for whatever differs
+  // Info for one or several tracks: total length, what they all share, and a per-track table for whatever differs. Same look as Now playing › Album (section heads over hairline rows)
   // items: things outside the library (favourites, radio, episodes), shown as whatever fields the server gave
   let { ids, items = null }: { ids: number[], items?: { name: string, fields: [string, string][] }[] | null } = $props()
   let tracks = $state<any[] | null>(null)
   $effect(() => { const wanted = ids; tracks = null; if (items) return; query('trackInfo', { ids: wanted }).then(rows => { const byId = new Map((Array.isArray(rows) ? rows : []).map((row: any) => [Number(row.id), row])); tracks = wanted.map(id => byId.get(id)).filter(Boolean) }) })
-  const fileOf = (url: string) => { try { return decodeURIComponent(String(url ?? '').replace(/^file:\/\/\/?/, '')).replace(/\//g, '\\') } catch { return '' } } // the full path to the file, as the server sees it
+  const pathOf = (url: string) => { try { return decodeURIComponent(String(url ?? '').replace(/^file:\/\/\/?/, '')).replace(/\//g, '\\') } catch { return '' } } // the full path to the file, as the server sees it
+  const folderOf = (url: string) => pathOf(url).replace(/\\[^\\]*$/, ''), fileNameOf = (url: string) => pathOf(url).split('\\').pop() ?? ''
   const formats: Record<string, string> = { flc: 'FLAC', mp3: 'MP3', aac: 'AAC', mp4: 'AAC', alc: 'ALAC', wav: 'WAV', aif: 'AIFF', ogg: 'Ogg Vorbis', ops: 'Opus', wma: 'WMA', dsf: 'DSD', dff: 'DSD' }
+  const formatOf = (track: any) => [formats[track.content_type] ?? String(track.content_type ?? '').toUpperCase(), Number(track.sample_rate) > 0 ? `${Number(track.sample_rate) / 1000} kHz` : '', Number(track.sample_size) > 0 ? `${track.sample_size}-bit` : '', String(track.bitrate ?? '').replace(/kb\/s/i, ' kbps').replace(/\s+/g, ' ').trim()].filter(Boolean).join(' · ') // one line, as on the Album tab
   const fields: [string, string, (track: any) => string][] = [
     ['title', 'Title', track => track.title ?? ''], ['artist', 'Artist', track => track.track_artist ?? ''], ['albumArtist', 'Album artist', track => track.album_artist ?? ''], ['album', 'Album', track => track.album ?? ''],
     ['composer', 'Composer', track => track.composer ?? ''], ['genre', 'Genre', track => track.genre ?? ''], ['year', 'Year', track => Number(track.year) > 0 ? String(track.year) : ''],
     ['disc', 'Disc', track => Number(track.disc_no) > 0 ? String(track.disc_no) : ''], ['number', 'Track', track => Number(track.track_no) > 0 ? String(track.track_no) : ''],
-    ['format', 'Format', track => formats[track.content_type] ?? String(track.content_type ?? '').toUpperCase()], ['rate', 'Sample rate', track => Number(track.sample_rate) > 0 ? `${Number(track.sample_rate) / 1000} kHz` : ''],
-    ['depth', 'Bit depth', track => Number(track.sample_size) > 0 ? `${track.sample_size}-bit` : ''], ['bitrate', 'Bitrate', track => String(track.bitrate ?? '').replace(/kb\/s/i, ' kbps').replace(/\s+/g, ' ').trim()],
-    ['folder', 'File', track => fileOf(track.url)]
+    ['format', 'Format', formatOf], ['folder', 'Folder', track => folderOf(track.url)], ['file', 'File', track => fileNameOf(track.url)]
   ]
+  const sameIn = (read: (track: any) => string) => tracks!.every(track => read(track) === read(tracks![0]))
+  const single = $derived(tracks?.length === 1), sharedAlbum = $derived(tracks?.length && !single && sameIn(track => track.album ?? '') ? tracks[0].album : '')
   const totalSeconds = $derived((tracks ?? []).reduce((total, track) => total + Number(track.duration || 0), 0))
-  const shared = $derived((tracks ?? []).length ? fields.map(([key, label, read]) => ({ key, label, value: read(tracks![0]), same: tracks!.every(track => read(track) === read(tracks![0])) })).filter(field => field.same && field.value) : [])
-  const differing = $derived((tracks ?? []).length > 1 ? fields.filter(([key, label, read]) => !tracks!.every(track => read(track) === read(tracks![0])) && tracks!.some(track => read(track))) : [])
+  const heading = $derived(items ? (items.length === 1 ? items[0].name : `${items.length} items`) : single ? tracks![0].title : sharedAlbum || (ids.length === 1 ? 'Track info' : `${ids.length} tracks`))
+  const subheading = $derived(items || !tracks ? '' : single ? tracks[0].track_artist ?? '' : [sharedAlbum ? `${tracks.length} tracks` : '', `${formatTime(totalSeconds)} total`, tracks.length < ids.length ? `${ids.length - tracks.length} not in the library index` : ''].filter(Boolean).join(' · '))
+  const hidden = $derived(single ? ['title', 'artist'] : sharedAlbum ? ['album'] : []) // already in the heading
+  const shared = $derived((tracks ?? []).length ? fields.filter(([key, label, read]) => !hidden.includes(key) && read(tracks![0]) && sameIn(read)).map(([key, label, read]) => [label, read(tracks![0])]).concat(single ? [['Length', formatTime(totalSeconds)]] : []) : [])
+  const differing = $derived((tracks ?? []).length > 1 ? fields.filter(([key, label, read]) => !sameIn(read) && tracks!.some(track => read(track))) : [])
 </script>
 
 <div class="scrim" role="presentation" onclick={() => { ui.trackInfo = null; ui.itemInfo = null }}></div>
 <div class="track-info" role="dialog" aria-label="Track info">
-  <header><div><h3>{items ? (items.length === 1 ? 'Info' : `${items.length} items`) : ids.length === 1 ? 'Track info' : `${ids.length} tracks`}</h3>{#if tracks && !items}<span class="quiet">{formatTime(totalSeconds)} total{tracks.length < ids.length ? ` · ${ids.length - tracks.length} not in the library index` : ''}</span>{/if}</div><button class="dismiss" onclick={() => { ui.trackInfo = null; ui.itemInfo = null }} aria-label="Close" title="Close (Esc)">×</button></header>
+  <header><div><h2>{heading}</h2>{#if subheading}<div class="quiet">{subheading}</div>{/if}</div><button class="dismiss" onclick={() => { ui.trackInfo = null; ui.itemInfo = null }} aria-label="Close" title="Close (Esc)">×</button></header>
   <div class="body">
     {#if items}
-      {#each items as item}{#if items.length > 1}<h4>{item.name}</h4>{/if}<dl>{#each item.fields as [label, value]}<dt>{label}</dt><dd class:path={label === 'Address'}>{value}</dd>{/each}</dl>{/each}
+      {#each items as item}{#if items.length > 1}<div class="section-head">{item.name}</div>{/if}<dl class="tag-table">{#each item.fields as [label, value]}<dt>{label}</dt><dd class:path={label === 'Address'}>{value}</dd>{/each}</dl>{/each}
     {:else if !tracks}<p class="quiet">Loading…</p>
     {:else if !tracks.length}<p class="quiet">These tracks aren't in the library index.</p>
     {:else}
       {#if shared.length}
-        {#if tracks.length > 1}<h4>Shared by all</h4>{/if}
-        <dl>{#each shared as field (field.key)}<dt>{field.label}</dt><dd class:path={field.key === 'folder'}>{field.value}</dd>{/each}{#if tracks.length === 1}<dt>Length</dt><dd>{formatTime(totalSeconds)}</dd>{/if}</dl>
+        <div class="section-head">{single ? 'From your music file' : 'Shared by all'}</div>
+        <dl class="tag-table">{#each shared as [label, value] (label)}<dt>{label}</dt><dd class:path={label === 'Folder'}>{value}</dd>{/each}</dl>
       {/if}
       {#if differing.length}
-        <h4>Per track</h4>
+        <div class="section-head">Per track</div>
         <div class="table-wrap"><table>
           <thead><tr>{#each differing as [key, label] (key)}<th>{label}</th>{/each}<th class="time">Length</th></tr></thead>
-          <tbody>{#each tracks as track (track.id)}<tr>{#each differing as [key, label, read] (key)}<td class:path={key === 'folder'}>{read(track)}</td>{/each}<td class="time">{formatTime(Number(track.duration || 0))}</td></tr>{/each}</tbody>
+          <tbody>{#each tracks as track (track.id)}<tr>{#each differing as [key, label, read] (key)}<td class:path={key === 'folder'} class:number={key === 'number' || key === 'disc'}>{read(track)}</td>{/each}<td class="time">{formatTime(Number(track.duration || 0))}</td></tr>{/each}</tbody>
         </table></div>
       {/if}
     {/if}
@@ -47,15 +52,14 @@
 
 <style>
   .scrim { position: fixed; inset: 0; z-index: 94; background: rgba(0, 0, 0, 0.25); }
-  .track-info { position: fixed; z-index: 95; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(760px, calc(100vw - 36px)); max-height: calc(100vh - 80px); display: flex; flex-direction: column; border-radius: 14px; padding: 14px 16px; background: var(--panel-solid); backdrop-filter: blur(28px) saturate(1.4); border: 1px solid var(--line); box-shadow: 0 18px 50px var(--shadow); user-select: text; }
+  .track-info { position: fixed; z-index: 95; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(760px, calc(100vw - 36px)); max-height: calc(100vh - 80px); display: flex; flex-direction: column; box-sizing: border-box; border-radius: 14px; padding: 18px 20px 20px; background: var(--panel-solid); backdrop-filter: blur(28px) saturate(1.4); border: 1px solid var(--line); box-shadow: 0 18px 50px var(--shadow); user-select: text; }
   header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
-  h3 { margin: 0; font-size: 16px; } h4 { margin: 14px 0 6px; color: var(--fg-quiet); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; }
-  .quiet { color: var(--fg-quiet); font-size: 12px; }
+  h2 { margin: 0 0 2px; font-size: 18px; } header .quiet { font-size: 12.5px; }
   .dismiss { background: none; border: 0; color: var(--fg-quiet); font-size: 20px; line-height: 1; cursor: pointer; padding: 0 2px; } .dismiss:hover { color: var(--fg); }
-  .body { overflow-y: auto; margin-top: 6px; }
-  dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 0; font-size: 13px; } dt { color: var(--fg-quiet); } dd { margin: 0; overflow-wrap: anywhere; }
+  .body { overflow-y: auto; margin-top: 2px; } .body > .quiet { font-size: 13px; }
+  .body :global(.tag-table) { grid-template-columns: 130px 1fr; } /* labels are short here; the Album tab's wider share would leave a gap */
   .path { font-size: 12px; color: var(--fg-quiet); }
   .table-wrap { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; font-size: 12.5px; } th { text-align: left; color: var(--fg-quiet); font-weight: 600; padding: 4px 10px 4px 0; border-bottom: 1px solid var(--line); white-space: nowrap; }
-  td { padding: 4px 10px 4px 0; border-bottom: 1px solid color-mix(in srgb, var(--line) 50%, transparent); vertical-align: top; } .time { text-align: right; padding-right: 0; font-variant-numeric: tabular-nums; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; line-height: 1.4; border-top: 1px solid var(--line); } th { text-align: left; color: var(--fg-quiet); font-weight: 400; padding: 6px 12px 6px 4px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  td { padding: 6px 12px 6px 4px; border-bottom: 1px solid var(--line); vertical-align: top; } .number, .time { font-variant-numeric: tabular-nums; } .time { text-align: right; padding-right: 4px; }
 </style>
