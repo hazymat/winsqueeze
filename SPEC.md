@@ -364,7 +364,7 @@ Settings › About says: "The developer takes privacy seriously. Apart from upda
 
 ## Languages
 
-English, German, Ukrainian, Spanish, French, Japanese, Chinese (Simplified), Polish, Italian, Dutch, Portuguese (European), Swedish, Czech, Danish and Norwegian (Bokmål) (next: more European languages; no Russian). The app follows Windows' display language; Settings › General › Language overrides it (Same as Windows, English, Deutsch) and offers Restart now, since the tray menu and windows are built once. Translations use the informal "you" (du, ти, tú, tu, ty, je).
+English, German, Ukrainian, Spanish, French, Japanese, Chinese (Simplified), Polish, Italian, Dutch, Portuguese (European), Swedish, Czech, Danish, Norwegian (Bokmål) and Finnish (next: more European languages; no Russian). The app follows Windows' display language; Settings › General › Language overrides it (Same as Windows, English, Deutsch) and offers Restart now, since the tray menu and windows are built once. Translations use the informal "you" (du, ти, tú, tu, ty, je).
 
 - The English text is the key: `locales/<code>.json` maps it to the translation, and anything missing stays English. One file serves both the shell (embedded resource, `L.T` / `L.N` in C#, `L.Translate` for the fixed text in XAML) and the web UI (`t` / `tn` in `ui/src/lib/i18n.ts`, language passed as `?lang=`).
 - `{name}` placeholders are filled after translating; plurals are a singular and a plural key. Languages with more plural forms (Ukrainian, Polish, Czech) give them in one translation as "one|few|many", picked by `{count}`.
