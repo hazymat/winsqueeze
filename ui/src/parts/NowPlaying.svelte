@@ -25,9 +25,11 @@
     if (!playing) return
     for (const kind of infoKinds(kinds)) if (untrack(() => info[kind]) === undefined) { // every tab's lookups at once (the shell already has them if they were prefetched), so switching tabs is instant
       info = Object.assign({}, untrack(() => info), { [kind]: 'loading' })
-      infoQuery(kind, playing).then(result => { if (infoFor === key) info = Object.assign({}, info, { [kind]: result ?? { found: false } }) })
+      fetchInfo(kind, playing, key, 1)
     }
   })
+  // A lookup that failed (network, MusicBrainz busy) is asked again twice before the tab gives up on this track
+  function fetchInfo(kind: string, playing: any, key: string, attempt: number) { infoQuery(kind, playing).then(result => { if (infoFor !== key) return; if (result?.error && attempt < 3) { setTimeout(() => { if (infoFor === key) fetchInfo(kind, playing, key, attempt + 1) }, attempt * 5000); return } info = Object.assign({}, info, { [kind]: result?.error ? { found: false } : result ?? { found: false } }) }) }
   // Timeline albums you have: matched on the album title among this artist's own albums in the library, so they open from the timeline
   let ownedAlbums = $state<Record<string, { key: string, title: string }>>({}), ownedFor = ''
   const titleKey = (title: string) => String(title ?? '').toLowerCase().replace(/\s*[([][^)\]]*(remaster|edition|deluxe|expanded|anniversary|bonus)[^)\]]*[)\]]/g, '').replace(/&/g, 'and').replace(/[^\p{L}\p{N}]+/gu, '')

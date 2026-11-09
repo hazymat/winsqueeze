@@ -243,7 +243,7 @@ public sealed class TrackInfo
         if (await MusicBrainzAsync($"https://musicbrainz.org/ws/2/release?release-group={LyrionClient.ReadString(releaseGroup, "id")}&status=official&limit=100&fmt=json") is not { } browse || !browse.TryGetProperty("releases", out var releases)) return new(false);
         // Credits usually sit on one or two of an album's many pressings: try the three earliest and keep the best-credited
         var candidates = releases.EnumerateArray().OrderBy(release => LyrionClient.ReadString(release, "date") is { Length: > 0 } date ? date : "9999").Select(release => LyrionClient.ReadString(release, "id")).Take(3).ToList();
-        (List<Dictionary<string, object>> Tracks, List<Dictionary<string, object>> Credits, string Id, string Subheading)? best = null;
+        (List<Dictionary<string, object>> Tracks, List<Dictionary<string, object>> Credits, string Id, string Subheading)? best = null; Exception? failure = null;
         foreach (var releaseId in candidates)
         {
             try
@@ -253,9 +253,9 @@ public sealed class TrackInfo
                 if (best == null || read.Credits.Count > best.Value.Credits.Count) best = (read.Tracks, read.Credits, releaseId, string.Join(" · ", new[] { LyrionClient.ReadString(release, "date"), LyrionClient.ReadString(release, "country") }.Where(part => part != "")));
                 if (read.Credits.Count >= 15) break;
             }
-            catch (Exception error) { CrashReporter.Note("Credits: " + error.Message); }
+            catch (Exception error) { CrashReporter.Note("Credits: " + error.Message); failure = error; }
         }
-        if (best is not { } chosen || chosen.Credits.Count == 0) return new(false);
+        if (best is not { } chosen || chosen.Credits.Count == 0) { if (failure != null) throw failure; return new(false); } // a failed lookup is asked again next time, not remembered as "no credits"
         return new(true, request.Album, chosen.Subheading, Source: "MusicBrainz", Link: $"https://musicbrainz.org/release/{chosen.Id}", Events: new { tracks = chosen.Tracks, credits = chosen.Credits });
     }
 
