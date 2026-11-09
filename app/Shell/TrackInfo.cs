@@ -9,8 +9,8 @@ namespace WinSqueeze.Shell;
 public sealed class TrackInfo
 {
     public record Request(string Kind, long TrackId, string ArtistId, string AlbumId, string Artist, string Album, string Title, double Duration, bool Remote);
-    public record Result(bool Found, string Heading = "", string Subheading = "", string Text = "", string Image = "", string Source = "", string Link = "")
-    { public object ToJson() => new { found = Found, heading = Heading, subheading = Subheading, text = Text, image = Image, source = Source, link = Link }; }
+    public record Result(bool Found, string Heading = "", string Subheading = "", string Text = "", string Image = "", string Source = "", string Link = "", object? Events = null)
+    { public object ToJson() => new { found = Found, heading = Heading, subheading = Subheading, text = Text, image = Image, source = Source, link = Link, events = Events }; }
 
     static App App => App.Instance;
     static readonly HttpClient web = NewWebClient();
@@ -25,7 +25,7 @@ public sealed class TrackInfo
         return client;
     }
 
-    public void Forget() { lock (lookups) lookups.Clear(); pluginInstalled = null; } // sources or key changed
+    public void Forget() { lock (lookups) lookups.Clear(); lock (musicBrainzEntities) musicBrainzEntities.Clear(); pluginInstalled = null; } // sources or key changed
 
     public Task<Result> LookupAsync(Request request)
     {
@@ -45,6 +45,7 @@ public sealed class TrackInfo
 
     async Task<Result> RunAsync(Request request)
     {
+        if (request.Kind == "timeline") return App.Settings.TrackInfo.Timeline ? await TimelineAsync(request) : new(false);
         if (!App.Settings.TrackInfo.Sources.TryGetValue(request.Kind, out var sources) || (request.Artist == "" && request.Title == "")) return new(false);
         foreach (var source in sources.Where(source => source.On))
         {
@@ -129,14 +130,7 @@ public sealed class TrackInfo
     {
         if (request.Artist == "" || (request.Kind == "album" && request.Album == "")) return null;
         // MusicBrainz finds the right entity, its Wikidata link names the Wikipedia page, and Wikipedia gives the introduction
-        var search = request.Kind == "artist" ? $"https://musicbrainz.org/ws/2/artist/?query={Uri.EscapeDataString($"artist:\"{LuceneEscape(request.Artist)}\"")}&fmt=json&limit=5" : $"https://musicbrainz.org/ws/2/release-group/?query={Uri.EscapeDataString($"releasegroup:\"{LuceneEscape(request.Album)}\" AND artist:\"{LuceneEscape(request.Artist)}\"")}&fmt=json&limit=5";
-        var found = await MusicBrainzAsync(search);
-        var listName = request.Kind == "artist" ? "artists" : "release-groups";
-        if (found is not { } results || !results.TryGetProperty(listName, out var matches)) return null;
-        var wanted = Normalise(request.Kind == "artist" ? request.Artist : request.Album);
-        var best = matches.EnumerateArray().FirstOrDefault(match => LyrionClient.ReadInt(match, "score") >= 90 && Normalise(LyrionClient.ReadString(match, request.Kind == "artist" ? "name" : "title")) == wanted);
-        if (best.ValueKind != JsonValueKind.Object) return null;
-        var entity = await MusicBrainzAsync($"https://musicbrainz.org/ws/2/{(request.Kind == "artist" ? "artist" : "release-group")}/{LyrionClient.ReadString(best, "id")}?inc=url-rels&fmt=json");
+        var entity = await MusicBrainzEntityAsync(request.Kind, request.Artist, request.Album);
         if (entity is not { } details || !details.TryGetProperty("relations", out var relations)) return null;
         var pageTitle = "";
         foreach (var relation in relations.EnumerateArray())
@@ -157,6 +151,81 @@ public sealed class TrackInfo
             return Found(request, extract, "Wikipedia", request.Kind == "artist" ? image : "", $"https://en.wikipedia.org/wiki/{Uri.EscapeDataString(LyrionClient.ReadString(wikiPage.Value, "title").Replace(' ', '_'))}");
         }
         return null;
+    }
+
+    // The artist or album on MusicBrainz: an exact name match scoring 90+, looked up with its links (and, for artists, life span and area); kept for the session
+    readonly Dictionary<string, Task<JsonElement?>> musicBrainzEntities = new();
+    Task<JsonElement?> MusicBrainzEntityAsync(string kind, string artist, string album)
+    {
+        var entityKey = $"{kind}|{artist.ToLowerInvariant()}|{(kind == "artist" ? "" : album.ToLowerInvariant())}";
+        lock (musicBrainzEntities) { if (!musicBrainzEntities.TryGetValue(entityKey, out var lookup) || lookup.IsFaulted) musicBrainzEntities[entityKey] = lookup = FindAsync(); return lookup; }
+        async Task<JsonElement?> FindAsync()
+        {
+            var search = kind == "artist" ? $"https://musicbrainz.org/ws/2/artist/?query={Uri.EscapeDataString($"artist:\"{LuceneEscape(artist)}\"")}&fmt=json&limit=5" : $"https://musicbrainz.org/ws/2/release-group/?query={Uri.EscapeDataString($"releasegroup:\"{LuceneEscape(album)}\" AND artist:\"{LuceneEscape(artist)}\"")}&fmt=json&limit=5";
+            if (await MusicBrainzAsync(search) is not { } results || !results.TryGetProperty(kind == "artist" ? "artists" : "release-groups", out var matches)) return null;
+            var wanted = Normalise(kind == "artist" ? artist : album);
+            var best = matches.EnumerateArray().FirstOrDefault(match => LyrionClient.ReadInt(match, "score") >= 90 && Normalise(LyrionClient.ReadString(match, kind == "artist" ? "name" : "title")) == wanted);
+            if (best.ValueKind != JsonValueKind.Object) return null;
+            return await MusicBrainzAsync($"https://musicbrainz.org/ws/2/{(kind == "artist" ? "artist" : "release-group")}/{LyrionClient.ReadString(best, "id")}?inc=url-rels&fmt=json");
+        }
+    }
+
+    // ---- Timeline: the artist's music, year by year (SPEC.md › Now playing views) ----
+    // MusicBrainz: start and end (born/formed, died/split) and albums; Wikidata: bands joined, labels signed to, awards and nominations, only statements with a real source
+    static readonly string[] skippedAlbumTypes = { "Compilation", "Remix", "DJ-mix", "Mixtape/Street", "Demo", "Interview", "Audiobook", "Audio drama", "Spokenword" };
+    async Task<Result> TimelineAsync(Request request)
+    {
+        if (request.Artist == "" || await MusicBrainzEntityAsync("artist", request.Artist, "") is not { } artist) return new(false);
+        var events = new List<Dictionary<string, object>>();
+        void Add(int year, string kind, string title, string detail = "", string id = "", int endYear = 0) { if (year > 0) events.Add(new() { ["year"] = year, ["kind"] = kind, ["title"] = title, ["detail"] = detail, ["id"] = id, ["endYear"] = endYear }); }
+        static int YearOf(string date) => date.Length >= 4 && int.TryParse(date[..4], out var year) ? year : 0;
+        var isPerson = LyrionClient.ReadString(artist, "type") == "Person";
+        var lifeSpan = artist.TryGetProperty("life-span", out var span) ? span : default;
+        var beginArea = artist.TryGetProperty("begin-area", out var area) && area.ValueKind == JsonValueKind.Object ? LyrionClient.ReadString(area, "name") : "";
+        Add(YearOf(LyrionClient.ReadString(lifeSpan, "begin")), "start", isPerson ? "Born" : "Formed", beginArea);
+        Add(YearOf(LyrionClient.ReadString(lifeSpan, "end")), "end", isPerson ? "Died" : "Split");
+        try
+        {
+            if (await MusicBrainzAsync($"https://musicbrainz.org/ws/2/release-group?artist={LyrionClient.ReadString(artist, "id")}&type=album|ep&limit=100&fmt=json") is { } browse && browse.TryGetProperty("release-groups", out var releaseGroups))
+                foreach (var releaseGroup in releaseGroups.EnumerateArray())
+                {
+                    var secondary = releaseGroup.TryGetProperty("secondary-types", out var types) ? types.EnumerateArray().Select(type => type.GetString() ?? "").ToList() : new();
+                    if (secondary.Any(type => skippedAlbumTypes.Contains(type))) continue;
+                    var detail = secondary.Contains("Live") ? "Live album" : secondary.Contains("Soundtrack") ? "Soundtrack" : LyrionClient.ReadString(releaseGroup, "primary-type") == "EP" ? "EP" : "";
+                    Add(YearOf(LyrionClient.ReadString(releaseGroup, "first-release-date")), "album", LyrionClient.ReadString(releaseGroup, "title"), detail, LyrionClient.ReadString(releaseGroup, "id"));
+                }
+        }
+        catch (Exception error) { CrashReporter.Note("Timeline albums: " + error.Message); }
+        var wikidataId = artist.TryGetProperty("relations", out var relations) ? relations.EnumerateArray().Where(relation => LyrionClient.ReadString(relation, "type") == "wikidata").Select(relation => relation.TryGetProperty("url", out var url) ? LyrionClient.ReadString(url, "resource").Split('/').Last() : "").FirstOrDefault(id => Regex.IsMatch(id, @"^Q\d+$")) ?? "" : "";
+        if (wikidataId != "") try
+        {
+            var sourced = "FILTER EXISTS { ?statement prov:wasDerivedFrom ?reference . ?reference ?referenceProperty ?referenceValue . FILTER(REGEX(STR(?referenceProperty), \"^http://www.wikidata.org/prop/reference/P[0-9]+$\") && ?referenceProperty NOT IN (pr:P143, pr:P4656, pr:P813, pr:P887, pr:P3452)) }"; // a real source, not "imported from Wikipedia" or a retrieval date
+            var sparql = $@"SELECT ?kind ?itemLabel ?date ?end WHERE {{
+  {{ wd:{wikidataId} p:P463 ?statement . ?statement ps:P463 ?item ; pq:P580 ?date . OPTIONAL {{ ?statement pq:P582 ?end }} ?item wdt:P31/wdt:P279* wd:Q2088357 . BIND(""member"" AS ?kind) }}
+  UNION {{ wd:{wikidataId} p:P264 ?statement . ?statement ps:P264 ?item ; pq:P580 ?date . OPTIONAL {{ ?statement pq:P582 ?end }} BIND(""label"" AS ?kind) }}
+  UNION {{ wd:{wikidataId} p:P166 ?statement . ?statement ps:P166 ?item ; pq:P585 ?date . BIND(""award"" AS ?kind) }}
+  UNION {{ wd:{wikidataId} p:P1411 ?statement . ?statement ps:P1411 ?item ; pq:P585 ?date . BIND(""nominated"" AS ?kind) }}
+  {sourced}
+  SERVICE wikibase:label {{ bd:serviceParam wikibase:language ""en"". }}
+}}";
+            if (await GetJsonAsync("https://query.wikidata.org/sparql?format=json&query=" + Uri.EscapeDataString(sparql)) is { } answer && answer.TryGetProperty("results", out var results) && results.TryGetProperty("bindings", out var bindings))
+            {
+                string Value(JsonElement binding, string name) => binding.TryGetProperty(name, out var field) ? LyrionClient.ReadString(field, "value") : "";
+                foreach (var binding in bindings.EnumerateArray())
+                {
+                    var label = Value(binding, "itemLabel");
+                    if (label == "" || Regex.IsMatch(label, @"^Q\d+$")) continue; // no English name
+                    var kind = Value(binding, "kind");
+                    if (events.Any(existing => (string)existing["kind"] == kind && (string)existing["title"] == label && (int)existing["year"] == YearOf(Value(binding, "date")))) continue;
+                    Add(YearOf(Value(binding, "date")), kind, label, endYear: YearOf(Value(binding, "end")));
+                }
+            }
+        }
+        catch (Exception error) { CrashReporter.Note("Timeline Wikidata: " + error.Message); }
+        if (!events.Any(item => (string)item["kind"] != "start" && (string)item["kind"] != "end")) return new(false);
+        var kindOrder = new[] { "start", "member", "label", "album", "award", "nominated", "end" };
+        var ordered = events.OrderBy(item => (int)item["year"]).ThenBy(item => Array.IndexOf(kindOrder, (string)item["kind"])).ThenBy(item => (string)item["title"]).ToList();
+        return new(true, request.Artist, isPerson ? "person" : "group", Source: "MusicBrainz and Wikidata (sourced facts only)", Link: $"https://musicbrainz.org/artist/{LyrionClient.ReadString(artist, "id")}", Events: ordered);
     }
 
     async Task<Result?> FromLastFmAsync(Request request)

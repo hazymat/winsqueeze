@@ -42,6 +42,7 @@ public partial class SettingsWindow : Window
     {
         var trackInfo = Settings.TrackInfo;
         lastFmKeyBox.Text = trackInfo.LastFmKey;
+        timelineBox.IsChecked = trackInfo.Timeline; timelineBox.Click += (sender, args) => { trackInfo.Timeline = timelineBox.IsChecked == true; SaveTrackInfo(); };
         lastFmLink.RequestNavigate += (sender, args) => { Process.Start(new ProcessStartInfo(args.Uri.AbsoluteUri) { UseShellExecute = true }); args.Handled = true; };
         lastFmKeyBox.LostFocus += (sender, args) =>
         {
