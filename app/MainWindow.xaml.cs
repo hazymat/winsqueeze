@@ -406,7 +406,7 @@ public partial class MainWindow : Window
     }
 
     public void PushSkin() => Push(JsonSerializer.Serialize(new { type = "skin", skin = App.Settings.General.Skin, coverAccent = App.Settings.General.CoverAccent, coverBackdrop = App.Settings.General.CoverBackdrop, accent = App.Settings.General.AccentColour, glassTransparency = App.Settings.General.GlassTransparency, glassTintHue = App.Settings.General.GlassTintHue }));
-    public void PushWhatsNew(string fromVersion, string toVersion, List<ReleaseEntry> releases) => Push(JsonSerializer.Serialize(new { type = "whatsNew", fromVersion, toVersion, releases = releases.Select(release => new { version = release.Version, date = release.Published.ToString("d MMM"), notes = release.Notes, url = release.Url }) }));
+    public void PushWhatsNew(string fromVersion, string toVersion, List<ReleaseEntry> releases, bool stableChannel) => Push(JsonSerializer.Serialize(new { type = "whatsNew", fromVersion, toVersion, stableChannel, releases = releases.Select(release => new { version = release.Version, date = release.Published.ToString("d MMM"), notes = release.Notes, url = release.Url, isDev = release.IsDev }) }));
     public void ApplyUiScale() { if (webView.CoreWebView2 != null) webView.ZoomFactor = Math.Clamp(App.Settings.General.UiScale, 0.75, 1.5); }
     void PushSettings()
     {

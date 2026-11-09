@@ -190,7 +190,7 @@ public partial class App : Application
     public void ApplySkin() => mainWindow.PushSkin();
     public void ApplyUiScale() => mainWindow.ApplyUiScale();
     public void RefreshInactiveGlass() => mainWindow.RefreshInactiveGlass();
-    // After an update: the release notes of every version since the one that last ran (including skipped ones)
+    // After an update: the release notes of every version since the one that last ran (including skipped ones); stable users get the stable summary first, every dev build's changes behind an expander
     bool whatsNewChecked;
     string versionBeforeThisRun = "";
     public async Task ShowWhatsNewAsync()
@@ -202,7 +202,7 @@ public partial class App : Application
         try
         {
             var releases = (await Updater.ListReleasesAsync(true)).Where(release => AppUpdater.IsNewer(release.Version, previousVersion) && !AppUpdater.IsNewer(release.Version, currentVersion)).OrderByDescending(release => Version.Parse(release.Version)).ToList();
-            if (releases.Count > 0) mainWindow.PushWhatsNew(previousVersion, currentVersion, releases);
+            if (releases.Count > 0) mainWindow.PushWhatsNew(previousVersion, currentVersion, releases, Settings.General.UpdateChannel != "dev");
         }
         catch (Exception error) { CrashReporter.Write("What's new: release notes unavailable", error, false); }
     }
