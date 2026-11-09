@@ -267,7 +267,7 @@
   "VOLUME": "VOLUME",
   "Back to the library (Esc or right-click)": "Retour à la bibliothèque (Échap ou clic droit)",
   "Back to the library": "Retour à la bibliothèque",
-  "LIBRARY": "BIBLIOTHÈQUE",
+  "LIBRARY": "LIBRARY",
   "Dismiss hint": "Fermer l'astuce",
   "Got it": "Compris",
   "Play from here": "Lire à partir d'ici",
@@ -1126,5 +1126,12 @@
   "Save every problem, with file paths, as a JSON or text file": "Enregistre tous les problèmes, avec les chemins de fichiers, en fichier JSON ou texte",
   "Export…": "Exporter…",
   "JSON, for scripts and AI": "JSON, pour les scripts et l'IA",
-  "Plain text": "Texte brut"
+  "Plain text": "Texte brut",
+  "Save & close": "Enregistrer et fermer",
+  "Saving…": "Enregistrement…",
+  "Saving {done} of {total}…": "Enregistrement {done} sur {total}…",
+  "on {title}": "sur {title}",
+  "Unplayable": "Illisible",
+  "{count} error": "{count} erreur",
+  "{count} errors": "{count} erreurs"
 }

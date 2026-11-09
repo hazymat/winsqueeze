@@ -12,8 +12,9 @@
 </div>
 
 <style>
+  /* the title keeps at least 240px: longer controls (translated Sort and Group) move onto their own row before the title is cut short */
   .page-head { position: sticky; top: -4px; z-index: 6; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 -20px 12px; padding: 8px 20px; min-height: 48px; background: var(--glass); backdrop-filter: blur(var(--blur)) saturate(1.4); border-bottom: 1px solid var(--line); }
-  .titles { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 10px; }
+  .titles { flex: 1 1 auto; min-width: 0; display: flex; align-items: baseline; gap: 10px; }
   h2 { margin: 0; font-size: 24px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .detail { color: var(--fg-quiet); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }

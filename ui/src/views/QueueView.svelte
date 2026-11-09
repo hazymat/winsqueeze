@@ -104,7 +104,7 @@
 <style>
   .head { display: flex; align-items: center; gap: 4px 10px; flex-wrap: wrap; margin-bottom: 8px; container-type: inline-size; }
   h3 { margin: 0; color: var(--fg); font-size: 16px; }
-  .tools { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+  .tools { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 6px; margin-left: auto; min-width: 0; }
   .tools .ghost { height: 28px; box-sizing: border-box; padding: 0 11px; font-size: 12px; white-space: nowrap; border-radius: 999px; }
   /* narrow queue panel: the toolbar takes its own row, the pill drops its label */
   @container (max-width: 600px) { .tools { margin-left: 0; width: 100%; justify-content: flex-end; } }

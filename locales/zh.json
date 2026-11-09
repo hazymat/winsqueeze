@@ -1126,5 +1126,12 @@
   "Save every problem, with file paths, as a JSON or text file": "将所有问题连同文件路径保存为 JSON 或文本文件",
   "Export…": "导出…",
   "JSON, for scripts and AI": "JSON，用于脚本和 AI",
-  "Plain text": "纯文本"
+  "Plain text": "纯文本",
+  "Save & close": "保存并关闭",
+  "Saving…": "正在保存…",
+  "Saving {done} of {total}…": "正在保存 {done}/{total}…",
+  "on {title}": "收录于 {title}",
+  "Unplayable": "无法播放",
+  "{count} error": "{count} 个错误",
+  "{count} errors": "{count} 个错误"
 }

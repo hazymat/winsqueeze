@@ -59,7 +59,7 @@
       <div class="actions">
         <button class="ghost" onclick={preview} disabled={!playlist.items.length}>{t('Preview')}</button>
         <button class="ghost" onclick={discard}>{t('Discard')}</button>
-        <button class="primary" onclick={save} disabled={saving || !playlist.items.length}>{saving ? (saveProgress.total ? `Saving ${saveProgress.done}/${saveProgress.total}…` : 'Saving…') : 'Save & close'}</button>
+        <button class="primary" onclick={save} disabled={saving || !playlist.items.length}>{saving ? (saveProgress.total ? t('Saving {done} of {total}…', { done: saveProgress.done, total: saveProgress.total }) : t('Saving…')) : t('Save & close')}</button>
       </div>
     </aside>
   {/if}
@@ -80,7 +80,7 @@
   .icon { background: none; border: 0; color: var(--fg-quiet); cursor: pointer; border-radius: 4px; padding: 2px 6px; }
   .icon:hover { background: var(--hover); color: var(--fg); }
   .favourite { font-size: 13px; display: flex; gap: 6px; align-items: center; }
-  .actions { display: flex; gap: 6px; justify-content: flex-end; }
+  .actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; } .actions button { white-space: nowrap; } /* a longer Save & close moves to its own row instead of breaking up */
   .chip { position: fixed; right: 16px; bottom: 96px; z-index: 20; background: var(--accent); color: var(--on-accent); border: 0; border-radius: 18px; padding: 8px 14px; cursor: pointer; font: inherit; box-shadow: 0 6px 20px var(--shadow); }
   /* Vertical mode: a bottom sheet over the content */
   @media (max-width: 900px) { .panel { position: fixed; left: 0; right: 0; bottom: 0; width: auto; max-height: 60vh; z-index: 30; border-left: 0; border-top: 1px solid var(--line); border-radius: 14px 14px 0 0; background: var(--panel-solid); } }

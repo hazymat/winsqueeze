@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from '../lib/i18n'
+  import { t, tn } from '../lib/i18n'
   import { selectable } from '../lib/selectable.svelte'
   import { browseActions } from '../lib/browseActions'
   import AlbumCard from './AlbumCard.svelte'
@@ -18,7 +18,7 @@
 <div class="group" class:packed class:shared={columns > 0 && layout === 'grid'} style:--span={packed ? shown.length || albums.length : null}>
   <div class="list-head" class:minor>
     {#if heading}<h3 title={heading}>{heading}</h3>{/if}
-    <span class="count">{shown.length} {shown.length === 1 ? 'album' : 'albums'}</span>
+    <span class="count">{tn(shown.length, '{count} album', '{count} albums')}</span>
   </div>
   <div class={layout === 'grid' ? 'grid ' + size : 'rows'} use:selectable={{ scope: 'albums:' + section + ':' + heading, noun: 'album', actions: section === 'downloads' ? browseActions('album').filter(action => action.label !== t('Download')).concat([{ label: t('Remove download'), danger: true, key: 'Delete', run: keys => removeDownloads('album', keys) }]) : browseActions('album') }}>
     {#each shown as album (album.key)}<div class="select-wrap" data-select-key={album.key}><AlbumCard {album} {layout} compact={size === 'compact'} /></div>{/each}

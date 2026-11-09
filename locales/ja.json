@@ -1126,5 +1126,12 @@
   "Save every problem, with file paths, as a JSON or text file": "すべての問題をファイルパス付きで JSON またはテキストファイルに保存",
   "Export…": "エクスポート…",
   "JSON, for scripts and AI": "JSON（スクリプトや AI 用）",
-  "Plain text": "テキスト"
+  "Plain text": "テキスト",
+  "Save & close": "保存して閉じる",
+  "Saving…": "保存中…",
+  "Saving {done} of {total}…": "保存中 {done}/{total}…",
+  "on {title}": "{title} 収録",
+  "Unplayable": "再生不可",
+  "{count} error": "エラー {count} 件",
+  "{count} errors": "エラー {count} 件"
 }

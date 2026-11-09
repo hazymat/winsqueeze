@@ -99,7 +99,7 @@
     {#if report.splitNames.length}<h4>{t('Possibly split in two')}</h4>{/if}
     {#each shown('split', report.splitNames) as row (row.names.join('|') + row.role)}
       <button class="row" onclick={() => row.key && openAlbum(row)} title={t('Open an album with these names')}>
-        <span class="text"><span class="title">“{row.names[0]}” + “{row.names[1]}”</span><span class="quiet">{row.role} · {row.tracks} {row.tracks === 1 ? 'track' : 'tracks'}{row.title ? ` · on ${row.title}` : ''}</span></span>
+        <span class="text"><span class="title">“{row.names[0]}” + “{row.names[1]}”</span><span class="quiet">{row.role} · {tn(row.tracks, '{count} track', '{count} tracks')}{row.title ? ' · ' + t('on {title}', { title: row.title }) : ''}</span></span>
         {#if row.sure}<span class="detail">{t('Together they make a name you already have')}</span>{/if}
       </button>
     {/each}
@@ -117,7 +117,7 @@
     {#each damagedFiles as file (file.path)}
       <button class="row" onclick={() => openTrack(file)} title={t('Open the album at this track')}>
         <span class="text"><span class="title">{file.title}</span><span class="quiet">{file.artist}{file.album ? ` · ${file.album}` : ''} · {file.path}</span></span>
-        <span class="detail" title={file.firstError}>{file.unplayable ? 'Unplayable' : `${file.errors} ${file.errors === 1 ? 'error' : 'errors'}`}</span>
+        <span class="detail" title={file.firstError}>{file.unplayable ? t('Unplayable') : tn(file.errors, '{count} error', '{count} errors')}</span>
       </button>
     {:else}<p class="quiet">{t('None found yet.')}</p>{/each}
   </section>

@@ -1126,5 +1126,12 @@
   "Save every problem, with file paths, as a JSON or text file": "Zapisz wszystkie problemy ze ścieżkami plików jako plik JSON lub tekstowy",
   "Export…": "Eksportuj…",
   "JSON, for scripts and AI": "JSON, dla skryptów i AI",
-  "Plain text": "Zwykły tekst"
+  "Plain text": "Zwykły tekst",
+  "Save & close": "Zapisz i zamknij",
+  "Saving…": "Zapisywanie…",
+  "Saving {done} of {total}…": "Zapisywanie {done} z {total}…",
+  "on {title}": "na {title}",
+  "Unplayable": "Nie do odtworzenia",
+  "{count} error": "{count} błąd",
+  "{count} errors": "{count} błąd|{count} błędy|{count} błędów"
 }

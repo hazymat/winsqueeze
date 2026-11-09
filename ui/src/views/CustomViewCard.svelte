@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from '../lib/i18n'
+  import { t, tn, language } from '../lib/i18n'
   import { app, openView } from '../state.svelte'
   import { query, artUrl } from '../bridge'
   import { levelNames } from '../lib/browse.svelte'
@@ -23,10 +23,12 @@
   const openRow = (row: any) => openView({ kind: 'custom', key: view.Id, title: row.name, filters: [{ kind: firstLevel, key: String(row.key), name: row.name }] })
 </script>
 
+<!-- the translated "{count} albums", its number in bold wherever the language puts it -->
+{#snippet albumCount()}{@const text = tn(albums.length, '{count} album', '{count} albums')}{@const at = text.indexOf(String(albums.length))}{text.slice(0, at)}<b>{albums.length}</b>{text.slice(at + String(albums.length).length)}{/snippet}
 {#if layout === 'list'}
-<button class="list-row" onclick={openWhole}><span class="thumb"><CoverMosaic covers={covers.slice(0, 4).map(album => album.cover)} name={view.Name} size={120} /></span><span class="list-text"><span class="list-name">{view.Name}</span><span class="meta">{steps}</span></span><span class="list-count"><b>{albums.length}</b> {albums.length === 1 ? 'album' : 'albums'}</span></button>
+<button class="list-row" onclick={openWhole}><span class="thumb"><CoverMosaic covers={covers.slice(0, 4).map(album => album.cover)} name={view.Name} size={120} /></span><span class="list-text"><span class="list-name">{view.Name}</span><span class="meta">{steps}</span></span><span class="list-count">{@render albumCount()}</span></button>
 {:else if layout === 'tiles'}
-<button class="tile" onclick={openWhole} title={steps}><CoverMosaic covers={covers.slice(0, 4).map(album => album.cover)} name={view.Name} /><span class="tile-name">{view.Name}</span><span class="meta"><b>{albums.length}</b> {albums.length === 1 ? 'album' : 'albums'}</span></button>
+<button class="tile" onclick={openWhole} title={steps}><CoverMosaic covers={covers.slice(0, 4).map(album => album.cover)} name={view.Name} /><span class="tile-name">{view.Name}</span><span class="meta">{@render albumCount()}</span></button>
 {:else}
 <article class="card">
   <button class="cover-button" onclick={openWhole} aria-label={t('Open {name}', { name: view.Name })}>
@@ -34,7 +36,7 @@
   </button>
   <div class="text">
     <button class="name" onclick={openWhole}>{view.Name}</button>
-    <div class="total"><b>{albums.length}</b> {albums.length === 1 ? 'album' : 'albums'}{#if firstLevel && rows.length} · {rows.length} {(levelNames[firstLevel] ?? firstLevel).toLowerCase()}{/if}</div>
+    <div class="total">{@render albumCount()}{#if firstLevel && rows.length} · {rows.length} {language === 'de' ? levelNames[firstLevel] ?? firstLevel : (levelNames[firstLevel] ?? firstLevel).toLocaleLowerCase(language)}{/if}</div>
     <div class="meta">{steps}</div>
     {#if topRows.length}
       <div class="chips">{#each topRows as row (row.key)}<button class="chip" onclick={() => openRow(row)}>{row.name}<span class="count">{row.albums}</span></button>{/each}{#if rows.length > topRows.length}<button class="chip more" onclick={openWhole}>{t('+{count} more', { count: rows.length - topRows.length })}</button>{/if}</div>
