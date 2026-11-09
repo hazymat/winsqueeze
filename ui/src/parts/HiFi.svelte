@@ -74,7 +74,7 @@
       if (percent >= 100) return { mode: 'upgrading', blank: false, trackDigits: 'UP', timeDigits: ' 100'.slice(-4), colon: false, line1: 'RESTARTING', line2: 'PLEASE WAIT', share: 1 }
       return { mode: 'upgrading', blank: false, trackDigits: 'UP', timeDigits: String(percent).padStart(4, ' '), colon: false, line1: 'UPGRADING FIRMWARE', line2: `V${version} > V${updateReady}`, share: percent / 100 }
     }
-    if (updateReady && updateHover) return { mode: 'prompt', blank: false, trackDigits: '  ', timeDigits: '    ', colon: false, line1: 'SOFTWARE UPDATE', line2: `V${updateReady} READY · PRESS UPDATE`, share: 0 }
+    if (updateReady && updateHover) return { mode: 'prompt', blank: false, trackDigits: '  ', timeDigits: '    ', colon: false, line1: `V${updateReady} READY`, line2: 'PRESS UPDATE TO INSTALL', share: 0 }
     if (showingUpdated) return { mode: 'updated', blank: false, trackDigits: 'UP', timeDigits: '    ', colon: false, line1: `UPDATED TO V${version}`, line2: "CLICK HERE FOR WHAT'S NEW", share: 0 }
     return { mode: 'normal', blank: false, trackDigits: normalTrack, timeDigits: normalTime, colon: !!track, line1: track?.title ?? (app.status?.message || 'NO DISC'), line2: [track?.artist ?? track?.albumartist, track?.album].filter(Boolean).join(' · '), share: duration ? position / duration : 0 }
   })
