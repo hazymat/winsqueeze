@@ -157,7 +157,7 @@ export const formatTime = (seconds: number) => { if (!seconds || seconds < 0) re
 export const formatRate = (rate: number) => rate ? `${(rate / 1000).toFixed(rate % 1000 ? 1 : 0)} kHz` : ''
 
 // What the meters draw: eased towards the latest levels on every display frame, so needles and bars glide between the shell's ~60 updates a second
-export const meters = $state({ vu: [-90, -90], peak: [0, 0], bands: Array(10).fill(0) as number[], reference: -18, jog: [0, 0] })
+export const meters = $state({ vu: [-90, -90], peak: [0, 0], bands: Array(10).fill(0) as number[], reference: -18, jog: [0, 0], lamp: [0, 0] })
 let meterFrame = 0, meterLastTime = 0
 // Jog: dragging the window shakes the VU needles (degrees added to their angle). Each movement is a lightly damped spring, the two a little out of tune so they drift apart
 const jogSpeed = [0, 0], jogTuning = [13.5, 15.5], jogDamping = 0.22
@@ -180,6 +180,15 @@ function swingNeedles(elapsed: number) {
     const settled = Math.abs(angle) < 0.05 && Math.abs(jogSpeed[channel]) < 0.5
     if (settled || !Number.isFinite(angle)) jogSpeed[channel] = 0
     return settled || !Number.isFinite(angle) ? 0 : Math.max(-25, Math.min(25, angle))
+  })
+}
+// Peak lamp (the beige VU's red lens): a small bulb lit by peaks past 1-3 dB under full scale, brighter the further past (over 3 dB). The filament heats in ~30 ms and cools over ~300 ms, so a short peak only glows dimly
+function heatPeakLamps(elapsed: number) {
+  const live = Date.now() - app.levels.at <= 1000, threshold = Math.min(meters.reference + 15, -1)
+  meters.lamp = meters.lamp.map((heat, channel) => {
+    const peak = live ? app.levels.peak[channel] ?? 0 : 0, drive = peak > 0 ? Math.max(0, Math.min(1, (20 * Math.log10(peak) - threshold) / 3)) : 0
+    const next = heat + (drive - heat) * (1 - Math.exp(-elapsed / (drive > heat ? 30 : 300)))
+    return Number.isFinite(next) && next > 0.003 ? next : 0
   })
 }
 function startMeterFrames() { if (!meterFrame) { meterLastTime = performance.now(); meterFrame = requestAnimationFrame(easeMeters) } }
@@ -206,8 +215,9 @@ function easeMeters(time: number) {
   meters.vu = vuTarget.map((value, index) => from(meters.vu, index, value) + (value - from(meters.vu, index, value)) * needleFollow)
   meters.peak = ease(meters.peak, Date.now() - app.levels.at > 1000 ? [0, 0] : app.levels.peak)
   meters.bands = ease(meters.bands, Date.now() - app.levels.at > 1000 ? meters.bands.map(() => 0) : app.levels.bands)
+  heatPeakLamps(elapsed)
   if (windowSpeed || meters.jog[0] || meters.jog[1] || jogSpeed[0] || jogSpeed[1]) swingNeedles(elapsed)
-  const resting = !meters.jog[0] && !meters.jog[1] && !windowSpeed && Date.now() - app.levels.at > 1000 && meters.vu.every(value => value < -80) && meters.peak.every(value => value < 0.001) && meters.bands.every(value => value < 0.005)
+  const resting = !meters.jog[0] && !meters.jog[1] && !windowSpeed && Date.now() - app.levels.at > 1000 && meters.vu.every(value => value < -80) && meters.peak.every(value => value < 0.001) && meters.bands.every(value => value < 0.005) && meters.lamp.every(heat => !heat)
   meterFrame = resting ? 0 : requestAnimationFrame(easeMeters)
 }
 // Back from the tray or a minimised window: restart the frame loop and redraw the meters from scratch (meterEpoch remounts them)

@@ -155,7 +155,7 @@
         </g>
       </svg>
       {/snippet}
-      <span class="meter-stack">{@render vuLayer('face')}{@render vuLayer('needles')}{@render vuLayer('front')}<span class="lamp-light"></span></span>
+      <span class="meter-stack">{@render vuLayer('face')}{@render vuLayer('needles')}{@render vuLayer('front')}<span class="lamp-light"></span><span class="peak-lamp" style:opacity={Math.pow(meters.lamp[channelIndex], 2)}><span class="peak-core" style:opacity={Math.pow(meters.lamp[channelIndex], 2)}></span></span></span>
     {/each}
   {:else if panelThemes[ui.meterStyle]}
     <MeterPanel theme={ui.meterStyle} levels={meters.vu} reference={meters.reference} {size} {textureScale} idle={!active} />
@@ -231,6 +231,9 @@
   /* The lamp: one multiply layer over the window (face, print, needles, glass), so everything inside is lit by it, red ink included, and the
      compositor animates it without redrawing the face. Switching on, the filament glows from dark through deep orange to warm white; with no music it dims a little warmer */
   .lamp-light { grid-area: 1 / 1; align-self: start; justify-self: start; margin: 4.1667% 0 0 4.1667%; width: 91.667%; height: 86.111%; border-radius: 1.7%; pointer-events: none; mix-blend-mode: multiply; background: #fff; transition: background-color 1.2s ease; animation: lamp-on 1.6s cubic-bezier(0.25, 0.6, 0.35, 1); }
+  /* Peak lamp glow over the red lens (centre 106, 13.5 in the face's 120-wide box; all margins are % of width): dull red when barely lit, an orange-white filament when hot, spilling a little onto the face */
+  .peak-lamp { grid-area: 1 / 1; align-self: start; justify-self: start; position: relative; margin: 3.25% 0 0 80.333%; width: 16%; aspect-ratio: 1; border-radius: 50%; pointer-events: none; mix-blend-mode: screen; opacity: 0; background: radial-gradient(closest-side, #ff4a22 0%, #e2301a 20%, #b8220f 25%, rgba(190, 40, 20, 0.28) 34%, rgba(190, 40, 20, 0.08) 60%, transparent 100%); }
+  .peak-core { position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(closest-side at 50% 54%, #fff0c8 0%, #ffb070 9%, rgba(255, 110, 50, 0.5) 17%, transparent 25%); }
   .idle .lamp-light { background: #eee6dc; }
   @keyframes lamp-on { 0% { background: #261b12; } 35% { background: #bf6626; } }
   @media (prefers-reduced-motion: reduce) { .lamp-light { animation: none; } }
