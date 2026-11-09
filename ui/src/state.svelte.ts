@@ -17,7 +17,7 @@ export const app = $state({
 const savedNav = (() => { try { return JSON.parse(readSetting('nav', '')) } catch { return null } })()
 export const nav = $state({ section: (savedNav?.section ?? 'artists') as string, stack: (savedNav?.stack ?? []) as View[] })
 $effect.root(() => { $effect(() => { writeSetting('nav', JSON.stringify({ section: nav.section, stack: nav.stack })) }) })
-export const ui = $state({ search: '', scope: 'list' as 'list' | 'everything', expanded: false, meterStyle: readSetting('meterStyle', 'vu').replace(/^ledbar$/, 'vu'), skin: readSetting('skin', 'auto'), coverAccent: readSetting('coverAccent', '') === '1', coverBackdrop: readSetting('coverBackdrop', '1') !== '0', accent: readSetting('accent', ''), glassTransparency: Number(readSetting('glassTransparency', '-1')), glassTintHue: Number(readSetting('glassTintHue', '0')), lookVersion: 0, infoTab: readSetting('infoTab', 'queue'), pinned: false, metersFull: false, trackInfo: null as null | number[], itemInfo: null as null | { name: string, fields: [string, string][] }[], toast: null as null | { text: string; undo?: () => unknown; redo?: () => unknown; action?: { label: string; key: string; run: () => unknown }; ms: number; id: number } })
+export const ui = $state({ search: '', scope: 'list' as 'list' | 'everything', expanded: false, meterStyle: readSetting('meterStyle', 'vu').replace(/^ledbar$/, 'vu'), skin: readSetting('skin', 'auto'), coverAccent: readSetting('coverAccent', '') === '1', coverBackdrop: readSetting('coverBackdrop', '1') !== '0', accent: readSetting('accent', ''), glassTransparency: Number(readSetting('glassTransparency', '-1')), glassTintHue: Number(readSetting('glassTintHue', '0')), lookVersion: 0, infoTab: readSetting('infoTab', 'queue'), pinned: false, metersFull: false, hifi: false, trackInfo: null as null | number[], itemInfo: null as null | { name: string, fields: [string, string][] }[], toast: null as null | { text: string; undo?: () => unknown; redo?: () => unknown; action?: { label: string; key: string; run: () => unknown }; ms: number; id: number } })
 export const playlist = $state({ open: false, collapsed: false, name: 'Untitled playlist', items: [] as PlaylistItem[], history: [] as number[] })
 
 export function readSetting(name: string, fallback: string) { try { return localStorage.getItem('ws.' + name) ?? fallback } catch { return fallback } }
@@ -117,6 +117,10 @@ export function noteTrackChange(previous: any, next: any) {
     window.setTimeout(() => command('time', Math.floor(position)), queued ? 700 : 1500) // seek once the track has started
   }, 10000, { keep: false })
 }
+
+// Right-click on the meters cycles: Now playing -> full-window meters -> hi-fi separate -> back; the shell reshapes the window for hi-fi
+export function setHifi(on: boolean) { ui.hifi = on; if (on) ui.metersFull = false; sendToShell({ type: 'hifiWindow', on }) }
+export function cycleMeterView() { if (ui.hifi) setHifi(false); else if (ui.metersFull) setHifi(true); else ui.metersFull = true }
 
 // The current track of the selected player, from its queue
 export function currentTrack() {

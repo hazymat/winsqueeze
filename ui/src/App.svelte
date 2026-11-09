@@ -3,7 +3,7 @@
   import { noteLongTrack } from './lib/resume'
   import { prefetchInfo } from './lib/nowPlayingInfo'
   import { sendToShell, onShellMessage, request, command, trackArt } from './bridge'
-  import { app, nav, ui, playlist, openSection, back, forward, forwardHistory, currentView, newPlaylist, pins, togglePin, undoToast, undoLast, redoLast, history, toast, noteTrackChange, receiveLevels, windowMoved, writeSetting, readSetting, currentTrack } from './state.svelte'
+  import { app, nav, ui, playlist, openSection, back, forward, forwardHistory, currentView, newPlaylist, pins, togglePin, undoToast, undoLast, redoLast, history, toast, noteTrackChange, receiveLevels, windowMoved, cycleMeterView, setHifi, writeSetting, readSetting, currentTrack } from './state.svelte'
   import TransportBar from './parts/TransportBar.svelte'
   import WhatsNew from './parts/WhatsNew.svelte'
   import TrackInfo from './parts/TrackInfo.svelte'
@@ -21,6 +21,7 @@
   import AppsView from './views/AppsView.svelte'
   import ActionStrip from './parts/ActionStrip.svelte'
   import Meters from './parts/Meters.svelte'
+  import HiFi from './parts/HiFi.svelte'
   import { sortable } from './lib/sortable'
   import Icon from './parts/Icon.svelte'
   import { selection, clearSelection } from './lib/selection.svelte'
@@ -36,7 +37,7 @@
   let searchView = $state<SearchView>()
   let width = $state(window.innerWidth)
   let height = $state(window.innerHeight)
-  const mini = $derived(height < 400 || width < 460) // short or narrow windows snap to the mini player, with big meters
+  const mini = $derived(!ui.hifi && (height < 400 || width < 460)) // short or narrow windows snap to the mini player, with big meters
   const vertical = $derived(!mini && width <= 900)
   const folderMode = $derived(app.librarySettings.AlbumSource !== 'tags')
   // Switched-on custom views (SPEC.md › Custom views): one entry each, or one per group for views that share a group
@@ -161,6 +162,7 @@
     if (copyMenu) copyMenu = null
     else if (customising) { customising = false; heldIntoCustomise = false }
     else if (ui.trackInfo || ui.itemInfo) { ui.trackInfo = null; ui.itemInfo = null }
+    else if (ui.hifi) setHifi(false)
     else if (ui.metersFull) ui.metersFull = false
     else if (selection.keys.length) clearSelection()
     else if (ui.toast) ui.toast = null
@@ -195,7 +197,8 @@
 <WhatsNew {mini} offset={!!app.status?.updateReady} />
 {#if (ui.trackInfo || ui.itemInfo) && !mini}<TrackInfo ids={ui.trackInfo ?? []} items={ui.itemInfo} />{/if}
 {#if ui.metersFull && !mini}<!-- svelte-ignore a11y_no_noninteractive_element_interactions --><!-- blank frosted areas drag the window, like the meters themselves -->
-<div class="meters-full" role="dialog" aria-label="Meters" tabindex="-1" oncontextmenu={(event) => { event.preventDefault(); ui.metersFull = false }} onmousedown={(event) => { if (event.button === 0 && !(event.target as HTMLElement).closest("button")) sendToShell({ type: "dragWindow" }) }} bind:clientWidth={fullWidth} bind:clientHeight={fullHeight}><div class="meters-zoom" bind:this={fullMeters} style:zoom={fullZoom}><Meters size="large" zoom={fullZoom} moveWindow={true} /></div><button class="meters-full-close" onclick={() => ui.metersFull = false} title="Close (Esc or right-click)">✕</button></div>{/if}
+<div class="meters-full" role="dialog" aria-label="Meters" tabindex="-1" oncontextmenu={(event) => { event.preventDefault(); cycleMeterView() }} onmousedown={(event) => { if (event.button === 0 && !(event.target as HTMLElement).closest("button")) sendToShell({ type: "dragWindow" }) }} bind:clientWidth={fullWidth} bind:clientHeight={fullHeight}><div class="meters-zoom" bind:this={fullMeters} style:zoom={fullZoom}><Meters size="large" zoom={fullZoom} moveWindow={true} /></div><button class="meters-full-close" onclick={() => ui.metersFull = false} title="Close (Esc)">✕</button></div>{/if}
+{#if ui.hifi}<HiFi />{/if}
 {#if app.window.frameless && !app.window.maximised}<ResizeEdges />{/if}
 {#if copyMenu}<div class="copy-menu" style:left="{copyMenu.left}px" style:top="{copyMenu.top}px"><button onclick={copySelection}>Copy</button></div>{/if}
 
