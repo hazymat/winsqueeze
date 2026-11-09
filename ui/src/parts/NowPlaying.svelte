@@ -125,7 +125,7 @@
       <h1>{track?.title ?? 'Nothing playing'}</h1>
       {#if track && isDamaged(track.id)}<div class="damaged">⚠ This file has damaged frames; playback continues past them. <button class="link" onclick={() => openSection('health')}>See damaged files</button></div>{/if}
       {#if track?.artist}<button class="link artist" onclick={() => goTo('artist', track.artist)}>{track.artist}</button>{/if}
-      {#if track?.album}<div class="album"><button class="link album-link" onclick={openAlbum} title="Open the album">{track.album}</button>{track.year && track.year !== '0' ? ` · ${track.year}` : ''}</div>{/if}
+      {#if track?.album}<div class="album"><button class="link album-link" onclick={openAlbum} title="Open the album">{track.album}</button>{#if Number(track.year) > 0}<span class="album-year">({track.year})</span>{/if}</div>{/if}<!-- programme-notes style: the work in italics, its year in brackets -->
       {#if track?.composer}<div class="quiet">Composer <button class="link" onclick={() => goTo('composer', track.composer)}>{track.composer}</button></div>{/if}
       {#if track?.conductor}<div class="quiet">Conductor {track.conductor}</div>{/if}
       {#if track?.band}<div class="quiet">Orchestra {track.band}</div>{/if}
@@ -250,7 +250,7 @@
   .link { background: none; border: 0; padding: 0; color: var(--fg); font: inherit; cursor: pointer; text-align: left; }
   .link.artist { font-size: 18px; }
   .quiet .link { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
-  .link:hover { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; } .album-link { color: inherit; }
+  .link:hover { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; } .album-link { color: inherit; font-style: italic; } .album-year { margin-left: 0.35em; font-variant-numeric: oldstyle-nums; opacity: 0.8; }
   .album { color: var(--fg-quiet); font-size: 15px; }
   .quiet { color: var(--fg-quiet); }
   .readout { margin: 14px 0 6px; }
