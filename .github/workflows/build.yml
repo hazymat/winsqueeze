@@ -77,8 +77,21 @@ jobs:
           # A stable release takes its written summary from docs/releases/<version>.md when there is one
           if ($channel -eq "stable" -and (Test-Path "docs/releases/$version.md")) { $notes = Get-Content "docs/releases/$version.md" }
           $global:LASTEXITCODE = 0
-          $notes | Out-File notes.txt -Encoding utf8
           ($notes -replace '&', '&amp;' -replace '<', '&lt;') | Out-File notes-vpk.txt -Encoding utf8 # Velopack parses the notes as XML
+          # Translations ride along as hidden blocks the app picks by language (GitHub shows only the English): a stable release's from docs/releases/<version>.<code>.md, a dev build's from its commits' "Notes-<code>:" trailers (English where a commit has none)
+          try {
+            foreach ($code in (Get-ChildItem locales -Filter *.json | ForEach-Object { $_.BaseName })) {
+              $translated = $null
+              if ($channel -eq "stable" -and (Test-Path "docs/releases/$version.$code.md")) { $translated = Get-Content "docs/releases/$version.$code.md" -Encoding utf8 }
+              elseif ($channel -eq "dev" -and $previousSha) {
+                $lines = @(git log "$previousSha..HEAD" --no-merges --perl-regexp --author='^((?!github-actions).)*$' --invert-grep --grep='^Notes for the .* release' --pretty="%(trailers:key=Impact,valueonly,separator=)%x1f%(trailers:key=Notes-$code,valueonly,separator=)%x1f%s")
+                if ($lines -match ([string][char]0x1f + '[^' + [char]0x1f + ']+' + [char]0x1f)) { $translated = $lines | ForEach-Object { $parts = $_ -split [char]0x1f, 3; $mark = switch -regex ($parts[0].Trim()) { '^feature' { [char]0x2605 + ' ' } '^improvement' { [char]0x25B2 + ' ' } default { '' } }; $text = if ($parts[1].Trim()) { $parts[1].Trim() } else { $parts[2] }; "- $mark$text" } }
+              }
+              if ($translated) { $notes = @($notes) + @("", "<!-- notes:$code") + @($translated) + @("-->") }
+            }
+          } catch { Write-Host "Translated notes skipped: $_" }
+          $global:LASTEXITCODE = 0
+          $notes | Out-File notes.txt -Encoding utf8
           vpk pack --packId WinSqueeze --packVersion $version --packDir publish/WinSqueeze --mainExe WinSqueeze.exe --packTitle WinSqueeze --icon app/Assets/WinSqueeze.ico --channel $channel --releaseNotes notes-vpk.txt -o releases
           $preFlag = @(); if ($channel -eq "dev") { $preFlag = @("--pre") }
           $title = if ($channel -eq "dev") { "WinSqueeze $version (dev)" } else { "WinSqueeze $version" }

@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Windows.Threading;
 using Velopack;
 using Velopack.Sources;
@@ -67,7 +68,7 @@ public sealed class AppUpdater
             if (feedResponse.StatusCode == System.Net.HttpStatusCode.NotModified) return feedTag;
             feedResponse.EnsureSuccessStatusCode();
             // Highest version in the feed (a stable release can be the newest entry, but dev builds are numbered above it)
-            var feedTags = System.Text.RegularExpressions.Regex.Matches(await feedResponse.Content.ReadAsStringAsync(), @"/releases/tag/([^""<>\s]+)").Select(match => Uri.UnescapeDataString(match.Groups[1].Value)).Distinct();
+            var feedTags = Regex.Matches(await feedResponse.Content.ReadAsStringAsync(), @"/releases/tag/([^""<>\s]+)").Select(match => Uri.UnescapeDataString(match.Groups[1].Value)).Distinct();
             feedEtag = feedResponse.Headers.ETag?.ToString() ?? ""; feedTag = feedTags.Where(tag => Version.TryParse(tag.TrimStart('v'), out _)).OrderByDescending(tag => Version.Parse(tag.TrimStart('v'))).FirstOrDefault() ?? "";
             return feedTag;
         }
@@ -157,6 +158,8 @@ public sealed class AppUpdater
         catch (Exception switchError) { SetStatus(L.T("Could not switch to {version}: {error}", ("version", release.Version), ("error", switchError.Message))); }
     }
 
+    // A stable release's body carries its summary in each language as hidden blocks (<!-- notes:uk … -->, from docs/releases/<version>.<code>.md): the app's language when there is one, otherwise the English
+    static string LocalNotes(string body) { var translated = Regex.Match(body, @"<!--\s*notes:" + L.Code + @"\s*\r?\n(.*?)-->", RegexOptions.Singleline); return translated.Success ? translated.Groups[1].Value.Trim() : Regex.Replace(body, @"<!--.*?-->", "", RegexOptions.Singleline).Trim(); }
     public async Task<List<ReleaseEntry>> ListReleasesAsync(bool includeDev)
     {
         var releasesJson = await githubClient.GetStringAsync("https://api.github.com/repos/hazymat/winsqueeze/releases?per_page=60");
@@ -168,7 +171,7 @@ public sealed class AppUpdater
             var isDev = releaseElement.GetProperty("prerelease").GetBoolean();
             if (isDev && !includeDev) continue;
             var tag = releaseElement.GetProperty("tag_name").GetString() ?? "";
-            releases.Add(new ReleaseEntry(tag, tag.TrimStart('v'), releaseElement.GetProperty("name").GetString() ?? tag, isDev, releaseElement.GetProperty("published_at").GetDateTime().ToLocalTime(), releaseElement.GetProperty("body").GetString() ?? "", releaseElement.GetProperty("html_url").GetString() ?? "", releaseElement.TryGetProperty("discussion_url", out var discussionUrl) ? discussionUrl.GetString() ?? "" : ""));
+            releases.Add(new ReleaseEntry(tag, tag.TrimStart('v'), releaseElement.GetProperty("name").GetString() ?? tag, isDev, releaseElement.GetProperty("published_at").GetDateTime().ToLocalTime(), LocalNotes(releaseElement.GetProperty("body").GetString() ?? ""), releaseElement.GetProperty("html_url").GetString() ?? "", releaseElement.TryGetProperty("discussion_url", out var discussionUrl) ? discussionUrl.GetString() ?? "" : ""));
         }
         return releases;
     }
