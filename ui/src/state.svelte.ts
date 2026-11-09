@@ -153,8 +153,30 @@ export const formatTime = (seconds: number) => { if (!seconds || seconds < 0) re
 export const formatRate = (rate: number) => rate ? `${(rate / 1000).toFixed(rate % 1000 ? 1 : 0)} kHz` : ''
 
 // What the meters draw: eased towards the latest levels on every display frame, so needles and bars glide between the shell's ~60 updates a second
-export const meters = $state({ vu: [-90, -90], peak: [0, 0], bands: Array(10).fill(0) as number[], reference: -18 })
+export const meters = $state({ vu: [-90, -90], peak: [0, 0], bands: Array(10).fill(0) as number[], reference: -18, jog: [0, 0] })
 let meterFrame = 0, meterLastTime = 0
+// Jog: dragging the window shakes the VU needles (degrees added to their angle). Each movement is a lightly damped spring, the two a little out of tune so they drift apart
+const jogSpeed = [0, 0], jogTuning = [13.5, 15.5], jogDamping = 0.22
+let windowX = NaN, windowMovedAt = 0, windowSpeed = 0
+export function windowMoved(x: number) {
+  const movedAt = performance.now(), seconds = Math.max(0.008, (movedAt - windowMovedAt) / 1000)
+  const speed = Number.isFinite(windowX) && seconds < 0.25 ? Math.max(-4000, Math.min(4000, (x - windowX) / seconds)) : 0 // pixels a second; snaps and long gaps are capped
+  kickNeedles(speed - windowSpeed); windowX = x; windowMovedAt = movedAt; windowSpeed = speed
+  startMeterFrames()
+}
+// The case speeds up one way, the needles lag the other way (~10° for a brisk 1000 px/s drag)
+const kickNeedles = (speedChange: number) => { for (let channel = 0; channel < 2; channel++) jogSpeed[channel] -= speedChange * 0.14 }
+function swingNeedles(elapsed: number) {
+  if (windowSpeed && performance.now() - windowMovedAt > 60) { kickNeedles(-windowSpeed); windowSpeed = 0 } // the window stopped: the needles swing on
+  const steps = Math.max(1, Math.ceil(elapsed / 4)), seconds = elapsed / 1000 / steps
+  meters.jog = meters.jog.map((angle, channel) => {
+    for (let step = 0; step < steps; step++) { jogSpeed[channel] += (-jogTuning[channel] * jogTuning[channel] * angle - 2 * jogDamping * jogTuning[channel] * jogSpeed[channel]) * seconds; angle += jogSpeed[channel] * seconds }
+    const settled = Math.abs(angle) < 0.05 && Math.abs(jogSpeed[channel]) < 0.5
+    if (settled || !Number.isFinite(angle)) jogSpeed[channel] = 0
+    return settled || !Number.isFinite(angle) ? 0 : Math.max(-25, Math.min(25, angle))
+  })
+}
+function startMeterFrames() { if (!meterFrame) { meterLastTime = performance.now(); meterFrame = requestAnimationFrame(easeMeters) } }
 // Auto 0 VU: follows the music's loudness (power average over ~8 s) so loud masters don't pin the needles; average loudness reads about -4 VU
 let loudnessPower = 0, loudnessAt = 0
 export function receiveLevels(vu: number[], peak: number[], bands: number[]) {
@@ -168,7 +190,7 @@ export function receiveLevels(vu: number[], peak: number[], bands: number[]) {
   // in half-dB steps: the VU face's percent scale follows it, and redrawing that face on every update stalled the needles
   meters.reference = app.meterSettings.autoReference && loudnessPower ? Math.round(2 * Math.max(-24, Math.min(-6, 10 * Math.log10(loudnessPower) + 4))) / 2 : app.meterSettings.referenceDbfs
   app.levels = { vu, peak, bands, at: receivedAt }
-  if (!meterFrame) { meterLastTime = performance.now(); meterFrame = requestAnimationFrame(easeMeters) }
+  startMeterFrames()
 }
 function easeMeters(time: number) {
   const elapsed = Math.max(0, Math.min(250, time - meterLastTime)), follow = 1 - Math.exp(-elapsed / 35), needleFollow = 1 - Math.exp(-elapsed / 25); meterLastTime = time // needles glide over the uneven arrival of updates without adding lag (the shell already applies VU ballistics)
@@ -178,7 +200,8 @@ function easeMeters(time: number) {
   meters.vu = vuTarget.map((value, index) => from(meters.vu, index, value) + (value - from(meters.vu, index, value)) * needleFollow)
   meters.peak = ease(meters.peak, Date.now() - app.levels.at > 1000 ? [0, 0] : app.levels.peak)
   meters.bands = ease(meters.bands, Date.now() - app.levels.at > 1000 ? meters.bands.map(() => 0) : app.levels.bands)
-  const resting = Date.now() - app.levels.at > 1000 && meters.vu.every(value => value < -80) && meters.peak.every(value => value < 0.001) && meters.bands.every(value => value < 0.005)
+  if (windowSpeed || meters.jog[0] || meters.jog[1] || jogSpeed[0] || jogSpeed[1]) swingNeedles(elapsed)
+  const resting = !meters.jog[0] && !meters.jog[1] && !windowSpeed && Date.now() - app.levels.at > 1000 && meters.vu.every(value => value < -80) && meters.peak.every(value => value < 0.001) && meters.bands.every(value => value < 0.005)
   meterFrame = resting ? 0 : requestAnimationFrame(easeMeters)
 }
 // Back from the tray or a minimised window: restart the frame loop and redraw the meters from scratch (meterEpoch remounts them)

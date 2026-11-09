@@ -28,6 +28,7 @@ public partial class MainWindow : Window
         SourceInitialized += (sender, args) => ApplyWindowStyle();
         Activated += (sender, args) => OnFirstActivation();
         StateChanged += (sender, args) => { UpdateFrameMargin(); PushWindowState(); };
+        LocationChanged += (sender, args) => { if (double.IsFinite(Left) && double.IsFinite(Top)) Push(JsonSerializer.Serialize(new { type = "windowMoved", x = (int)Left, y = (int)Top })); }; // the VU needles jog when the window is dragged
         IsVisibleChanged += (sender, args) => App.UpdatePolling();
         App.StatusChanged += () => Push(App.StatusJson());
         App.HistoryChanged += () => Push("{\"type\":\"historyChanged\"}");

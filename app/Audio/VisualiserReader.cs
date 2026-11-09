@@ -18,7 +18,7 @@ public sealed class VisualiserReader : IDisposable
     volatile bool running;
     string mapName = "";
     Func<int> latencyMs = () => 200;
-    double vuLeft, vuRight, peakLeft, peakRight;
+    double vuLeft, vuRight, vuSwingLeft, vuSwingRight, peakLeft, peakRight; // vuSwing: the needles' speed (VU ballistics are a damped spring)
     double loudnessPower; // the music's power averaged over ~8 s, so the spectrum can be shown relative to the track's loudness (Automatic 0 VU)
     double LoudnessOffsetDb => Tuning.AutoReference && loudnessPower > 0 ? Math.Clamp(-18 - 10 * Math.Log10(loudnessPower), -6, 24) : 0; // lifts quiet recordings to where -18 dBFS music sits
     readonly double[] bandLevels = new double[10];
@@ -96,9 +96,9 @@ public sealed class VisualiserReader : IDisposable
             sumLeft += left * left; sumRight += right * right; maxLeft = Math.Max(maxLeft, Math.Abs(left)); maxRight = Math.Max(maxRight, Math.Abs(right));
         }
         var tuning = Tuning;
-        // A VU meter reaches 99% of a step in its integration time (300 ms classic): a time constant of a fifth of that, ln(100) ≈ 4.6. Using the whole 300 ms as the time constant made the needles ~5× too slow, so on dense music they barely moved
-        var vuFollow = 1 - Math.Exp(-elapsedSeconds / Math.Max(0.01, tuning.VuIntegrationMs / 1000 / 4.6));
-        vuLeft += (Math.Sqrt(sumLeft / rmsFrames) - vuLeft) * vuFollow; vuRight += (Math.Sqrt(sumRight / rmsFrames) - vuRight) * vuFollow;
+        // A VU needle is a damped spring: it reaches a new reading in the integration time (300 ms classic), swings a little past it and settles, as a real movement does
+        (vuLeft, vuSwingLeft) = Swing(Math.Sqrt(sumLeft / rmsFrames), vuLeft, vuSwingLeft, tuning.VuIntegrationMs, elapsedSeconds);
+        (vuRight, vuSwingRight) = Swing(Math.Sqrt(sumRight / rmsFrames), vuRight, vuSwingRight, tuning.VuIntegrationMs, elapsedSeconds);
         if (!double.IsFinite(vuLeft) || vuLeft < 0) vuLeft = 0; if (!double.IsFinite(vuRight) || vuRight < 0) vuRight = 0; // a bad value never sticks
         var framePower = Math.Max(sumLeft, sumRight) / rmsFrames;
         if (framePower > 1e-5) loudnessPower += (framePower - loudnessPower) * (loudnessPower > 0 ? 1 - Math.Exp(-elapsedSeconds / 8) : 1);
@@ -150,6 +150,16 @@ public sealed class VisualiserReader : IDisposable
         return held < holdSeconds ? (level, held) : (Math.Max(current, level * fall), held);
     }
 
+    // Damping 0.65 overshoots a step by ~7% (about half a dB); the stiffness puts the first arrival at the integration time. Small steps keep it stable when a frame comes late
+    const double NeedleDamping = 0.65;
+    static (double position, double speed) Swing(double target, double position, double speed, double integrationMs, double elapsedSeconds)
+    {
+        var stiffness = (Math.PI - Math.Acos(NeedleDamping)) / (Math.Max(0.02, integrationMs / 1000) * Math.Sqrt(1 - NeedleDamping * NeedleDamping));
+        var steps = Math.Max(1, (int)Math.Ceiling(elapsedSeconds / 0.004)); var stepSeconds = elapsedSeconds / steps;
+        for (var step = 0; step < steps; step++) { speed += (stiffness * stiffness * (target - position) - 2 * NeedleDamping * stiffness * speed) * stepSeconds; position += speed * stepSeconds; }
+        if (!double.IsFinite(position) || !double.IsFinite(speed)) return (0, 0);
+        return position < 0 ? (0, 0) : (position, speed); // the rest pin stops it
+    }
     static double Decibels(double amplitude) => Math.Round(20 * Math.Log10(amplitude + 1e-9), 1);
 
     // In-place radix-2 FFT; the twiddle factors are computed once per size (trig every frame cost enough to slow the meters)

@@ -2,6 +2,7 @@
   let meterCount = 0
 </script>
 <script lang="ts">
+  import { untrack } from 'svelte'
   import { app, ui, meters, meterView, writeSetting } from '../state.svelte'
   import Analyser from './Analyser.svelte'
   import MeterPanel, { panelThemes } from './MeterPanel.svelte'
@@ -32,6 +33,31 @@
   const point = (angle: number, radius: number) => [pivotX + radius * Math.sin(angle * Math.PI / 180), pivotY - radius * Math.cos(angle * Math.PI / 180)]
   const arc = (fromAngle: number, toAngle: number, radius: number) => { const [startX, startY] = point(fromAngle, radius); const [endX, endY] = point(toAngle, radius); return `M${startX} ${startY} A${radius} ${radius} 0 0 1 ${endX} ${endY}` }
   const restAngle = -54
+  // The needle sits a few mm above the face, lit by two bulbs low in the case: each throws its own faint shadow, away from itself, so the pair fans and swaps sides as the needle swings
+  const lamps = [[34, 84], [86, 84]], needleHeight = 0.075
+  const castShadow = (angle: number, lamp: number[]) => [point(angle, 18), point(angle, 61)].map(([x, y]) => [x + (x - lamp[0]) * needleHeight, y + (y - lamp[1]) * needleHeight])
+  // Blade needle: wide where it leaves the movement, tapering to a fine point
+  const bladePath = `M${pivotX - 0.9} ${pivotY - 14} L${pivotX - 0.16} ${pivotY - 61} L${pivotX + 0.16} ${pivotY - 61} L${pivotX + 0.9} ${pivotY - 14} Z`
+  // Dragging the window jogs the needle (meters.jog); it can't swing below the rest pin
+  const vuAngle = (channelIndex: number) => Math.max(restAngle, needleAngle(meters.vu[channelIndex] ?? -90, restAngle) + (meters.jog[channelIndex] ?? 0))
+  // Lamp: a filament that warms up when the meter appears (deep orange to warm white over ~1.5 s) and dims, warmer, when the music stops
+  const lampKeys: [number, string[]][] = [[0, ['#2a1c10', '#22160c', '#1a1008', '#120b05']], [0.35, ['#d06a20', '#a8501a', '#7a3a12', '#4a240a']], [0.72, ['#f3e3c4', '#e6cc9c', '#c9a46e', '#8d6a3e']], [1, ['#fff3d6', '#f8deaa', '#dcb47a', '#a17a48']]]
+  const mixColour = (from: string, to: string, amount: number) => '#' + [1, 3, 5].map(offset => Math.round(parseInt(from.slice(offset, offset + 2), 16) * (1 - amount) + parseInt(to.slice(offset, offset + 2), 16) * amount).toString(16).padStart(2, '0')).join('')
+  const lampStops = (heat: number) => { const upper = lampKeys.findIndex(([level]) => level >= heat), [lowLevel, lowColours] = lampKeys[Math.max(0, upper - 1)], [highLevel, highColours] = lampKeys[Math.max(0, upper)]; return lowColours.map((colour, index) => mixColour(colour, highColours[index], highLevel > lowLevel ? (heat - lowLevel) / (highLevel - lowLevel) : 1)) }
+  let lampHeat = $state(0)
+  $effect(() => {
+    const target = active ? 1 : 0.72; let frame = 0, lastTime = performance.now(), lastDrawn = 0
+    const warm = (time: number) => {
+      const elapsed = Math.min(100, time - lastTime); lastTime = time
+      const heat = lampHeat + (target - lampHeat) * (1 - Math.exp(-elapsed / (target > lampHeat ? 380 : 650))) // heats faster than it cools
+      const done = Math.abs(target - heat) < 0.004
+      if (done || time - lastDrawn > 33) { lampHeat = done ? target : heat; lastDrawn = time } // ~30 redraws a second is smooth enough for a lamp
+      frame = done ? 0 : requestAnimationFrame(warm)
+    }
+    if (ui.meterStyle !== 'vu') untrack(() => lampHeat = target); else if (untrack(() => lampHeat) !== target) frame = requestAnimationFrame(warm)
+    return () => cancelAnimationFrame(frame)
+  })
+  const lamp = $derived(lampStops(lampHeat))
   // OLED VU: one even scale line; above it, a tick per mark and dense detents across the 0..+3 zone (like the Transporter display)
   // Its pivot sits just below the display, closer than the analogue meter's, so the scale is a wider arc and the resting needle lies flatter
   const oledPivotY = 78, oledSpread = 1.25, oledRadius = 42, oledRestAngle = -68
@@ -40,7 +66,7 @@
   const detentAngles = Array.from({ length: 16 }, (unused, index) => 21 + index * 25 / 15)
 </script>
 
-<button class="meters {size}" bind:clientWidth={meterWidth} class:idle={!active} onclick={toggle} oncontextmenu={(event) => { event.preventDefault(); ui.metersFull = !ui.metersFull }} title="Click to switch meter style · right-click for full window">
+<button class="meters {size}" style="--lamp-glow: {lampHeat}" bind:clientWidth={meterWidth} class:idle={!active} onclick={toggle} oncontextmenu={(event) => { event.preventDefault(); ui.metersFull = !ui.metersFull }} title="Click to switch meter style · right-click for full window">
   {#key meterView.epoch}
   {#if ui.meterStyle === 'vu'}
     {#each ['L', 'R'] as channel, channelIndex}
@@ -50,7 +76,7 @@
         <defs>
           <!-- Warm lamp below the face: brightest at bottom centre, falling off upward and outward -->
           <radialGradient id={gradientId + channel} cx={channelIndex ? '53%' : '47%'} cy="100%" r="95%" fx={channelIndex ? '57%' : '44%'} fy="105%">
-            <stop offset="0%" class="lamp-hot" /><stop offset="38%" class="lamp-warm" /><stop offset="75%" class="lamp-mid" /><stop offset="100%" class="lamp-edge" />
+            <stop offset="0%" stop-color={lamp[0]} /><stop offset="38%" stop-color={lamp[1]} /><stop offset="75%" stop-color={lamp[2]} /><stop offset="100%" stop-color={lamp[3]} />
           </radialGradient>
           <!-- Bulb shading: the bezel lip shadows the top, corners fall off into the dark, the lamp lights the window's bottom edge -->
           <linearGradient id={gradientId + '-lip'} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1a0e00" stop-opacity="0.32" /><stop offset="5%" stop-color="#1a0e00" stop-opacity="0.12" /><stop offset="12%" stop-color="#1a0e00" stop-opacity="0.02" /><stop offset="22%" stop-color="#1a0e00" stop-opacity="0" /></linearGradient>
@@ -67,6 +93,9 @@
           <filter id={gradientId + channel + '-dust'} filterUnits="userSpaceOnUse" x="5" y="5" width="110" height="62"><feTurbulence type="fractalNoise" baseFrequency={1.2 * textureScale} numOctaves="1" seed={channelIndex ? 31 : 17} /><feColorMatrix values="0 0 0 0 1  0 0 0 0 0.98  0 0 0 0 0.94  0 0 0 9 -7.4" /></filter>
           <filter id={gradientId + '-smudge'} filterUnits="userSpaceOnUse" x="0" y="0" width="120" height="72"><feGaussianBlur stdDeviation="5" /></filter>
           <linearGradient id={gradientId + '-edge-light'} x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fff6de" stop-opacity="0.9" /><stop offset="35%" stop-color="#fff6de" stop-opacity="0.35" /><stop offset="70%" stop-color="#fff6de" stop-opacity="0.12" /><stop offset="100%" stop-color="#fff6de" stop-opacity="0.4" /></linearGradient>
+          <radialGradient id={gradientId + '-shroud'} cx="50%" cy="20%" r="80%"><stop offset="0%" stop-color="#3a352e" /><stop offset="55%" stop-color="#1b1915" /><stop offset="100%" stop-color="#0b0a08" /></radialGradient>
+          <linearGradient id={gradientId + '-blade'} x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#050505" /><stop offset="55%" stop-color="#141414" /><stop offset="80%" stop-color="#5a5248" /><stop offset="100%" stop-color="#1a1a1a" /></linearGradient>
+          <radialGradient id={gradientId + '-screw'} cx="40%" cy="35%" r="70%"><stop offset="0%" stop-color="#d8d2c6" /><stop offset="60%" stop-color="#8a8276" /><stop offset="100%" stop-color="#3c372f" /></radialGradient>
           <clipPath id={gradientId + '-clip'}><rect x="5" y="5" width="110" height="62" rx="2" /></clipPath>
         </defs>
         <rect x="0" y="0" width="120" height="72" rx="5" class="bezel" />
@@ -89,13 +118,16 @@
         <text x="16" y="22" class="vu-label">VU</text>
         <circle cx="106" cy="13.5" r="2.8" class="pilot" /><circle cx="105.2" cy="12.7" r="0.9" class="pilot-glint" />
         <text x="105" y="57" class="sign hot">+</text><text x="14" y="57" class="sign">−</text>
-        <text x="60" y="58" class="channel">{channel}</text>
+        <text x="60" y="53" class="channel">{channel}</text>
         <rect x="5" y="5" width="110" height="62" fill="url(#{gradientId}{channel}-blob)" class="shade" /><rect x="5" y="5" width="110" height="62" filter="url(#{gradientId}{channel}-mottle)" class="shade mottle" />
         <rect x="5" y="5" width="110" height="62" fill="url(#{gradientId}{channel}-falloff)" class="shade" /><rect x="5" y="5" width="110" height="62" fill="url(#{gradientId}-lip)" class="shade" /><g clip-path="url(#{gradientId}-clip)"><rect x="5" y="6.6" width="110" height="62" class="shade inset" filter="url(#{gradientId}-inset)" /></g>
         {#if size !== 'small'}<rect x="5" y="5" width="110" height="62" filter="url(#{gradientId}-grain)" class="shade grain" />
-        <g clip-path="url(#{gradientId}-clip)"><line x1={pivotX + 1.6} y1={pivotY} x2={pivotX + 1.6} y2={pivotY - 60} class="needle-shadow" filter="url(#{gradientId}-soft)" transform="rotate({needleAngle(meters.vu[channelIndex] ?? -90, restAngle)} {pivotX} {pivotY - 1.2})" /></g>{/if}
-        <g clip-path="url(#{gradientId}-clip)"><line x1={pivotX} y1={pivotY} x2={pivotX} y2={pivotY - 60} class="needle" transform="rotate({needleAngle(meters.vu[channelIndex] ?? -90, restAngle)} {pivotX} {pivotY})" /></g>
+        <g clip-path="url(#{gradientId}-clip)">{#each lamps as lampPosition}{@const [[baseX, baseY], [tipX, tipY]] = castShadow(vuAngle(channelIndex), lampPosition)}<line x1={baseX} y1={baseY} x2={tipX} y2={tipY} class="needle-shadow" filter="url(#{gradientId}-soft)" />{/each}</g>{/if}
+        <g clip-path="url(#{gradientId}-clip)"><path d={bladePath} fill="url(#{gradientId}-blade)" class="needle blade" transform="rotate({vuAngle(channelIndex)} {pivotX} {pivotY})" /></g>
         <g class="front">
+        <!-- Movement cover: a dark Bakelite dome the needle rises out of, its rim catching the lamp, with the zero-adjust screw -->
+        <g clip-path="url(#{gradientId}-clip)"><ellipse cx="60" cy="74" rx="25" ry="16" fill="url(#{gradientId}-shroud)" /><path d="M35.6 74 A24.4 15.4 0 0 1 84.4 74" class="shroud-rim" /><ellipse cx="60" cy="74" rx="25" ry="16" class="shroud-edge" />
+          <circle cx="60" cy="64" r="2.6" fill="url(#{gradientId}-screw)" class="screw" /><line x1="58.1" y1="65.1" x2="61.9" y2="62.9" class="screw-slot" /></g>
         <rect x="7" y="65.6" width="106" height="1" class="lit-edge" />
         <!-- Acrylic window edge: light bends through the thick rim, a bright band with a darker inner seam -->
         <rect x="5.7" y="5.7" width="108.6" height="60.6" rx="1.6" class="rim-glow" /><rect x="7.3" y="7.3" width="105.4" height="57.4" rx="1" class="rim-seam" /><path d="M6 6.2 H114" class="rim-catch" />
@@ -156,8 +188,6 @@
   .full :global(.panel.deck) { --full-share: 78; } .full :global(.panel.orange) { --full-share: 58; } .full :global(.panel.monitor) { --full-share: 94; } .full :global(.panel.blue) { --full-share: 86; } .full :global(.panel.green) { --full-share: 90; }
   .small .oledvu { height: 27px; } .large .oledvu { height: 85.5px; }
   .bezel { fill: #15161a; stroke: #2c2e34; stroke-width: 1; }
-  .lamp-hot { stop-color: #fff3d6; } .lamp-warm { stop-color: #f8deaa; } .lamp-mid { stop-color: #dcb47a; } .lamp-edge { stop-color: #a17a48; }
-  .idle .lamp-hot { stop-color: #f3e3c4; } .idle .lamp-warm { stop-color: #e6cc9c; } .idle .lamp-mid { stop-color: #c9a46e; } .idle .lamp-edge { stop-color: #8d6a3e; }
   .face { stroke: rgba(0, 0, 0, 0.5); stroke-width: 0.8; }
   .scale { fill: none; stroke: #1d1a14; stroke-width: 0.9; stroke-linecap: round; }
   .red-line { fill: none; stroke: #c4291c; stroke-width: 0.9; }
@@ -168,17 +198,19 @@
   .vu-label { fill: #1d1a14; font-size: 9px; font-weight: 700; font-family: "Segoe UI", Arial, sans-serif; }
   .sign { fill: #1d1a14; font-size: 8px; font-weight: 700; text-anchor: middle; font-family: Arial, sans-serif; } .sign.hot { fill: #c4291c; }
   .channel { fill: rgba(29, 26, 20, 0.55); font-size: 6px; text-anchor: middle; font-family: var(--font-display); }
-  .needle { stroke: #111; stroke-width: 0.9; } /* ballistics in the shell, easing per frame in state.svelte.ts */
+  .needle { stroke: #111; stroke-width: 0.9; } .needle.blade { stroke: none; } /* ballistics (a damped spring) in the shell, easing and window jog per frame in state.svelte.ts */
+  .shroud-rim { fill: none; stroke: #fff3d6; stroke-width: 0.45; opacity: 0.45; transition: opacity 1s; } .idle .shroud-rim { opacity: 0.3; } .shroud-edge { fill: none; stroke: #000; stroke-width: 0.5; opacity: 0.6; }
+  .screw { stroke: #1a1712; stroke-width: 0.3; } .screw-slot { stroke: #26221c; stroke-width: 0.55; stroke-linecap: round; }
   .inset { fill: none; stroke: #1c1206; stroke-width: 4; opacity: 0.55; }
   .percent { stroke-width: 0.5; } .percent-number { fill: #1d1a14; font-size: 3.6px; text-anchor: middle; dominant-baseline: middle; font-family: "Segoe UI", Arial, sans-serif; }
   .pilot { fill: #2b2620; stroke: #7a6646; stroke-width: 0.5; } .pilot-glint { fill: #fff; opacity: 0.45; }
   .shade { pointer-events: none; } .mottle { opacity: 0.07; }
-  .rim-glow { fill: none; stroke: #ffe6b4; stroke-width: 1.3; opacity: 0.4; } .rim-seam { fill: none; stroke: #3a2508; stroke-width: 0.45; opacity: 0.35; } .rim-catch { stroke: #fff8e6; stroke-width: 0.5; opacity: 0.6; }
-  .grain { opacity: 0.45; } .full .grain { opacity: 0.18; } .needle-shadow { stroke: #2a1a05; stroke-width: 1.4; opacity: 0.22; }
-  .idle .rim-glow { opacity: 0.22; } .idle .rim-catch { opacity: 0.3; }
+  .rim-glow { fill: none; stroke: #ffe6b4; stroke-width: 1.3; } .rim-seam { fill: none; stroke: #3a2508; stroke-width: 0.45; opacity: 0.35; } .rim-catch { stroke: #fff8e6; stroke-width: 0.5; opacity: 0.6; }
+  .grain { opacity: 0.45; } .full .grain { opacity: 0.18; } .needle-shadow { stroke: #2a1a05; stroke-width: 1.1; stroke-linecap: round; opacity: 0.2; }
+  .rim-glow { opacity: calc(0.4 * var(--lamp-glow)); } .idle .rim-catch { opacity: 0.3; } .rim-catch, .refraction { transition: opacity 1s; }
   .refraction { opacity: 0.42; } .refraction-seam { opacity: 0.22; } .smudge { opacity: 0.06; } .dust { opacity: 0.22; }
   .idle .refraction { opacity: 0.35; }
-  .lit-edge { fill: #ffe7b0; opacity: 0.75; } .idle .lit-edge { opacity: 0.35; }
+  .lit-edge { fill: #ffe7b0; opacity: calc(0.75 * var(--lamp-glow) * var(--lamp-glow)); }
   /* OLED VU: a frosted glass pane over whatever is behind, with a fine top-lit edge */
   .glass { fill: url(#oled-glass-sheen); stroke: rgba(255, 255, 255, 0.16); stroke-width: 0.6; }
   .oledvu { border-radius: 6px; backdrop-filter: blur(10px) saturate(1.3); background: rgba(8, 14, 22, 0.28); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 4px 14px rgba(0, 0, 0, 0.25); }
