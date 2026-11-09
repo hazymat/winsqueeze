@@ -90,6 +90,7 @@ public class TrackInfoSettings
 {
     public List<InfoChoice> Tabs { get; set; } = new(); // order shown; unticked ones keep their place
     public Dictionary<string, List<InfoChoice>> Sources { get; set; } = new(); // per tab, tried from the top
+    public bool Timeline { get; set; } = true; // the artist's music year by year, under the Artist text
     public string ProtectedLastFmKey { get; set; } = ""; // DPAPI, current user only; never exported
     [JsonIgnore] public string LastFmKey
     {

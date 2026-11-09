@@ -22,12 +22,25 @@
     const key = trackKey, open = infoKey, kinds = infoTabs, playing = track
     if (key !== infoFor) { infoFor = key; info = {} }
     if (!playing) return
-    for (const kind of kinds) if ((kind === open || kind === 'lyrics') && untrack(() => info[kind]) === undefined) {
+    for (const kind of kinds.filter(kind => kind === open || kind === 'lyrics').concat(open === 'artist' ? ['timeline'] : [])) if (untrack(() => info[kind]) === undefined) {
       info = Object.assign({}, untrack(() => info), { [kind]: 'loading' })
       query('nowPlayingInfo', { kind, id: playing.id ?? 0, artistId: String(playing.artist_id ?? ''), albumId: String(playing.album_id ?? ''), artist: playing.artist ?? '', album: playing.album ?? '', title: playing.title ?? '', duration: Number(playing.duration ?? 0), remote: Number(playing.remote) === 1 ? 1 : 0 })
         .then(result => { if (infoFor === key) info = Object.assign({}, info, { [kind]: result ?? { found: false } }) })
     }
   })
+  // Timeline albums you have: matched on the album title among this artist's own albums in the library, so they open from the timeline
+  let ownedAlbums = $state<Record<string, { key: string, title: string }>>({}), ownedFor = ''
+  const titleKey = (title: string) => String(title ?? '').toLowerCase().replace(/\s*[([][^)\]]*(remaster|edition|deluxe|expanded|anniversary|bonus)[^)\]]*[)\]]/g, '').replace(/&/g, 'and').replace(/[^\p{L}\p{N}]+/gu, '')
+  $effect(() => {
+    const artist = track?.artist ?? '', timeline = info.timeline
+    if (!artist || !timeline?.found || ownedFor === artist) return
+    ownedFor = artist
+    personView('artist', artist).then(view => query('artistAlbums', { key: view.key, sort: 'year' })).then(albums => { const byTitle: Record<string, { key: string, title: string }> = {}; for (const album of albums?.own ?? []) byTitle[titleKey(album.title)] = { key: String(album.key), title: album.title }; if (ownedFor === artist) ownedAlbums = byTitle })
+  })
+  const timelineYears = (events: any[]) => { const years: { year: number, events: any[] }[] = []; for (const event of events ?? []) { const last = years[years.length - 1]; if (last && last.year === event.year) last.events.push(event); else years.push({ year: event.year, events: [event] }) } return years }
+  const bornYear = $derived(info.timeline?.found && info.timeline.subheading === 'person' ? (info.timeline.events.find((event: any) => event.kind === 'start')?.year ?? 0) : 0)
+  const timelineTitle = (event: any) => ({ member: `Joined ${event.title}`, label: `Signed to ${event.title}`, award: `Won ${event.title}`, nominated: `Nominated: ${event.title}` } as Record<string, string>)[event.kind] ?? event.title
+  const timelineDetail = (event: any) => [event.detail, event.endYear && event.endYear !== event.year ? `until ${event.endYear}` : ''].filter(Boolean).join(' · ')
   const missing = (kind: string) => info[kind] && info[kind] !== 'loading' && !info[kind].found
   const chooseTab = (key: string) => { ui.infoTab = key; writeSetting('infoTab', key) }
   // The shell sends tidy blocks: paragraphs, "## " headings and "• " lists. Long text shows its opening, the rest behind Show more
@@ -68,7 +81,7 @@
         <div class="info" class:lyrics={infoKey === 'lyrics'}>
           {#if !track}<p class="quiet">Nothing playing</p>
           {:else if !result || result === 'loading'}<p class="quiet">Looking…</p>
-          {:else if !result.found}<p class="quiet">{infoKey === 'lyrics' ? 'No lyrics found for this track' : infoKey === 'album' ? 'Nothing found about this album' : 'Nothing found about this artist'}</p>
+          {:else if !result.found}{#if !(infoKey === 'artist' && info.timeline?.found)}<p class="quiet">{infoKey === 'lyrics' ? 'No lyrics found for this track' : infoKey === 'album' ? 'Nothing found about this album' : 'Nothing found about this artist'}</p>{/if}
           {:else}
             <div class="info-head">{#if result.image}<img class="info-pic" class:round={infoKey === 'artist'} src={infoImage(result.image)} alt="" />{/if}<div><h2>{result.heading}</h2>{#if result.subheading}<div class="quiet">{result.subheading}</div>{/if}</div></div>
             {#if infoKey === 'lyrics'}<pre>{result.text}</pre>{:else}
@@ -77,6 +90,25 @@
               {#if shown < blocks.length}<button class="more" onclick={() => expanded = true}>Show more</button>{/if}
             {/if}
             <div class="source">From {result.source}{#if result.link}&nbsp;· <button class="link" onclick={() => sendToShell({ type: 'openUrl', url: result.link })}>Read more</button>{/if}</div>
+          {/if}
+          {#if infoKey === 'artist' && info.timeline?.found}
+            <h3 class="timeline-head">Timeline</h3>
+            <ol class="timeline">
+              {#each timelineYears(info.timeline.events) as group (group.year)}
+                <li class="year-group"><div class="year">{group.year}{#if bornYear && group.year > bornYear && !group.events.some(event => event.kind === 'start')}<span class="age">age {group.year - bornYear}</span>{/if}</div>
+                  {#each group.events as event}
+                    {@const owned = event.kind === 'album' ? ownedAlbums[titleKey(event.title)] : null}
+                    <div class="event {event.kind}" class:playing={event.kind === 'album' && titleKey(event.title) === titleKey(track?.album ?? '')}>
+                      <span class="marker" aria-hidden="true">{event.kind === 'award' ? '★' : event.kind === 'nominated' ? '☆' : ''}</span>
+                      {#if event.kind === 'album'}<span class="sleeve"><img src={`https://coverartarchive.org/release-group/${event.id}/front-250`} alt="" loading="lazy" onerror={(failed) => (failed.currentTarget as HTMLImageElement).remove()} /></span>{/if}
+                      <div class="event-text"><div class="event-title">{timelineTitle(event)}</div>{#if timelineDetail(event)}<div class="event-detail">{timelineDetail(event)}</div>{/if}</div>
+                      {#if event.kind === 'album' && titleKey(event.title) === titleKey(track?.album ?? '')}<span class="now">Playing</span>{:else if owned}<button class="owned" title="Open the album" onclick={() => openView({ kind: 'album', key: owned.key, title: owned.title })}>In your library</button>{/if}
+                    </div>
+                  {/each}
+                </li>
+              {/each}
+            </ol>
+            <div class="source">From {info.timeline.source}&nbsp;· <button class="link" onclick={() => sendToShell({ type: 'openUrl', url: info.timeline.link })}>MusicBrainz page</button></div>
           {/if}
         </div>
       {/if}
@@ -123,6 +155,17 @@
   .info { padding: 2px 4px 4px; user-select: text; text-align: left; } .info h2 { margin: 0 0 2px; font-size: 18px; } .info p { margin: 12px 0 0; line-height: 1.55; font-size: 13.5px; } .info .quiet { font-size: 12.5px; } .info h3 { margin: 18px 0 0; font-size: 14px; color: var(--fg); } .info ul { margin: 8px 0 0; padding-left: 18px; font-size: 13.5px; line-height: 1.5; } .info li { margin: 2px 0; }
   .info .more { margin-top: 10px; background: none; border: 0; padding: 0; color: var(--accent); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; } .info .more:hover { text-decoration: underline; }
   .info-head { display: flex; gap: 12px; align-items: center; } .info-pic { flex: none; width: 64px; height: 64px; object-fit: cover; border-radius: 8px; box-shadow: 0 6px 18px var(--shadow); } .info-pic.round { border-radius: 50%; }
+  /* Timeline: a line down the left, years in the display face, albums with their sleeves; your own albums open from it */
+  .timeline-head { margin-top: 26px; } .timeline { list-style: none; margin: 10px 0 0; padding: 0 0 0 18px; position: relative; }
+  .timeline::before { content: ""; position: absolute; left: 5px; top: 8px; bottom: 8px; width: 2px; border-radius: 1px; background: linear-gradient(var(--accent), color-mix(in srgb, var(--accent) 15%, transparent)); }
+  .year-group { margin: 0 0 12px; } .year { position: relative; font-family: var(--font-display); font-size: 13px; color: var(--accent); letter-spacing: 0.04em; margin-bottom: 4px; }
+  .year::before { content: ""; position: absolute; left: -17px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+  .age { margin-left: 8px; color: var(--fg-quiet); font-family: var(--font-ui); font-size: 11.5px; letter-spacing: 0; }
+  .event { display: flex; align-items: center; gap: 10px; padding: 4px 0; min-height: 22px; } .marker { flex: none; width: 12px; text-align: center; color: #e8b64c; font-size: 12px; }
+  .sleeve { flex: none; width: 38px; height: 38px; border-radius: 4px; background: var(--panel-strong); overflow: hidden; box-shadow: 0 2px 8px var(--shadow); } .sleeve img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .event-text { flex: 1; min-width: 0; } .event-title { font-size: 13.5px; line-height: 1.3; } .event-detail { font-size: 11.5px; color: var(--fg-quiet); }
+  .event.album .event-title { font-weight: 600; } .event.start .event-title, .event.end .event-title { color: var(--fg-quiet); font-style: italic; } .event.nominated .event-title, .event.label .event-title, .event.member .event-title { color: color-mix(in srgb, var(--fg) 80%, var(--bg)); }
+  .owned { flex: none; border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 2px 9px; font: inherit; font-size: 11px; font-weight: 600; cursor: pointer; } .now { flex: none; font-size: 11px; font-weight: 600; color: var(--on-accent); background: var(--accent); border-radius: 999px; padding: 2px 9px; } .event.playing .sleeve { box-shadow: 0 0 0 2px var(--accent), 0 2px 10px var(--shadow); } .owned:hover { background: color-mix(in srgb, var(--accent) 25%, transparent); }
   .lyrics pre { margin: 14px 0 0; font: inherit; font-size: 15px; line-height: 1.7; white-space: pre-wrap; }
   .source { margin-top: 18px; padding-top: 10px; border-top: 1px solid var(--line); color: var(--fg-quiet); font-size: 11.5px; } .source .link { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
   @media (max-width: 1100px) { .layout { grid-template-columns: minmax(180px, 0.8fr) minmax(280px, 1.2fr); grid-template-rows: auto 1fr; } .art-column { grid-row: 1; } .meta { grid-row: 1; } .queue-panel { grid-column: 1 / 3; } .art { max-width: min(260px, 42cqh); } }
