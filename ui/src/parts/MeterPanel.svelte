@@ -26,17 +26,8 @@
   const shadowShift = (angle: number, size: number) => size * 1.4 * Math.sin(angle * Math.PI / 180)
   // Blade needles: wide at the pivot, tapering to a fine point
   const blade = (centreX: number, pivotY: number, length: number, halfWidth: number) => `M${centreX - halfWidth} ${pivotY} L${centreX - 0.17} ${pivotY - length} L${centreX + 0.17} ${pivotY - length} L${centreX + halfWidth} ${pivotY} Z`
-  // Switching on: bulb-lit faces warm up through orange; fluorescent and backlit ones strike with a flicker
-  let power = $state(1)
+  // Switching on: bulb-lit faces warm up through orange, fluorescent and backlit ones strike with a flicker (CSS animations, run by the compositor)
   const filament = $derived(theme === 'deck' || theme === 'orange')
-  $effect(() => {
-    theme; const started = performance.now(); let frame = 0; const lit = theme === 'deck' || theme === 'orange'
-    const strike = (elapsed: number) => elapsed < 120 ? 0.1 : elapsed < 180 ? 1 : elapsed < 320 ? 0.15 : elapsed < 380 ? 0.8 : elapsed < 520 ? 0.3 : Math.min(1, 0.3 + (elapsed - 520) / 260)
-    const step = (time: number) => { const elapsed = time - started; power = lit ? Math.min(1, 1 - Math.exp(-elapsed / 420) + 0.004) : strike(elapsed); frame = power < 1 ? requestAnimationFrame(step) : 0 }
-    frame = requestAnimationFrame(step)
-    return () => cancelAnimationFrame(frame)
-  })
-  const warmFilter = $derived(power >= 1 ? null : filament ? `brightness(${0.15 + 0.85 * power}) sepia(${(1 - power) * 0.9}) saturate(${1 + (1 - power) * 1.5})` : `brightness(${power})`)
   const relative = (channelIndex: number) => (levels[channelIndex] ?? -90) - reference
   const sum = $derived(10 * Math.log10((Math.pow(10, relative(0) / 10) + Math.pow(10, relative(1) / 10)) / 2 + 1e-12))
   const wattsAt = (wattage: number, full = 100) => 10 * Math.log10(wattage / full)
@@ -64,7 +55,7 @@
 <!-- Three stacked copies: the textured face, the needles alone on their own compositor layer, and the glass and caps in front.
      A moving needle then repaints only its own thin layer, never the filtered face (repainting that every frame stalled the needles) -->
 {#snippet layerSvg(layer: string)}
-<svg viewBox="0 0 {width} {height}" class="panel {theme} layer-{layer}" class:idle aria-hidden="true" style:--aspect={panelThemes[theme].aspect} style:filter={layer === 'face' ? warmFilter : null}>
+<svg viewBox="0 0 {width} {height}" class="panel {theme} layer-{layer}" class:idle aria-hidden="true" style:--aspect={panelThemes[theme].aspect} class:warm-filament={layer === 'face' && filament} class:warm-strike={layer === 'face' && !filament}>
   <defs>
     <filter id={id + '-grain'} x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency={grainFrequency} numOctaves="1" seed="7" /><feColorMatrix values="0 0 0 0 0.2  0 0 0 0 0.15  0 0 0 0 0.08  0 0 0 1.1 -0.5" /></filter>
     <filter id={id + '-brushed'} x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.004 0.9" numOctaves="2" seed="3" /><feColorMatrix values="0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0 0.52  0 0 0 0.6 0" /></filter>
@@ -234,11 +225,15 @@
   {/if}
 </svg>
 {/snippet}
-<span class="meter-stack">{@render layerSvg('face')}{@render layerSvg('needles')}{@render layerSvg('front')}</span>
+{#key theme}<span class="meter-stack">{@render layerSvg('face')}{@render layerSvg('needles')}{@render layerSvg('front')}</span>{/key}
 
 <style>
   .panel { display: block; }
   /* Layers (see the top of the markup): the face hides needles and front parts, the needle layer shows only needles, the front layer only the front parts */
+  .warm-filament { animation: filament-on 1.6s cubic-bezier(0.25, 0.6, 0.35, 1); } .warm-strike { animation: strike-on 0.85s linear; }
+  @keyframes filament-on { 0% { filter: brightness(0.15) sepia(0.9) saturate(2.5); } 35% { filter: brightness(0.6) sepia(0.7) saturate(2); } 100% { filter: brightness(1) sepia(0) saturate(1); } }
+  @keyframes strike-on { 0%, 14% { filter: brightness(0.1); } 15%, 21% { filter: brightness(1); } 22%, 38% { filter: brightness(0.15); } 39%, 45% { filter: brightness(0.85); } 46%, 60% { filter: brightness(0.3); } 100% { filter: brightness(1); } }
+  @media (prefers-reduced-motion: reduce) { .warm-filament, .warm-strike { animation: none; } }
   .meter-stack { display: grid; } .meter-stack > svg { grid-area: 1 / 1; }
   .layer-face :is(.needle, .needle-shadow, .front), .layer-front :is(.needle, .needle-shadow) { display: none; }
   .layer-needles, .layer-front { pointer-events: none; } .layer-needles { will-change: transform; }
