@@ -113,6 +113,10 @@
           <radialGradient id={gradientId + '-shroud'} cx="50%" cy="20%" r="80%"><stop offset="0%" stop-color="#3a352e" /><stop offset="55%" stop-color="#1b1915" /><stop offset="100%" stop-color="#0b0a08" /></radialGradient>
           <linearGradient id={gradientId + '-blade'} x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#050505" /><stop offset="55%" stop-color="#141414" /><stop offset="80%" stop-color="#5a5248" /><stop offset="100%" stop-color="#1a1a1a" /></linearGradient>
           <radialGradient id={gradientId + '-screw'} cx="40%" cy="35%" r="70%"><stop offset="0%" stop-color="#d8d2c6" /><stop offset="60%" stop-color="#8a8276" /><stop offset="100%" stop-color="#3c372f" /></radialGradient>
+          <radialGradient id={gradientId + '-lens'} cx="50%" cy="58%" r="58%" fx="46%" fy="64%"><stop offset="0%" class="lens-core" /><stop offset="55%" class="lens-mid" /><stop offset="100%" class="lens-edge" /></radialGradient>
+          <linearGradient id={gradientId + '-lens-ring'} x1="0.2" y1="0" x2="0.6" y2="1"><stop offset="0%" stop-color="#b9a585" /><stop offset="45%" stop-color="#6e5d45" /><stop offset="100%" stop-color="#2e261c" /></linearGradient>
+          <filter id={gradientId + '-lens-blur'} x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="0.3" /></filter>
+          <filter id={gradientId + '-lens-glint'} x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="0.12" /></filter>
           <clipPath id={gradientId + '-clip'}><rect x="5" y="5" width="110" height="62" rx="2" /></clipPath>
         </defs>
         <rect x="0" y="0" width="120" height="72" rx="5" class="bezel" />
@@ -133,7 +137,16 @@
           <line x1={tickX1} y1={tickY1} x2={tickX2} y2={tickY2} class="tick minor" /><text x={textX} y={textY} class="percent-number">{percent}</text>
         {/each}
         <text x="16" y="22" class="vu-label">VU</text>
-        <circle cx="106" cy="13.5" r="2.8" class="pilot" /><circle cx="105.2" cy="12.7" r="0.9" class="pilot-glint" />
+        <!-- Pilot lamp: a domed red lens in a brass ring. The ring sits proud, so the lamp below throws its soft shadow up the face; the room shows as a curved streak on the dome, and the meter's own lamp glows through the lens at the bottom -->
+        <g class="lens">
+          <ellipse cx="106" cy="12.7" rx="3.7" ry="3.5" class="lens-shadow" filter="url(#{gradientId}-soft)" />
+          <circle cx="106" cy="13.5" r="3.2" fill="url(#{gradientId}-lens-ring)" class="lens-ring" />
+          <circle cx="106" cy="13.5" r="2.35" fill="url(#{gradientId}-lens)" />
+          <circle cx="106" cy="13.5" r="2.25" class="lens-inner-shadow" filter="url(#{gradientId}-lens-blur)" />
+          <ellipse cx="106.15" cy="14.75" rx="1.35" ry="0.55" class="lens-caustic" filter="url(#{gradientId}-lens-blur)" />
+          <path d="M104.35 13.9 A1.75 1.75 0 0 1 105.5 11.85" class="lens-streak" filter="url(#{gradientId}-lens-glint)" />
+          <circle cx="107.15" cy="12.55" r="0.22" class="lens-speck" />
+        </g>
         <text x="105" y="57" class="sign hot">+</text><text x="14" y="57" class="sign">−</text>
         <text x="60" y="53" class="channel" class:note={screwNote}>{screwNote || channel}</text>
         <rect x="5" y="5" width="110" height="62" fill="url(#{gradientId}{channel}-blob)" class="shade" /><rect x="5" y="5" width="110" height="62" filter="url(#{gradientId}{channel}-mottle)" class="shade mottle" />
@@ -222,7 +235,10 @@
   .screw { stroke: #1a1712; stroke-width: 0.3; } .screw-grip { fill: transparent; pointer-events: all; cursor: ew-resize; outline: none; } .channel.note { font-size: 4.2px; font-family: "Segoe UI", Arial, sans-serif; fill: rgba(29, 26, 20, 0.75); } .screw-slot { stroke: #26221c; stroke-width: 0.55; stroke-linecap: round; }
   .inset { fill: none; stroke: #1c1206; stroke-width: 4; opacity: 0.55; }
   .percent { stroke-width: 0.5; } .percent-number { fill: #1d1a14; font-size: 3.6px; text-anchor: middle; dominant-baseline: middle; font-family: "Segoe UI", Arial, sans-serif; }
-  .pilot { fill: #2b2620; stroke: #7a6646; stroke-width: 0.5; } .pilot-glint { fill: #fff; opacity: 0.45; }
+  .lens-shadow { fill: #2a1500; opacity: 0.28; } .lens-ring { stroke: #1a140c; stroke-width: 0.25; }
+  .lens-core { stop-color: #6a1a12; } .lens-mid { stop-color: #40100b; } .lens-edge { stop-color: #1e0604; }
+  .lens-inner-shadow { fill: none; stroke: #000; stroke-width: 0.5; opacity: 0.55; } .lens-caustic { fill: #ffb070; opacity: calc(0.4 * var(--lamp-glow)); }
+  .lens-streak { fill: none; stroke: #fff; stroke-width: 0.42; stroke-linecap: round; opacity: 0.55; } .lens-speck { fill: #fff; opacity: 0.3; }
   .shade { pointer-events: none; } .mottle { opacity: 0.07; }
   .rim-glow { fill: none; stroke: #ffe6b4; stroke-width: 1.3; } .rim-seam { fill: none; stroke: #3a2508; stroke-width: 0.45; opacity: 0.35; } .rim-catch { stroke: #fff8e6; stroke-width: 0.5; opacity: 0.6; }
   .grain { opacity: 0.45; } .full .grain { opacity: 0.18; } .needle-shadow { stroke: #2a1a05; stroke-width: 1.1; stroke-linecap: round; opacity: 0.2; }
