@@ -247,7 +247,7 @@ public partial class MainWindow : Window
             boundsBeforeHifi = before;
             var chromeHeight = Math.Max(0, ActualHeight - webView.ActualHeight); // title bar and borders when not frameless
             WindowState = WindowState.Normal;
-            var hifiWidth = Math.Max(960, Math.Min(1400, before.Width)), hifiHeight = Math.Round(hifiWidth / 3.88) + chromeHeight;
+            double hifiWidth = Math.Max(960, Math.Min(1400, before.Width)), hifiHeight = Math.Round(hifiWidth / 3.88) + chromeHeight;
             Left = before.Left + (before.Width - hifiWidth) / 2; Top = before.Top + (before.Height - hifiHeight) / 2; Width = hifiWidth; Height = hifiHeight;
         }
         else if (!on && boundsBeforeHifi is Rect saved)
