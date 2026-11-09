@@ -61,7 +61,8 @@
   const chooseSubView = (key: string) => { ui.albumView = key; writeSetting('albumView', key) }
   // Artist is the bio; the Timeline opens from a button above it and closes back to the bio
   let showTimeline = $state(false)
-  $effect(() => { track?.artist; showTimeline = false }) // a new artist opens on their bio
+  const artistName = $derived(track?.artist ?? '') // a string, so status polls (a new track object each time) don't count as a change
+  $effect(() => { artistName; showTimeline = false }) // a new artist opens on their bio
   // Credits: who played, wrote and produced it. People are grouped by what they did, each with their roles and the tracks they're on; the playing track's people come first
   const creditGroups = [['performer', 'Performers'], ['writer', 'Writers'], ['production', 'Production'], ['artwork', 'Artwork and notes']]
   const playingNumber = (credits: any) => credits?.tracks?.find((item: any) => titleKey(item.title) === titleKey(track?.title ?? ''))?.n ?? 0
