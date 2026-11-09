@@ -45,22 +45,23 @@
   const chooseTab = (key: string) => { ui.infoTab = key; writeSetting('infoTab', key) }
   // The shell sends tidy blocks: paragraphs, "## " headings and "• " lists. Long text shows its opening, the rest behind Show more
   const blocksOf = (text: string) => text.split(/\n\s*\n/).map(block => block.trim()).filter(Boolean)
-  const shortCount = (blocks: string[]) => { let length = 0, count = 0; for (const block of blocks) { if (count > 0 && length + block.length > 700) break; length += block.length; count++ } return count }
+  const shortCount = (blocks: string[]) => { let length = 0, count = 0; for (const block of blocks) { if (count > 0 && length + block.length > 700) break; length += block.length; count++ } while (count > 1 && blocks[count - 1].startsWith('## ')) count--; return count } // never ends on a heading
   let expanded = $state(false)
   $effect(() => { trackKey; infoKey; expanded = false })
-  // Artist splits into Summary, Timeline and Full bio, Album into Summary and Credits; a view shows while it's still loading so the row doesn't jump, and goes once it has nothing
+  // Album splits into Summary and Credits; a view shows while it's still loading so the row doesn't jump, and goes once it has nothing
   const pending = (value: any) => value === undefined || value === 'loading'
   const subViews = $derived.by(() => {
-    const about = info[infoKey], extra = info[infoKey === 'artist' ? 'timeline' : 'credits'], views: { key: string, label: string }[] = []
-    if (infoKey !== 'artist' && infoKey !== 'album') return views
+    const about = info.album, credits = info.credits, views: { key: string, label: string }[] = []
+    if (infoKey !== 'album') return views
     if (pending(about) || about.found) views.push({ key: 'summary', label: 'Summary' })
-    if (pending(extra) || extra.found) views.push(infoKey === 'artist' ? { key: 'timeline', label: 'Timeline' } : { key: 'credits', label: 'Credits' })
-    if (infoKey === 'artist' && about?.found && shortCount(blocksOf(about.text)) < blocksOf(about.text).length) views.push({ key: 'bio', label: 'Full bio' })
+    if (pending(credits) || credits.found) views.push({ key: 'credits', label: 'Credits' })
     return views
   })
-  const chosenView = $derived(infoKey === 'album' ? ui.albumView : ui.artistView)
-  const subView = $derived(subViews.some(view => view.key === chosenView) ? chosenView : (subViews[0]?.key ?? 'summary'))
-  const chooseSubView = (key: string) => { if (infoKey === 'album') { ui.albumView = key; writeSetting('albumView', key) } else { ui.artistView = key; writeSetting('artistView', key) } }
+  const subView = $derived(subViews.some(view => view.key === ui.albumView) ? ui.albumView : (subViews[0]?.key ?? 'summary'))
+  const chooseSubView = (key: string) => { ui.albumView = key; writeSetting('albumView', key) }
+  // Artist is the bio; the Timeline opens from a button above it and closes back to the bio
+  let showTimeline = $state(false)
+  $effect(() => { track?.artist; showTimeline = false }) // a new artist opens on their bio
   // Credits: who played, wrote and produced it. People are grouped by what they did, each with their roles and the tracks they're on; the playing track's people come first
   const creditGroups = [['performer', 'Performers'], ['writer', 'Writers'], ['production', 'Production'], ['artwork', 'Artwork and notes']]
   const playingNumber = (credits: any) => credits?.tracks?.find((item: any) => titleKey(item.title) === titleKey(track?.title ?? ''))?.n ?? 0
@@ -122,11 +123,10 @@
           {:else if infoKey === 'lyrics'}
             {#if pending(result)}<p class="quiet">Looking…</p>{:else if !result.found}<p class="quiet">No lyrics found for this track</p>
             {:else}<div class="info-head"><div><h2>{result.heading}</h2>{#if result.subheading}<div class="quiet">{result.subheading}</div>{/if}</div></div><pre>{result.text}</pre>{@render source(result.source, result.link, 'Read more')}{/if}
-          {:else}
-            {#if subViews.length > 1}<div class="sub-tabs" role="tablist">{#each subViews as view (view.key)}<button role="tab" class:on={subView === view.key} aria-selected={subView === view.key} onclick={() => chooseSubView(view.key)}>{view.label}</button>{/each}</div>{/if}
-            {#if !subViews.length}<p class="quiet">{infoKey === 'album' ? 'Nothing found about this album' : 'Nothing found about this artist'}</p>
-            {:else if subView === 'timeline'}
-              {#if pending(info.timeline)}<p class="quiet">Looking…</p>{:else}
+          {:else if infoKey === 'artist'}
+            {#if showTimeline && info.timeline?.found}
+              <button class="back" onclick={() => showTimeline = false}>← Artist bio</button>
+              {#if info.timeline?.found}
                 <ol class="timeline">
                   {#each timelineYears(info.timeline.events) as group (group.year)}
                     <li class="year-group"><div class="year">{group.year}{#if bornYear && group.year > bornYear && !group.events.some(event => event.kind === 'start')}<span class="age">age {group.year - bornYear}</span>{/if}</div>
@@ -144,6 +144,21 @@
                 </ol>
                 {@render source(info.timeline.source, info.timeline.link, 'MusicBrainz page')}
               {/if}
+            {:else}
+              {#if info.timeline?.found}<button class="timeline-button" onclick={() => showTimeline = true}><svg class="timeline-drawing" viewBox="0 0 64 24" aria-hidden="true"><path d="M2 19h60" /><path d="M10 19v-7M24 19v-11M38 19v-6M52 19v-10" /><rect x="6.5" y="5" width="7" height="7" rx="1.2" /><rect x="20.5" y="1" width="7" height="7" rx="1.2" /><rect x="34.5" y="6" width="7" height="7" rx="1.2" /><rect x="48.5" y="2" width="7" height="7" rx="1.2" /><circle cx="10" cy="19" r="2.2" /><circle cx="24" cy="19" r="2.2" /><circle cx="38" cy="19" r="2.2" /><circle cx="52" cy="19" r="2.2" /></svg><span>View artist timeline</span><span class="chevron" aria-hidden="true">›</span></button>{/if}
+              {#if pending(result)}<p class="quiet">Looking…</p>
+              {:else if !result.found}<p class="quiet">Nothing found about this artist</p>
+              {:else}
+                {@const blocks = blocksOf(result.text)}{@const shown = expanded ? blocks.length : shortCount(blocks)}
+                <div class="info-head">{#if result.image}<img class="info-pic round" src={infoImage(result.image)} alt="" />{/if}<div><h2>{result.heading}</h2>{#if result.subheading}<div class="quiet">{result.subheading}</div>{/if}</div></div>
+                {#each blocks.slice(0, shown) as block}{#if block.startsWith('## ')}<h3>{block.slice(3)}</h3>{:else if block.startsWith('• ')}<ul>{#each block.split('\n') as item}<li>{item.replace(/^• /, '')}</li>{/each}</ul>{:else}<p>{block}</p>{/if}{/each}
+                {#if shown < blocks.length}<button class="more" onclick={() => expanded = true}>Show more</button>{/if}
+                {@render source(result.source, result.link, 'Read more')}
+              {/if}
+            {/if}
+          {:else}
+            {#if subViews.length > 1}<div class="sub-tabs" role="tablist">{#each subViews as view (view.key)}<button role="tab" class:on={subView === view.key} aria-selected={subView === view.key} onclick={() => chooseSubView(view.key)}>{view.label}</button>{/each}</div>{/if}
+            {#if !subViews.length}<p class="quiet">Nothing found about this album</p>
             {:else if subView === 'credits'}
               {#if pending(info.credits)}<p class="quiet">Looking…</p>{:else}
                 {@const credits = info.credits.events}{@const here = peopleHere(credits)}{@const number = playingNumber(credits)}
@@ -166,10 +181,10 @@
               {/if}
             {:else if pending(result)}<p class="quiet">Looking…</p>
             {:else}
-              {@const blocks = blocksOf(result.text)}{@const shown = subView === 'bio' || expanded ? blocks.length : shortCount(blocks)}
-              <div class="info-head">{#if result.image}<img class="info-pic" class:round={infoKey === 'artist'} src={infoImage(result.image)} alt="" />{/if}<div><h2>{result.heading}</h2>{#if result.subheading}<div class="quiet">{result.subheading}</div>{/if}</div></div>
+              {@const blocks = blocksOf(result.text)}{@const shown = expanded ? blocks.length : shortCount(blocks)}
+              <div class="info-head">{#if result.image}<img class="info-pic" src={infoImage(result.image)} alt="" />{/if}<div><h2>{result.heading}</h2>{#if result.subheading}<div class="quiet">{result.subheading}</div>{/if}</div></div>
               {#each blocks.slice(0, shown) as block}{#if block.startsWith('## ')}<h3>{block.slice(3)}</h3>{:else if block.startsWith('• ')}<ul>{#each block.split('\n') as item}<li>{item.replace(/^• /, '')}</li>{/each}</ul>{:else}<p>{block}</p>{/if}{/each}
-              {#if shown < blocks.length}<button class="more" onclick={() => infoKey === 'artist' ? chooseSubView('bio') : expanded = true}>{infoKey === 'artist' ? 'Full bio' : 'Show more'}</button>{/if}
+              {#if shown < blocks.length}<button class="more" onclick={() => expanded = true}>Show more</button>{/if}
               {@render source(result.source, result.link, 'Read more')}
             {/if}
           {/if}
@@ -234,6 +249,11 @@
   .event-text { flex: 1; min-width: 0; } .event-title { font-size: 13.5px; line-height: 1.3; } .event-detail { font-size: 11.5px; color: var(--fg-quiet); }
   .event.album .event-title { font-weight: 600; } .event.start .event-title, .event.end .event-title { color: var(--fg-quiet); font-style: italic; } .event.nominated .event-title, .event.label .event-title, .event.member .event-title { color: color-mix(in srgb, var(--fg) 80%, var(--bg)); }
   .owned { flex: none; border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 2px 9px; font: inherit; font-size: 11px; font-weight: 600; cursor: pointer; } .now { flex: none; font-size: 11px; font-weight: 600; color: var(--on-accent); background: var(--accent); border-radius: 999px; padding: 2px 9px; } .event.playing .sleeve { box-shadow: 0 0 0 2px var(--accent), 0 2px 10px var(--shadow); } .owned:hover { background: color-mix(in srgb, var(--accent) 25%, transparent); }
+  /* View artist timeline: a small drawn timeline as its badge, so it reads as something to open */
+  .timeline-button { display: flex; align-items: center; gap: 12px; width: 100%; margin: 0 0 16px; padding: 9px 12px; border-radius: 10px; border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); background: linear-gradient(120deg, color-mix(in srgb, var(--accent) 14%, transparent), color-mix(in srgb, var(--accent) 3%, transparent)); color: var(--fg); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; text-align: left; }
+  .timeline-button:hover { border-color: color-mix(in srgb, var(--accent) 60%, transparent); } .timeline-button span:not(.chevron) { flex: 1; } .timeline-button .chevron { color: var(--accent); font-size: 18px; line-height: 1; }
+  .timeline-drawing { flex: none; width: 52px; height: 20px; fill: none; stroke: var(--accent); stroke-width: 1.6; stroke-linecap: round; } .timeline-drawing circle { fill: var(--accent); stroke: none; } .timeline-drawing rect { stroke-width: 1.3; fill: color-mix(in srgb, var(--accent) 30%, transparent); }
+  .back { background: none; border: 0; padding: 0; margin: 0 0 12px; color: var(--accent); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; } .back:hover { text-decoration: underline; }
   /* Credits: the playing track's people in a card, then everyone by what they did, roles as chips with their track numbers */
   .credits-here { margin: 2px 0 6px; padding: 12px 14px; border-radius: 10px; background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 16%, transparent), color-mix(in srgb, var(--accent) 5%, transparent)); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); }
   .here-head { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 13.5px; margin-bottom: 8px; } .here-number { flex: none; min-width: 20px; height: 20px; padding: 0 5px; box-sizing: border-box; border-radius: 10px; background: var(--accent); color: var(--on-accent); font-size: 11px; display: grid; place-items: center; }
