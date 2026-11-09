@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t, tn } from '../lib/i18n'
   import PinButton from '../parts/PinButton.svelte'
   import PageHead from '../parts/PageHead.svelte'
   import { untrack } from 'svelte'
@@ -23,40 +24,40 @@
   const plain = (text: string) => (text ?? '').toLowerCase()
   const shown = $derived(ui.search.length >= 2 ? items.filter(item => plain(item.playlist ?? item.title).includes(plain(ui.search))) : items)
   const totalSeconds = $derived(items.reduce((total, item) => total + Number(item.duration || 0), 0))
-  async function play(id: string, name: string, start = 0) { await live(['playlistcontrol', 'cmd:load', `playlist_id:${id}`], true); if (start) await live(['playlist', 'index', start], true); toast(`Playing ${name}`) }
+  async function play(id: string, name: string, start = 0) { await live(['playlistcontrol', 'cmd:load', `playlist_id:${id}`], true); if (start) await live(['playlist', 'index', start], true); toast(t('Playing {items}', { items: name })) }
   // Editing a saved playlist on the server: reorder and remove, each with Undo
   const scope = 'playlist'
   const keys = $derived(items.map((item, index) => String(index)))
   async function applyOrder(finalOrder: number[], label: string, undoable = true) {
     const before = items.slice(); items = finalOrder.map(index => before[index])
     for (const [from, to] of planMoves(before.map((item, index) => index), finalOrder)) await live(['playlists', 'edit', 'cmd:move', `playlist_id:${playlistId}`, `index:${from}`, `toindex:${to}`])
-    if (undoable) toast(label, () => applyOrder(finalOrder.map((unused, index) => finalOrder.indexOf(index)), 'Order restored', false), 6000, { redo: () => applyOrder(finalOrder, label, false) })
+    if (undoable) toast(label, () => applyOrder(finalOrder.map((unused, index) => finalOrder.indexOf(index)), t('Order restored'), false), 6000, { redo: () => applyOrder(finalOrder, label, false) })
   }
   function onMove(from: number, to: number) {
     const selected = selection.scope === scope ? selection.keys.map(Number) : []
     const order = blockOrder(items.length, selected.includes(from) ? selected : [from], from, to)
-    applyOrder(order, `Moved in ${title}`)
+    applyOrder(order, t('Moved in {playlist}', { playlist: title }))
     if (selected.includes(from)) selection.keys = selected.map(index => String(order.indexOf(index)))
   }
   async function remove(indexKeys: string[]) {
     const indexes = indexKeys.map(Number).sort((first, second) => second - first), removed = indexes.map(index => ({ index, item: items[index] }))
     items = items.filter((item, index) => !indexes.includes(index))
     for (const index of indexes) await live(['playlists', 'edit', 'cmd:delete', `playlist_id:${playlistId}`, `index:${index}`])
-    toast(removed.length === 1 ? `Removed “${removed[0].item?.title}” from ${title}` : `Removed ${removed.length} tracks from ${title}`, async () => {
+    toast(removed.length === 1 ? t('Removed “{title}” from {playlist}', { title: removed[0].item?.title, playlist: title }) : t('Removed {count} tracks from {playlist}', { count: removed.length, playlist: title }), async () => {
       for (const { index, item } of removed.slice().reverse()) { if (!item?.url) continue; await live(['playlists', 'edit', 'cmd:add', `playlist_id:${playlistId}`, `url:${item.url}`]); const count = items.length + 1; await live(['playlists', 'edit', 'cmd:move', `playlist_id:${playlistId}`, `index:${count - 1}`, `toindex:${index}`]) ; items = items.slice(0, index).concat([item], items.slice(index)) }
     }, 6000, { redo: async () => { items = items.filter((item, index) => !indexes.includes(index)); for (const index of indexes) await live(['playlists', 'edit', 'cmd:delete', `playlist_id:${playlistId}`, `index:${index}`]) } })
   }
   const actions: SelectionAction[] = [
-    { label: 'Play from here', single: true, key: 'Enter', run: indexKeys => play(playlistId, title, Number(indexKeys[0])) },
-    { label: 'Track info', run: indexKeys => { ui.trackInfo = indexKeys.map(Number).sort((first, second) => first - second).map(index => Number(items[index]?.id)).filter(id => id > 0) } },
-    { label: 'Remove from playlist', key: 'Delete', danger: true, run: remove }
+    { label: t('Play from here'), single: true, key: 'Enter', run: indexKeys => play(playlistId, title, Number(indexKeys[0])) },
+    { label: t('Track info'), run: indexKeys => { ui.trackInfo = indexKeys.map(Number).sort((first, second) => first - second).map(index => Number(items[index]?.id)).filter(id => id > 0) } },
+    { label: t('Remove from playlist'), key: 'Delete', danger: true, run: remove }
   ]
-  const listActions = browseActions('playlist').concat([{ label: 'Delete', key: 'Delete', danger: true, run: keys => deletePlaylists(keys, load) }])
+  const listActions = browseActions('playlist').concat([{ label: t('Delete'), key: 'Delete', danger: true, run: keys => deletePlaylists(keys, load) }])
   const edit = () => newPlaylist(title, items.map(item => ({ id: Number(item.id), title: item.title, artist: item.artist ?? '', duration: Number(item.duration || 0) })))
 </script>
 
 {#if playlistId}
-  <PageHead title={title ?? ''} detail={`${items.length} tracks · ${formatTime(totalSeconds)}`}>{#snippet titleExtra()}<PinButton view={{ kind: 'playlist', key: playlistId, title }} />{/snippet}<button class="primary" onclick={() => play(playlistId, title)}>Play</button><button class="ghost" onclick={edit}>Edit as new playlist</button></PageHead>
+  <PageHead title={title ?? ''} detail={tn(items.length, '{count} track', '{count} tracks') + ' · ' + formatTime(totalSeconds)}>{#snippet titleExtra()}<PinButton view={{ kind: 'playlist', key: playlistId, title }} />{/snippet}<button class="primary" onclick={() => play(playlistId, title)}>{t('Play')}</button><button class="ghost" onclick={edit}>{t('Edit as new playlist')}</button></PageHead>
   <div class="list" use:sortable={{ onMove, onHold: index => selectOnHold(scope, String(index), actions, 'track'), group: index => selection.scope === scope && selection.keys.includes(String(index)) ? selection.keys.map(Number) : [index], enabled: ui.search.length < 2 }}>
   {#each shown as item, index (index + ':' + item.id)}
     <button data-sort-row class="row" class:selected={isSelected(scope, String(index))} onclick={(event) => { if (!rowClick(event, scope, String(index), keys, actions, 'track')) play(playlistId, title, index) }}>
@@ -67,13 +68,13 @@
   {/each}
   </div>
 {:else}
-  <PageHead title="Playlists" detail={items.length ? `${items.length} saved` : ''} />
-  {#if !loading && !items.length}<p class="quiet">No saved playlists on the server yet. Use New playlist to make one.</p>{/if}
+  <PageHead title={t('Playlists')} detail={items.length ? t('{count} saved', { count: items.length }) : ''} />
+  {#if !loading && !items.length}<p class="quiet">{t('No saved playlists on the server yet. Use New playlist to make one.')}</p>{/if}
   <div use:selectable={{ scope: 'playlists', noun: 'playlist', actions: listActions }}>
   {#each shown as item (item.id)}
     <div class="row" data-select-key={String(item.id)}>
       <button class="main" onclick={() => openView({ kind: 'playlist', key: String(item.id), title: item.playlist })}><span class="glyph">☰</span><span class="text"><span>{item.playlist}</span></span></button>
-      <button class="ghost" onclick={() => play(String(item.id), item.playlist)}>Play</button>
+      <button class="ghost" onclick={() => play(String(item.id), item.playlist)}>{t('Play')}</button>
     </div>
   {/each}
   </div>

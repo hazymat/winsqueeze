@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../lib/i18n'
   import { selectable } from '../lib/selectable.svelte'
   import { browseActions } from '../lib/browseActions'
   import { query, sendToShell, artUrl } from '../bridge'
@@ -36,7 +37,7 @@
   // Debounced ~150 ms, served entirely from the local index
   $effect(() => { const text = ui.search; app.indexVersion; app.librarySettings.AlbumSource; clearTimeout(timer); timer = window.setTimeout(() => query('search', { text }).then(data => results = data ?? {}), 150) })
   const folderMode = $derived(app.librarySettings.AlbumSource !== 'tags')
-  const personGroups = $derived([['Artists', 'artist', results.artists], ['Composers', 'composer', results.composers], ['Performers', 'performer', results.performers]].filter(group => (group[2] as any[] ?? []).length))
+  const personGroups = $derived([[t('Artists'), 'artist', results.artists], [t('Composers'), 'composer', results.composers], [t('Performers'), 'performer', results.performers]].filter(group => (group[2] as any[] ?? []).length))
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -46,9 +47,9 @@
   <div class="chips">{#each people as person (person.key)}<button onclick={() => openView({ kind: kind as string, key: person.key, title: person.name })}>{person.name}{kind === 'performer' && person.detail ? ` · ${person.detail}` : ''}</button>{/each}</div>
 {/each}
 {#if (results.bestArtistAlbums ?? []).length}<AlbumList albums={results.bestArtistAlbums} section="search" heading={`${results.artists?.[0]?.name}: albums`} />{/if}
-{#if (results.albums ?? []).length}<AlbumList albums={results.albums.map((hit: any) => ({ key: hit.key, title: hit.name, artist: hit.detail, cover: hit.cover, year: hit.year }))} section="search" heading={folderMode ? 'Folders' : 'Albums'} />{/if}
+{#if (results.albums ?? []).length}<AlbumList albums={results.albums.map((hit: any) => ({ key: hit.key, title: hit.name, artist: hit.detail, cover: hit.cover, year: hit.year }))} section="search" heading={folderMode ? t('Folders') : t('Albums')} />{/if}
 {#if (results.trackGroups ?? []).length}
-  <h3>Tracks{folderMode ? ', by folder' : ''}</h3>
+  <h3>{folderMode ? t('Tracks, by folder') : t('Tracks')}</h3>
   <div use:selectable={{ scope: 'search:tracks', noun: 'track', actions: browseActions('track') }}>
   {#each results.trackGroups as group (group.album.key)}
     <div class="group">
@@ -58,7 +59,7 @@
       </button>
       {#each group.tracks as track (track.id)}
         <div class="track" data-select-key={String(track.id)}>
-          <button class="title" onclick={() => sendToShell({ type: 'playTracks', ids: [track.id], mode: 'load' })}>{track.title}{#if isDamaged(track.id)}<span class="damaged-mark" title="Damaged file: playback may skip">⚠</span>{/if}{#if track.composer}<span class="quiet"> · {track.composer}</span>{/if}</button>
+          <button class="title" onclick={() => sendToShell({ type: 'playTracks', ids: [track.id], mode: 'load' })}>{track.title}{#if isDamaged(track.id)}<span class="damaged-mark" title={t('Damaged file: playback may skip')}>⚠</span>{/if}{#if track.composer}<span class="quiet"> · {track.composer}</span>{/if}</button>
           <span class="quiet">{formatTime(track.duration)}</span>
           {#if playlist.open}<button class="add" onclick={() => addToPlaylist([{ id: track.id, title: track.title, artist: track.artist ?? '', duration: track.duration }], track.title)}>{inPlaylist(track.id) ? '✓' : '＋'}</button>{/if}
         </div>
@@ -68,7 +69,7 @@
   </div>
 {/if}
 </div>
-{#if ui.search.length >= 2 && !personGroups.length && !(results.albums ?? []).length && !(results.trackGroups ?? []).length}<p class="quiet">No matches for “{ui.search}”.</p>{/if}
+{#if ui.search.length >= 2 && !personGroups.length && !(results.albums ?? []).length && !(results.trackGroups ?? []).length}<p class="quiet">{t('No matches for “{search}”.', { search: ui.search })}</p>{/if}
 
 <style>
   .results :global(:is(.chips button, .card, .row, .group-head, .track .title):focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../lib/i18n'
   // Hi-fi spectrum analyser, after the classic EQ front panels: a framed smoked-glass window with a title strip, narrow columns of
   // thin segments (faint grey when off, soft teal when lit), a dotted scale each side and an optional FULL RANGE column.
   // levels: 0..1 per column; with levelsRight each column splits into a left and a right bar (L/R display)
@@ -97,7 +98,7 @@
         </div>
         {#if labels.length}
           <div class="legend"><div class="legend-bands">{#each labels as label}<span>{label}</span>{/each}</div>{#if fullRange !== null}<div class="full-gap"></div><span class="full-label"></span>{/if}</div>
-          <div class="legend-captions"><span class="bracket">FREQUENCY (Hz)</span>{#if fullRange !== null}<div class="full-gap"></div><span class="full-label full-caption"><span>FULL RANGE</span></span>{/if}</div>
+          <div class="legend-captions"><span class="bracket">{t('FREQUENCY (Hz)')}</span>{#if fullRange !== null}<div class="full-gap"></div><span class="full-label full-caption"><span>{t('FULL RANGE')}</span></span>{/if}</div>
         {/if}
       </div>
       {#if scale.length}{@render scaleColumn('right')}{/if}

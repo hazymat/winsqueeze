@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t, tn } from '../lib/i18n'
   import { selectable } from '../lib/selectable.svelte'
   import { browseActions } from '../lib/browseActions'
   import { query } from '../bridge'
@@ -12,7 +13,7 @@
   let { kind, title, detail = '', custom }: { kind: 'artists' | 'albumartists' | 'composers' | 'performers' | 'genres' | 'custom'; title: string; detail?: string; custom?: { viewId: string; genres: string[]; filters: CustomStep[]; level: string } } = $props()
   let rows = $state<any[]>([])
   let role = $state('')
-  const roleNames: Record<string, string> = { '': 'All', conductor: 'Conductors', band: 'Bands & orchestras', soloist: 'Soloists' }
+  const roleNames: Record<string, string> = { '': t('All'), conductor: t('Conductors'), band: t('Bands & orchestras'), soloist: t('Soloists') }
   $effect(() => { app.indexVersion; app.librarySettings.AlbumSource; (custom ? query('customLevel', { genres: custom.genres, filters: custom.filters, level: custom.level }) : query(kind === 'albumartists' ? 'albumArtists' : kind, { role })).then(result => rows = Array.isArray(result) ? result : []) })
   const plain = (text: string) => (text ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
   // Matches from the start of any word: "jarr" finds Keith Jarrett
@@ -24,11 +25,10 @@
   const open = (row: any) => custom ? openView({ kind: 'custom', key: custom.viewId, title: row.name, filters: stepTo(row) }) : openView({ kind: viewKind, key: String(row.key), title: row.name })
   // The count matches what the next view groups by (album artists, years…), or tracks, or both (Settings › Library)
   const nextView = custom ? { group: 'none' } : browseState(viewKind) // keyed per kind by the parent
-  const groupCounts: Record<string, [string, string, string]> = { artist: ['artists', 'album artist', 'album artists'], year: ['years', 'year', 'years'], decade: ['decades', 'decade', 'decades'], format: ['formats', 'format', 'formats'] }
-  const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`
+  const groupCounts: Record<string, [string, (count: number) => string]> = { artist: ['artists', count => tn(count, '{count} album artist', '{count} album artists')], year: ['years', count => tn(count, '{count} year', '{count} years')], decade: ['decades', count => tn(count, '{count} decade', '{count} decades')], format: ['formats', count => tn(count, '{count} format', '{count} formats')] }
   function countText(row: any) {
-    const [field, one, many] = groupCounts[nextView.group] ?? ['albums', 'album', 'albums']
-    const grouped = row[field] != null ? plural(Number(row[field]), one, many) : '', tracks = row.tracks != null ? plural(Number(row.tracks), 'track', 'tracks') : ''
+    const [field, countLabel] = groupCounts[nextView.group] ?? ['albums', (count: number) => tn(count, '{count} album', '{count} albums')]
+    const grouped = row[field] != null ? countLabel(Number(row[field])) : '', tracks = row.tracks != null ? tn(Number(row.tracks), '{count} track', '{count} tracks') : ''
     const mode = app.librarySettings.ListCounts ?? 'group'
     return mode === 'tracks' ? tracks || grouped : mode === 'both' ? [grouped, tracks].filter(Boolean).join(' · ') : grouped || tracks
   }
@@ -44,9 +44,9 @@
   const countParts = (row: any) => { const text = countText(row), space = text.indexOf(' '); return space > 0 ? [text.slice(0, space), text.slice(space)] : [text, ''] }
 </script>
 
-<PageHead {title} detail={detail || (rows.length ? `${shown.length === rows.length ? rows.length : shown.length + ' of ' + rows.length}` : '')}><ViewModes mode={layout} onchange={setLayout} /></PageHead>
+<PageHead {title} detail={detail || (rows.length ? shown.length === rows.length ? String(rows.length) : t('{shown} of {count}', { shown: shown.length, count: rows.length }) : '')}><ViewModes mode={layout} onchange={setLayout} /></PageHead>
 {#if kind === 'performers'}<div class="chips">{#each Object.keys(roleNames) as roleKey}<button class:on={role === roleKey} onclick={() => role = roleKey}>{roleNames[roleKey]}</button>{/each}</div>{/if}
-{#if !rows.length}<p class="quiet">{app.library.text || (custom ? 'Nothing in your library matches this view. Check its genres in Custom views.' : 'Nothing here yet. The library is still syncing, or the server has none.')}</p>{/if}
+{#if !rows.length}<p class="quiet">{app.library.text || (custom ? t('Nothing in your library matches this view. Check its genres in Custom views.') : t('Nothing here yet. The library is still syncing, or the server has none.'))}</p>{/if}
 <div class="people" class:tiles={layout === 'tiles'} class:cards={layout === 'cards'} use:selectable={{ scope: 'people:' + kind + (custom ? custom.viewId + custom.filters.length : ''), noun: viewKind ?? 'item', actions: browseActions(custom ? 'custom' : viewKind ?? 'artist') }}>
   {#each shown as row (row.key + (row.role ?? ''))}
     {@const share = graphic === 'none' ? 0 : shareOf(row)}

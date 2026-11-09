@@ -59,17 +59,17 @@ public sealed partial class LibrarySync
             var totalTracks = expectedTracks;
             for (var pageStart = 0; pageStart < Math.Max(totalTracks, 1); pageStart += pageSize)
             {
-                Progress?.Invoke("Fetching tracks", pageStart, totalTracks);
+                Progress?.Invoke(L.T("Fetching tracks"), pageStart, totalTracks);
                 var page = await lyrionClient.RequestAsync("", "titles", pageStart, pageSize, "tags:acdegGiIjlnoPrsStTuyDA");
                 if (page.ValueKind != JsonValueKind.Object) break;
                 totalTracks = LyrionClient.ReadInt(page, "count");
                 if (!page.TryGetProperty("titles_loop", out var titlesLoop)) break;
                 foreach (var item in titlesLoop.EnumerateArray()) tracks.Add(ParseTrack(item, contributorNames, genreNames));
             }
-            Progress?.Invoke("Fetching albums", 0, 0);
+            Progress?.Invoke(L.T("Fetching albums"), 0, 0);
             var tagAlbums = await FetchTagAlbumsAsync(lyrionClient);
             await FillMissingNamesAsync(lyrionClient, tracks, contributorNames);
-            Progress?.Invoke("Building index", tracks.Count, tracks.Count);
+            Progress?.Invoke(L.T("Building index"), tracks.Count, tracks.Count);
             using (var transaction = connection.BeginTransaction())
             {
                 WriteRaw(connection, tracks, contributorNames, genreNames, librarySettings);

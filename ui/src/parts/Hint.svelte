@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../lib/i18n'
   import { app, ui } from '../state.svelte'
   import { selection } from '../lib/selection.svelte'
   import { sendToShell } from '../bridge'
@@ -9,7 +10,7 @@
 </script>
 
 {#if shown}
-  <div class="hint {align}" class:bubble role="note"><span class="bulb" aria-hidden="true">i</span><span class="text">{text}</span><button class="close" onclick={dismiss} aria-label="Dismiss hint" title="Got it">✕</button></div>
+  <div class="hint {align}" class:bubble role="note"><span class="bulb" aria-hidden="true">i</span><span class="text">{text}</span><button class="close" onclick={dismiss} aria-label={t('Dismiss hint')} title={t('Got it')}>✕</button></div>
 {/if}
 
 <style>

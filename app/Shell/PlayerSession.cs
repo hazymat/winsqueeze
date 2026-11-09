@@ -93,7 +93,7 @@ public sealed class PlayerSession
     {
         var created = await RequestAsync(false, "playlists", "new", $"name:{playlistName}");
         var playlistId = LyrionClient.ReadString(created, "playlist_id");
-        if (playlistId == "") throw new InvalidOperationException(LyrionClient.ReadString(created, "overwritten_playlist_id") != "" ? "A playlist with that name already exists." : "The server did not create the playlist.");
+        if (playlistId == "") throw new InvalidOperationException(LyrionClient.ReadString(created, "overwritten_playlist_id") != "" ? L.T("A playlist with that name already exists.") : L.T("The server did not create the playlist."));
         await AddToPlaylistAsync(playlistId, trackUrls, progress);
         if (addToFavourites)
         {

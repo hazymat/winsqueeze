@@ -88,14 +88,14 @@ public sealed class TrackInfo
         if (request.TrackId <= 0 || App.IsOffline) return null;
         var songInfo = await App.ServerRequestAsync("", "songinfo", 0, 100, $"track_id:{request.TrackId}", "tags:W");
         if (!songInfo.TryGetProperty("songinfo_loop", out var fields)) return null;
-        foreach (var field in fields.EnumerateArray()) if (LyrionClient.ReadString(field, "lyrics") is { Length: > 0 } lyrics) return LyricsFound(request, lyrics, "The file's own tags");
+        foreach (var field in fields.EnumerateArray()) if (LyrionClient.ReadString(field, "lyrics") is { Length: > 0 } lyrics) return LyricsFound(request, lyrics, L.T("The file's own tags"));
         return null;
     }
 
     async Task<Result?> FromPluginAsync(Request request)
     {
         if (App.IsOffline || await PluginInstalledAsync() != true) return null;
-        var source = "The server's Music & Artist Information plugin";
+        var source = L.T("The server's Music & Artist Information plugin");
         var parameters = new List<object> { "musicartistinfo" };
         switch (request.Kind)
         {
@@ -135,7 +135,7 @@ public sealed class TrackInfo
     static bool Instrumental(JsonElement record) => record.TryGetProperty("instrumental", out var instrumental) && instrumental.ValueKind == JsonValueKind.True;
     Result? LrclibResult(Request request, JsonElement record)
     {
-        if (Instrumental(record)) return Found(request, "Instrumental", "LRCLIB", link: "https://lrclib.net");
+        if (Instrumental(record)) return Found(request, L.T("Instrumental"), "LRCLIB", link: "https://lrclib.net");
         string synced = LyrionClient.ReadString(record, "syncedLyrics"), plain = LyrionClient.ReadString(record, "plainLyrics");
         return plain != "" || synced != "" ? LyricsFound(request, plain != "" ? plain : synced, "LRCLIB", "https://lrclib.net", synced) : null;
     }
@@ -143,26 +143,32 @@ public sealed class TrackInfo
     async Task<Result?> FromWikipediaAsync(Request request)
     {
         if (request.Artist == "" || (request.Kind == "album" && request.Album == "")) return null;
-        // MusicBrainz finds the right entity, its Wikidata link names the Wikipedia page, and Wikipedia gives the introduction
+        // MusicBrainz finds the right entity, its Wikidata link names the Wikipedia page, and Wikipedia gives the introduction: in the app's language when that page exists, else English
         var entity = await MusicBrainzEntityAsync(request.Kind, request.Artist, request.Album);
         if (entity is not { } details || !details.TryGetProperty("relations", out var relations)) return null;
-        var pageTitle = "";
+        string pageTitle = "", pageLanguage = "en";
         foreach (var relation in relations.EnumerateArray())
         {
             var resource = relation.TryGetProperty("url", out var url) ? LyrionClient.ReadString(url, "resource") : "";
-            if (LyrionClient.ReadString(relation, "type") == "wikipedia" && resource.Contains("en.wikipedia.org/wiki/")) { pageTitle = Uri.UnescapeDataString(resource[(resource.IndexOf("/wiki/") + 6)..]); break; }
-            if (LyrionClient.ReadString(relation, "type") == "wikidata" && pageTitle == "" && await GetJsonAsync($"https://www.wikidata.org/wiki/Special:EntityData/{resource.Split('/').Last()}.json") is { } wikidata
-                && wikidata.TryGetProperty("entities", out var entities)) foreach (var item in entities.EnumerateObject()) if (item.Value.TryGetProperty("sitelinks", out var sitelinks) && sitelinks.TryGetProperty("enwiki", out var enwiki)) pageTitle = LyrionClient.ReadString(enwiki, "title");
+            if (LyrionClient.ReadString(relation, "type") == "wikipedia" && resource.Contains("en.wikipedia.org/wiki/") && pageTitle == "") { pageTitle = Uri.UnescapeDataString(resource[(resource.IndexOf("/wiki/") + 6)..]); if (L.Code == "en") break; }
+            if (LyrionClient.ReadString(relation, "type") == "wikidata" && (pageTitle == "" || L.Code != "en") && await GetJsonAsync($"https://www.wikidata.org/wiki/Special:EntityData/{resource.Split('/').Last()}.json") is { } wikidata && wikidata.TryGetProperty("entities", out var entities))
+                foreach (var item in entities.EnumerateObject())
+                {
+                    if (!item.Value.TryGetProperty("sitelinks", out var sitelinks)) continue;
+                    if (L.Code != "en" && sitelinks.TryGetProperty(L.Code + "wiki", out var localWiki)) { pageTitle = LyrionClient.ReadString(localWiki, "title"); pageLanguage = L.Code; }
+                    else if (pageTitle == "" && sitelinks.TryGetProperty("enwiki", out var enwiki)) pageTitle = LyrionClient.ReadString(enwiki, "title");
+                }
+            if (pageLanguage != "en") break;
         }
         if (pageTitle == "") return null;
-        var page = await GetJsonAsync($"https://en.wikipedia.org/w/api.php?action=query&prop=extracts|pageimages|pageprops&ppprop=disambiguation&exintro=1&explaintext=1&piprop=thumbnail&pithumbsize=400&redirects=1&format=json&titles={Uri.EscapeDataString(pageTitle)}");
+        var page = await GetJsonAsync($"https://{pageLanguage}.wikipedia.org/w/api.php?action=query&prop=extracts|pageimages|pageprops&ppprop=disambiguation&exintro=1&explaintext=1&piprop=thumbnail&pithumbsize=400&redirects=1&format=json&titles={Uri.EscapeDataString(pageTitle)}");
         if (page is not { } pageResult || !pageResult.TryGetProperty("query", out var query) || !query.TryGetProperty("pages", out var pages)) return null;
         foreach (var wikiPage in pages.EnumerateObject())
         {
             var extract = LyrionClient.ReadString(wikiPage.Value, "extract");
             if (extract == "" || wikiPage.Value.TryGetProperty("pageprops", out var pageProps) && pageProps.TryGetProperty("disambiguation", out _)) continue;
             var image = wikiPage.Value.TryGetProperty("thumbnail", out var thumbnail) ? LyrionClient.ReadString(thumbnail, "source") : "";
-            return Found(request, extract, "Wikipedia", request.Kind == "artist" ? image : "", $"https://en.wikipedia.org/wiki/{Uri.EscapeDataString(LyrionClient.ReadString(wikiPage.Value, "title").Replace(' ', '_'))}");
+            return Found(request, extract, "Wikipedia", request.Kind == "artist" ? image : "", $"https://{pageLanguage}.wikipedia.org/wiki/{Uri.EscapeDataString(LyrionClient.ReadString(wikiPage.Value, "title").Replace(' ', '_'))}");
         }
         return null;
     }
@@ -196,8 +202,8 @@ public sealed class TrackInfo
         var isPerson = LyrionClient.ReadString(artist, "type") == "Person";
         var lifeSpan = artist.TryGetProperty("life-span", out var span) ? span : default;
         var beginArea = artist.TryGetProperty("begin-area", out var area) && area.ValueKind == JsonValueKind.Object ? LyrionClient.ReadString(area, "name") : "";
-        Add(YearOf(LyrionClient.ReadString(lifeSpan, "begin")), "start", isPerson ? "Born" : "Formed", beginArea);
-        Add(YearOf(LyrionClient.ReadString(lifeSpan, "end")), "end", isPerson ? "Died" : "Split");
+        Add(YearOf(LyrionClient.ReadString(lifeSpan, "begin")), "start", isPerson ? L.T("Born") : L.T("Formed"), beginArea);
+        Add(YearOf(LyrionClient.ReadString(lifeSpan, "end")), "end", isPerson ? L.T("Died") : L.T("Split"));
         try
         {
             if (await MusicBrainzAsync($"https://musicbrainz.org/ws/2/release-group?artist={LyrionClient.ReadString(artist, "id")}&type=album|ep&limit=100&fmt=json") is { } browse && browse.TryGetProperty("release-groups", out var releaseGroups))
@@ -205,7 +211,7 @@ public sealed class TrackInfo
                 {
                     var secondary = releaseGroup.TryGetProperty("secondary-types", out var types) ? types.EnumerateArray().Select(type => type.GetString() ?? "").ToList() : new();
                     if (secondary.Any(type => skippedAlbumTypes.Contains(type))) continue;
-                    var detail = secondary.Contains("Live") ? "Live album" : secondary.Contains("Soundtrack") ? "Soundtrack" : LyrionClient.ReadString(releaseGroup, "primary-type") == "EP" ? "EP" : "";
+                    var detail = secondary.Contains("Live") ? L.T("Live album") : secondary.Contains("Soundtrack") ? L.T("Soundtrack") : LyrionClient.ReadString(releaseGroup, "primary-type") == "EP" ? "EP" : "";
                     Add(YearOf(LyrionClient.ReadString(releaseGroup, "first-release-date")), "album", LyrionClient.ReadString(releaseGroup, "title"), detail, LyrionClient.ReadString(releaseGroup, "id"));
                 }
         }
@@ -214,13 +220,14 @@ public sealed class TrackInfo
         if (wikidataId != "") try
         {
             var sourced = "FILTER EXISTS { ?statement prov:wasDerivedFrom ?reference . ?reference ?referenceProperty ?referenceValue . FILTER(REGEX(STR(?referenceProperty), \"^http://www.wikidata.org/prop/reference/P[0-9]+$\") && ?referenceProperty NOT IN (pr:P143, pr:P4656, pr:P813, pr:P887, pr:P3452)) }"; // a real source, not "imported from Wikipedia" or a retrieval date
+            var labelLanguages = L.Code == "en" ? "en" : L.Code + ",en"; // names in the app's language where Wikidata has them
             var sparql = $@"SELECT ?kind ?itemLabel ?date ?end WHERE {{
   {{ wd:{wikidataId} p:P463 ?statement . ?statement ps:P463 ?item ; pq:P580 ?date . OPTIONAL {{ ?statement pq:P582 ?end }} ?item wdt:P31/wdt:P279* wd:Q2088357 . BIND(""member"" AS ?kind) }}
   UNION {{ wd:{wikidataId} p:P264 ?statement . ?statement ps:P264 ?item ; pq:P580 ?date . OPTIONAL {{ ?statement pq:P582 ?end }} BIND(""label"" AS ?kind) }}
   UNION {{ wd:{wikidataId} p:P166 ?statement . ?statement ps:P166 ?item ; pq:P585 ?date . BIND(""award"" AS ?kind) }}
   UNION {{ wd:{wikidataId} p:P1411 ?statement . ?statement ps:P1411 ?item ; pq:P585 ?date . BIND(""nominated"" AS ?kind) }}
   {sourced}
-  SERVICE wikibase:label {{ bd:serviceParam wikibase:language ""en"". }}
+  SERVICE wikibase:label {{ bd:serviceParam wikibase:language ""{labelLanguages}"". }}
 }}";
             if (await GetJsonAsync("https://query.wikidata.org/sparql?format=json&query=" + Uri.EscapeDataString(sparql)) is { } answer && answer.TryGetProperty("results", out var results) && results.TryGetProperty("bindings", out var bindings))
             {
@@ -239,7 +246,7 @@ public sealed class TrackInfo
         if (!events.Any(item => (string)item["kind"] != "start" && (string)item["kind"] != "end")) return new(false);
         var kindOrder = new[] { "start", "member", "label", "album", "award", "nominated", "end" };
         var ordered = events.OrderBy(item => (int)item["year"]).ThenBy(item => Array.IndexOf(kindOrder, (string)item["kind"])).ThenBy(item => (string)item["title"]).ToList();
-        return new(true, request.Artist, isPerson ? "person" : "group", Source: "MusicBrainz and Wikidata (sourced facts only)", Link: $"https://musicbrainz.org/artist/{LyrionClient.ReadString(artist, "id")}", Events: ordered);
+        return new(true, request.Artist, isPerson ? "person" : "group", Source: L.T("MusicBrainz and Wikidata (sourced facts only)"), Link: $"https://musicbrainz.org/artist/{LyrionClient.ReadString(artist, "id")}", Events: ordered);
     }
 
     // ---- Credits: who played, sang, wrote, produced and engineered the album, track by track (SPEC.md › Now playing views) ----

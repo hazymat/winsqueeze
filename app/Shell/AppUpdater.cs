@@ -98,11 +98,11 @@ public sealed class AppUpdater
             for (var attempt = 1; ; attempt++)
             {
                 try { await CheckOnceAsync(); return; }
-                catch (HttpRequestException networkError) when (attempt < 3) { SetStatus($"GitHub didn't answer ({networkError.StatusCode?.ToString() ?? "network"}), retrying…"); await Task.Delay(attempt * 3000); }
+                catch (HttpRequestException networkError) when (attempt < 3) { SetStatus(L.T("GitHub didn't answer ({code}), retrying…", ("code", networkError.StatusCode?.ToString() ?? "network"))); await Task.Delay(attempt * 3000); }
             }
         }
-        catch (HttpRequestException) { SetStatus($"GitHub isn't answering right now. WinSqueeze will try again automatically (last try {DateTime.Now:HH:mm})."); }
-        catch (Exception updateError) { SetStatus($"Update check failed: {updateError.Message}"); }
+        catch (HttpRequestException) { SetStatus(L.T("GitHub isn't answering right now. WinSqueeze will try again automatically (last try {time}).", ("time", DateTime.Now.ToString("HH:mm")))); }
+        catch (Exception updateError) { SetStatus(L.T("Update check failed: {error}", ("error", updateError.Message))); }
         finally { checking = false; }
     }
 
@@ -111,20 +111,20 @@ public sealed class AppUpdater
         {
             if (AppPaths.IsPortable) { await CheckPortableAsync(); return; }
             var updateManager = CreateManager(App.Settings.General.UpdateChannel);
-            if (!updateManager.IsInstalled) { SetStatus("Updates work once WinSqueeze is installed with Setup.exe (this copy is running from a zip)."); return; }
-            SetStatus("Checking for updates…");
+            if (!updateManager.IsInstalled) { SetStatus(L.T("Updates work once WinSqueeze is installed with Setup.exe (this copy is running from a zip).")); return; }
+            SetStatus(L.T("Checking for updates…"));
             var newestTag = await NewestTagAsync(App.Settings.General.UpdateChannel);
             var installedVersion = updateManager.CurrentVersion?.ToString() ?? AssemblyVersion;
-            if (newestTag == "" || !IsNewer(newestTag.TrimStart('v'), installedVersion) || newestTag.TrimStart('v') == ReadyVersion) { if (ReadyVersion == "") SetStatus($"Up to date ({installedVersion}). Checked {DateTime.Now:HH:mm:ss}."); return; }
+            if (newestTag == "" || !IsNewer(newestTag.TrimStart('v'), installedVersion) || newestTag.TrimStart('v') == ReadyVersion) { if (ReadyVersion == "") SetStatus(L.T("Up to date ({version}). Checked {time}.", ("version", installedVersion), ("time", DateTime.Now.ToString("HH:mm:ss")))); return; }
             // That release's own Velopack feed (a plain download from github.com, not the API)
             updateManager = CreateManager(App.Settings.General.UpdateChannel, newestTag, false);
             var foundUpdate = await updateManager.CheckForUpdatesAsync();
-            if (foundUpdate == null) { SetStatus($"Up to date ({installedVersion}). Checked {DateTime.Now:HH:mm:ss}."); return; }
-            SetStatus($"Downloading {foundUpdate.TargetFullRelease.Version}…");
+            if (foundUpdate == null) { SetStatus(L.T("Up to date ({version}). Checked {time}.", ("version", installedVersion), ("time", DateTime.Now.ToString("HH:mm:ss")))); return; }
+            SetStatus(L.T("Downloading {version}…", ("version", foundUpdate.TargetFullRelease.Version)));
             await updateManager.DownloadUpdatesAsync(foundUpdate);
             readyManager = updateManager; readyUpdate = foundUpdate;
-            SetStatus($"WinSqueeze {ReadyVersion} is downloaded and ready. Restart to update.");
-            App.ShowTip("Update ready", $"WinSqueeze {ReadyVersion} is ready. Click Restart to update in the window or Settings › About.");
+            SetStatus(L.T("WinSqueeze {version} is downloaded and ready. Restart to update.", ("version", ReadyVersion)));
+            App.ShowTip(L.T("Update ready"), L.T("WinSqueeze {version} is ready. Click Restart to update in the window or Settings › About.", ("version", ReadyVersion)));
         }
     }
 
@@ -144,17 +144,17 @@ public sealed class AppUpdater
         {
             // Already downloaded in the background: just restart into it
             if (release.Version == ReadyVersion) { await RestartToUpdateAsync(); return; }
-            if (AppPaths.IsPortable) { SetStatus($"Downloading {release.Version}…"); await SwapPortableAndRestartAsync(await DownloadPortableAsync(release.Tag)); return; }
-            SetStatus($"Downloading {release.Version}…");
+            if (AppPaths.IsPortable) { SetStatus(L.T("Downloading {version}…", ("version", release.Version))); await SwapPortableAndRestartAsync(await DownloadPortableAsync(release.Tag)); return; }
+            SetStatus(L.T("Downloading {version}…", ("version", release.Version)));
             var switchManager = CreateManager(release.IsDev ? "dev" : "stable", release.Tag);
             var switchUpdate = await switchManager.CheckForUpdatesAsync();
-            if (switchUpdate == null) { SetStatus($"{release.Version} is already running."); return; }
+            if (switchUpdate == null) { SetStatus(L.T("{version} is already running.", ("version", release.Version))); return; }
             await switchManager.DownloadUpdatesAsync(switchUpdate);
             var restartArguments = await App.ResumeArgumentsAsync();
             App.PrepareForRestart();
             switchManager.ApplyUpdatesAndRestart(switchUpdate.TargetFullRelease, restartArguments);
         }
-        catch (Exception switchError) { SetStatus($"Could not switch to {release.Version}: {switchError.Message}"); }
+        catch (Exception switchError) { SetStatus(L.T("Could not switch to {version}: {error}", ("version", release.Version), ("error", switchError.Message))); }
     }
 
     public async Task<List<ReleaseEntry>> ListReleasesAsync(bool includeDev)
@@ -178,12 +178,12 @@ public sealed class AppUpdater
     {
         var newestTag = await NewestTagAsync(App.Settings.General.UpdateChannel);
         var newestVersion = newestTag.TrimStart('v');
-        if (newestTag == "" || !IsNewer(newestVersion, AssemblyVersion) || newestVersion == portableReadyVersion) { if (portableReadyVersion == "") SetStatus($"Up to date ({AssemblyVersion}). Checked {DateTime.Now:HH:mm:ss}."); return; }
-        SetStatus($"Downloading {newestVersion}…");
+        if (newestTag == "" || !IsNewer(newestVersion, AssemblyVersion) || newestVersion == portableReadyVersion) { if (portableReadyVersion == "") SetStatus(L.T("Up to date ({version}). Checked {time}.", ("version", AssemblyVersion), ("time", DateTime.Now.ToString("HH:mm:ss")))); return; }
+        SetStatus(L.T("Downloading {version}…", ("version", newestVersion)));
         portableStagedPath = await DownloadPortableAsync(newestTag);
         portableReadyVersion = newestVersion;
-        SetStatus($"WinSqueeze {ReadyVersion} is downloaded and ready. Restart to update.");
-        App.ShowTip("Update ready", $"WinSqueeze {ReadyVersion} is ready. Click Restart to update in the window or Settings › About.");
+        SetStatus(L.T("WinSqueeze {version} is downloaded and ready. Restart to update.", ("version", ReadyVersion)));
+        App.ShowTip(L.T("Update ready"), L.T("WinSqueeze {version} is ready. Click Restart to update in the window or Settings › About.", ("version", ReadyVersion)));
     }
 
     static async Task<string> DownloadPortableAsync(string releaseTag)

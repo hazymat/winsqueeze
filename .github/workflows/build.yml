@@ -26,6 +26,8 @@ jobs:
         working-directory: ui
       - run: npm run check && npm run build
         working-directory: ui
+      - name: Translations (lists UI text with no German yet; see AGENTS.md)
+        run: node tools/locales.mjs
       - uses: actions/setup-dotnet@v4
         with: { dotnet-version: 8.0.x }
       - name: Version and channel

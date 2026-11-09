@@ -43,7 +43,7 @@ public static class OtherPlayerDetector
         var problems = new List<string>();
         try { using var otherProcess = Process.GetProcessById(otherPlayer.ProcessId); otherProcess.Kill(); otherProcess.WaitForExit(3000); }
         catch (ArgumentException) { } // already gone
-        catch (Exception stopError) { problems.Add($"Could not stop {Path.GetFileName(otherPlayer.ExePath)}: {stopError.Message}. It may be running as administrator."); }
+        catch (Exception stopError) { problems.Add(L.T("Could not stop {program}: {error}. It may be running as administrator.", ("program", Path.GetFileName(otherPlayer.ExePath)), ("error", stopError.Message))); }
         if (!disableStartup) return problems;
         var backupFolder = Directory.CreateDirectory(Path.Combine(AppPaths.DataFolder, "disabled-startup")).FullName;
         foreach (var startupEntry in otherPlayer.StartupEntries)
@@ -61,7 +61,7 @@ public static class OtherPlayerDetector
                     runKey!.DeleteValue(startupEntry.RunValueName);
                 }
             }
-            catch (Exception disableError) { problems.Add($"Could not switch off {startupEntry.Description}: {disableError.Message}"); }
+            catch (Exception disableError) { problems.Add(L.T("Could not switch off {entry}: {error}", ("entry", startupEntry.Description), ("error", disableError.Message))); }
         }
         return problems;
     }
@@ -75,11 +75,11 @@ public static class OtherPlayerDetector
             if (!Directory.Exists(startupFolder)) continue;
             foreach (var shortcutPath in Directory.GetFiles(startupFolder, "*.lnk"))
                 if (string.Equals(ShortcutTarget(shortcutPath), exePath, StringComparison.OrdinalIgnoreCase))
-                    startupEntries.Add(new StartupEntry((isUserFolder ? "Startup shortcut " : "All-users Startup shortcut (needs admin) ") + Path.GetFileName(shortcutPath), isUserFolder ? shortcutPath : "", ""));
+                    startupEntries.Add(new StartupEntry((isUserFolder ? L.T("Startup shortcut") : L.T("All-users Startup shortcut (needs admin)")) + " " + Path.GetFileName(shortcutPath), isUserFolder ? shortcutPath : "", ""));
         }
         using var runKey = Registry.CurrentUser.OpenSubKey(runKeyPath);
         foreach (var valueName in runKey?.GetValueNames() ?? Array.Empty<string>())
-            if ((runKey!.GetValue(valueName) as string ?? "").Contains(exePath, StringComparison.OrdinalIgnoreCase)) startupEntries.Add(new StartupEntry($"Run entry \"{valueName}\"", "", valueName));
+            if ((runKey!.GetValue(valueName) as string ?? "").Contains(exePath, StringComparison.OrdinalIgnoreCase)) startupEntries.Add(new StartupEntry(L.T("Run entry \"{name}\"", ("name", valueName)), "", valueName));
         return startupEntries;
     }
 

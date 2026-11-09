@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from './lib/i18n'
   import { checkKeepPlaying } from './lib/queueEnd.svelte'
   import { noteLongTrack } from './lib/resume'
   import { prefetchInfo } from './lib/nowPlayingInfo'
@@ -43,7 +44,7 @@
   // Switched-on custom views (SPEC.md › Custom views): one entry each, or one per group for views that share a group
   const levelGlyphs: Record<string, string> = { genre: 'genres', composer: 'composers', artist: 'artists', performer: 'performers' }
   const customSections = $derived(((app.librarySettings.CustomViews ?? []) as any[]).filter(view => view.Enabled).reduce((entries: string[][], view) => { const key = view.Group ? 'customgroup:' + view.Group : 'custom:' + view.Id; if (!entries.some(entry => entry[0] === key)) entries.push([key, view.Group || view.Name, levelGlyphs[view.Levels?.[view.Levels.length - 1]] ?? 'albums']); return entries }, []))
-  const allSections = $derived([['queue', 'Now playing', 'queue'], ['favourites', 'Favourites', 'favourites'], ['radio', 'Radio', 'radio'], ['apps', 'Apps', 'apps'], ['playlists', 'Playlists', 'playlists'], ['artists', 'Artists', 'artists'], ['albumartists', 'Album artists', 'artists'], ['genres', 'Genres', 'genres'], ['composers', 'Composers', 'composers'], ['performers', 'Performers', 'performers'], ['folders', folderMode ? 'Folders' : 'Albums', folderMode ? 'folders' : 'albums'], ['compilations', 'Compilations', 'albums'], ['new', 'New music', 'new'], ['downloads', 'Downloaded', 'download'], ['history', 'History', 'history'], ['health', 'Library health', 'health']].concat(customSections) as [string, string, any][])
+  const allSections = $derived([['queue', t('Now playing'), 'queue'], ['favourites', t('Favourites'), 'favourites'], ['radio', t('Radio'), 'radio'], ['apps', t('Apps'), 'apps'], ['playlists', t('Playlists'), 'playlists'], ['artists', t('Artists'), 'artists'], ['albumartists', t('Album artists'), 'artists'], ['genres', t('Genres'), 'genres'], ['composers', t('Composers'), 'composers'], ['performers', t('Performers'), 'performers'], ['folders', folderMode ? t('Folders') : t('Albums'), folderMode ? 'folders' : 'albums'], ['compilations', t('Compilations'), 'albums'], ['new', t('New music'), 'new'], ['downloads', t('Downloaded'), 'download'], ['history', t('History'), 'history'], ['health', t('Library health'), 'health']].concat(customSections) as [string, string, any][])
   const pinGlyphs: Record<string, string> = { genre: 'genres', artist: 'artists', composer: 'composers', performer: 'performers', album: 'albums', folder: 'folders', playlist: 'playlists', app: 'apps' }
   const pinSections = $derived(Object.entries(pins.views).map(([key, view]) => [key, view.title ?? '', pinGlyphs[view.kind] ?? 'pin']) as [string, string, any][])
   // Sidebar and bottom-bar customisation (one shared setting): every section shows by default; order, spacers and hidden ones are remembered per PC
@@ -55,12 +56,12 @@
   // Stored order first (unknown keys dropped), then any section not placed yet
   const placeable = $derived(allSections.concat(pinSections))
   const layout = $derived(layoutOrder.filter(key => isSpacer(key) || placeable.some(section => section[0] === key)).concat(placeable.map(section => section[0]).filter(key => !layoutOrder.includes(key))))
-  const sections = $derived(layout.map(key => isSpacer(key) ? [key, 'Spacer', 'spacer'] : placeable.find(section => section[0] === key)!) as [string, string, any][])
+  const sections = $derived(layout.map(key => isSpacer(key) ? [key, t('Spacer'), 'spacer'] : placeable.find(section => section[0] === key)!) as [string, string, any][])
   function saveLayout(order: string[]) { layoutOrder = order; writeSetting('sectionOrder', JSON.stringify(order)); writeSetting('spacersAdded', '1') }
   function changeLayout(order: string[], label: string) { const before = layout.slice(); saveLayout(order); toast(label, () => saveLayout(before), 6000, { redo: () => saveLayout(order) }) }
-  function moveSection(from: number, to: number) { const keys = layout.slice(), moved = keys.splice(from, 1)[0]; keys.splice(to, 0, moved); changeLayout(keys, `Moved ${isSpacer(moved) ? 'spacer' : sections[from][1]}`) }
-  const addSpacer = () => changeLayout(layout.concat([`spacer-${Date.now()}`]), 'Added a spacer at the bottom (drag it into place)')
-  const removeSpacer = (key: string) => changeLayout(layout.filter(each => each !== key), 'Removed spacer')
+  function moveSection(from: number, to: number) { const keys = layout.slice(), moved = keys.splice(from, 1)[0]; keys.splice(to, 0, moved); changeLayout(keys, isSpacer(moved) ? t('Moved the spacer') : t('Moved {name}', { name: sections[from][1] })) }
+  const addSpacer = () => changeLayout(layout.concat([`spacer-${Date.now()}`]), t('Added a spacer at the bottom (drag it into place)'))
+  const removeSpacer = (key: string) => changeLayout(layout.filter(each => each !== key), t('Removed spacer'))
   // Press and hold any sidebar item to start customising
   let holdTimer = 0, heldIntoCustomise = false
   const startHold = () => { clearTimeout(holdTimer); holdTimer = window.setTimeout(() => { customising = true; heldIntoCustomise = true }, 600) }
@@ -81,7 +82,7 @@
 
   // A finished or failed recording says where it went (only notes that arrive after startup)
   let lastRecordingNote = -1
-  onShellMessage('status', message => { const recording = message.recording; if (recording && lastRecordingNote >= 0 && recording.noteId > lastRecordingNote && recording.note) toast(recording.note, undefined, 10000, recording.note.includes(' in ') && recording.folder ? { action: { label: 'Open in Explorer', key: 'E', run: () => sendToShell({ type: 'openRecording' }) } } : {}); if (recording) lastRecordingNote = recording.noteId; if (message.offline && !app.status?.offline) openSection('downloads'); if (message.serverBack && !app.status?.serverBack) toast('The server is back', undefined, 15000, { action: { label: 'Go online', key: 'O', run: () => sendToShell({ type: 'goOnline' }) } }); app.status = message })
+  onShellMessage('status', message => { const recording = message.recording; if (recording && lastRecordingNote >= 0 && recording.noteId > lastRecordingNote && recording.note) toast(recording.note, undefined, 10000, recording.note.includes(' in ') && recording.folder ? { action: { label: t('Open in Explorer'), key: 'E', run: () => sendToShell({ type: 'openRecording' }) } } : {}); if (recording) lastRecordingNote = recording.noteId; if (message.offline && !app.status?.offline) openSection('downloads'); if (message.serverBack && !app.status?.serverBack) toast(t('The server is back'), undefined, 15000, { action: { label: t('Go online'), key: 'O', run: () => sendToShell({ type: 'goOnline' }) } }); app.status = message })
   onShellMessage('nowPlaying', message => { noteTrackChange(app.nowPlaying, message.status); noteLongTrack(app.nowPlaying, message.status); app.nowPlaying = message.status; checkKeepPlaying(message.status); app.receivedAt = Date.now() })
   onShellMessage('players', message => { app.players = message.players ?? []; app.syncGroups = message.syncGroups ?? []; app.groupVolumes = message.groupVolumes ?? {}; app.ownPlayer = message.own ?? ''; app.selectedPlayer = message.selected ?? app.selectedPlayer })
   onShellMessage('library', message => app.library = { text: message.text ?? '', done: message.done ?? 0, total: message.total ?? 0 })
@@ -101,7 +102,7 @@
   sendToShell({ type: 'ready' })
   if (readSetting('hifiUpdateFrom', '')) setHifi(true) // updated from hi-fi mode: come back as the unit, which says what it was updated to
   // Restore an unsaved playlist draft from last time
-  request({ type: 'loadDraft' }).then(draft => { if (draft?.items) newPlaylist(draft.name ?? 'Untitled playlist', draft.items) })
+  request({ type: 'loadDraft' }).then(draft => { if (draft?.items) newPlaylist(draft.name ?? t('Untitled playlist'), draft.items) })
 
   // Accent (Settings › Appearance): the playing cover's colour when that's on (frosted skins), else the chosen colour, else the skin's own blue
   const coverArt = $derived(trackArt(currentTrack(), 120))
@@ -198,18 +199,18 @@
 <WhatsNew {mini} offset={!!app.status?.updateReady} />
 {#if (ui.trackInfo || ui.itemInfo) && !mini}<TrackInfo ids={ui.trackInfo ?? []} items={ui.itemInfo} />{/if}
 {#if ui.metersFull && !mini}<!-- svelte-ignore a11y_no_noninteractive_element_interactions --><!-- blank frosted areas drag the window, like the meters themselves -->
-<div class="meters-full" role="dialog" aria-label="Meters" tabindex="-1" oncontextmenu={(event) => { event.preventDefault(); cycleMeterView() }} onmousedown={(event) => { if (event.button === 0 && !(event.target as HTMLElement).closest("button")) sendToShell({ type: "dragWindow" }) }} bind:clientWidth={fullWidth} bind:clientHeight={fullHeight}><div class="meters-zoom" bind:this={fullMeters} style:zoom={fullZoom}><Meters size="large" zoom={fullZoom} moveWindow={true} /></div><button class="meters-full-close" onclick={() => ui.metersFull = false} title="Back to the player (Esc)" aria-label="Back to the player"><Icon name="return" /></button></div>{/if}
+<div class="meters-full" role="dialog" aria-label={t('Meters')} tabindex="-1" oncontextmenu={(event) => { event.preventDefault(); cycleMeterView() }} onmousedown={(event) => { if (event.button === 0 && !(event.target as HTMLElement).closest("button")) sendToShell({ type: "dragWindow" }) }} bind:clientWidth={fullWidth} bind:clientHeight={fullHeight}><div class="meters-zoom" bind:this={fullMeters} style:zoom={fullZoom}><Meters size="large" zoom={fullZoom} moveWindow={true} /></div><button class="meters-full-close" onclick={() => ui.metersFull = false} title={t('Back to the player (Esc)')} aria-label={t('Back to the player')}><Icon name="return" /></button></div>{/if}
 {#if ui.hifi}<HiFi />{/if}
 {#if app.window.frameless && !app.window.maximised}<ResizeEdges />{/if}
-{#if copyMenu}<div class="copy-menu" style:left="{copyMenu.left}px" style:top="{copyMenu.top}px"><button onclick={copySelection}>Copy</button></div>{/if}
+{#if copyMenu}<div class="copy-menu" style:left="{copyMenu.left}px" style:top="{copyMenu.top}px"><button onclick={copySelection}>{t('Copy')}</button></div>{/if}
 
 {#if mini}
   <div class="mini-shell" role="presentation" onmousedown={dragWindow}>
     <TransportBar mini={true} />
     <!-- Update ready: a pulsing dot in the corner; clicking it slides the restart notice down over the player -->
     {#if app.status?.updateReady}
-      <button class="update-dot" onclick={() => miniUpdateOpen = !miniUpdateOpen} aria-label="Update ready" title="WinSqueeze {app.status.updateReady} is ready"></button>
-      <div class="mini-update" class:open={miniUpdateOpen}><span>Version {app.status.updateReady} is ready</span><button class="primary" onclick={() => sendToShell({ type: 'applyUpdate' })}>Restart to update</button><button class="ghost" onclick={() => miniUpdateOpen = false} aria-label="Later">×</button></div>
+      <button class="update-dot" onclick={() => miniUpdateOpen = !miniUpdateOpen} aria-label={t('Update ready')} title={t('WinSqueeze {version} is ready', { version: app.status.updateReady })}></button>
+      <div class="mini-update" class:open={miniUpdateOpen}><span>{t('Version {version} is ready', { version: app.status.updateReady })}</span><button class="primary" onclick={() => sendToShell({ type: 'applyUpdate' })}>{t('Restart to update')}</button><button class="ghost" onclick={() => miniUpdateOpen = false} aria-label={t('Later')}>×</button></div>
     {/if}
   </div>
 {:else}
@@ -221,47 +222,47 @@
         <div class="section-list" use:sortable={{ onMove: moveSection, holdMs: 150, enabled: customising }}>
         {#each customising ? sections : sidebarEntries as [key, label, glyph] (key)}
           {#if customising && isSpacer(key)}
-            <div class="section customise spacer-row" data-sort-row title="Hold and drag to move"><span class="grip">⋮⋮</span><span class="spacer-line"></span><button class="remove-spacer no-hold" onclick={() => removeSpacer(key)} aria-label="Remove spacer">×</button></div>
+            <div class="section customise spacer-row" data-sort-row title={t('Hold and drag to move')}><span class="grip">⋮⋮</span><span class="spacer-line"></span><button class="remove-spacer no-hold" onclick={() => removeSpacer(key)} aria-label={t('Remove spacer')}>×</button></div>
           {:else if customising}
-            <label class="section customise" data-sort-row title="Hold and drag to reorder"><span class="grip">⋮⋮</span><input type="checkbox" checked={!hiddenSections.includes(key)} onchange={() => toggleSection(key)} /><span class="glyph"><Icon name={glyph} /></span>{label}{#if pins.views[key]}<button class="remove-spacer no-hold" onclick={(event) => { event.preventDefault(); togglePin(pins.views[key]) }} aria-label="Unpin" title="Unpin">×</button>{/if}</label>
+            <label class="section customise" data-sort-row title={t('Hold and drag to reorder')}><span class="grip">⋮⋮</span><input type="checkbox" checked={!hiddenSections.includes(key)} onchange={() => toggleSection(key)} /><span class="glyph"><Icon name={glyph} /></span>{label}{#if pins.views[key]}<button class="remove-spacer no-hold" onclick={(event) => { event.preventDefault(); togglePin(pins.views[key]) }} aria-label={t('Unpin')} title={t('Unpin')}>×</button>{/if}</label>
           {:else if isSpacer(key)}
             <div class="divider"></div>
           {:else}
-            <button class="section" class:on={nav.section === key && !everything} onpointerdown={startHold} onpointerup={cancelHold} onpointerleave={cancelHold} onclick={() => { if (heldIntoCustomise) { heldIntoCustomise = false; return } openSection(key) }}><span class="glyph"><Icon name={glyph} /></span>{label}{#if key === 'downloads' && downloads.active.length}<span class="section-badge" title="Downloading">{downloads.active.reduce((sum, group) => sum + group.total - group.done, 0)}</span>{/if}</button>
+            <button class="section" class:on={nav.section === key && !everything} onpointerdown={startHold} onpointerup={cancelHold} onpointerleave={cancelHold} onclick={() => { if (heldIntoCustomise) { heldIntoCustomise = false; return } openSection(key) }}><span class="glyph"><Icon name={glyph} /></span>{label}{#if key === 'downloads' && downloads.active.length}<span class="section-badge" title={t('Downloading')}>{downloads.active.reduce((sum, group) => sum + group.total - group.done, 0)}</span>{/if}</button>
           {/if}
         {/each}
         </div>
-        {#if customising}<button class="customise-toggle" onclick={addSpacer}>＋ Add spacer</button><div class="customise-actions"><button class="ghost" onclick={() => { customising = false; openSection('customViews') }}>Custom views</button><button class="primary" onclick={() => { customising = false; heldIntoCustomise = false }}>Done</button></div>
-        {:else}<button class="customise-toggle" title="Or press and hold any item" onclick={() => { customising = true; heldIntoCustomise = false }}>Customise sidebar</button>{/if}
-        <button class="section new" onclick={() => playlist.open ? (playlist.collapsed = false) : newPlaylist()}><span class="glyph"><Icon name="plus" /></span>New playlist</button>
+        {#if customising}<button class="customise-toggle" onclick={addSpacer}>{t('＋ Add spacer')}</button><div class="customise-actions"><button class="ghost" onclick={() => { customising = false; openSection('customViews') }}>{t('Custom views')}</button><button class="primary" onclick={() => { customising = false; heldIntoCustomise = false }}>{t('Done')}</button></div>
+        {:else}<button class="customise-toggle" title={t('Or press and hold any item')} onclick={() => { customising = true; heldIntoCustomise = false }}>{t('Customise sidebar')}</button>{/if}
+        <button class="section new" onclick={() => playlist.open ? (playlist.collapsed = false) : newPlaylist()}><span class="glyph"><Icon name="plus" /></span>{t('New playlist')}</button>
         <div class="spacer"></div>
         {#if app.library.total && app.library.done < app.library.total}<div class="sync" title={app.library.text}><div class="bar" style:width={`${(app.library.done / app.library.total) * 100}%`}></div></div>{/if}
         {#if app.library.text}<div class="sync-text">{app.library.text}</div>{/if}
-        <button class="section" onclick={() => sendToShell({ type: 'openSettings' })}><span class="glyph"><Icon name="settings" /></span>Settings</button>
+        <button class="section" onclick={() => sendToShell({ type: 'openSettings' })}><span class="glyph"><Icon name="settings" /></span>{t('Settings')}</button>
       </nav>
     {/if}
     <div class="content-column">
       {#if app.status?.updateReady}
-        <div class="update-notice"><span>WinSqueeze {app.status.updateReady} is ready.</span><button class="primary" onclick={() => sendToShell({ type: 'applyUpdate' })}>Restart to update</button></div>
+        <div class="update-notice"><span>{t('WinSqueeze {version} is ready.', { version: app.status.updateReady })}</span><button class="primary" onclick={() => sendToShell({ type: 'applyUpdate' })}>{t('Restart to update')}</button></div>
       {/if}
       <header class="topbar" role="presentation" onmousedown={dragWindow}>
-        {#if nav.stack.length || forwardHistory.views.length}<div class="history"><button class="ghost back" onclick={back} disabled={!nav.stack.length} aria-label="Back" title="Back (Alt+Left)"><Icon name="back" size={18} /></button><button class="ghost back" onclick={forward} disabled={!forwardHistory.views.length} aria-label="Forward" title="Forward (Alt+Right)"><Icon name="forward" size={18} /></button></div>{/if}
+        {#if nav.stack.length || forwardHistory.views.length}<div class="history"><button class="ghost back" onclick={back} disabled={!nav.stack.length} aria-label={t('Back')} title={t('Back (Alt+Left)')}><Icon name="back" size={18} /></button><button class="ghost back" onclick={forward} disabled={!forwardHistory.views.length} aria-label={t('Forward')} title={t('Forward (Alt+Right)')}><Icon name="forward" size={18} /></button></div>{/if}
         <div class="search">
-          <input bind:this={searchBox} bind:value={ui.search} onkeydown={(event) => { if (event.key === 'ArrowDown' && everything && searchView) { event.preventDefault(); searchView.focusFirstResult() } }} placeholder={ui.scope === 'everything' ? 'Search everything' : 'Search this list'} aria-label="Search" />
+          <input bind:this={searchBox} bind:value={ui.search} onkeydown={(event) => { if (event.key === 'ArrowDown' && everything && searchView) { event.preventDefault(); searchView.focusFirstResult() } }} placeholder={ui.scope === 'everything' ? t('Search everything') : t('Search this list')} aria-label={t('Search')} />
           <div class="scope">
-            <button class:on={ui.scope === 'list'} onclick={() => ui.scope = 'list'}>This list</button>
-            <button class:on={ui.scope === 'everything'} onclick={() => ui.scope = 'everything'}>Everything</button>
+            <button class:on={ui.scope === 'list'} onclick={() => ui.scope = 'list'}>{t('This list')}</button>
+            <button class:on={ui.scope === 'everything'} onclick={() => ui.scope = 'everything'}>{t('Everything')}</button>
           </div>
         </div>
         {#if vertical && devVersion}<span class="dev-version">{devVersion}</span>{/if}
-        {#if vertical}<button class="ghost" onclick={() => sendToShell({ type: 'openSettings' })} aria-label="Settings"><Icon name="settings" /></button>{/if}
+        {#if vertical}<button class="ghost" onclick={() => sendToShell({ type: 'openSettings' })} aria-label={t('Settings')}><Icon name="settings" /></button>{/if}
         <!-- Always on top: the same pin as the mini player -->
-        <button class="pin-top" class:on={ui.pinned} onclick={() => { ui.pinned = !ui.pinned; sendToShell({ type: 'setTopmost', on: ui.pinned }) }} aria-pressed={ui.pinned} title={ui.pinned ? 'Always on top: on' : 'Always on top: off'}><Icon name="pin" size={15} /></button>
+        <button class="pin-top" class:on={ui.pinned} onclick={() => { ui.pinned = !ui.pinned; sendToShell({ type: 'setTopmost', on: ui.pinned }) }} aria-pressed={ui.pinned} title={ui.pinned ? t('Always on top: on') : t('Always on top: off')}><Icon name="pin" size={15} /></button>
         {#if app.window.frameless}
           <div class="window-controls">
-            <button onclick={() => sendToShell({ type: 'windowControl', action: 'minimise' })} aria-label="Minimise"><Icon name="minimise" size={16} /></button>
-            <button onclick={() => sendToShell({ type: 'windowControl', action: 'maximise' })} aria-label={app.window.maximised ? 'Restore' : 'Maximise'}><Icon name={app.window.maximised ? 'restore' : 'maximise'} size={16} /></button>
-            <button class="close" onclick={() => sendToShell({ type: 'windowControl', action: 'close' })} aria-label="Close"><Icon name="close" size={16} /></button>
+            <button onclick={() => sendToShell({ type: 'windowControl', action: 'minimise' })} aria-label={t('Minimise')}><Icon name="minimise" size={16} /></button>
+            <button onclick={() => sendToShell({ type: 'windowControl', action: 'maximise' })} aria-label={app.window.maximised ? t('Restore') : t('Maximise')}><Icon name={app.window.maximised ? 'restore' : 'maximise'} size={16} /></button>
+            <button class="close" onclick={() => sendToShell({ type: 'windowControl', action: 'close' })} aria-label={t('Close')}><Icon name="close" size={16} /></button>
           </div>
         {/if}
       </header>
@@ -271,13 +272,13 @@
           {#if everything}
             <SearchView bind:this={searchView} {searchBox} />
           {:else if view.kind === 'artists' || view.kind === 'albumartists' || view.kind === 'composers' || view.kind === 'performers' || view.kind === 'genres'}
-            {#key view.kind}<PeopleList kind={view.kind} title={({ artists: 'Artists', albumartists: 'Album artists', composers: 'Composers', performers: 'Performers', genres: 'Genres' } as Record<string, string>)[view.kind]} />{/key}
+            {#key view.kind}<PeopleList kind={view.kind} title={({ artists: t('Artists'), albumartists: t('Album artists'), composers: t('Composers'), performers: t('Performers'), genres: t('Genres') } as Record<string, string>)[view.kind]} />{/key}
           {:else if view.kind === 'new'}
-            <AlbumsOf kind="new" title="New music" />
+            <AlbumsOf kind="new" title={t('New music')} />
           {:else if view.kind === 'compilations'}
-            <AlbumsOf kind="compilations" title="Compilations" />
+            <AlbumsOf kind="compilations" title={t('Compilations')} />
           {:else if view.kind === 'folders'}
-            {#if folderMode}<FolderView />{:else}<AlbumsOf kind="albums" title="Albums" />{/if}
+            {#if folderMode}<FolderView />{:else}<AlbumsOf kind="albums" title={t('Albums')} />{/if}
           {:else if view.kind === 'folder'}
             {#key view.key}<FolderView folderKey={view.key} />{/key}
           {:else if view.kind === 'album'}

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../lib/i18n'
   import { command, sendToShell } from '../bridge'
   import { app } from '../state.svelte'
   import { downloads } from '../lib/downloads.svelte'
@@ -19,7 +20,7 @@
   const selectedGroup = $derived(groupOf(selectedId))
   const grouped = (playerId: string) => playerId !== selectedId && selectedGroup.includes(playerId)
   const nameOf = (playerId: string) => app.players.find(player => player.playerid === playerId)?.name ?? ''
-  const otherGroupNote = (playerId: string) => { const members = groupOf(playerId); return members.length && !members.includes(selectedId) ? ` · with ${members.filter(memberId => memberId !== playerId).map(nameOf).join(', ')}` : '' }
+  const otherGroupNote = (playerId: string) => { const members = groupOf(playerId); return members.length && !members.includes(selectedId) ? ' · ' + t('with {players}', { players: members.filter(memberId => memberId !== playerId).map(nameOf).join(', ') }) : '' }
   function toggleGroup(player: any) {
     const joining = !grouped(player.playerid)
     app.syncGroups = joining ? app.syncGroups.map(members => members.filter(memberId => memberId !== player.playerid)).filter(members => members.length > 1).concat(selectedGroup.length ? [] : [[selectedId]]).map(members => members.includes(selectedId) ? members.concat([player.playerid]) : members) : app.syncGroups.map(members => members.filter(memberId => memberId !== player.playerid)).filter(members => members.length > 1)
@@ -41,8 +42,8 @@
 <svelte:window onmousedown={(event) => { if (open && !(event.target as HTMLElement).closest('.picker')) open = false }} onkeydown={(event) => { if (open && event.key === 'Escape') { event.preventDefault(); open = false } }} />
 
 <div class="picker">
-  <button class="current" onclick={() => open = !open} aria-haspopup="listbox" aria-expanded={open} title="Choose player">
-    <Icon name="speaker" size={12} /><span class="name">{selected?.name ?? 'Player'}{selectedGroup.length > 1 ? ` + ${selectedGroup.length - 1}` : ''}</span>{#if sleepLeft > 0}<span class="moon" title="Sleep timer: {Math.ceil(sleepLeft / 60)} min left">☾</span>{/if}<span class="chevron" class:down={placement === 'down'}>⌃</span>
+  <button class="current" onclick={() => open = !open} aria-haspopup="listbox" aria-expanded={open} title={t('Choose player')}>
+    <Icon name="speaker" size={12} /><span class="name">{selected?.name ?? t('Player')}{selectedGroup.length > 1 ? ` + ${selectedGroup.length - 1}` : ''}</span>{#if sleepLeft > 0}<span class="moon" title={t('Sleep timer: {count} min left', { count: Math.ceil(sleepLeft / 60) })}>☾</span>{/if}<span class="chevron" class:down={placement === 'down'}>⌃</span>
   </button>
   {#if open}
     <div class="menu {placement}" role="listbox">
@@ -50,29 +51,29 @@
         <div class="row" class:grouped={grouped(player.playerid)}>
           <button role="option" aria-selected={player.playerid === selectedId} class:on={player.playerid === selectedId} disabled={!player.connected} onclick={() => choose(player.playerid)}>
             <span class="dot" class:playing={player.isplaying}></span>
-            <span class="text"><span class="player-name">{player.name}</span><span class="detail">{player.playerid === app.ownPlayer ? 'This PC' : player.modelname ?? player.model ?? ''}{player.connected ? '' : ' · offline'}{player.connected && online && !Number(player.power) ? ' · off' : ''}{online ? otherGroupNote(player.playerid) : ''}</span></span>
+            <span class="text"><span class="player-name">{player.name}</span><span class="detail">{player.playerid === app.ownPlayer ? t('This PC') : player.modelname ?? player.model ?? ''}{player.connected ? '' : ' · ' + t('offline')}{player.connected && online && !Number(player.power) ? ' · ' + t('off') : ''}{online ? otherGroupNote(player.playerid) : ''}</span></span>
             {#if player.playerid === selectedId}<span class="tick">✓</span>{/if}
           </button>
-          {#if (player.connected || grouped(player.playerid)) && online && player.playerid !== selectedId && selected?.connected}<button class="link" class:on={grouped(player.playerid)} onclick={() => toggleGroup(player)} title={grouped(player.playerid) ? `Stop playing ${player.name} with ${selected?.name}` : `Play ${player.name} together with ${selected?.name}`} aria-label="Group" aria-pressed={grouped(player.playerid)}><svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M6.5 9.5l3-3M7 4.5l1.2-1.2a2.6 2.6 0 0 1 3.7 3.7L10.7 8.2M9 11.5l-1.2 1.2a2.6 2.6 0 0 1-3.7-3.7l1.2-1.2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" /></svg></button>{/if}
-          {#if player.connected && online}<button class="power" class:on={Number(player.power) === 1} onclick={() => setPower(player)} title={Number(player.power) ? 'Turn off' : 'Turn on'} aria-label="Power" aria-pressed={Number(player.power) === 1}><svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M8 2v6M4.6 4.2a5 5 0 1 0 6.8 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg></button>{/if}
+          {#if (player.connected || grouped(player.playerid)) && online && player.playerid !== selectedId && selected?.connected}<button class="link" class:on={grouped(player.playerid)} onclick={() => toggleGroup(player)} title={grouped(player.playerid) ? t('Stop playing {player} with {other}', { player: player.name, other: selected?.name }) : t('Play {player} together with {other}', { player: player.name, other: selected?.name })} aria-label={t('Group')} aria-pressed={grouped(player.playerid)}><svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M6.5 9.5l3-3M7 4.5l1.2-1.2a2.6 2.6 0 0 1 3.7 3.7L10.7 8.2M9 11.5l-1.2 1.2a2.6 2.6 0 0 1-3.7-3.7l1.2-1.2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" /></svg></button>{/if}
+          {#if player.connected && online}<button class="power" class:on={Number(player.power) === 1} onclick={() => setPower(player)} title={Number(player.power) ? t('Turn off') : t('Turn on')} aria-label={t('Power')} aria-pressed={Number(player.power) === 1}><svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M8 2v6M4.6 4.2a5 5 0 1 0 6.8 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg></button>{/if}
         </div>
-        {#if grouped(player.playerid) && player.connected}<input class="member-volume" type="range" min="0" max="100" value={app.groupVolumes[player.playerid] ?? 50} oninput={(event) => setMemberVolume(player.playerid, event, false)} onchange={(event) => setMemberVolume(player.playerid, event, true)} title="{player.name} volume" aria-label="{player.name} volume" />{/if}
+        {#if grouped(player.playerid) && player.connected}<input class="member-volume" type="range" min="0" max="100" value={app.groupVolumes[player.playerid] ?? 50} oninput={(event) => setMemberVolume(player.playerid, event, false)} onchange={(event) => setMemberVolume(player.playerid, event, true)} title={t('{player} volume', { player: player.name })} aria-label={t('{player} volume', { player: player.name })} />{/if}
         {#if player.playerid === app.ownPlayer && app.status?.device}
-          <button class="output" onclick={() => { open = false; sendToShell({ type: 'openSettings', tab: 'Audio' }) }} title="Audio settings"><Icon name="volume" size={12} /><span class="output-name">{app.status.device}</span><span class="output-hint">Change</span></button>
+          <button class="output" onclick={() => { open = false; sendToShell({ type: 'openSettings', tab: 'Audio' }) }} title={t('Audio settings')}><Icon name="volume" size={12} /><span class="output-name">{app.status.device}</span><span class="output-hint">{t('Change')}</span></button>
         {/if}
       {/each}
-      {#if !app.players.length}<div class="empty">No players found</div>{/if}
+      {#if !app.players.length}<div class="empty">{t('No players found')}</div>{/if}
       {#if online && selected?.connected}
-        <div class="menu-title sleep-title"><span>Sleep{sleepLeft > 0 ? ` · ${Math.ceil(sleepLeft / 60)} min left` : ''}</span>{#if sleepLeft > 0}<button class="sleep-off" onclick={() => sleepFor(0)}>Turn off</button>{/if}</div>
+        <div class="menu-title sleep-title"><span>{t('Sleep')}{sleepLeft > 0 ? ' · ' + t('{count} min left', { count: Math.ceil(sleepLeft / 60) }) : ''}</span>{#if sleepLeft > 0}<button class="sleep-off" onclick={() => sleepFor(0)}>{t('Turn off')}</button>{/if}</div>
         <!-- Two even rows of three: the times in order, then End of track -->
         <div class="sleep">
-          {#each sleepChoices as minutes (minutes)}<button class="chip" onclick={() => sleepFor(minutes * 60)} title="Stop in {minutes} minutes">{minutes} min</button>{/each}
-          <button class="chip" disabled={!trackLeft} onclick={() => sleepFor(trackLeft)} title="Stop when this track ends">End of track</button>
+          {#each sleepChoices as minutes (minutes)}<button class="chip" onclick={() => sleepFor(minutes * 60)} title={t('Stop in {count} minutes', { count: minutes })}>{t('{count} min', { count: minutes })}</button>{/each}
+          <button class="chip" disabled={!trackLeft} onclick={() => sleepFor(trackLeft)} title={t('Stop when this track ends')}>{t('End of track')}</button>
         </div>
       {/if}
       <!-- Offline: this PC plays its downloads without the server (SPEC.md › Offline downloads) -->
-      {#if app.status?.offline}<button class="output" onclick={() => { open = false; sendToShell({ type: 'goOnline' }) }} title="Reconnect to the server"><Icon name="download" size={12} /><span class="output-name">Playing offline</span><span class="output-hint">Go online</span></button>
-      {:else if downloads.finishedTracks}<button class="output" onclick={() => { open = false; sendToShell({ type: 'goOffline' }) }} title="Play downloads on this PC without the server"><Icon name="download" size={12} /><span class="output-name">Downloads only</span><span class="output-hint">Play offline</span></button>{/if}
+      {#if app.status?.offline}<button class="output" onclick={() => { open = false; sendToShell({ type: 'goOnline' }) }} title={t('Reconnect to the server')}><Icon name="download" size={12} /><span class="output-name">{t('Playing offline')}</span><span class="output-hint">{t('Go online')}</span></button>
+      {:else if downloads.finishedTracks}<button class="output" onclick={() => { open = false; sendToShell({ type: 'goOffline' }) }} title={t('Play downloads on this PC without the server')}><Icon name="download" size={12} /><span class="output-name">{t('Downloads only')}</span><span class="output-hint">{t('Play offline')}</span></button>{/if}
     </div>
   {/if}
 </div>

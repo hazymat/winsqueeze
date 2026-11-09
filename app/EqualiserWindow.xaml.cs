@@ -22,7 +22,7 @@ public partial class EqualiserWindow : Window
 
     public EqualiserWindow(Window owner)
     {
-        InitializeComponent();
+        InitializeComponent(); L.Translate(this);
         Owner = owner;
         if (Tuning.WindowWidth == 980) Tuning.WindowWidth = 1200; // the first release's default was too narrow
         Width = Math.Max(MinWidth, Tuning.WindowWidth); Height = Math.Max(MinHeight, Tuning.WindowHeight);
@@ -68,7 +68,7 @@ public partial class EqualiserWindow : Window
         webView.CoreWebView2.Settings.AreBrowserAcceleratorKeysEnabled = false;
         webView.CoreWebView2.Settings.IsZoomControlEnabled = false;
         webView.CoreWebView2.WebMessageReceived += (sender, args) => OnUiMessage(args.WebMessageAsJson);
-        webView.CoreWebView2.Navigate("https://app.winsqueeze/index.html#eq");
+        webView.CoreWebView2.Navigate($"https://app.winsqueeze/index.html?lang={L.Code}#eq");
     }
 
     public void PushState() { if (webViewReady) webView.CoreWebView2?.PostWebMessageAsJson(JsonSerializer.Serialize(new { type = "eq", eq = Tuning, supported = SqueezeliteHost.SupportsEqualiser, rate = App.Visualiser.SampleRate })); }

@@ -119,12 +119,12 @@ public sealed class LibraryQueries
                 var album = Query(connection, $"SELECT a.key, a.title, a.artist FROM albums a WHERE {notQueuedAlbum} AND {level} ORDER BY random() LIMIT 1", Parameters()).FirstOrDefault();
                 if (album == null) continue;
                 var albumIds = Query(connection, "SELECT track_id AS id FROM album_tracks WHERE album_key=$key ORDER BY disc_no, track_no", ("$key", album["key"])).Select(row => Convert.ToInt64(row["id"])).ToList();
-                return new(albumIds, new() { Convert.ToString(album["key"])! }, $"{album["title"]} by {album["artist"]}");
+                return new(albumIds, new() { Convert.ToString(album["key"])! }, L.T("{title} by {artist}", ("title", album["title"]), ("artist", album["artist"])));
             }
             picked.AddRange(Query(connection, $"SELECT DISTINCT at.track_id AS id FROM album_tracks at JOIN albums a ON a.key=at.album_key WHERE a.source=$source AND {level} AND at.track_id NOT IN (SELECT value FROM json_each($queued)) AND at.track_id NOT IN (SELECT value FROM json_each($picked)) AND ('t' || at.track_id) NOT IN (SELECT value FROM json_each($recent)) ORDER BY random() LIMIT {10 - picked.Count}", Parameters()).Select(row => Convert.ToInt64(row["id"])));
             if (picked.Count >= 10) break;
         }
-        return new(picked, picked.Select(id => $"t{id}").ToList(), picked.Count == 1 ? "1 track" : $"{picked.Count} tracks");
+        return new(picked, picked.Select(id => $"t{id}").ToList(), L.N(picked.Count, "{count} track", "{count} tracks"));
     });
 
     object ArtistAlbums(SqliteConnection connection, string partNorm, string sort)

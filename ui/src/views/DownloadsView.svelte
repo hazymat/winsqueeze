@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t, tn } from '../lib/i18n'
   import { artUrl, sendToShell } from '../bridge'
   import { app } from '../state.svelte'
   import { downloads, cancelDownloads, formatBytes } from '../lib/downloads.svelte'
@@ -10,19 +11,19 @@
   const totals = $derived(downloads.active.reduce((sum, group) => ({ tracks: sum.tracks + group.total - group.done, failed: sum.failed + group.failed }), { tracks: 0, failed: 0 }))
   const percent = (received: number, size: number) => size > 0 ? Math.min(100, (received / size) * 100) : 0
   const groupPercent = (group: any) => group.total ? ((group.done + group.tracks.filter((track: any) => track.state === 'downloading').reduce((sum: number, track: any) => sum + percent(track.received, track.size) / 100, 0)) / group.total) * 100 : 0
-  const trackState = (track: any) => track.state === 'done' ? 'Done' : track.state === 'downloading' ? (track.size ? `${Math.round(percent(track.received, track.size))}%` : 'Starting') : track.state === 'failed' ? 'Failed' : 'Waiting'
+  const trackState = (track: any) => track.state === 'done' ? t('Done') : track.state === 'downloading' ? (track.size ? `${Math.round(percent(track.received, track.size))}%` : t('Starting')) : track.state === 'failed' ? t('Failed') : t('Waiting')
 </script>
 
 {#if app.status?.offline}
-  <div class="banner"><span>{app.status.serverBack ? 'The server is back.' : 'Offline: playing what\'s on this PC.'}</span><button class="primary" onclick={() => sendToShell({ type: 'goOnline' })}>Go online</button></div>
+  <div class="banner"><span>{app.status.serverBack ? t('The server is back.') : t('Offline: playing what\'s on this PC.')}</span><button class="primary" onclick={() => sendToShell({ type: 'goOnline' })}>{t('Go online')}</button></div>
 {/if}
 {#if downloads.active.length}
   <section class="manager">
     <div class="manager-head">
-      <strong>Downloading</strong>
-      <span class="quiet">{totals.tracks} {totals.tracks === 1 ? 'track' : 'tracks'} to go{downloads.waiting ? ' · waiting for the server' : ''}{downloads.problem ? ` · ${downloads.problem}` : ''}</span>
-      {#if totals.failed}<button class="ghost" onclick={() => sendToShell({ type: 'downloadRetry' })}>Retry failed</button>{/if}
-      <button class="ghost" onclick={() => sendToShell({ type: 'downloadCancelAll' })}>Cancel all</button>
+      <strong>{t('Downloading')}</strong>
+      <span class="quiet">{tn(totals.tracks, '{count} track to go', '{count} tracks to go')}{downloads.waiting ? ' · ' + t('waiting for the server') : ''}{downloads.problem ? ` · ${downloads.problem}` : ''}</span>
+      {#if totals.failed}<button class="ghost" onclick={() => sendToShell({ type: 'downloadRetry' })}>{t('Retry failed')}</button>{/if}
+      <button class="ghost" onclick={() => sendToShell({ type: 'downloadCancelAll' })}>{t('Cancel all')}</button>
     </div>
     {#each downloads.active as group (group.key)}
       <div class="group">
@@ -30,10 +31,10 @@
           {#if group.cover}<img src={artUrl(group.cover, 80)} alt="" />{:else}<span class="no-art">♪</span>{/if}
           <span class="text"><span class="title">{group.title || 'Tracks'}</span><span class="quiet">{group.artist}</span></span>
           <span class="bar"><span style:width="{groupPercent(group)}%"></span></span>
-          <span class="count quiet">{group.done} of {group.total}{group.failed ? ` · ${group.failed} failed` : ''}</span>
+          <span class="count quiet">{t('{done} of {total}', { done: group.done, total: group.total })}{group.failed ? ' · ' + t('{count} failed', { count: group.failed }) : ''}</span>
           <span class="chevron" class:open={expanded.includes(group.key)}>⌄</span>
         </button>
-        <button class="cancel" onclick={() => cancelDownloads([group.key])} aria-label="Cancel this album's downloads" title="Cancel the rest of this album">✕</button>
+        <button class="cancel" onclick={() => cancelDownloads([group.key])} aria-label={t('Cancel this album\'s downloads')} title={t('Cancel the rest of this album')}>✕</button>
       </div>
       {#if expanded.includes(group.key)}
         <div class="tracks">
@@ -42,7 +43,7 @@
               <span class="track-title">{track.title}</span>
               {#if track.state === 'downloading'}<span class="bar small"><span style:width="{percent(track.received, track.size)}%"></span></span>{/if}
               <span class="quiet" title={track.error}>{trackState(track)}</span>
-              {#if track.state !== 'done'}<button class="cancel" onclick={() => cancelDownloads([], [track.id])} aria-label="Cancel this track" title="Cancel this track">✕</button>{:else}<span class="cancel-space"></span>{/if}
+              {#if track.state !== 'done'}<button class="cancel" onclick={() => cancelDownloads([], [track.id])} aria-label={t('Cancel this track')} title={t('Cancel this track')}>✕</button>{:else}<span class="cancel-space"></span>{/if}
             </div>
           {/each}
         </div>
@@ -51,11 +52,11 @@
   </section>
 {/if}
 {#if downloads.finishedTracks}
-  <AlbumsOf kind="downloads" title="Downloaded" />
-  <div class="footer quiet">{downloads.finishedTracks} {downloads.finishedTracks === 1 ? 'track' : 'tracks'} on this PC · {formatBytes(downloads.totalBytes)} · <button class="link" onclick={() => sendToShell({ type: 'openDownloads' })}>Open folder</button>{#if !app.status?.offline} · <button class="link" onclick={() => sendToShell({ type: 'goOffline' })}>Play offline</button>{/if}</div>
+  <AlbumsOf kind="downloads" title={t('Downloaded')} />
+  <div class="footer quiet">{tn(downloads.finishedTracks, '{count} track on this PC', '{count} tracks on this PC')} · {formatBytes(downloads.totalBytes)} · <button class="link" onclick={() => sendToShell({ type: 'openDownloads' })}>{t('Open folder')}</button>{#if !app.status?.offline} · <button class="link" onclick={() => sendToShell({ type: 'goOffline' })}>{t('Play offline')}</button>{/if}</div>
 {:else if !downloads.active.length}
-  <PageHead title="Downloaded" />
-  <p class="quiet empty">Nothing downloaded yet. Pick albums, artists or tracks (press and hold, or Ctrl+click) and choose Download, or use Download on an album. Downloaded music plays here even when the server can't be reached.</p>
+  <PageHead title={t('Downloaded')} />
+  <p class="quiet empty">{t('Nothing downloaded yet. Pick albums, artists or tracks (press and hold, or Ctrl+click) and choose Download, or use Download on an album. Downloaded music plays here even when the server can\'t be reached.')}</p>
 {/if}
 
 <style>

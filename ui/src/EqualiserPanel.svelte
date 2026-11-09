@@ -1,5 +1,6 @@
 <script lang="ts">
   import { sendToShell, onShellMessage } from './bridge'
+  import { t } from './lib/i18n'
   import Analyser from './parts/Analyser.svelte'
   import ResizeEdges from './parts/ResizeEdges.svelte'
   // The graphic equaliser window (SPEC.md › Equaliser): a black brushed hi-fi panel with gold legends, a fader bank per channel,
@@ -111,7 +112,7 @@
   {@const gains = gainsFor(side)}
   <div class="bank-wrap" class:left={side === 'L'}>
     {#if side === 'R'}<div class="scale">{#each scaleMarks as mark, index}<span>{index === 0 ? '+' : index === lastMark ? '−' : ''}{mark}</span>{/each}</div>{/if}
-    <div class="bank" role="group" aria-label={side === 'L' ? 'Left channel' : 'Right channel'} class:dimmed={eq.Linked && side === 'R'}
+    <div class="bank" role="group" aria-label={side === 'L' ? t('Left channel') : t('Right channel')} class:dimmed={eq.Linked && side === 'R'}
       onpointerdown={(event) => pointerDown(event, side)} onpointermove={(event) => pointerMove(event, side)} onpointerup={pointerUp} onpointercancel={pointerUp}
       onpointerleave={() => { if (!pressed) hover = null }} onwheel={(event) => wheel(event, side)} ondblclick={(event) => doubleClick(event, side)}>
       <div class="tracks">
@@ -144,28 +145,28 @@
   {#if eq}
     <header>
       <span class="brand">WinSqueeze</span>
-      <span class="readout" class:limiting={clipping > 0 && !hover}>{hover ? `${bandCount === 3 ? bandLabel(hover.band) : formatFrequency(frequencies[bandCount][hover.band]) + ' Hz'} · ${eq.Linked ? 'L+R' : hover.side} ${formatGain(gainsFor(hover.side)[hover.band])}` : clipping > 0 ? `LIMITING −${clipping.toFixed(1)} dB · lower the preamp or the boosts` : eq.Enabled ? `PREAMP ${preampNow.toFixed(1)} dB${eq.AutoPreamp ? ' (AUTO)' : ''} · ${eq.Character === 'precise' ? 'PRECISE' : 'VINTAGE'}` : 'BYPASS · BIT-PERFECT'}</span>
-      <button class="close" onclick={() => sendToShell({ type: 'close' })} aria-label="Close">×</button>
+      <span class="readout" class:limiting={clipping > 0 && !hover}>{hover ? `${bandCount === 3 ? bandLabel(hover.band) : formatFrequency(frequencies[bandCount][hover.band]) + ' Hz'} · ${eq.Linked ? 'L+R' : hover.side} ${formatGain(gainsFor(hover.side)[hover.band])}` : clipping > 0 ? `LIMITING −${clipping.toFixed(1)} dB · ${t('lower the preamp or the boosts')}` : eq.Enabled ? `PREAMP ${preampNow.toFixed(1)} dB${eq.AutoPreamp ? ' (AUTO)' : ''} · ${eq.Character === 'precise' ? 'PRECISE' : 'VINTAGE'}` : 'BYPASS · BIT-PERFECT'}</span>
+      <button class="close" onclick={() => sendToShell({ type: 'close' })} aria-label={t('Close')}>×</button>
     </header>
     <div class="body">
       <div class="power-column">
         <span class="legend">EQ</span>
-        <button class="power" class:on={eq.Enabled} onclick={() => change('Enabled', !eq.Enabled)} aria-pressed={eq.Enabled} title="Equaliser on, or bypassed (bit-perfect)"></button>
+        <button class="power" class:on={eq.Enabled} onclick={() => change('Enabled', !eq.Enabled)} aria-pressed={eq.Enabled} title={t('Equaliser on, or bypassed (bit-perfect)')}></button>
         <span class="led" class:on={eq.Enabled}></span>
         <span class="legend small">{eq.Enabled ? 'ON' : 'BYPASS'}</span>
-        <span class="legend preamp-legend">PREAMP</span>
-        <div class="preamp" class:auto={eq.AutoPreamp} role="slider" tabindex="0" aria-label="Preamp" aria-valuenow={preampNow} title={eq.AutoPreamp ? 'Auto: lowered as bands rise, so nothing clips' : 'Drag: headroom for boosts (double-click for -6 dB)'}
+        <span class="legend preamp-legend">{t('PREAMP')}</span>
+        <div class="preamp" class:auto={eq.AutoPreamp} role="slider" tabindex="0" aria-label={t('Preamp')} aria-valuenow={preampNow} title={eq.AutoPreamp ? t('Auto: lowered as bands rise, so nothing clips') : t('Drag: headroom for boosts (double-click for -6 dB)')}
           onpointerdown={preampDown} onpointermove={preampMove} onpointerup={preampUp} onpointercancel={preampUp} ondblclick={() => { if (!eq.AutoPreamp) { eq.PreampDb = -6; send(true) } }}>
           <div class="slot"></div><div class="knob small" style:top="{-preampNow / 12 * 100}%"></div>
         </div>
         <span class="legend small">{preampNow.toFixed(1)} dB</span>
-        <span class="clip" class:on={clipping > 0} title={clipping > 0 ? `Limiting ${clipping} dB: lower the preamp or the boosts` : 'Lights when peaks would clip and the limiter steps in'}>CLIP</span>
+        <span class="clip" class:on={clipping > 0} title={clipping > 0 ? t('Limiting {db} dB: lower the preamp or the boosts', { db: clipping }) : t('Lights when peaks would clip and the limiter steps in')}>{t('CLIP')}</span>
       </div>
       {@render bank('L')}
       <div class="centre">
-        <div class="analyser-slot"><Analyser levels={analyser.left.slice(0, 10).map((level, index) => eq.Display === 'split' ? level : (level + analyser.right[index]) / 2)} levelsRight={eq.Display === 'split' ? analyser.right.slice(0, 10) : null} labels={frequencies[10].map(shortFrequency)} scale={['30', '27', '24', '21', '18', '15', '12', '9', '6', '3']} segments={30} title="SPECTRUM ANALYZER" fullRange={Math.max(analyser.left[10], analyser.right[10])} /></div>
-        <div class="legend title">GRAPHIC EQUALIZER</div>
-        <div class="legend arrows"><span>◄ LEFT</span><span class="rule"></span><span>FREQUENCY (Hz)</span><span class="rule"></span><span>RIGHT ►</span></div>
+        <div class="analyser-slot"><Analyser levels={analyser.left.slice(0, 10).map((level, index) => eq.Display === 'split' ? level : (level + analyser.right[index]) / 2)} levelsRight={eq.Display === 'split' ? analyser.right.slice(0, 10) : null} labels={frequencies[10].map(shortFrequency)} scale={['30', '27', '24', '21', '18', '15', '12', '9', '6', '3']} segments={30} title={t('SPECTRUM ANALYZER')} fullRange={Math.max(analyser.left[10], analyser.right[10])} /></div>
+        <div class="legend title">{t('GRAPHIC EQUALIZER')}</div>
+        <div class="legend arrows"><span>{t('◄ LEFT')}</span><span class="rule"></span><span>{t('FREQUENCY (Hz)')}</span><span class="rule"></span><span>{t('RIGHT ►')}</span></div>
       </div>
       {@render bank('R')}
       <div class="cluster">
@@ -176,13 +177,13 @@
         {@render pushButton('EDIT', [['DRAW', 'draw'], ['SINGLE', 'single']], 'EditMode')}
         {@render pushButton('DISPLAY', [['L+R', 'sum'], ['L/R', 'split']], 'Display')}
         {@render pushButton('DECAY TIME', [['FAST', 'fast'], ['SLOW', 'slow']], 'Decay')}
-        <button class="push" onclick={reset}><span class="push-label">RESET</span><span class="push-options"><b>FLAT</b></span><span class="cap"></span></button>
-        <button class="push" disabled={eq.Linked} onclick={() => copy('L', 'R')}><span class="push-label">COPY</span><span class="push-options"><b>L → R</b></span><span class="cap"></span></button>
-        <button class="push" disabled={eq.Linked} onclick={() => copy('R', 'L')}><span class="push-label">COPY</span><span class="push-options"><b>R → L</b></span><span class="cap"></span></button>
-        <div class="hint">{shiftHeld ? (eq.EditMode === 'single' ? 'Shift: drawing' : 'Shift: single fader') : 'Shift swaps edit mode · double-click = 0 dB · scroll = ±0.5'}</div>
+        <button class="push" onclick={reset}><span class="push-label">{t('RESET')}</span><span class="push-options"><b>{t('FLAT')}</b></span><span class="cap"></span></button>
+        <button class="push" disabled={eq.Linked} onclick={() => copy('L', 'R')}><span class="push-label">{t('COPY')}</span><span class="push-options"><b>L → R</b></span><span class="cap"></span></button>
+        <button class="push" disabled={eq.Linked} onclick={() => copy('R', 'L')}><span class="push-label">{t('COPY')}</span><span class="push-options"><b>R → L</b></span><span class="cap"></span></button>
+        <div class="hint">{shiftHeld ? (eq.EditMode === 'single' ? t('Shift: drawing') : t('Shift: single fader')) : t('Shift swaps edit mode · double-click = 0 dB · scroll = ±0.5')}</div>
       </div>
     </div>
-    {#if !supported}<div class="unsupported">The equaliser needs WinSqueeze's own player. It will work once the bundled Squeezelite is running.</div>{/if}
+    {#if !supported}<div class="unsupported">{t('The equaliser needs WinSqueeze\'s own player. It will work once the bundled Squeezelite is running.')}</div>{/if}
   {/if}
 </div>
 

@@ -1,4 +1,5 @@
 import { sendToShell, query, command } from './bridge'
+import { t } from './lib/i18n'
 
 export type View = { kind: string; key?: string; title?: string; highlight?: string; filters?: CustomStep[]; scroll?: number }
 // A step taken inside a custom view (SPEC.md › Custom views): the row chosen at that level
@@ -18,7 +19,7 @@ const savedNav = (() => { try { return JSON.parse(readSetting('nav', '')) } catc
 export const nav = $state({ section: (savedNav?.section ?? 'artists') as string, stack: (savedNav?.stack ?? []) as View[] })
 $effect.root(() => { $effect(() => { writeSetting('nav', JSON.stringify({ section: nav.section, stack: nav.stack })) }) })
 export const ui = $state({ search: '', scope: 'list' as 'list' | 'everything', expanded: false, meterStyle: readSetting('meterStyle', 'vu').replace(/^ledbar$/, 'vu'), skin: readSetting('skin', 'auto'), coverAccent: readSetting('coverAccent', '') === '1', coverBackdrop: readSetting('coverBackdrop', '1') !== '0', accent: readSetting('accent', ''), glassTransparency: Number(readSetting('glassTransparency', '-1')), glassTintHue: Number(readSetting('glassTintHue', '0')), lookVersion: 0, infoTab: readSetting('infoTab', 'queue'), pinned: false, metersFull: false, hifi: false, trackInfo: null as null | number[], itemInfo: null as null | { name: string, fields: [string, string][] }[], toast: null as null | { text: string; undo?: () => unknown; redo?: () => unknown; action?: { label: string; key: string; run: () => unknown }; ms: number; id: number } })
-export const playlist = $state({ open: false, collapsed: false, name: 'Untitled playlist', items: [] as PlaylistItem[], history: [] as number[] })
+export const playlist = $state({ open: false, collapsed: false, name: t('Untitled playlist'), items: [] as PlaylistItem[], history: [] as number[] })
 
 export function readSetting(name: string, fallback: string) { try { return localStorage.getItem('ws.' + name) ?? fallback } catch { return fallback } }
 export function writeSetting(name: string, value: string) { try { localStorage.setItem('ws.' + name, value) } catch { } }
@@ -64,7 +65,7 @@ export function togglePin(view: View) {
   for (const [existing, pinned] of Object.entries(pins.views)) if (existing !== key) next[existing] = pinned
   if (!pins.views[key]) next[key] = { kind: view.kind, key: view.key, title: view.title }
   pins.views = next; writeSetting('pins', JSON.stringify(next))
-  toast(pins.views[key] ? `Pinned “${view.title}” to the sidebar` : `Unpinned “${view.title}”`, () => togglePin(view), 6000, { keep: false })
+  toast(pins.views[key] ? t('Pinned “{name}” to the sidebar', { name: view.title }) : t('Unpinned “{name}”', { name: view.title }), () => togglePin(view), 6000, { keep: false })
 }
 
 // Messages show in the action strip above the transport (ActionStrip.svelte), with a ring counting down their time
@@ -86,13 +87,13 @@ export async function undoLast() {
   history.undo = history.undo.slice(0, -1)
   if (entry.redo) history.redo = history.redo.concat([entry])
   await entry.undo()
-  show(`Undone: ${entry.text}`, entry.redo ? 6000 : 2500, undefined, entry.redo ? redoLast : undefined)
+  show(t('Undone: {action}', { action: entry.text }), entry.redo ? 6000 : 2500, undefined, entry.redo ? redoLast : undefined)
 }
 export async function redoLast() {
   const entry = history.redo[history.redo.length - 1]; if (!entry?.redo) return
   history.redo = history.redo.slice(0, -1); history.undo = history.undo.concat([entry])
   await entry.redo()
-  show(`Redone: ${entry.text}`, 6000, undoLast)
+  show(t('Redone: {action}', { action: entry.text }), 6000, undoLast)
 }
 export function undoToast() { const undo = ui.toast?.undo; ui.toast = null; undo?.() }
 
@@ -110,7 +111,7 @@ export function noteTrackChange(previous: any, next: any) {
   const oldQueue: any[] = previous.playlist_loop ?? [], oldIds = oldQueue.map((item: any) => Number(item.id))
   const queued = next.playlist_loop?.find((item: any) => String(item.id) === String(left.id))
   const queueReplaced = !queued && oldIds.length > 1 && oldIds.every(id => Number.isFinite(id) && id > 0)
-  toast(queueReplaced ? `Queue replaced. Undo to bring back the previous queue at “${left.title}” ${formatTime(position)}?` : `Changed track. Back to “${left.title}” at ${formatTime(position)}?`, () => {
+  toast(queueReplaced ? t('Queue replaced. Undo to bring back the previous queue at “{title}” {time}?', { title: left.title, time: formatTime(position) }) : t('Changed track. Back to “{title}” at {time}?', { title: left.title, time: formatTime(position) }), () => {
     if (queued) command('playlist', 'index', queued['playlist index'])
     else if (queueReplaced) sendToShell({ type: 'playTracks', ids: oldIds, mode: 'load', start: oldQueue.indexOf(left) })
     else { sendToShell({ type: 'playTracks', ids: [Number(left.id)], mode: 'insert' }); window.setTimeout(() => command('playlist', 'index', '+1'), 400) } // put it back next and play it
@@ -130,7 +131,7 @@ export function currentTrack() {
 }
 
 // ---- Playlist builder (SPEC.md › Playlist builder) ----
-export function newPlaylist(name = 'Untitled playlist', items: PlaylistItem[] = []) { playlist.open = true; playlist.collapsed = false; playlist.name = name; playlist.items = items; playlist.history = []; saveDraft() }
+export function newPlaylist(name = t('Untitled playlist'), items: PlaylistItem[] = []) { playlist.open = true; playlist.collapsed = false; playlist.name = name; playlist.items = items; playlist.history = []; saveDraft() }
 export function saveDraft() { sendToShell({ type: 'saveDraft', draft: playlist.open ? { name: playlist.name, items: playlist.items } : null }) }
 export const inPlaylist = (trackId: number) => playlist.items.some(item => item.id === trackId)
 
@@ -139,7 +140,7 @@ export function addToPlaylist(items: PlaylistItem[], label: string) {
   playlist.items = playlist.items.concat(items)
   playlist.history = playlist.history.concat([items.length])
   saveDraft()
-  toast(`Added ${label} to ${playlist.name}${duplicates ? ` (${duplicates} already in it)` : ''}`, undoLastAdd)
+  toast(t('Added {items} to {playlist}', { items: label, playlist: playlist.name }) + (duplicates ? ' ' + t('({count} already in it)', { count: duplicates }) : ''), undoLastAdd)
 }
 export function undoLastAdd() {
   const lastCount = playlist.history[playlist.history.length - 1]

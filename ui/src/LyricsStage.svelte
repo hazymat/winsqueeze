@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from './lib/i18n'
   import { onShellMessage, sendToShell, command, trackArt } from './bridge'
   import { app, currentTrack, readSetting } from './state.svelte'
   import { infoQuery } from './lib/nowPlayingInfo'
@@ -42,15 +43,15 @@
     {#if cover}<img src={trackArt(track, 120)} alt="" />{/if}
     <div class="names">{#if track}<div class="title">{track.title}</div><div class="artist">{track.artist ?? ''}</div>{/if}</div>
     <div class="controls">
-      <button onclick={toggleFullScreen} title={fullScreen ? 'Leave full screen (Esc)' : 'Full screen (F11)'} aria-label={fullScreen ? 'Leave full screen' : 'Full screen'}><Icon name={fullScreen ? 'exit-full-screen' : 'full-screen'} size={18} /></button>
+      <button onclick={toggleFullScreen} title={fullScreen ? t('Leave full screen (Esc)') : t('Full screen (F11)')} aria-label={fullScreen ? t('Leave full screen') : t('Full screen')}><Icon name={fullScreen ? 'exit-full-screen' : 'full-screen'} size={18} /></button>
     </div>
   </header>
   <div class="scroller" bind:this={scroller} ondblclick={(event) => { if (!(event.target as HTMLElement).closest('.line')) toggleFullScreen() }} role="presentation">
     <div class="column">
-      {#if !track}<p class="note">Nothing playing</p>
-      {:else if lyrics === 'loading'}<p class="note">Looking…</p>
-      {:else if !lyrics?.found}<p class="note">No lyrics for this track</p>
-      {:else}<LyricsText {lyrics} stage={true} /><div class="source">From {lyrics.source}</div>{/if}
+      {#if !track}<p class="note">{t('Nothing playing')}</p>
+      {:else if lyrics === 'loading'}<p class="note">{t('Looking…')}</p>
+      {:else if !lyrics?.found}<p class="note">{t('No lyrics for this track')}</p>
+      {:else}<LyricsText {lyrics} stage={true} /><div class="source">{t('From {source}', { source: lyrics.source })}</div>{/if}
     </div>
   </div>
 </main>

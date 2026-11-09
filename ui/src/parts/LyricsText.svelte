@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../lib/i18n'
   import { command } from '../bridge'
   import { app } from '../state.svelte'
   import { playPosition, lineAt, versesOf, bookText, type TimedLine } from '../lib/lyrics'
@@ -25,7 +26,7 @@
 {#if timed}
   <div class="lyrics-text timed" class:stage bind:this={list} onwheel={readerScrolled}>
     {#each lines as line, index}
-      {#if line.text}<button class="line" class:sung={index < current} class:now={index === current} onclick={() => command('time', Math.max(0, line.t - 0.2).toFixed(1))} title="Play from here">{bookText(line.text)}</button>
+      {#if line.text}<button class="line" class:sung={index < current} class:now={index === current} onclick={() => command('time', Math.max(0, line.t - 0.2).toFixed(1))} title={t('Play from here')}>{bookText(line.text)}</button>
       {:else}<span class="line gap" class:now={index === current} aria-hidden="true"></span>{/if}
     {/each}
   </div>

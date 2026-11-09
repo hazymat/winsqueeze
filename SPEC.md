@@ -362,6 +362,15 @@ Unhandled errors, background task errors, WebView2 renderer failures and UI-thre
 
 Settings › About says: "The developer takes privacy seriously. Apart from update checks and the Artist, Album and Lyrics lookups (which you can turn off in Now playing views), WinSqueeze sends nothing outside your network." An expander, What leaves your network, tables each case: update checks (GitHub, the release list, no ID or usage data), Artist / Album / Lyrics (MusicBrainz, Wikipedia, Wikidata, Cover Art Archive, LRCLIB, Last.fm only with the user's key; artist, album and track names) and Send diagnostics (GitHub Discussions, only when the user posts it). Keep both accurate whenever a feature starts talking to the internet.
 
+## Languages
+
+English and German. The app follows Windows' display language; Settings › General › Language overrides it (Same as Windows, English, Deutsch) and offers Restart now, since the tray menu and windows are built once. German uses the informal "du".
+
+- The English text is the key: `locales/<code>.json` maps it to the translation, and anything missing stays English. One file serves both the shell (embedded resource, `L.T` / `L.N` in C#, `L.Translate` for the fixed text in XAML) and the web UI (`t` / `tn` in `ui/src/lib/i18n.ts`, language passed as `?lang=`).
+- `{name}` placeholders are filled after translating; plurals are a singular and a plural key.
+- Album, artist and track names, tags and server text are never translated. The Artist tab reads German Wikipedia when there is a page; Wikidata labels prefer German. Diagnostics stay in English.
+- `node tools/locales.mjs` lists text with no translation (CI shows each as a warning); `--missing` prints them as JSON to translate.
+
 ## Server library
 
 Settings › Server › Library starts Lyrion's own library scans and follows them, for when music was added or retagged.

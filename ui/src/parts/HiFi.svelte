@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../lib/i18n'
   // Hi-fi mode (SPEC.md › Hi-fi mode): the whole window becomes a champagne-aluminium hi-fi separate, with meters, a VFD, transport keys and a volume knob
   import { app, ui, currentTrack, setHifi, readSetting, writeSetting } from '../state.svelte'
   import { command, sendToShell } from '../bridge'
@@ -133,7 +134,7 @@
     for (let segment = 0; segment < segments; segment++) { paint(segment / segments < share); context.fillRect(18 + segment * barWidth / segments, vfdHeight - 19, barWidth / segments - 2, 5) }
   }
   $effect(() => { screen; tick; stageZoom; canvas; drawVfd() })
-  const keys: [string, string, string][] = [['previous', 'Previous track', 'M6 5h2v14H6zM9.5 12 19 5v14z'], ['rewind', 'Rewind (hold to scan)', 'M11 5v14L2 12zM21 5v14l-9-7z'], ['play', 'Play or pause', 'M3 5v14l9-7zM14 5h3v14h-3zM19 5h3v14h-3z'], ['forward', 'Fast-forward (hold to scan)', 'M3 5v14l9-7zM13 5v14l9-7z'], ['next', 'Next track', 'M5 5v14l9.5-7zM16 5h2v14h-2z']]
+  const keys: [string, string, string][] = [['previous', t('Previous track'), 'M6 5h2v14H6zM9.5 12 19 5v14z'], ['rewind', t('Rewind (hold to scan)'), 'M11 5v14L2 12zM21 5v14l-9-7z'], ['play', t('Play or pause'), 'M3 5v14l9-7zM14 5h3v14h-3zM19 5h3v14h-3z'], ['forward', t('Fast-forward (hold to scan)'), 'M3 5v14l9-7zM13 5v14l9-7z'], ['next', t('Next track'), 'M5 5v14l9.5-7zM16 5h2v14h-2z']]
   function pressKey(name: string) {
     if (name === 'previous') command('playlist', 'index', '-1')
     else if (name === 'next') command('playlist', 'index', '+1')
@@ -144,28 +145,28 @@
 
 <svelte:window bind:innerWidth={windowWidth} bind:innerHeight={windowHeight} />
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-<div class="hifi" role="dialog" aria-label="Hi-fi" tabindex="-1" onmousedown={pressPlate} oncontextmenu={(event) => { event.preventDefault(); setHifi(false) }}>
+<div class="hifi" role="dialog" aria-label={t('Hi-fi')} tabindex="-1" onmousedown={pressPlate} oncontextmenu={(event) => { event.preventDefault(); setHifi(false) }}>
   <div class="plate"></div>
   <div class="stage" style:transform="translate(-50%, -50%) scale({stageZoom})">
     <div class="update-zone" role="presentation" onpointerenter={enterUpdate} onpointerleave={leaveUpdate}>
       <div class="brand">WinSqueeze</div>
-      <div class="standby" class:on={playing} class:update={!!updateReady} class:upgrading={!!upgradeStartedAt} title={updateReady ? `WinSqueeze ${updateReady} is ready` : ''}></div>
-      {#if updateReady}<button class="update-key" class:shown={updateHover || !!upgradeStartedAt} onclick={startUpgrade} title="Restart to update to {updateReady}">UPDATE</button>{/if}
+      <div class="standby" class:on={playing} class:update={!!updateReady} class:upgrading={!!upgradeStartedAt} title={updateReady ? t('WinSqueeze {version} is ready', { version: updateReady }) : ''}></div>
+      {#if updateReady}<button class="update-key" class:shown={updateHover || !!upgradeStartedAt} onclick={startUpgrade} title={t('Restart to update to {version}', { version: updateReady })}>UPDATE</button>{/if}
     </div>
     <div class="meter-window"><div class="meter-zoom" bind:this={meterBox} style:transform="scale({meterZoom})"><Meters size="large" zoom={meterZoom * stageZoom} moveWindow={true} /></div><div class="pane"></div></div>
     <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
     <div class="display" class:clickable={showingUpdated} onclick={(event) => { if (showingUpdated && !(event.target as HTMLElement).closest('.seek-zone')) openWhatsNew() }}>
       <canvas bind:this={canvas} style:width="{vfdWidth}px" style:height="{vfdHeight}px"></canvas><div class="mesh"></div><div class="pane"></div>
-      <div class="seek-zone" bind:this={seekBar} role="slider" tabindex="-1" aria-label="Position" aria-valuenow={Math.round(position)} title="Click or drag to move through the track" onpointerdown={grabSeek} onpointermove={dragSeek} onpointerup={letGoSeek}></div>
+      <div class="seek-zone" bind:this={seekBar} role="slider" tabindex="-1" aria-label={t('Position')} aria-valuenow={Math.round(position)} title={t('Click or drag to move through the track')} onpointerdown={grabSeek} onpointermove={dragSeek} onpointerup={letGoSeek}></div>
     </div>
     <div class="keys">{#each keys as [name, label, path]}<button class="key" aria-label={label} title={label} onclick={() => pressKey(name)} onpointerdown={(event) => { if (name === 'rewind' || name === 'forward') startScan(event, name === 'forward' ? 1 : -1) }} onpointerup={() => { if (scanStart && !scanTimer) stopScan() }} onpointerleave={() => { if (scanTimer) stopScan() }}><svg viewBox="0 0 24 24"><path d={path} /></svg></button>{/each}</div>
     <div class="knob-well">
       <svg class="scale" viewBox="0 0 260 260">{#each Array.from({ length: 31 }, (unused, index) => -135 + index * 9) as angle, index}<line x1="130" y1={index % 5 ? 14 : 10} x2="130" y2="22" transform="rotate({angle} 130 130)" class:major={!(index % 5)} />{/each}</svg>
-      <div class="knob" role="slider" tabindex="-1" aria-label="Volume" aria-valuenow={volume} title="Volume {volume} (drag up or down, or scroll)" style:--angle="{knobAngle}deg" onpointerdown={grabKnob} onpointermove={turnKnob} onpointerup={letGoKnob} onwheel={wheelKnob}><div class="teeth"></div><div class="knurl"></div><div class="cap"></div><div class="pointer"><div class="mark"></div></div></div>
+      <div class="knob" role="slider" tabindex="-1" aria-label={t('Volume')} aria-valuenow={volume} title={t('Volume {volume} (drag up or down, or scroll)', { volume })} style:--angle="{knobAngle}deg" onpointerdown={grabKnob} onpointermove={turnKnob} onpointerup={letGoKnob} onwheel={wheelKnob}><div class="teeth"></div><div class="knurl"></div><div class="cap"></div><div class="pointer"><div class="mark"></div></div></div>
     </div>
-    <div class="volume-label">VOLUME</div>
+    <div class="volume-label">{t('VOLUME')}</div>
     <!-- Mode toggle: chrome bat-handle switch, flicked down (animated throw) goes back to the library -->
-    <button class="mode-switch" class:thrown={switchThrown} onclick={throwSwitch} title="Back to the library (Esc or right-click)" aria-label="Back to the library"><span class="engraving">HI-FI</span><span class="switch-body"><span class="nut"></span><span class="collar"></span><span class="lever"><span class="lever-shaft"></span><span class="lever-tip"></span></span></span><span class="engraving">LIBRARY</span></button>
+    <button class="mode-switch" class:thrown={switchThrown} onclick={throwSwitch} title={t('Back to the library (Esc or right-click)')} aria-label={t('Back to the library')}><span class="engraving">HI-FI</span><span class="switch-body"><span class="nut"></span><span class="collar"></span><span class="lever"><span class="lever-shaft"></span><span class="lever-tip"></span></span></span><span class="engraving">{t('LIBRARY')}</span></button>
   </div>
   </div>
 

@@ -1,3 +1,4 @@
+import { t } from './i18n'
 // Choosing several rows (after Sift's list kit): press and hold a row, or Ctrl/Shift+click, and the action bar
 // (built into the layout above the transport, ActionStrip.svelte) offers what can be done with them.
 // One list at a time owns the selection (its scope). Delete runs the action keyed 'Delete'; Esc clears.
@@ -6,7 +7,7 @@ export type SelectionAction = { label: string; key?: string; danger?: boolean; s
 export const selection = $state({ scope: '', keys: [] as string[], anchor: '', actions: [] as SelectionAction[], noun: 'item' })
 
 // Shortcuts every list shares: N play next, E add to end, I info (an action's own key wins)
-const commonKeys: Record<string, string> = { 'Play next': 'N', 'Add to end': 'E', 'Info': 'I', 'Track info': 'I' }
+const commonKeys: Record<string, string> = { [t('Play next')]: 'N', [t('Add to end')]: 'E', [t('Info')]: 'I', [t('Track info')]: 'I' } // labels arrive translated
 export const actionKey = (action: SelectionAction) => action.key ?? commonKeys[action.label]
 export const isSelected = (scope: string, key: string) => selection.scope === scope && selection.keys.includes(key)
 export function clearSelection() { selection.scope = ''; selection.keys = []; selection.anchor = ''; selection.actions = []; const focused = document.activeElement as HTMLElement | null; if (focused?.closest?.('[data-sort-row], [data-select-key]')) focused.blur() }

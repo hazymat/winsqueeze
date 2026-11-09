@@ -16,7 +16,8 @@ public sealed partial class SqueezeliteHost : IDisposable
     bool stopping;
 
     public PlayerState State { get; private set; } = PlayerState.Stopped;
-    public string StatusText { get; private set; } = "Stopped";
+    string? statusText; // null until the player first starts: "Stopped" in the chosen language
+    public string StatusText => statusText ?? L.T("Stopped");
     public OutputDevice? Device { get; private set; }
     public bool ExclusiveActive { get; private set; }
     // Devices that wouldn't open in exclusive mode this run, with the reason in plain words: they play shared until the app restarts
@@ -36,13 +37,13 @@ public sealed partial class SqueezeliteHost : IDisposable
     // Plain words for the Windows (AUDCLNT_E_*) error behind a refused exclusive open
     public static string ExclusiveRefusalText(string hresult) => hresult.ToUpperInvariant() switch
     {
-        "8889000A" => "another program has it in exclusive mode, often the DAC's own ASIO driver or another player",
-        "8889000E" => "Windows doesn't allow it: tick \"Allow applications to take exclusive control\" in Control Panel › Sound › device Properties › Advanced",
-        "88890008" => "its driver accepts none of the sample formats WinSqueeze offered",
-        "88890016" or "88890019" or "88890020" => "its driver refused the buffer size; try another Buffer (ms) in Settings › Audio",
-        "88890004" => "it was unplugged or switched off",
-        "" or "00000000" => "the driver gave no reason",
-        _ => $"Windows error 0x{hresult.ToUpperInvariant()}"
+        "8889000A" => L.T("another program has it in exclusive mode, often the DAC's own ASIO driver or another player"),
+        "8889000E" => L.T("Windows doesn't allow it: tick \"Allow applications to take exclusive control\" in Control Panel › Sound › device Properties › Advanced"),
+        "88890008" => L.T("its driver accepts none of the sample formats WinSqueeze offered"),
+        "88890016" or "88890019" or "88890020" => L.T("its driver refused the buffer size; try another Buffer (ms) in Settings › Audio"),
+        "88890004" => L.T("it was unplugged or switched off"),
+        "" or "00000000" => L.T("the driver gave no reason"),
+        _ => L.T("Windows error {code}", ("code", "0x" + hresult.ToUpperInvariant()))
     };
 
     // serverAddress: the Lyrion host, or 127.0.0.1:<port> for the offline server
@@ -74,7 +75,7 @@ public sealed partial class SqueezeliteHost : IDisposable
         squeezeliteProcess.Start();
         processJob.Add(squeezeliteProcess);
         squeezeliteProcess.BeginOutputReadLine(); squeezeliteProcess.BeginErrorReadLine();
-        SetStatus(PlayerState.Running, $"Playing to {device.Name}");
+        SetStatus(PlayerState.Running, L.T("Playing to {device}", ("device", device.Name)));
     }
 
     public void Stop()
@@ -82,7 +83,7 @@ public sealed partial class SqueezeliteHost : IDisposable
         if (squeezeliteProcess is { HasExited: false }) { stopping = true; try { squeezeliteProcess.Kill(); squeezeliteProcess.WaitForExit(3000); } catch (InvalidOperationException) { } }
         squeezeliteProcess?.Dispose(); squeezeliteProcess = null;
         logWriter?.Dispose(); logWriter = null;
-        if (State == PlayerState.Running) SetStatus(PlayerState.Stopped, "Stopped");
+        if (State == PlayerState.Running) SetStatus(PlayerState.Stopped, L.T("Stopped"));
     }
 
     public void SetWaiting(string message) { Stop(); SetStatus(PlayerState.WaitingForDevice, message); }
@@ -131,20 +132,20 @@ public sealed partial class SqueezeliteHost : IDisposable
         var wasapiErrorMatch = WasapiErrorRegex().Match(logLine);
         if (wasapiErrorMatch.Success) lastWasapiError = wasapiErrorMatch.Groups[1].Value;
         if (logLine.Contains("opening WASAPI device in exclusive mode")) ExclusiveActive = true;
-        else if (openedMatch.Success) { OutputSampleRate = int.Parse(openedMatch.Groups[2].Value); if (openedMatch.Groups[3].Success) OutputLatencyMs = int.Parse(openedMatch.Groups[3].Value); if (State == PlayerState.Failed) SetStatus(PlayerState.Running, $"Playing to {openedMatch.Groups[1].Value}"); else StatusChanged?.Invoke(); }
+        else if (openedMatch.Success) { OutputSampleRate = int.Parse(openedMatch.Groups[2].Value); if (openedMatch.Groups[3].Success) OutputLatencyMs = int.Parse(openedMatch.Groups[3].Value); if (State == PlayerState.Failed) SetStatus(PlayerState.Running, L.T("Playing to {device}", ("device", openedMatch.Groups[1].Value))); else StatusChanged?.Invoke(); }
         // "unable to open output device": every rate refused at startup, so Squeezelite exits
         else if (ExclusiveActive && Device != null && (logLine.Contains("error opening device") || logLine.Contains("unable to open output device")) && exclusiveRefused.TryAdd(Device.SqueezeliteId, ExclusiveRefusalText(lastWasapiError))) ExclusiveFailed?.Invoke(Device.Name, exclusiveRefused[Device.SqueezeliteId]);
-        else if (logLine.Contains("Invalid sample rate")) SetStatus(PlayerState.Failed, "The device rejected this track's sample rate. Remove any -R override from Extra arguments so WinSqueeze can resample it.");
+        else if (logLine.Contains("Invalid sample rate")) SetStatus(PlayerState.Failed, L.T("The device rejected this track's sample rate. Remove any -R override from Extra arguments so WinSqueeze can resample it."));
     }
 
     void OnExited()
     {
         if (stopping) return;
-        SetStatus(PlayerState.Failed, $"Squeezelite exited (code {squeezeliteProcess?.ExitCode}). See logs\\squeezelite.log.");
+        SetStatus(PlayerState.Failed, L.T("Squeezelite exited (code {code}). See logs\\squeezelite.log.", ("code", squeezeliteProcess?.ExitCode)));
     }
 
     // Repeats are dropped: a failing device can log the same error dozens of times a second
-    void SetStatus(PlayerState newState, string newText) { if (newState == State && newText == StatusText) return; State = newState; StatusText = newText; StatusChanged?.Invoke(); }
+    void SetStatus(PlayerState newState, string newText) { if (newState == State && newText == StatusText) return; State = newState; statusText = newText; StatusChanged?.Invoke(); }
 
     // Splits "extra arguments" respecting double quotes
     static IEnumerable<string> SplitArguments(string argumentText)

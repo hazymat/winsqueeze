@@ -1,12 +1,13 @@
 <script lang="ts">
+  import { t } from '../lib/i18n'
   import Icon from './Icon.svelte'
   // The view switcher at the right of every browse page's title bar: List, Cards (taller rows with a cover) and Tiles (cover mosaics)
   let { mode, onchange, modes = ['list', 'cards', 'tiles'] }: { mode: string; onchange: (mode: string) => void; modes?: string[] } = $props()
-  const labels: Record<string, string> = { list: 'List', cards: 'Cards', tiles: 'Tiles' }
+  const labels: Record<string, string> = { list: t('List'), cards: t('Cards'), tiles: t('Tiles') }
   const icons: Record<string, 'list' | 'cards' | 'grid-large'> = { list: 'list', cards: 'cards', tiles: 'grid-large' }
 </script>
 
-<div class="view-toggle" role="radiogroup" aria-label="View">
+<div class="view-toggle" role="radiogroup" aria-label={t('View')}>
   {#each modes as value}<button role="radio" aria-checked={mode === value} class:on={mode === value} title={labels[value]} aria-label={labels[value]} onclick={() => onchange(value)}><Icon name={icons[value]} size={15} /></button>{/each}
 </div>
 

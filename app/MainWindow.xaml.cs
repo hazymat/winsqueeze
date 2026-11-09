@@ -76,7 +76,7 @@ public partial class MainWindow : Window
         webView.CoreWebView2.NavigationCompleted += (sender, args) => webViewReady = true;
         // The page's renderer can die (out of memory, GPU reset): log it and reload rather than leave a blank window
         webView.CoreWebView2.ProcessFailed += (sender, args) => { CrashReporter.Write($"WebView2 process failed: {args.ProcessFailedKind} ({args.Reason})", null); if (args.ProcessFailedKind is CoreWebView2ProcessFailedKind.RenderProcessExited or CoreWebView2ProcessFailedKind.RenderProcessUnresponsive) webView.CoreWebView2.Reload(); };
-        webView.CoreWebView2.Navigate($"https://{uiHost}/index.html");
+        webView.CoreWebView2.Navigate($"https://{uiHost}/index.html?lang={L.Code}");
     }
 
     void Push(string messageJson) { if (webViewReady) Dispatcher.BeginInvoke(() => webView.CoreWebView2?.PostWebMessageAsJson(messageJson)); }
@@ -430,7 +430,7 @@ public partial class MainWindow : Window
         Hide();
         if (!App.Settings.General.CloseToTrayTipShown)
         {
-            App.ShowTip("WinSqueeze is still playing", "Closing the window hides it to the tray. Quit from the tray menu.");
+            App.ShowTip(L.T("WinSqueeze is still playing"), L.T("Closing the window hides it to the tray. Quit from the tray menu."));
             App.Settings.General.CloseToTrayTipShown = true; App.Settings.Save();
         }
     }

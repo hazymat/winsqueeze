@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../lib/i18n'
   import { query } from '../bridge'
   import { app, addToPlaylist, playlist, albumItems, readSetting, writeSetting } from '../state.svelte'
   import { browseState, groupAlbums } from '../lib/browse.svelte'
@@ -10,7 +11,7 @@
   let { kind, key = '', title = '', params = {} }: { kind: string; key?: string; title?: string; params?: Record<string, unknown> } = $props()
   let result = $state<any>({ own: [], appearsOn: [] })
   // New music has three lists, each with its own grouping: newest added (Lyrion's New Music), newest changed files (Lyrion's Recently Updated) and a random pick
-  const newModes: [string, string, string][] = [['added', 'Added', 'newAlbums'], ['updated', 'Updated', 'updatedAlbums'], ['random', 'Random', 'randomAlbums']]
+  const newModes: [string, string, string][] = [['added', t('Added'), 'newAlbums'], ['updated', t('Updated'), 'updatedAlbums'], ['random', t('Random'), 'randomAlbums']]
   let newMode = $state(readSetting('newMusicMode', 'added')), shuffles = $state(0)
   const setNewMode = (mode: string) => { newMode = mode; writeSetting('newMusicMode', mode) }
   const ownView = browseState(kind), newViews: Record<string, ReturnType<typeof browseState>> = kind === 'new' ? { added: ownView, updated: browseState('updated'), random: browseState('random') } : {}
@@ -18,7 +19,7 @@
   const queryName: Record<string, string> = { artist: 'artistAlbums', composer: 'composerAlbums', performer: 'performerAlbums', genre: 'genreAlbums', albums: 'albums', downloads: 'downloadedAlbums', custom: 'customAlbums', new: 'newAlbums', compilations: 'compilations' }
   $effect(() => { app.indexVersion; if (kind === 'downloads') downloads.finishedTracks; app.librarySettings.AlbumSource; app.librarySettings.ContributorGrouping; shuffles; query(kind === 'new' ? (newModes.find(mode => mode[0] === newMode) ?? newModes[0])[2] : queryName[kind], Object.assign({ key, sort: view.sort }, params)).then(data => result = data ?? { own: [] }) })
   // An artist keeps "Albums" and "Also appears on" as sections, with the chosen grouping inside each
-  const sections = $derived(kind === 'artist' ? [['Albums', result.own ?? []], ['Also appears on', result.appearsOn ?? []]].filter(([, albums]) => (albums as any[]).length) as [string, any[]][] : [['', result.own ?? []]] as [string, any[]][])
+  const sections = $derived(kind === 'artist' ? [[t('Albums'), result.own ?? []], [t('Also appears on'), result.appearsOn ?? []]].filter(([, albums]) => (albums as any[]).length) as [string, any[]][] : [['', result.own ?? []]] as [string, any[]][])
   // Grouped grids share one column width (as auto-fill would give), so small groups can sit side by side on a row
   let pageWidth = $state(0)
   const columnGap = $derived(view.size === 'compact' ? 10 : 18), minCard = $derived(view.size === 'compact' ? 86 : 150)
@@ -31,8 +32,8 @@
 <div class="page-width" bind:clientWidth={pageWidth}></div>
 <PageHead title={title || result.name || ''} detail={albumCount ? `${albumCount} ${albumCount === 1 ? 'album' : 'albums'}` : ''}>
   {#snippet titleExtra()}{#if kind !== 'albums' && kind !== 'custom' && key}<PinButton view={{ kind, key, title: title || result.name || '' }} />{/if}{/snippet}
-  {#if playlist.open && (result.own ?? []).length}<button class="ghost" onclick={addAll}>＋ Add all to {playlist.name}</button>{/if}
-  {#if kind === 'new' && newMode === 'random'}<button class="ghost" onclick={() => shuffles++}>Shuffle again</button>{/if}
+  {#if playlist.open && (result.own ?? []).length}<button class="ghost" onclick={addAll}>{t('＋ Add all to {playlist}', { playlist: playlist.name })}</button>{/if}
+  {#if kind === 'new' && newMode === 'random'}<button class="ghost" onclick={() => shuffles++}>{t('Shuffle again')}</button>{/if}
   <BrowseBar {view} showSort={kind !== 'new'} />
 </PageHead>
 {#if kind === 'new'}<div class="chips">{#each newModes as [mode, label]}<button class:on={newMode === mode} onclick={() => setNewMode(mode)}>{label}</button>{/each}</div>{/if}

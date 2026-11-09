@@ -58,7 +58,7 @@ public static partial class LibraryHealth
             var missing = unit.Tracks.Count(track => track.Composer == "");
             if (missing == 0) continue;
             var row = Row(unit); row["missing"] = missing; row["classical"] = classicalKeys.Contains(unit.Key) || unit.Tracks.Any(track => track.TagAlbumId > 0 && classicalKeys.Contains("t:" + track.TagAlbumId));
-            row["detail"] = missing == unit.Tracks.Count ? "No composer on any track" : $"No composer on {missing} of {unit.Tracks.Count} tracks";
+            row["detail"] = missing == unit.Tracks.Count ? L.T("No composer on any track") : L.T("No composer on {count} of {total} tracks", ("count", missing), ("total", unit.Tracks.Count));
             missingComposer.Add(row);
         }
 
@@ -88,7 +88,7 @@ public static partial class LibraryHealth
         var duplicates = ordered.GroupBy(unit => Find(unit.Key)).Where(group => group.Count() > 1).Select(group =>
         {
             var members = group.ToList();
-            return new Dictionary<string, object?> { ["reason"] = members.Select(Fingerprint).Distinct().Count() == 1 ? "Identical track lists" : "Same artist and title, tracks partly the same", ["albums"] = members.Select(Row).ToList() };
+            return new Dictionary<string, object?> { ["reason"] = members.Select(Fingerprint).Distinct().Count() == 1 ? L.T("Identical track lists") : L.T("Same artist and title, tracks partly the same"), ["albums"] = members.Select(Row).ToList() };
         }).ToList();
 
         // Bad or inconsistent tags, one row per album with each problem found
@@ -100,35 +100,35 @@ public static partial class LibraryHealth
             void Problem(string kind, string text) => problems.Add(new() { ["kind"] = kind, ["text"] = text });
             var tracks = unit.Tracks;
             var withAlbumArtist = tracks.Where(track => track.AlbumArtistTag != "").ToList();
-            if (tracks.All(track => track.AlbumArtistTag == "" && track.ArtistTag == "")) Problem("artist", "No artist or album artist on any track");
-            else if (withAlbumArtist.Count > 0 && withAlbumArtist.Count < tracks.Count) Problem("artist", $"Album artist missing on {tracks.Count - withAlbumArtist.Count} of {tracks.Count} tracks");
-            else if (withAlbumArtist.Select(track => track.AlbumArtistTag).Distinct().Count() > 1) Problem("artist", $"Album artist differs between tracks: {Few(withAlbumArtist.Select(track => track.AlbumArtistTag).Distinct().ToList(), 3, " / ")}");
+            if (tracks.All(track => track.AlbumArtistTag == "" && track.ArtistTag == "")) Problem("artist", L.T("No artist or album artist on any track"));
+            else if (withAlbumArtist.Count > 0 && withAlbumArtist.Count < tracks.Count) Problem("artist", L.T("Album artist missing on {count} of {total} tracks", ("count", tracks.Count - withAlbumArtist.Count), ("total", tracks.Count)));
+            else if (withAlbumArtist.Select(track => track.AlbumArtistTag).Distinct().Count() > 1) Problem("artist", L.T("Album artist differs between tracks: {names}", ("names", Few(withAlbumArtist.Select(track => track.AlbumArtistTag).Distinct().ToList(), 3, " / "))));
             // A compilation (Lyrion's flag, or no artist on most tracks) is meant to have different artists and often no album artist
-            else if (withAlbumArtist.Count == 0 && !unit.Compilation && tracks.Select(track => track.ArtistTag).Where(artist => artist != "").Distinct().Count() > 1) Problem("artist", "No album artist, and the tracks have different artists");
+            else if (withAlbumArtist.Count == 0 && !unit.Compilation && tracks.Select(track => track.ArtistTag).Where(artist => artist != "").Distinct().Count() > 1) Problem("artist", L.T("No album artist, and the tracks have different artists"));
             if (unitSource == "f")
             {
                 var tagAlbumIds = tracks.Select(track => track.TagAlbumId).Where(tagAlbumId => tagAlbumId > 0).Distinct().ToList();
-                if (tagAlbumIds.Count > 1) Problem("split", $"Tagged as {tagAlbumIds.Count} albums: {Few(tagAlbumIds.Select(tagAlbumId => tagAlbums.TryGetValue("t:" + tagAlbumId, out var tagAlbum) ? $"“{tagAlbum["title"]}”" + (tagAlbum["artist"] is string { Length: > 0 } tagArtist ? $" ({tagArtist})" : "") : "?").ToList(), 3, "; ")}");
+                if (tagAlbumIds.Count > 1) Problem("split", L.T("Tagged as {count} albums: {albums}", ("count", tagAlbumIds.Count), ("albums", Few(tagAlbumIds.Select(tagAlbumId => tagAlbums.TryGetValue("t:" + tagAlbumId, out var tagAlbum) ? $"“{tagAlbum["title"]}”" + (tagAlbum["artist"] is string { Length: > 0 } tagArtist ? $" ({tagArtist})" : "") : "?").ToList(), 3, "; "))));
             }
             var discs = tracks.GroupBy(track => track.Disc).OrderBy(group => group.Key).ToList();
             foreach (var disc in discs)
             {
-                var prefix = discs.Count > 1 ? $"Disc {(disc.Key > 0 ? disc.Key : "?")}: " : "";
+                var prefix = discs.Count > 1 ? L.T("Disc {number}", ("number", disc.Key > 0 ? disc.Key : "?")) + ": " : "";
                 var discTracks = disc.ToList();
                 var unnumbered = discTracks.Count(track => track.TrackNo <= 0);
-                if (unnumbered == discTracks.Count) { Problem("numbers", prefix + "No track numbers"); continue; }
-                if (unnumbered > 0) Problem("numbers", prefix + $"No track number on {unnumbered} {(unnumbered == 1 ? "track" : "tracks")}");
+                if (unnumbered == discTracks.Count) { Problem("numbers", prefix + L.T("No track numbers")); continue; }
+                if (unnumbered > 0) Problem("numbers", prefix + L.N(unnumbered, "No track number on {count} track", "No track number on {count} tracks"));
                 var repeated = discTracks.Where(track => track.TrackNo > 0).GroupBy(track => track.TrackNo).Where(group => group.Count() > 1).Select(group => group.Key).OrderBy(number => number).ToList();
-                if (repeated.Count > 0) Problem("numbers", prefix + $"{(repeated.Count == 1 ? "Track" : "Tracks")} {Few(repeated.Select(number => number.ToString()).ToList(), 6, ", ")} {(repeated.Count == 1 ? "appears" : "appear")} more than once");
+                if (repeated.Count > 0) Problem("numbers", prefix + L.N(repeated.Count, "Track {numbers} appears more than once", "Tracks {numbers} appear more than once", ("numbers", Few(repeated.Select(number => number.ToString()).ToList(), 6, ", "))));
                 var numbers = discTracks.Where(track => track.TrackNo > 0).Select(track => track.TrackNo).ToHashSet();
                 var highest = numbers.Max();
                 var gaps = highest <= 199 ? Enumerable.Range(1, highest).Where(number => !numbers.Contains(number)).ToList() : new List<int>();
-                if (gaps.Count > 0) Problem("numbers", prefix + $"{(gaps.Count == 1 ? "Track" : "Tracks")} {Few(gaps.Select(number => number.ToString()).ToList(), 6, ", ")} missing (numbered up to {highest})");
+                if (gaps.Count > 0) Problem("numbers", prefix + L.N(gaps.Count, "Track {numbers} missing (numbered up to {highest})", "Tracks {numbers} missing (numbered up to {highest})", ("numbers", Few(gaps.Select(number => number.ToString()).ToList(), 6, ", ")), ("highest", highest)));
             }
             var years = tracks.Select(track => track.Year).Where(year => year > 0).Distinct().OrderBy(year => year).ToList();
-            if (years.Count == 0) Problem("year", "No year");
-            foreach (var oddYear in years.Where(year => year < 1900 || year > currentYear + 1)) Problem("year", $"Odd year: {oddYear}");
-            if (years.Count > 1) Problem("year", $"Tracks have different years: {Few(years.Select(year => year.ToString()).ToList(), 4, ", ")}");
+            if (years.Count == 0) Problem("year", L.T("No year"));
+            foreach (var oddYear in years.Where(year => year < 1900 || year > currentYear + 1)) Problem("year", L.T("Odd year: {year}", ("year", oddYear)));
+            if (years.Count > 1) Problem("year", L.T("Tracks have different years: {years}", ("years", Few(years.Select(year => year.ToString()).ToList(), 4, ", "))));
             if (problems.Count == 0) continue;
             var row = Row(unit); row["problems"] = problems;
             tags.Add(row);
@@ -177,5 +177,5 @@ public static partial class LibraryHealth
         };
     }
 
-    static string Few(List<string> items, int limit, string separator) => string.Join(separator, items.Take(limit)) + (items.Count > limit ? $" and {items.Count - limit} more" : "");
+    static string Few(List<string> items, int limit, string separator) => string.Join(separator, items.Take(limit)) + (items.Count > limit ? " " + L.T("and {count} more", ("count", items.Count - limit)) : "");
 }

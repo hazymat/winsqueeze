@@ -1,4 +1,5 @@
 <script lang="ts" module>
+  import { t } from '../lib/i18n'
   let meterCount = 0
 </script>
 <script lang="ts">
@@ -63,7 +64,7 @@
   const detentAngles = Array.from({ length: 16 }, (unused, index) => 21 + index * 25 / 15)
 </script>
 
-<button class="meters {size}" bind:clientWidth={meterWidth} class:idle={!active} onclick={toggle} onpointerdown={pressMeters} onpointermove={dragMeters} onpointerup={() => pressedAt = null} oncontextmenu={(event) => { event.preventDefault(); event.stopPropagation(); cycleMeterView() }} title={(app.meterSettings.styles.length < 2 ? 'Click to tap the meter' : 'Click to switch meter style') + (moveWindow ? ` · drag to move the window · right-click ${ui.hifi ? 'to close' : 'for hi-fi'}` : ' · right-click for full window')}>
+<button class="meters {size}" bind:clientWidth={meterWidth} class:idle={!active} onclick={toggle} onpointerdown={pressMeters} onpointermove={dragMeters} onpointerup={() => pressedAt = null} oncontextmenu={(event) => { event.preventDefault(); event.stopPropagation(); cycleMeterView() }} title={(app.meterSettings.styles.length < 2 ? t('Click to tap the meter') : t('Click to switch meter style')) + ' · ' + (moveWindow ? (ui.hifi ? t('drag to move the window · right-click to close') : t('drag to move the window · right-click for hi-fi')) : t('right-click for full window'))}>
   {#key meterView.epoch}
   {#if ui.meterStyle === 'vu'}
     {#each ['L', 'R'] as channel, channelIndex}
@@ -139,7 +140,7 @@
         <!-- Movement cover: a dark Bakelite dome the needle rises out of, its rim catching the lamp, with the zero-adjust screw -->
         <g clip-path="url(#{gradientId}-clip)"><ellipse cx="60" cy="74" rx="25" ry="16" fill="url(#{gradientId}-shroud)" /><path d="M35.6 74 A24.4 15.4 0 0 1 84.4 74" class="shroud-rim" /><ellipse cx="60" cy="74" rx="25" ry="16" class="shroud-edge" />
           <circle cx="60" cy="64" r="2.6" fill="url(#{gradientId}-screw)" class="screw" /><line x1="57.8" y1="64" x2="62.2" y2="64" class="screw-slot" transform="rotate({screwAngle} 60 64)" /></g>
-        {#if size !== 'small'}<circle cx="60" cy="64" r="4.5" class="screw-grip" role="slider" tabindex="-1" aria-label="0 VU" aria-valuenow={meters.reference} onpointerdown={grabScrew} onpointermove={turnScrew} onpointerup={releaseScrew} onpointercancel={releaseScrew} onclick={(event) => event.stopPropagation()} onkeydown={nudgeScrew} ondblclick={autoScrew}><title>Drag to set 0 VU · double-click for automatic</title></circle>{/if}
+        {#if size !== 'small'}<circle cx="60" cy="64" r="4.5" class="screw-grip" role="slider" tabindex="-1" aria-label={t('0 VU')} aria-valuenow={meters.reference} onpointerdown={grabScrew} onpointermove={turnScrew} onpointerup={releaseScrew} onpointercancel={releaseScrew} onclick={(event) => event.stopPropagation()} onkeydown={nudgeScrew} ondblclick={autoScrew}><title>{t('Drag to set 0 VU · double-click for automatic')}</title></circle>{/if}
         <rect x="7" y="65.6" width="106" height="1" class="lit-edge" />
         <!-- Acrylic window edge: light bends through the thick rim, a bright band with a darker inner seam -->
         <rect x="5.7" y="5.7" width="108.6" height="60.6" rx="1.6" class="rim-glow" /><rect x="7.3" y="7.3" width="105.4" height="57.4" rx="1" class="rim-seam" /><path d="M6 6.2 H114" class="rim-catch" />
@@ -185,7 +186,7 @@
     {/each}
   {:else}
     <!-- Spectrum analyser (the third style; stored as 'oled' so earlier choices carry over) -->
-    <div class="spectrum">{#if size !== 'small'}<Analyser levels={meters.bands} labels={bandLabels} scale={spectrumScale} segments={24} title="SPECTRUM ANALYZER" fullRange={Math.max(0, Math.min(1, (Math.max(meters.vu[0] ?? -90, meters.vu[1] ?? -90) + 40) / 40))} />{:else}<Analyser levels={meters.bands} compact={true} segments={12} />{/if}</div>
+    <div class="spectrum">{#if size !== 'small'}<Analyser levels={meters.bands} labels={bandLabels} scale={spectrumScale} segments={24} title={t('SPECTRUM ANALYZER')} fullRange={Math.max(0, Math.min(1, (Math.max(meters.vu[0] ?? -90, meters.vu[1] ?? -90) + 40) / 40))} />{:else}<Analyser levels={meters.bands} compact={true} segments={12} />{/if}</div>
   {/if}
   {/key}
 </button>
