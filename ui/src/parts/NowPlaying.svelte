@@ -296,7 +296,7 @@
   .credit-row.here { box-shadow: inset 2px 0 0 var(--accent); background: color-mix(in srgb, var(--accent) 6%, transparent); }
   .credit-name { position: relative; font-size: 13.5px; font-weight: 600; line-height: 1.35; } .credit-roles { font-size: 13px; color: var(--fg-quiet); line-height: 1.35; }
   .track-map { position: relative; display: flex; gap: 2px; align-self: center; max-width: 120px; } .track-map i { flex: 1; min-width: 2px; max-width: 4px; width: 4px; height: 12px; border-radius: 1px; background: color-mix(in srgb, var(--fg) 12%, transparent); }
-  .track-map i.on { background: color-mix(in srgb, var(--fg) 55%, transparent); } .track-map i.current { background: color-mix(in srgb, var(--accent) 30%, transparent); } .track-map i.on.current { background: var(--accent); }
+  .track-map i.on { background: color-mix(in srgb, var(--fg) 55%, transparent); } .track-map i.on.current { background: var(--accent); }
   .lyrics pre { margin: 14px 0 0; font: inherit; font-size: 15px; line-height: 1.7; white-space: pre-wrap; }
   .source { margin-top: 18px; padding-top: 10px; border-top: 1px solid var(--line); color: var(--fg-quiet); font-size: 11.5px; } .source .link { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
   @media (max-width: 1100px) { .layout { grid-template-columns: minmax(180px, 0.8fr) minmax(280px, 1.2fr); grid-template-rows: auto 1fr; } .art-column { grid-row: 1; } .meta { grid-row: 1; } .queue-panel { grid-column: 1 / 3; } .art { max-width: min(260px, 42cqh); } }
