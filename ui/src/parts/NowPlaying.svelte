@@ -48,17 +48,11 @@
   const shortCount = (blocks: string[]) => { let length = 0, count = 0; for (const block of blocks) { if (count > 0 && length + block.length > 700) break; length += block.length; count++ } while (count > 1 && blocks[count - 1].startsWith('## ')) count--; return count } // never ends on a heading
   let expanded = $state(false)
   $effect(() => { trackKey; infoKey; expanded = false })
-  // Album splits into Summary and Credits; a view shows while it's still loading so the row doesn't jump, and goes once it has nothing
   const pending = (value: any) => value === undefined || value === 'loading'
-  const subViews = $derived.by(() => {
-    const about = info.album, credits = info.credits, views: { key: string, label: string }[] = []
-    if (infoKey !== 'album') return views
-    if (pending(about) || about.found) views.push({ key: 'summary', label: 'Summary' })
-    if (pending(credits) || credits.found) views.push({ key: 'credits', label: 'Credits' })
-    return views
-  })
-  const subView = $derived(subViews.some(view => view.key === ui.albumView) ? ui.albumView : (subViews[0]?.key ?? 'summary'))
-  const chooseSubView = (key: string) => { ui.albumView = key; writeSetting('albumView', key) }
+  // Album is the review; Credits opens from a button above it, like the artist Timeline
+  let showCredits = $state(false)
+  const albumName = $derived(track?.album ?? '')
+  $effect(() => { albumName; showCredits = false }) // a new album opens on its review
   // Artist is the bio; the Timeline opens from a button above it and closes back to the bio
   let showTimeline = $state(false)
   const artistName = $derived(track?.artist ?? '') // a string, so status polls (a new track object each time) don't count as a change
@@ -72,23 +66,18 @@
     for (const number of numbers.slice(1).concat([0])) { if (number === last + 1) { last = number; continue } runs.push(first === last ? label(first) : last === first + 1 ? `${label(first)}, ${label(last)}` : `${label(first)}–${label(last)}`); first = last = number }
     return runs.join(', ')
   }
+  // One row per person: their roles, and a strip with a cell per track (filled where they play; the playing track's column lit)
   const peopleIn = (credits: any, group: string) => {
-    const people: { name: string, roles: { role: string, tracks: string, here: boolean }[] }[] = [], here = playingNumber(credits)
+    const people: { name: string, roles: string[], tracks: Set<number>, detail: string[] }[] = [], everyTrack = credits.tracks.map((item: any) => item.n)
     for (const credit of credits.credits.filter((credit: any) => credit.group === group)) {
       let person = people.find(item => item.name === credit.name)
-      if (!person) people.push(person = { name: credit.name, roles: [] })
-      person.roles.push({ role: credit.role, tracks: credit.tracks.length ? trackRange(credit.tracks, credits.tracks) : '', here: credit.tracks.includes(here) })
+      if (!person) people.push(person = { name: credit.name, roles: [], tracks: new Set(), detail: [] })
+      if (!person.roles.includes(credit.role)) person.roles.push(credit.role)
+      for (const number of credit.all ? everyTrack : credit.tracks) person.tracks.add(number)
+      person.detail.push(credit.all ? `${credit.role}: every track` : credit.tracks.length ? `${credit.role}: ${trackRange(credit.tracks, credits.tracks)}` : `${credit.role}: the album`)
     }
     return people
   }
-  const peopleHere = (credits: any) => {
-    const here = playingNumber(credits), people: { name: string, roles: string[] }[] = []
-    if (!here) return people
-    for (const credit of credits.credits.filter((credit: any) => credit.all || credit.tracks.includes(here))) { let person = people.find(item => item.name === credit.name); if (!person) people.push(person = { name: credit.name, roles: [] }); person.roles.push(credit.role) }
-    return people
-  }
-  const initials = (name: string) => name.split(/\s+/).filter(word => /^\p{L}/u.test(word)).map(word => word[0]).slice(0, 2).join('').toUpperCase() || '♪'
-  const nameHue = (name: string) => { let hash = 0; for (const letter of name) hash = (hash * 31 + letter.charCodeAt(0)) % 360; return hash }
   const infoImage = (image: string) => image.startsWith('http') ? image : serverArt(image, 300)
   // The album opens with this track marked (folder or tag album, whichever the library uses)
   async function openAlbum() { const trackId = Number(track?.id); const place = trackId > 0 ? await query('trackPlace', { id: trackId }) : null; if (place?.album) openView({ kind: 'album', key: String(place.album), title: place.albumTitle, highlight: String(trackId) }); else toast('That album isn’t in the library') }
@@ -146,7 +135,7 @@
                 {@render source(info.timeline.source, info.timeline.link, 'MusicBrainz page')}
               {/if}
             {:else}
-              {#if info.timeline?.found}<button class="timeline-button" onclick={() => showTimeline = true}><svg class="timeline-drawing" viewBox="0 0 64 24" aria-hidden="true"><path d="M2 19h60" /><path d="M10 19v-7M24 19v-11M38 19v-6M52 19v-10" /><rect x="6.5" y="5" width="7" height="7" rx="1.2" /><rect x="20.5" y="1" width="7" height="7" rx="1.2" /><rect x="34.5" y="6" width="7" height="7" rx="1.2" /><rect x="48.5" y="2" width="7" height="7" rx="1.2" /><circle cx="10" cy="19" r="2.2" /><circle cx="24" cy="19" r="2.2" /><circle cx="38" cy="19" r="2.2" /><circle cx="52" cy="19" r="2.2" /></svg><span>View artist timeline</span><span class="chevron" aria-hidden="true">›</span></button>{/if}
+              {#if info.timeline?.found}<button class="callout-button" onclick={() => showTimeline = true}><svg class="drawing" viewBox="0 0 64 24" aria-hidden="true"><path d="M2 19h60" /><path d="M10 19v-7M24 19v-11M38 19v-6M52 19v-10" /><rect x="6.5" y="5" width="7" height="7" rx="1.2" /><rect x="20.5" y="1" width="7" height="7" rx="1.2" /><rect x="34.5" y="6" width="7" height="7" rx="1.2" /><rect x="48.5" y="2" width="7" height="7" rx="1.2" /><circle cx="10" cy="19" r="2.2" /><circle cx="24" cy="19" r="2.2" /><circle cx="38" cy="19" r="2.2" /><circle cx="52" cy="19" r="2.2" /></svg><span>View artist timeline</span><span class="chevron" aria-hidden="true">›</span></button>{/if}
               {#if pending(result)}<p class="quiet">Looking…</p>
               {:else if !result.found}<p class="quiet">Nothing found about this artist</p>
               {:else}
@@ -158,35 +147,34 @@
               {/if}
             {/if}
           {:else}
-            {#if subViews.length > 1}<div class="sub-tabs" role="tablist">{#each subViews as view (view.key)}<button role="tab" class:on={subView === view.key} aria-selected={subView === view.key} onclick={() => chooseSubView(view.key)}>{view.label}</button>{/each}</div>{/if}
-            {#if !subViews.length}<p class="quiet">Nothing found about this album</p>
-            {:else if subView === 'credits'}
-              {#if pending(info.credits)}<p class="quiet">Looking…</p>{:else}
-                {@const credits = info.credits.events}{@const here = peopleHere(credits)}{@const number = playingNumber(credits)}
-                {#if here.length}
-                  <div class="credits-here"><div class="here-head"><span class="here-number">{credits.tracks.find((item: any) => item.n === number)?.label}</span>{track?.title}</div>
-                    {#each here as person}<div class="here-person"><span class="who">{person.name}</span><span class="what">{person.roles.join(', ')}</span></div>{/each}
-                  </div>
-                {/if}
+            {#if showCredits && info.credits?.found}
+              <button class="back" onclick={() => showCredits = false}>← Album</button>
+                {@const credits = info.credits.events}{@const number = playingNumber(credits)}
                 {#each creditGroups as [group, title]}{@const people = peopleIn(credits, group)}
                   {#if people.length}
                     <h3 class="credit-group">{title}</h3>
-                    {#each people as person}
-                      <div class="credit"><span class="avatar" style:--hue={nameHue(person.name)} aria-hidden="true">{initials(person.name)}</span>
-                        <div class="credit-text"><div class="credit-name">{person.name}</div><div class="roles">{#each person.roles as role}<span class="role" class:here={role.here}>{role.role}{#if role.tracks}<span class="tracks">{role.tracks}</span>{/if}</span>{/each}</div></div>
-                      </div>
-                    {/each}
+                    <div class="credit-list">
+                      {#each people as person}
+                        <div class="credit-row" class:here={person.tracks.has(number)} title={person.detail.join('\n')}>
+                          <div class="credit-name">{person.name}</div><div class="credit-roles">{person.roles.join(', ')}</div>
+                          <div class="track-map" style:width={`${credits.tracks.length * 6 - 2}px`} aria-hidden="true">{#if person.tracks.size}{#each credits.tracks as item}<i class:on={person.tracks.has(item.n)} class:current={item.n === number}></i>{/each}{/if}</div>
+                        </div>
+                      {/each}
+                    </div>
                   {/if}
                 {/each}
                 {@render source(`${info.credits.source}${info.credits.subheading ? ` (the ${info.credits.subheading} release)` : ''}`, info.credits.link, 'MusicBrainz page')}
-              {/if}
-            {:else if pending(result)}<p class="quiet">Looking…</p>
             {:else}
+              {#if info.credits?.found}<button class="callout-button" onclick={() => showCredits = true}><svg class="drawing" viewBox="0 0 64 24" aria-hidden="true"><path d="M2 4h14M2 12h11M2 20h16" /><rect x="26" y="1.5" width="4" height="5" rx="0.8" class="on" /><rect x="33" y="1.5" width="4" height="5" rx="0.8" class="on" /><rect x="40" y="1.5" width="4" height="5" rx="0.8" class="on" /><rect x="47" y="1.5" width="4" height="5" rx="0.8" class="on" /><rect x="54" y="1.5" width="4" height="5" rx="0.8" class="on" /><rect x="26" y="9.5" width="4" height="5" rx="0.8" /><rect x="33" y="9.5" width="4" height="5" rx="0.8" class="on" /><rect x="40" y="9.5" width="4" height="5" rx="0.8" /><rect x="47" y="9.5" width="4" height="5" rx="0.8" class="on" /><rect x="54" y="9.5" width="4" height="5" rx="0.8" /><rect x="26" y="17.5" width="4" height="5" rx="0.8" class="on" /><rect x="33" y="17.5" width="4" height="5" rx="0.8" /><rect x="40" y="17.5" width="4" height="5" rx="0.8" /><rect x="47" y="17.5" width="4" height="5" rx="0.8" /><rect x="54" y="17.5" width="4" height="5" rx="0.8" class="on" /></svg><span>View album credits</span><span class="chevron" aria-hidden="true">›</span></button>{/if}
+              {#if pending(result)}<p class="quiet">Looking…</p>
+              {:else if !result.found}{#if !info.credits?.found}<p class="quiet">Nothing found about this album</p>{/if}
+              {:else}
               {@const blocks = blocksOf(result.text)}{@const shown = expanded ? blocks.length : shortCount(blocks)}
               <div class="info-head">{#if result.image}<img class="info-pic" src={infoImage(result.image)} alt="" />{/if}<div><h2>{result.heading}</h2>{#if result.subheading}<div class="quiet">{result.subheading}</div>{/if}</div></div>
               {#each blocks.slice(0, shown) as block}{#if block.startsWith('## ')}<h3>{block.slice(3)}</h3>{:else if block.startsWith('• ')}<ul>{#each block.split('\n') as item}<li>{item.replace(/^• /, '')}</li>{/each}</ul>{:else}<p>{block}</p>{/if}{/each}
               {#if shown < blocks.length}<button class="more" onclick={() => expanded = true}>Show more</button>{/if}
               {@render source(result.source, result.link, 'Read more')}
+              {/if}
             {/if}
           {/if}
         </div>
@@ -237,9 +225,6 @@
   .info .more { margin-top: 10px; background: none; border: 0; padding: 0; color: var(--accent); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; } .info .more:hover { text-decoration: underline; }
   .info-head { display: flex; gap: 12px; align-items: center; } .info-pic { flex: none; width: 64px; height: 64px; object-fit: cover; border-radius: 8px; box-shadow: 0 6px 18px var(--shadow); } .info-pic.round { border-radius: 50%; }
   /* Timeline: a line down the left, years in the display face, albums with their sleeves; your own albums open from it */
-  /* Summary · Timeline · Full bio: a small segmented row that stays at the top while the view scrolls */
-  .sub-tabs { position: sticky; top: -2px; z-index: 1; display: flex; gap: 2px; width: fit-content; margin: 0 0 14px; padding: 3px; border-radius: 8px; background: color-mix(in srgb, var(--bg) 90%, var(--fg)); border: 1px solid var(--line); box-shadow: 0 4px 12px var(--shadow); }
-  .sub-tabs button { background: none; border: 0; border-radius: 6px; padding: 4px 11px; color: var(--fg-quiet); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; } .sub-tabs button:hover { color: var(--fg); } .sub-tabs button.on { background: var(--accent-soft); color: var(--accent); }
   .timeline { list-style: none; margin: 4px 0 0; padding: 0 0 0 18px; position: relative; }
   .timeline::before { content: ""; position: absolute; left: 5px; top: 8px; bottom: 8px; width: 2px; border-radius: 1px; background: linear-gradient(var(--accent), color-mix(in srgb, var(--accent) 15%, transparent)); }
   .year-group { margin: 0 0 12px; } .year { position: relative; font-family: var(--font-display); font-size: 13px; color: var(--accent); letter-spacing: 0.04em; margin-bottom: 4px; }
@@ -250,21 +235,19 @@
   .event-text { flex: 1; min-width: 0; } .event-title { font-size: 13.5px; line-height: 1.3; } .event-detail { font-size: 11.5px; color: var(--fg-quiet); }
   .event.album .event-title { font-weight: 600; } .event.start .event-title, .event.end .event-title { color: var(--fg-quiet); font-style: italic; } .event.nominated .event-title, .event.label .event-title, .event.member .event-title { color: color-mix(in srgb, var(--fg) 80%, var(--bg)); }
   .owned { flex: none; border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 2px 9px; font: inherit; font-size: 11px; font-weight: 600; cursor: pointer; } .now { flex: none; font-size: 11px; font-weight: 600; color: var(--on-accent); background: var(--accent); border-radius: 999px; padding: 2px 9px; } .event.playing .sleeve { box-shadow: 0 0 0 2px var(--accent), 0 2px 10px var(--shadow); } .owned:hover { background: color-mix(in srgb, var(--accent) 25%, transparent); }
-  /* View artist timeline: a small drawn timeline as its badge, so it reads as something to open */
-  .timeline-button { display: flex; align-items: center; gap: 12px; width: 100%; margin: 0 0 16px; padding: 9px 12px; border-radius: 10px; border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); background: linear-gradient(120deg, color-mix(in srgb, var(--accent) 14%, transparent), color-mix(in srgb, var(--accent) 3%, transparent)); color: var(--fg); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; text-align: left; }
-  .timeline-button:hover { border-color: color-mix(in srgb, var(--accent) 60%, transparent); } .timeline-button span:not(.chevron) { flex: 1; } .timeline-button .chevron { color: var(--accent); font-size: 18px; line-height: 1; }
-  .timeline-drawing { flex: none; width: 52px; height: 20px; fill: none; stroke: var(--accent); stroke-width: 1.6; stroke-linecap: round; } .timeline-drawing circle { fill: var(--accent); stroke: none; } .timeline-drawing rect { stroke-width: 1.3; fill: color-mix(in srgb, var(--accent) 30%, transparent); }
+  /* View artist timeline / View album credits: a small drawing of what opens as its badge, so it reads as something to open */
+  .callout-button { display: flex; align-items: center; gap: 12px; width: 100%; margin: 0 0 16px; padding: 9px 12px; border-radius: 10px; border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); background: linear-gradient(120deg, color-mix(in srgb, var(--accent) 14%, transparent), color-mix(in srgb, var(--accent) 3%, transparent)); color: var(--fg); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; text-align: left; }
+  .callout-button:hover { border-color: color-mix(in srgb, var(--accent) 60%, transparent); } .callout-button span:not(.chevron) { flex: 1; } .callout-button .chevron { color: var(--accent); font-size: 18px; line-height: 1; }
+  .drawing { flex: none; width: 52px; height: 20px; fill: none; stroke: var(--accent); stroke-width: 1.6; stroke-linecap: round; } .drawing circle { fill: var(--accent); stroke: none; } .drawing rect { stroke-width: 1.3; fill: color-mix(in srgb, var(--accent) 30%, transparent); } .drawing rect.on { fill: var(--accent); }
   .back { background: none; border: 0; padding: 0; margin: 0 0 12px; color: var(--accent); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; } .back:hover { text-decoration: underline; }
-  /* Credits: the playing track's people in a card, then everyone by what they did, roles as chips with their track numbers */
-  .credits-here { margin: 2px 0 6px; padding: 12px 14px; border-radius: 10px; background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 16%, transparent), color-mix(in srgb, var(--accent) 5%, transparent)); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); }
-  .here-head { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 13.5px; margin-bottom: 8px; } .here-number { flex: none; min-width: 20px; height: 20px; padding: 0 5px; box-sizing: border-box; border-radius: 10px; background: var(--accent); color: var(--on-accent); font-size: 11px; display: grid; place-items: center; }
-  .here-person { display: flex; gap: 10px; padding: 2px 0; font-size: 13px; line-height: 1.4; } .here-person .who { flex: none; font-weight: 600; width: min(38%, 170px); } .here-person .what { color: var(--fg-quiet); }
-  .info h3.credit-group { margin: 20px 0 6px; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-quiet); font-weight: 700; }
-  .credit { display: flex; gap: 10px; align-items: flex-start; padding: 6px 0; } .credit + .credit { border-top: 1px solid color-mix(in srgb, var(--line) 60%, transparent); }
-  .avatar { flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 700; color: #fff; background: linear-gradient(135deg, hsl(var(--hue) 45% 48%), hsl(calc(var(--hue) + 40) 45% 36%)); box-shadow: 0 2px 6px var(--shadow); }
-  .credit-text { flex: 1; min-width: 0; } .credit-name { font-size: 13.5px; font-weight: 600; line-height: 1.3; }
-  .roles { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; } .role { display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px; border-radius: 999px; font-size: 11.5px; line-height: 18px; background: var(--panel-strong); border: 1px solid var(--line); }
-  .role .tracks { color: var(--fg-quiet); font-size: 10.5px; font-variant-numeric: tabular-nums; } .role.here { border-color: color-mix(in srgb, var(--accent) 55%, transparent); background: var(--accent-soft); }
+  /* Credits: liner-notes table. Name, roles, and a strip with a cell per track; the playing track's column is lit down the whole list */
+  .info h3.credit-group { margin: 22px 0 6px; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-quiet); font-weight: 700; } .info .back + h3.credit-group { margin-top: 4px; }
+  .credit-list { border-top: 1px solid var(--line); }
+  .credit-row { display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.2fr) auto; gap: 12px; align-items: baseline; padding: 7px 4px 7px 8px; border-bottom: 1px solid var(--line); box-shadow: inset 2px 0 0 transparent; }
+  .credit-row.here { box-shadow: inset 2px 0 0 var(--accent); background: color-mix(in srgb, var(--accent) 6%, transparent); }
+  .credit-name { font-size: 13.5px; font-weight: 600; line-height: 1.35; } .credit-roles { font-size: 13px; color: var(--fg-quiet); line-height: 1.35; }
+  .track-map { display: flex; gap: 2px; align-self: center; max-width: 120px; } .track-map i { flex: 1; min-width: 2px; max-width: 4px; width: 4px; height: 12px; border-radius: 1px; background: color-mix(in srgb, var(--fg) 12%, transparent); }
+  .track-map i.on { background: color-mix(in srgb, var(--fg) 55%, transparent); } .track-map i.current { background: color-mix(in srgb, var(--accent) 30%, transparent); } .track-map i.on.current { background: var(--accent); }
   .lyrics pre { margin: 14px 0 0; font: inherit; font-size: 15px; line-height: 1.7; white-space: pre-wrap; }
   .source { margin-top: 18px; padding-top: 10px; border-top: 1px solid var(--line); color: var(--fg-quiet); font-size: 11.5px; } .source .link { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
   @media (max-width: 1100px) { .layout { grid-template-columns: minmax(180px, 0.8fr) minmax(280px, 1.2fr); grid-template-rows: auto 1fr; } .art-column { grid-row: 1; } .meta { grid-row: 1; } .queue-panel { grid-column: 1 / 3; } .art { max-width: min(260px, 42cqh); } }
