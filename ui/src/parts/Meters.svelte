@@ -4,10 +4,11 @@
 <script lang="ts">
   import { untrack } from 'svelte'
   import { app, ui, meters, meterView, writeSetting } from '../state.svelte'
+  import { sendToShell } from '../bridge'
   import Analyser from './Analyser.svelte'
   import MeterPanel, { panelThemes } from './MeterPanel.svelte'
   // Live from our Squeezelite build's sample export; with no audio the needles rest below -20 and the lamp dims
-  let { size = 'small', zoom = 1 }: { size?: 'small' | 'large' | 'full', zoom?: number } = $props()
+  let { size = 'small', zoom = 1, moveWindow = false }: { size?: 'small' | 'large' | 'full', zoom?: number, moveWindow?: boolean } = $props()
   // Grain and dust are drawn in face units, so their frequency follows the real pixel size (window size × full-screen zoom) to stay fine
   let meterWidth = $state(384)
   const textureScale = $derived(Math.max(0.4, zoom * (meterWidth || 384) / 384))
@@ -25,7 +26,11 @@
   const spectrumScale = ['30', '24', '18', '12', '6']
   const meterStyles = ['vu', 'deck', 'orange', 'monitor', 'blue', 'green', 'oledvu', 'oled'] // analogue faces after classic amps and decks sit between the VU and the OLED styles
   const bandLabels = ['31', '63', '125', '250', '500', '1k', '2k', '4k', '8k', '16k'] // octave centres (Hz)
-  const toggle = () => { ui.meterStyle = meterStyles[(meterStyles.indexOf(ui.meterStyle) + 1) % meterStyles.length]; writeSetting('meterStyle', ui.meterStyle) }
+  // Full window: dragging the meters moves the window (a click still switches style)
+  let pressedAt = null as null | { x: number, y: number }, dragged = false
+  const pressMeters = (event: PointerEvent) => { dragged = false; pressedAt = moveWindow && event.button === 0 ? { x: event.clientX, y: event.clientY } : null }
+  const dragMeters = (event: PointerEvent) => { if (pressedAt && Math.hypot(event.clientX - pressedAt.x, event.clientY - pressedAt.y) > 4) { pressedAt = null; dragged = true; sendToShell({ type: 'dragWindow' }) } }
+  const toggle = () => { if (dragged) { dragged = false; return } ui.meterStyle = meterStyles[(meterStyles.indexOf(ui.meterStyle) + 1) % meterStyles.length]; writeSetting('meterStyle', ui.meterStyle) }
   const gradientId = `vu-lamp-${meterCount++}`
   // Classic VU scale: dB mark -> needle angle (degrees from vertical), pivot sits below the face like a real meter
   const scaleMarks: [number, number][] = [[-20, -48], [-10, -31], [-7, -21], [-5, -12], [-3, -1], [-2, 6], [-1, 13], [0, 21], [1, 29], [2, 37], [3, 46]]
@@ -58,6 +63,16 @@
     return () => cancelAnimationFrame(frame)
   })
   const lamp = $derived(lampStops(lampHeat))
+  // Zero-adjust screw: drag sideways to set a fixed 0 VU (right reads higher), double-click for automatic; the note replaces the channel letter while turning
+  let screwDrag = $state(null as null | { startX: number, startReference: number, reference: number, turned: boolean })
+  let screwNote = $state(''), screwNoteTimer = 0
+  const screwAngle = $derived(-30 + ((screwDrag?.reference ?? meters.reference) + 16) * 7.5)
+  const showScrewNote = (note: string, holdMs: number) => { clearTimeout(screwNoteTimer); screwNote = note; if (holdMs) screwNoteTimer = setTimeout(() => screwNote = '', holdMs) }
+  const setReference = (reference: number) => { app.meterSettings = { referenceDbfs: reference, autoReference: false }; meters.reference = reference; showScrewNote(`0 VU = ${reference} dBFS`.replace('-', '−'), 0) }
+  const grabScrew = (event: PointerEvent) => { if (size === 'small' || event.button !== 0) return; event.stopPropagation(); (event.currentTarget as Element).setPointerCapture(event.pointerId); screwDrag = { startX: event.clientX, startReference: Math.round(meters.reference), reference: Math.round(meters.reference), turned: false } }
+  const turnScrew = (event: PointerEvent) => { if (!screwDrag) return; const reference = Math.max(-24, Math.min(-8, Math.round(screwDrag.startReference - (event.clientX - screwDrag.startX) / 6))); if (reference !== screwDrag.reference || !screwDrag.turned && Math.abs(event.clientX - screwDrag.startX) > 3) { screwDrag.reference = reference; screwDrag.turned = true; setReference(reference) } }
+  const releaseScrew = () => { if (!screwDrag) return; if (screwDrag.turned) { sendToShell({ type: 'setMeterReference', referenceDbfs: screwDrag.reference }); showScrewNote(screwNote, 1500) } screwDrag = null }
+  const autoScrew = (event: MouseEvent) => { event.stopPropagation(); if (size === 'small') return; app.meterSettings = { referenceDbfs: app.meterSettings.referenceDbfs, autoReference: true }; sendToShell({ type: 'setMeterReference', auto: true }); showScrewNote('Automatic 0 VU', 1500) }
   // OLED VU: one even scale line; above it, a tick per mark and dense detents across the 0..+3 zone (like the Transporter display)
   // Its pivot sits just below the display, closer than the analogue meter's, so the scale is a wider arc and the resting needle lies flatter
   const oledPivotY = 78, oledSpread = 1.25, oledRadius = 42, oledRestAngle = -68
@@ -66,7 +81,7 @@
   const detentAngles = Array.from({ length: 16 }, (unused, index) => 21 + index * 25 / 15)
 </script>
 
-<button class="meters {size}" style="--lamp-glow: {lampHeat}" bind:clientWidth={meterWidth} class:idle={!active} onclick={toggle} oncontextmenu={(event) => { event.preventDefault(); ui.metersFull = !ui.metersFull }} title="Click to switch meter style · right-click for full window">
+<button class="meters {size}" style="--lamp-glow: {lampHeat}" bind:clientWidth={meterWidth} class:idle={!active} onclick={toggle} onpointerdown={pressMeters} onpointermove={dragMeters} onpointerup={() => pressedAt = null} oncontextmenu={(event) => { event.preventDefault(); ui.metersFull = !ui.metersFull }} title={moveWindow ? 'Click to switch meter style · drag to move the window · right-click to close' : 'Click to switch meter style · right-click for full window'}>
   {#key meterView.epoch}
   {#if ui.meterStyle === 'vu'}
     {#each ['L', 'R'] as channel, channelIndex}
@@ -89,8 +104,10 @@
           <filter id={gradientId + '-soft'} filterUnits="userSpaceOnUse" x="0" y="0" width="120" height="72"><feGaussianBlur stdDeviation="0.7" /></filter>
           <linearGradient id={gradientId + '-sheen'} x1="0" y1="0" x2="1" y2="0.6"><stop offset="0%" stop-color="#fff" stop-opacity="0" /><stop offset="30%" stop-color="#fff" stop-opacity="0.13" /><stop offset="44%" stop-color="#fff" stop-opacity="0.02" /><stop offset="58%" stop-color="#fff" stop-opacity="0" /></linearGradient>
           <!-- Glass: the thick edge bends light unevenly; faint smudges and dust on the pane -->
-          <filter id={gradientId + channel + '-warp'} filterUnits="userSpaceOnUse" x="0" y="0" width="120" height="72"><feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="2" seed={channelIndex ? 21 : 13} result="warp" /><feDisplacementMap in="SourceGraphic" in2="warp" scale="0.9" xChannelSelector="R" yChannelSelector="G" /></filter>
-          <filter id={gradientId + channel + '-dust'} filterUnits="userSpaceOnUse" x="5" y="5" width="110" height="62"><feTurbulence type="fractalNoise" baseFrequency={1.2 * textureScale} numOctaves="1" seed={channelIndex ? 31 : 17} /><feColorMatrix values="0 0 0 0 1  0 0 0 0 0.98  0 0 0 0 0.94  0 0 0 9 -7.4" /></filter>
+          <!-- Glass: light in the thick edge is brighter and dimmer along each side (smooth gradients, softened so it reads as light, not print); faint smudges and dust on the pane -->
+          <filter id={gradientId + '-edge-soft'} filterUnits="userSpaceOnUse" x="0" y="0" width="120" height="72"><feGaussianBlur stdDeviation="0.35" /></filter>
+          <filter id={gradientId + '-seam-soft'} filterUnits="userSpaceOnUse" x="0" y="0" width="120" height="72"><feGaussianBlur stdDeviation="0.15" /></filter>
+          <linearGradient id={gradientId + channel + '-edge-patches'} x1={channelIndex ? 1 : 0} y1="0" x2={channelIndex ? 0 : 1} y2="0"><stop offset="0%" stop-color="#fff6de" stop-opacity="0" /><stop offset="12%" stop-color="#fff6de" stop-opacity="0.6" /><stop offset="26%" stop-color="#fff6de" stop-opacity="0.05" /><stop offset="47%" stop-color="#fff6de" stop-opacity="0.45" /><stop offset="63%" stop-color="#fff6de" stop-opacity="0" /><stop offset="84%" stop-color="#fff6de" stop-opacity="0.5" /><stop offset="100%" stop-color="#fff6de" stop-opacity="0.1" /></linearGradient>          <filter id={gradientId + channel + '-dust'} filterUnits="userSpaceOnUse" x="5" y="5" width="110" height="62"><feTurbulence type="fractalNoise" baseFrequency={1.2 * textureScale} numOctaves="1" seed={channelIndex ? 31 : 17} /><feColorMatrix values="0 0 0 0 1  0 0 0 0 0.98  0 0 0 0 0.94  0 0 0 9 -7.4" /></filter>
           <filter id={gradientId + '-smudge'} filterUnits="userSpaceOnUse" x="0" y="0" width="120" height="72"><feGaussianBlur stdDeviation="5" /></filter>
           <linearGradient id={gradientId + '-edge-light'} x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fff6de" stop-opacity="0.9" /><stop offset="35%" stop-color="#fff6de" stop-opacity="0.35" /><stop offset="70%" stop-color="#fff6de" stop-opacity="0.12" /><stop offset="100%" stop-color="#fff6de" stop-opacity="0.4" /></linearGradient>
           <radialGradient id={gradientId + '-shroud'} cx="50%" cy="20%" r="80%"><stop offset="0%" stop-color="#3a352e" /><stop offset="55%" stop-color="#1b1915" /><stop offset="100%" stop-color="#0b0a08" /></radialGradient>
@@ -118,7 +135,7 @@
         <text x="16" y="22" class="vu-label">VU</text>
         <circle cx="106" cy="13.5" r="2.8" class="pilot" /><circle cx="105.2" cy="12.7" r="0.9" class="pilot-glint" />
         <text x="105" y="57" class="sign hot">+</text><text x="14" y="57" class="sign">−</text>
-        <text x="60" y="53" class="channel">{channel}</text>
+        <text x="60" y="53" class="channel" class:note={screwNote}>{screwNote || channel}</text>
         <rect x="5" y="5" width="110" height="62" fill="url(#{gradientId}{channel}-blob)" class="shade" /><rect x="5" y="5" width="110" height="62" filter="url(#{gradientId}{channel}-mottle)" class="shade mottle" />
         <rect x="5" y="5" width="110" height="62" fill="url(#{gradientId}{channel}-falloff)" class="shade" /><rect x="5" y="5" width="110" height="62" fill="url(#{gradientId}-lip)" class="shade" /><g clip-path="url(#{gradientId}-clip)"><rect x="5" y="6.6" width="110" height="62" class="shade inset" filter="url(#{gradientId}-inset)" /></g>
         {#if size !== 'small'}<rect x="5" y="5" width="110" height="62" filter="url(#{gradientId}-grain)" class="shade grain" />
@@ -127,14 +144,16 @@
         <g class="front">
         <!-- Movement cover: a dark Bakelite dome the needle rises out of, its rim catching the lamp, with the zero-adjust screw -->
         <g clip-path="url(#{gradientId}-clip)"><ellipse cx="60" cy="74" rx="25" ry="16" fill="url(#{gradientId}-shroud)" /><path d="M35.6 74 A24.4 15.4 0 0 1 84.4 74" class="shroud-rim" /><ellipse cx="60" cy="74" rx="25" ry="16" class="shroud-edge" />
-          <circle cx="60" cy="64" r="2.6" fill="url(#{gradientId}-screw)" class="screw" /><line x1="58.1" y1="65.1" x2="61.9" y2="62.9" class="screw-slot" /></g>
+          <circle cx="60" cy="64" r="2.6" fill="url(#{gradientId}-screw)" class="screw" /><line x1="57.8" y1="64" x2="62.2" y2="64" class="screw-slot" transform="rotate({screwAngle} 60 64)" /></g>
+        {#if size !== 'small'}<circle cx="60" cy="64" r="4.5" class="screw-grip" role="slider" tabindex="-1" aria-label="0 VU" aria-valuenow={meters.reference} onpointerdown={grabScrew} onpointermove={turnScrew} onpointerup={releaseScrew} onpointercancel={releaseScrew} onclick={(event) => event.stopPropagation()} ondblclick={autoScrew}><title>Drag to set 0 VU · double-click for automatic</title></circle>{/if}
         <rect x="7" y="65.6" width="106" height="1" class="lit-edge" />
         <!-- Acrylic window edge: light bends through the thick rim, a bright band with a darker inner seam -->
         <rect x="5.7" y="5.7" width="108.6" height="60.6" rx="1.6" class="rim-glow" /><rect x="7.3" y="7.3" width="105.4" height="57.4" rx="1" class="rim-seam" /><path d="M6 6.2 H114" class="rim-catch" />
         {#if size !== 'small'}<rect x="5" y="5" width="110" height="62" rx="2" fill="url(#{gradientId}-sheen)" class="shade" />
           <g clip-path="url(#{gradientId}-clip)" class="shade">
-            <rect x="6.3" y="6.3" width="107.4" height="59.4" rx="1.4" fill="none" stroke="url(#{gradientId}-edge-light)" stroke-width="2.4" filter="url(#{gradientId}{channel}-warp)" class="refraction" />
-            <rect x="8.4" y="8.4" width="103.2" height="55.2" rx="1" fill="none" stroke="#3a2508" stroke-width="0.35" filter="url(#{gradientId}{channel}-warp)" class="refraction-seam" />
+            <rect x="6.3" y="6.3" width="107.4" height="59.4" rx="1.4" fill="none" stroke="url(#{gradientId}-edge-light)" stroke-width="2.4" filter="url(#{gradientId}-edge-soft)" class="refraction" />
+            <rect x="6.3" y="6.3" width="107.4" height="59.4" rx="1.4" fill="none" stroke="url(#{gradientId}{channel}-edge-patches)" stroke-width="2" filter="url(#{gradientId}-edge-soft)" class="refraction patches" />
+            <rect x="8.4" y="8.4" width="103.2" height="55.2" rx="1" fill="none" stroke="#3a2508" stroke-width="0.4" filter="url(#{gradientId}-seam-soft)" class="refraction-seam" />
             <ellipse cx={channelIndex ? 88 : 30} cy={channelIndex ? 22 : 48} rx="16" ry="7" transform="rotate({channelIndex ? -18 : 24} {channelIndex ? 88 : 30} {channelIndex ? 22 : 48})" fill="#fff" filter="url(#{gradientId}-smudge)" class="smudge" />
             <rect x="5" y="5" width="110" height="62" filter="url(#{gradientId}{channel}-dust)" class="dust" />
           </g>{/if}
@@ -200,7 +219,7 @@
   .channel { fill: rgba(29, 26, 20, 0.55); font-size: 6px; text-anchor: middle; font-family: var(--font-display); }
   .needle { stroke: #111; stroke-width: 0.9; } .needle.blade { stroke: none; } /* ballistics (a damped spring) in the shell, easing and window jog per frame in state.svelte.ts */
   .shroud-rim { fill: none; stroke: #fff3d6; stroke-width: 0.45; opacity: 0.45; transition: opacity 1s; } .idle .shroud-rim { opacity: 0.3; } .shroud-edge { fill: none; stroke: #000; stroke-width: 0.5; opacity: 0.6; }
-  .screw { stroke: #1a1712; stroke-width: 0.3; } .screw-slot { stroke: #26221c; stroke-width: 0.55; stroke-linecap: round; }
+  .screw { stroke: #1a1712; stroke-width: 0.3; } .screw-grip { fill: transparent; pointer-events: all; cursor: ew-resize; outline: none; } .channel.note { font-size: 4.2px; font-family: "Segoe UI", Arial, sans-serif; fill: rgba(29, 26, 20, 0.75); } .screw-slot { stroke: #26221c; stroke-width: 0.55; stroke-linecap: round; }
   .inset { fill: none; stroke: #1c1206; stroke-width: 4; opacity: 0.55; }
   .percent { stroke-width: 0.5; } .percent-number { fill: #1d1a14; font-size: 3.6px; text-anchor: middle; dominant-baseline: middle; font-family: "Segoe UI", Arial, sans-serif; }
   .pilot { fill: #2b2620; stroke: #7a6646; stroke-width: 0.5; } .pilot-glint { fill: #fff; opacity: 0.45; }
@@ -208,8 +227,8 @@
   .rim-glow { fill: none; stroke: #ffe6b4; stroke-width: 1.3; } .rim-seam { fill: none; stroke: #3a2508; stroke-width: 0.45; opacity: 0.35; } .rim-catch { stroke: #fff8e6; stroke-width: 0.5; opacity: 0.6; }
   .grain { opacity: 0.45; } .full .grain { opacity: 0.18; } .needle-shadow { stroke: #2a1a05; stroke-width: 1.1; stroke-linecap: round; opacity: 0.2; }
   .rim-glow { opacity: calc(0.4 * var(--lamp-glow)); } .idle .rim-catch { opacity: 0.3; } .rim-catch, .refraction { transition: opacity 1s; }
-  .refraction { opacity: 0.42; } .refraction-seam { opacity: 0.22; } .smudge { opacity: 0.06; } .dust { opacity: 0.22; }
-  .idle .refraction { opacity: 0.35; }
+  .refraction { opacity: 0.42; } .refraction.patches { opacity: 0.21; } .refraction-seam { opacity: 0.22; } .smudge { opacity: 0.06; } .dust { opacity: 0.22; }
+  .idle .refraction { opacity: 0.35; } .idle .refraction.patches { opacity: 0.17; }
   .lit-edge { fill: #ffe7b0; opacity: calc(0.75 * var(--lamp-glow) * var(--lamp-glow)); }
   /* OLED VU: a frosted glass pane over whatever is behind, with a fine top-lit edge */
   .glass { fill: url(#oled-glass-sheen); stroke: rgba(255, 255, 255, 0.16); stroke-width: 0.6; }
