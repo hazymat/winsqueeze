@@ -566,6 +566,13 @@
               <TextBlock x:Name="versionText" FontSize="16" FontWeight="SemiBold" />
               <TextBlock x:Name="dataFolderText" Style="{StaticResource Quiet}" />
               <StackPanel Orientation="Horizontal" Margin="0,10,0,0"><Button x:Name="openLogsButton" Content="Open logs folder" /><Button x:Name="copyDiagnosticsButton" Content="Copy diagnostics" Margin="8,0,0,0" ToolTip="Copies version, Windows, server, player and audio details plus the end of the logs, ready to paste into a bug report" /><TextBlock x:Name="copyDiagnosticsDone" Style="{StaticResource Quiet}" VerticalAlignment="Center" Margin="10,0,0,0" /></StackPanel>
+              <Expander Header="About the developer" Style="{StaticResource More}">
+                <StackPanel Margin="0,6,0,0" TextBlock.Foreground="#2B3A4E">
+                  <TextBlock TextWrapping="Wrap" LineHeight="19" Text="Hi, I'm Mat, from London. I've used Squeezebox since 2005 and have owned more of its hardware than I'd like to admit. I have a music degree from a UK university, so music has always been the main thing." />
+                  <TextBlock TextWrapping="Wrap" LineHeight="19" Margin="0,8,0,0" Text="A confession: AI tools write a lot of WinSqueeze's code. Please don't let that put you off. I'm a critical and careful user of AI. I decide what goes in and how it works, I check what the AI produces, and I value human decisions far more than computer-made ones." />
+                  <TextBlock TextWrapping="Wrap" LineHeight="19" Margin="0,8,0,0">If something's wrong or could be better, tell me in <Hyperlink x:Name="discussionsLink" NavigateUri="https://github.com/hazymat/winsqueeze/discussions">GitHub Discussions</Hyperlink>.</TextBlock>
+                </StackPanel>
+              </Expander>
             </StackPanel>
           </Border>
           <Border Style="{StaticResource Card}">
