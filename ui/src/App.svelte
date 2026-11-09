@@ -1,6 +1,7 @@
 <script lang="ts">
   import { checkKeepPlaying } from './lib/queueEnd.svelte'
   import { noteLongTrack } from './lib/resume'
+  import { prefetchInfo } from './lib/nowPlayingInfo'
   import { sendToShell, onShellMessage, request, command, trackArt } from './bridge'
   import { app, nav, ui, playlist, openSection, back, forward, forwardHistory, currentView, newPlaylist, pins, togglePin, undoToast, undoLast, redoLast, history, toast, noteTrackChange, receiveLevels, writeSetting, readSetting, currentTrack } from './state.svelte'
   import TransportBar from './parts/TransportBar.svelte'
@@ -130,6 +131,7 @@
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)')
   let systemDark = $state(prefersDark.matches)
   prefersDark.addEventListener('change', () => systemDark = prefersDark.matches)
+  $effect(() => prefetchInfo(currentTrack(), app.trackInfoTabs)) // Artist, Album and Lyrics looked up as each track starts, ready before their tabs open
   $effect(() => { document.documentElement.dataset.skin = ui.skin; sendToShell({ type: 'theme', dark: ui.skin === 'auto' ? systemDark : ui.skin !== 'light' }) })
   // Tell the shell the page's edge colour, so the frameless border matches it exactly (after the classes and skin have applied)
   $effect(() => { ui.skin; ui.glassTransparency; ui.glassTintHue; ui.lookVersion; systemDark; app.window.glass; app.window.frameless; mini; requestAnimationFrame(() => sendToShell({ type: 'edgeColour', colour: getComputedStyle(document.body).backgroundColor })) })

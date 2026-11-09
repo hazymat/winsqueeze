@@ -56,6 +56,7 @@ public sealed class LibraryQueries
             "search" => Search(connection, Text("text")),
             "trackPlace" => Query(connection, "SELECT a.key AS album, a.title AS albumTitle, (SELECT ac.part_norm FROM album_credits ac WHERE ac.album_key=a.key AND ac.credit='own' LIMIT 1) AS artist, (SELECT p.display FROM people p WHERE p.part_norm=(SELECT ac.part_norm FROM album_credits ac WHERE ac.album_key=a.key AND ac.credit='own' LIMIT 1) AND p.role='artist') AS artistName FROM album_tracks at JOIN albums a ON a.key=at.album_key AND a.source=$source WHERE at.track_id=$id LIMIT 1", ("$source", albumSource), ("$id", Text("id"))).FirstOrDefault(),
             "trackInfo" => Query(connection, "SELECT t.id, t.title, t.track_no, t.disc_no, t.duration, t.year, t.content_type, t.sample_rate, t.sample_size, t.bitrate, t.album_artist, t.track_artist, t.composer, t.url, (SELECT a.title FROM album_tracks at JOIN albums a ON a.key=at.album_key AND a.source=$source WHERE at.track_id=t.id LIMIT 1) AS album, (SELECT group_concat(g.name, ', ') FROM track_genres tg JOIN genres g ON g.id=tg.genre_id WHERE tg.track_id=t.id) AS genre FROM tracks t WHERE t.id IN (SELECT value FROM json_each($ids))", ("$source", albumSource), ("$ids", Text("ids"))),
+            "albumTags" => AlbumTags(connection, Text("id")),
             "customLevel" => CustomLevel(connection, queryParameters, Text("level")),
             "customAlbums" => new { own = Query(connection, $"WITH matched AS ({CustomTracks(queryParameters, out var albumParameters)}) SELECT DISTINCT {albumColumns} FROM albums a JOIN album_tracks at ON at.album_key=a.key JOIN matched m ON m.id=at.track_id WHERE a.source=$source ORDER BY {AlbumOrder(Text("sort"))}", albumParameters.Append(("$source", (object?)albumSource)).ToArray()) },
             // Raw tag text ("Kapustin, Nikolai; Bach, J.S.") to the first person's key, as the lists use it
@@ -63,6 +64,25 @@ public sealed class LibraryQueries
             "trackItems" => TrackItems(connection, queryParameters.ValueKind == JsonValueKind.Object && queryParameters.TryGetProperty("items", out var itemList) && itemList.ValueKind == JsonValueKind.Array ? itemList : default),
             _ => new { error = $"Unknown query {queryName}" }
         });
+    }
+
+    // Now playing › Album: what the playing track's album says about itself in its own tags (SPEC.md › Now playing views)
+    object? AlbumTags(SqliteConnection connection, string trackId)
+    {
+        var album = Query(connection, "SELECT a.key, a.title FROM album_tracks at JOIN albums a ON a.key=at.album_key AND a.source=$source WHERE at.track_id=$id LIMIT 1", ("$source", albumSource), ("$id", trackId)).FirstOrDefault();
+        if (album == null) return null;
+        var key = ("$key", (object?)album["key"]);
+        const string albumTracks = "SELECT track_id FROM album_tracks WHERE album_key=$key";
+        List<string> Distinct(string sql) => Query(connection, sql, key).Select(row => Convert.ToString(row["v"]) ?? "").Where(value => value != "").ToList();
+        var totals = Query(connection, $"SELECT COUNT(*) AS tracks, SUM(duration) AS duration, MAX(disc_no) AS discs, MIN(NULLIF(year,0)) AS yearFrom, MAX(NULLIF(year,0)) AS yearTo FROM tracks WHERE id IN ({albumTracks})", key)[0];
+        string People(string role) => $"SELECT DISTINCT c.name AS v FROM track_contributors tc JOIN contributors c ON c.id=tc.contributor_id WHERE tc.role='{role}' AND tc.track_id IN ({albumTracks}) ORDER BY tc.rowid";
+        return new
+        {
+            title = album["title"], tracks = totals["tracks"], duration = totals["duration"], discs = totals["discs"], yearFrom = totals["yearFrom"], yearTo = totals["yearTo"],
+            albumArtists = Distinct(People("albumartist")), artists = Distinct(People("artist")).Concat(Distinct(People("trackartist"))).Distinct().ToList(), composers = Distinct(People("composer")), conductors = Distinct(People("conductor")), bands = Distinct(People("band")),
+            genres = Distinct($"SELECT DISTINCT g.name AS v FROM track_genres tg JOIN genres g ON g.id=tg.genre_id WHERE tg.track_id IN ({albumTracks})"),
+            formats = Query(connection, $"SELECT content_type AS type, sample_rate AS rate, sample_size AS size, bitrate, COUNT(*) AS count FROM tracks WHERE id IN ({albumTracks}) GROUP BY content_type, sample_rate, sample_size, bitrate ORDER BY count DESC", key)
+        };
     }
 
     // Keep playing: what to add when the queue runs out. Looks at the same album artist, then the playing track's genres, then anything, skipping what's queued or was added lately
