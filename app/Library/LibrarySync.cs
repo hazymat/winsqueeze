@@ -152,19 +152,22 @@ public sealed partial class LibrarySync
             foreach (var part in TextNormaliser.SplitNames(contributorName, librarySettings.NameSeparators, true, librarySettings.ReadSurnameFirst)) Execute(connection, "INSERT INTO contributor_parts VALUES($id,$norm,$display,$position)", ("$id", contributorId), ("$norm", TextNormaliser.Normalise(part)), ("$display", part), ("$position", position++));
         }
         foreach (var (genreId, genreName) in genreNames) Execute(connection, "INSERT INTO genres VALUES($id,$name,$norm)", ("$id", genreId), ("$name", genreName), ("$norm", TextNormaliser.Normalise(genreName)));
-        // Folder tree from file paths, rooted at the common music folder
+        // Folder tree from file paths: one root per music folder. Lyrion can have several (e.g. on two drives); they then sit under one shared "Music" root
         var folderIds = new Dictionary<string, long>();
-        var filePaths = tracks.Where(track => track.Path.StartsWith('/') || track.Path.Contains(':')).Select(track => ParentOf(track.Path)).ToList();
-        var rootPath = filePaths.Count == 0 ? "" : CommonPrefix(filePaths);
-        long EnsureFolder(string folderPath)
+        var filePaths = tracks.Where(track => track.Path.StartsWith('/') || track.Path.Contains(':')).Select(track => ParentOf(track.Path)).Distinct().ToList();
+        var rootPaths = filePaths.GroupBy(TopSegment).Select(group => CommonPrefix(group.ToList())).Where(rootPath => rootPath != "").OrderBy(rootPath => rootPath).ToList();
+        var rootNames = rootPaths.ToDictionary(rootPath => rootPath, rootPath => rootPaths.Count(otherRoot => LastSegment(otherRoot) == LastSegment(rootPath)) > 1 ? rootPath.TrimStart('/') : LastSegment(rootPath)); // full path only when two roots share a name
+        long InsertFolder(string folderPath, long? parentId, string folderName)
+        {
+            Execute(connection, "INSERT INTO folders(path,parent_id,name,name_norm) VALUES($path,$parent,$name,$norm)", ("$path", folderPath), ("$parent", parentId), ("$name", folderName), ("$norm", TextNormaliser.Normalise(folderName)));
+            return folderIds[folderPath] = (long)Query(connection, "SELECT last_insert_rowid() AS id")[0]["id"]!;
+        }
+        long? sharedRootId = rootPaths.Count > 1 ? InsertFolder("", null, "Music") : null;
+        long EnsureFolder(string folderPath, string rootPath)
         {
             if (folderIds.TryGetValue(folderPath, out var existingId)) return existingId;
-            long? parentId = folderPath.Length <= rootPath.Length ? null : EnsureFolder(ParentOf(folderPath));
-            var folderName = folderPath.Length <= rootPath.Length ? "Music" : folderPath[(folderPath.LastIndexOf('/') + 1)..];
-            Execute(connection, "INSERT INTO folders(path,parent_id,name,name_norm) VALUES($path,$parent,$name,$norm)", ("$path", folderPath), ("$parent", parentId), ("$name", folderName), ("$norm", TextNormaliser.Normalise(folderName)));
-            var newId = (long)Query(connection, "SELECT last_insert_rowid() AS id")[0]["id"]!;
-            folderIds[folderPath] = newId;
-            return newId;
+            if (folderPath.Length <= rootPath.Length) return InsertFolder(folderPath, sharedRootId, sharedRootId == null ? "Music" : rootNames[rootPath]);
+            return InsertFolder(folderPath, EnsureFolder(ParentOf(folderPath), rootPath), LastSegment(folderPath));
         }
         using var insertTrack = connection.CreateCommand();
         insertTrack.CommandText = "INSERT INTO tracks VALUES($id,$title,$titleNorm,$trackNo,$discNo,$duration,$url,$folder,$album,$year,$type,$rate,$size,$bitrate,$cover,$added,$modified,$albumArtist,$trackArtist,$composer)";
@@ -175,7 +178,8 @@ public sealed partial class LibrarySync
         string NamesFor(TrackRow track, params string[] wantedRoles) => string.Join(", ", track.Contributors.Where(credit => wantedRoles.Contains(credit.role)).Select(credit => contributorNames.GetValueOrDefault(credit.contributorId, "")).Where(name => name != "").Distinct());
         foreach (var track in tracks)
         {
-            track.FolderId = rootPath != "" && track.Path.StartsWith(rootPath) ? EnsureFolder(ParentOf(track.Path)) : 0;
+            var trackRoot = rootPaths.FirstOrDefault(rootPath => track.Path.StartsWith(rootPath + "/"));
+            track.FolderId = trackRoot != null ? EnsureFolder(ParentOf(track.Path), trackRoot) : 0;
             var albumArtist = NamesFor(track, "albumartist");
             if (albumArtist == "") albumArtist = NamesFor(track, "artist");
             var trackValues = new object?[] { track.Id, track.Title, TextNormaliser.Normalise(track.Title), track.TrackNo, track.DiscNo, track.Duration, track.Url, track.FolderId, track.TagAlbumId, track.Year, track.ContentType, track.SampleRate, track.SampleSize, track.Bitrate, track.CoverId, track.Added, track.Modified, albumArtist, NamesFor(track, "trackartist", "artist"), NamesFor(track, "composer") };
@@ -185,7 +189,7 @@ public sealed partial class LibrarySync
             foreach (var genreId in track.GenreIds.Distinct()) Execute(connection, "INSERT INTO track_genres VALUES($track,$genre)", ("$track", track.Id), ("$genre", genreId));
         }
         Execute(connection, "UPDATE folders SET track_count=(SELECT COUNT(*) FROM tracks WHERE tracks.folder_id=folders.id)");
-        Execute(connection, "INSERT INTO meta VALUES('root_path',$root)", ("$root", rootPath));
+        Execute(connection, "INSERT INTO meta VALUES('root_path',$root)", ("$root", string.Join("\n", rootPaths))); // one line per music folder
     }
 
     // Albums for both sources (tags and folders), credits for artist/composer/performer pages, people lists and the search index
@@ -270,6 +274,8 @@ public sealed partial class LibrarySync
         return track.SampleRate > 0 ? $"{codec} {(track.SampleSize > 0 ? track.SampleSize + "/" : "")}{track.SampleRate / 1000.0:0.#}" : codec;
     }
 
+    static string TopSegment(string path) { var trimmed = path.TrimStart('/'); var slashIndex = trimmed.IndexOf('/'); return slashIndex < 0 ? trimmed : trimmed[..slashIndex]; }
+    static string LastSegment(string path) => path.TrimEnd('/')[(path.TrimEnd('/').LastIndexOf('/') + 1)..];
     static string ParentOf(string path) { var slashIndex = path.TrimEnd('/').LastIndexOf('/'); return slashIndex <= 0 ? path : path[..slashIndex]; }
 
     static string CommonPrefix(List<string> folderPaths)

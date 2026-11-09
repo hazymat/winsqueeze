@@ -3,7 +3,8 @@
  *  Recorder: WinSqueeze asks for a recording through the shared memory "Local\squeezelite-rec-<mac>" (a file path and tags,
  *  sequence counter odd while it writes). The output thread copies the decoded PCM it is about to play (before EQ and volume)
  *  into a ring; a writer thread encodes it to 24-bit FLAC, so the audio thread never touches the disk. A new request with
- *  another path finishes the current file and starts the next one (WinSqueeze splits on song changes).
+ *  another path finishes the current file and starts the next one (WinSqueeze splits on song changes). Song changes are announced late,
+ *  so the writer keeps cut_earlier_ms of audio back and a next-file cut lands that far before the request.
  */
 #include "squeezelite.h"
 #include <FLAC/stream_encoder.h>
@@ -26,6 +27,7 @@ struct rec_win_t {
 	s64_t dropped_frames;     // ring overflow (disk too slow)
 	wchar_t path[REC_PATH_CHARS];
 	char tags[REC_TAG_BYTES]; // UTF-8 "NAME=value\n" lines (Vorbis comments)
+	u32_t cut_earlier_ms;     // stations announce songs late: a "next file" cut goes this far back from the moment it's asked for
 };
 
 static struct rec_win_t *rec_map = NULL;
@@ -121,6 +123,12 @@ static void drain(LONG64 until) {
 	}
 }
 
+// Audio kept back from the file so a song-change cut can still land before it (capped at half the ring)
+static LONG64 held_back(void) {
+	LONG64 frames = (LONG64)rec_map->cut_earlier_ms * (capture_rate ? capture_rate : 44100) / 1000;
+	return min(frames, (LONG64)(REC_RING_FRAMES / 2));
+}
+
 static DWORD WINAPI rec_thread(LPVOID unused) {
 	u32_t seen_request = 0;
 	while (true) {
@@ -132,15 +140,17 @@ static DWORD WINAPI rec_thread(LPVOID unused) {
 			memcpy(new_path, rec_map->path, sizeof(new_path)); new_path[REC_PATH_CHARS - 1] = 0;
 			memcpy(new_tags, rec_map->tags, sizeof(new_tags)); new_tags[REC_TAG_BYTES - 1] = 0;
 			if (rec_map->sequence == sequence) { // consistent copy
-				drain(ring_write); close_file(); // everything played so far belongs to the previous file
+				bool next_song = active && new_path[0] && capturing && file_path[0]; // carrying on into the next song: cut back by the hold-back; start / stop take everything
+				LONG64 cut_at = ring_write - (next_song ? held_back() : 0); if (cut_at < ring_read) cut_at = ring_read;
+				drain(cut_at); close_file(); // what played before the cut belongs to the previous file
 				seen_request = request; part = 1;
 				if (active && new_path[0] && !ring) ring = malloc(REC_RING_FRAMES * 2 * sizeof(s32_t)); // only once something is recorded
-				if (active && new_path[0] && ring) { wcscpy(file_path, new_path); strcpy(file_tags, new_tags); InterlockedExchange64(&ring_read, ring_write); InterlockedExchange(&capturing, 1); } // skip anything stale
+				if (active && new_path[0] && ring) { wcscpy(file_path, new_path); strcpy(file_tags, new_tags); if (!next_song) InterlockedExchange64(&ring_read, ring_write); InterlockedExchange(&capturing, 1); } // a fresh start skips anything stale; the next song keeps the held-back audio
 				else { file_path[0] = 0; InterlockedExchange(&capturing, 0); }
 				rec_map->applied = request;
 			}
 		}
-		drain(ring_write);
+		drain(ring_write - (capturing && file_path[0] ? held_back() : 0));
 	}
 	return 0;
 }

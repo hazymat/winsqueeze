@@ -266,6 +266,11 @@
             <TextBlock Text="Recording radio" Style="{StaticResource CardTitle}" />
             <CheckBox x:Name="recordButtonBox" Content="Show a record button while a radio station or other live stream plays" Margin="0,4,0,0" />
             <CheckBox x:Name="recordSplitBox" Content="Start a new file whenever the station announces a new song" />
+            <DockPanel Margin="24,6,0,0">
+              <TextBlock Text="Split" VerticalAlignment="Center" Margin="0,0,8,0" />
+              <ComboBox x:Name="recordCutEarlierBox" Width="80" VerticalAlignment="Center" />
+              <TextBlock Text="before the song change shows, since stations announce it late" VerticalAlignment="Center" TextWrapping="Wrap" Foreground="#666" Margin="8,0,0,0" />
+            </DockPanel>
           </StackPanel>
         </Border>
         <Border Style="{StaticResource Card}">

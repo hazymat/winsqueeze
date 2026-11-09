@@ -385,7 +385,12 @@ public partial class MainWindow : Window
     public void PushSkin() => Push(JsonSerializer.Serialize(new { type = "skin", skin = App.Settings.General.Skin, coverAccent = App.Settings.General.CoverAccent, coverBackdrop = App.Settings.General.CoverBackdrop, accent = App.Settings.General.AccentColour, glassTransparency = App.Settings.General.GlassTransparency, glassTintHue = App.Settings.General.GlassTintHue }));
     public void PushWhatsNew(string fromVersion, string toVersion, List<ReleaseEntry> releases) => Push(JsonSerializer.Serialize(new { type = "whatsNew", fromVersion, toVersion, releases = releases.Select(release => new { version = release.Version, date = release.Published.ToString("d MMM"), notes = release.Notes, url = release.Url }) }));
     public void ApplyUiScale() { if (webView.CoreWebView2 != null) webView.ZoomFactor = Math.Clamp(App.Settings.General.UiScale, 0.75, 1.5); }
-    void PushSettings() => Push(JsonSerializer.Serialize(new { type = "settings", library = App.Settings.Library, playback = new { App.Settings.Playback.QueueEnd, App.Settings.Playback.ContinueAdds, App.Settings.Playback.ContinueFrom }, hints = new { hidden = App.Settings.General.HideHints, dismissed = App.Settings.General.DismissedHints }, trackInfo = App.Settings.TrackInfo.Tabs.Where(tab => tab.On).Select(tab => tab.Key) }));
+    void PushSettings()
+    {
+        var library = JsonSerializer.SerializeToNode(App.Settings.Library)!;
+        if (App.Settings.ActiveProfile is { } profile) library["AlbumSource"] = LibraryQueries.EffectiveSource(profile, App.Settings.Library) == "t" ? "tags" : "folders"; // the page browses what the index really has
+        Push(JsonSerializer.Serialize(new { type = "settings", library, playback = new { App.Settings.Playback.QueueEnd, App.Settings.Playback.ContinueAdds, App.Settings.Playback.ContinueFrom }, hints = new { hidden = App.Settings.General.HideHints, dismissed = App.Settings.General.DismissedHints }, trackInfo = App.Settings.TrackInfo.Tabs.Where(tab => tab.On).Select(tab => tab.Key) }));
+    }
     public void PushMeterSettings() => Push(JsonSerializer.Serialize(new { type = "meterSettings", referenceDbfs = App.Settings.Meters.ReferenceDbfs, autoReference = App.Settings.Meters.AutoReference, styles = App.Settings.Meters.Styles.Where(style => style.On).Select(style => style.Key) }));
     void PushWindowState() => Push(JsonSerializer.Serialize(new { type = "window", glass = glassActive, frameless = App.Settings.General.Frameless, maximised = WindowState == WindowState.Maximized }));
 
