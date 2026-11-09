@@ -1,8 +1,9 @@
 <script lang="ts">
   // Hi-fi mode (SPEC.md › Hi-fi mode): the whole window becomes a champagne-aluminium hi-fi separate, with meters, a VFD, transport keys and a volume knob
-  import { app, currentTrack, setHifi } from '../state.svelte'
+  import { app, ui, currentTrack, setHifi } from '../state.svelte'
   import { command, sendToShell } from '../bridge'
   import Meters from './Meters.svelte'
+  import Icon from './Icon.svelte'
   const stageWidth = 1280, stageHeight = 330
   let windowWidth = $state(stageWidth), windowHeight = $state(stageHeight)
   const stageZoom = $derived(Math.min(windowWidth / stageWidth, windowHeight / stageHeight))
@@ -41,7 +42,7 @@
   // Meter bridge: the real meters, zoomed to fit the window cut into the faceplate
   let meterBox = $state<HTMLElement>(), meterZoom = $state(1)
   function fitMeters() { if (!meterBox) return; const rect = meterBox.getBoundingClientRect(), scale = meterZoom * stageZoom, naturalWidth = rect.width / scale, naturalHeight = rect.height / scale; if (naturalWidth && naturalHeight) meterZoom = Math.min(470 / naturalWidth, 166 / naturalHeight) }
-  $effect(() => { meterBox; stageZoom; requestAnimationFrame(fitMeters) })
+  $effect(() => { meterBox; stageZoom; ui.meterStyle; requestAnimationFrame(fitMeters) })
   // Bare metal moves the window; right-click anywhere goes back to the normal player
   function pressPlate(event: MouseEvent) { if (event.button === 0 && !(event.target as HTMLElement).closest('button, .knob, .seek-zone')) sendToShell({ type: 'dragWindow' }) }
   // VFD: 5x7 dot matrix text, 7-segment digits and fixed indicators; unlit elements ghost faintly, as on a real tube
@@ -111,7 +112,7 @@
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <div class="hifi" role="dialog" aria-label="Hi-fi" tabindex="-1" onmousedown={pressPlate} oncontextmenu={(event) => { event.preventDefault(); setHifi(false) }}>
   <div class="plate"></div>
-  <div class="stage" style:zoom={stageZoom} style:left="{(windowWidth / stageZoom - stageWidth) / 2}px" style:top="{(windowHeight / stageZoom - stageHeight) / 2}px">
+  <div class="stage" style:transform="translate(-50%, -50%) scale({stageZoom})">
     <div class="brand">WinSqueeze</div>
     <div class="standby" class:on={playing}></div>
     <div class="meter-window"><div class="meter-zoom" bind:this={meterBox} style:zoom={meterZoom}><Meters size="large" zoom={meterZoom * stageZoom} moveWindow={true} /></div><div class="pane"></div></div>
@@ -122,11 +123,11 @@
     <div class="keys">{#each keys as [name, label, path]}<button class="key" aria-label={label} title={label} onclick={() => pressKey(name)} onpointerdown={(event) => { if (name === 'rewind' || name === 'forward') startScan(event, name === 'forward' ? 1 : -1) }} onpointerup={() => { if (scanStart && !scanTimer) stopScan() }} onpointerleave={() => { if (scanTimer) stopScan() }}><svg viewBox="0 0 24 24"><path d={path} /></svg></button>{/each}</div>
     <div class="knob-well">
       <svg class="scale" viewBox="0 0 260 260">{#each Array.from({ length: 31 }, (unused, index) => -135 + index * 9) as angle, index}<line x1="130" y1={index % 5 ? 14 : 10} x2="130" y2="22" transform="rotate({angle} 130 130)" class:major={!(index % 5)} />{/each}</svg>
-      <div class="knob" role="slider" tabindex="-1" aria-label="Volume" aria-valuenow={volume} title="Volume {volume} (drag up or down, or scroll)" style:--angle="{knobAngle}deg" onpointerdown={grabKnob} onpointermove={turnKnob} onpointerup={letGoKnob} onwheel={wheelKnob}><div class="knurl"></div><div class="cap"></div><div class="mark"></div></div>
+      <div class="knob" role="slider" tabindex="-1" aria-label="Volume" aria-valuenow={volume} title="Volume {volume} (drag up or down, or scroll)" style:--angle="{knobAngle}deg" onpointerdown={grabKnob} onpointermove={turnKnob} onpointerup={letGoKnob} onwheel={wheelKnob}><div class="teeth"></div><div class="knurl"></div><div class="cap"></div><div class="pointer"><div class="mark"></div></div></div>
     </div>
     <div class="volume-label">VOLUME</div>
   </div>
-  <button class="close" onclick={() => setHifi(false)} title="Close (Esc or right-click)">✕</button>
+  <button class="close" onclick={() => setHifi(false)} title="Back to the player (Esc or right-click)" aria-label="Back to the player"><Icon name="return" /></button>
 </div>
 
 <style>
@@ -138,7 +139,8 @@
       linear-gradient(100deg, rgba(255,255,255,0) 20%, rgba(255,246,230,0.26) 42%, rgba(255,255,255,0) 60%),
       linear-gradient(180deg, #f6f0e8 0, #d6cbbb 2px, #ddd2c1 8%, #cbbfab 55%, #bbae98 96%, #8c8170 calc(100% - 3px), #5d5447 100%);
     background-blend-mode: overlay, normal, normal; box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -2px 2px rgba(0,0,0,0.25); }
-  .stage { position: absolute; width: 1280px; height: 330px; --pad: 34px; }
+  /* Scaled with a transform, not zoom: the meter fit below measures through it the same way in every WebView2 version */
+  .stage { position: absolute; left: 50%; top: 50%; width: 1280px; height: 330px; --pad: 34px; }
   .brand { position: absolute; left: var(--pad); bottom: 43px; font: 600 15px/1 "Segoe UI", Inter, sans-serif; letter-spacing: 3px; color: #4a3b28; text-shadow: 0 1px 0 rgba(255,245,225,0.75); pointer-events: none; }
   .standby { position: absolute; left: calc(var(--pad) + 160px); bottom: 46px; width: 7px; height: 7px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #c9ffd9, #1fd25f 45%, #0b6b2c); box-shadow: 0 0 6px 2px rgba(60, 255, 120, 0.55), 0 1px 0 rgba(255,255,255,0.7); }
   .standby:not(.on) { background: radial-gradient(circle at 40% 35%, #ffd1c4, #c53a1c 50%, #5c140a); box-shadow: 0 0 5px 1px rgba(255, 70, 30, 0.45); }
@@ -161,16 +163,18 @@
   /* Volume: printed scale on the plate, a heavy turned knob with a knurled rim and a sunburst-finished cap */
   .knob-well { position: absolute; right: 30px; top: 50%; translate: 0 -54%; width: 260px; height: 260px; }
   .scale { position: absolute; inset: 0; pointer-events: none; } .scale line { stroke: #5a4934; stroke-width: 1.4; } .scale line.major { stroke-width: 2.2; stroke: #3b2f20; }
-  .knob { position: absolute; inset: 26px; border-radius: 50%; rotate: var(--angle); cursor: grab; touch-action: none; outline: none;
-    background: repeating-conic-gradient(from 0deg, #8f8370 0deg 2deg, #dcd0bd 2deg 4deg);
+  /* The light and the shadow stay put while the knob turns: only the knurled teeth and the pointer rotate (the turned cap's sheen doesn't move on a real knob either) */
+  .knob { position: absolute; inset: 26px; border-radius: 50%; cursor: grab; touch-action: none; outline: none;
     box-shadow: 0 14px 22px rgba(0,0,0,0.45), 0 4px 6px rgba(0,0,0,0.35), 0 0 0 1px rgba(0,0,0,0.35); }
   .knob:active { cursor: grabbing; }
-  .knurl { position: absolute; inset: 0; border-radius: 50%; rotate: calc(-1 * var(--angle)); background: linear-gradient(180deg, rgba(255,255,255,0.45), rgba(0,0,0,0.35)); mix-blend-mode: overlay; }
-  .cap { position: absolute; inset: 9px; border-radius: 50%; rotate: calc(-1 * var(--angle));
+  .teeth { position: absolute; inset: 0; border-radius: 50%; rotate: var(--angle); background: repeating-conic-gradient(from 0deg, #8f8370 0deg 2deg, #dcd0bd 2deg 4deg); }
+  .knurl { position: absolute; inset: 0; border-radius: 50%; background: linear-gradient(180deg, rgba(255,255,255,0.45), rgba(0,0,0,0.35)); mix-blend-mode: overlay; }
+  .cap { position: absolute; inset: 9px; border-radius: 50%;
     background: conic-gradient(from 0deg, #f1e9dc, #aa9d88 12%, #fbf7f0 25%, #afa28d 38%, #ebe1d1 50%, #a59883 62%, #f9f3ea 75%, #b2a590 88%, #f1e9dc);
     box-shadow: inset 0 2px 1px rgba(255,248,232,0.8), inset 0 -2px 3px rgba(0,0,0,0.35), 0 0 0 1px rgba(0,0,0,0.25); }
   .cap::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: repeating-radial-gradient(circle at 50% 50%, rgba(0,0,0,0.06) 0 0.6px, rgba(255,255,255,0.07) 0.6px 1.4px); }
-  .mark { position: absolute; left: 50%; top: 18px; width: 9px; height: 9px; margin-left: -4.5px; border-radius: 50%; background: radial-gradient(circle at 50% 70%, #7a6548, #31271a); box-shadow: inset 0 1px 2px rgba(0,0,0,0.7), 0 1px 0 rgba(255,255,255,0.7); }
+  .pointer { position: absolute; inset: 0; rotate: var(--angle); pointer-events: none; }
+  .mark { position: absolute; left: 50%; top: 18px; width: 9px; height: 9px; margin-left: -4.5px; border-radius: 50%; rotate: calc(-1 * var(--angle)); background: radial-gradient(circle at 50% 70%, #7a6548, #31271a); box-shadow: inset 0 1px 2px rgba(0,0,0,0.7), 0 1px 0 rgba(255,255,255,0.7); }
   .volume-label { position: absolute; right: 30px; width: 260px; text-align: center; bottom: 26px; font: 600 9.5px/1 "Segoe UI", Inter, sans-serif; letter-spacing: 3px; color: #5a4934; text-shadow: 0 1px 0 rgba(255,245,225,0.7); pointer-events: none; }
-  .close { position: absolute; top: 12px; right: 12px; width: 30px; height: 30px; border: 0; border-radius: 8px; background: rgba(20, 22, 26, 0.78); color: #fff; font-size: 13px; cursor: pointer; box-shadow: 0 1px 0 rgba(255,255,255,0.6), inset 0 1px 2px rgba(0,0,0,0.5); z-index: 1; }
+  .close { position: absolute; top: 12px; right: 12px; width: 30px; height: 30px; border: 0; border-radius: 8px; background: rgba(20, 22, 26, 0.78); color: #fff; display: grid; place-items: center; cursor: pointer; box-shadow: 0 1px 0 rgba(255,255,255,0.6), inset 0 1px 2px rgba(0,0,0,0.5); z-index: 1; }
 </style>
