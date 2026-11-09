@@ -444,7 +444,7 @@ public partial class SettingsWindow : Window
         playerNameBox.Text = Settings.Audio.PlayerName;
         latencyBox.Text = Settings.Audio.LatencyMs.ToString();
         extraArgumentsBox.Text = Settings.Audio.ExtraArguments;
-        deviceCombo.SelectionChanged += async (sender, args) => { if (!loadingControls && deviceCombo.SelectedItem is OutputDevice device) await App.SelectDeviceAsync(device); };
+        deviceCombo.SelectionChanged += async (sender, args) => { if (loadingControls || deviceCombo.SelectedItem is not OutputDevice device) return; fallbackLabel.Visibility = fallbackCombo.Visibility = device.IsWindowsDefault ? Visibility.Collapsed : Visibility.Visible; await App.SelectDeviceAsync(device); };
         fallbackCombo.SelectionChanged += (sender, args) =>
         {
             if (loadingControls || fallbackCombo.SelectedItem is not OutputDevice fallback) return;
@@ -473,10 +473,15 @@ public partial class SettingsWindow : Window
     {
         loadingControls = true;
         var profile = Settings.ActiveProfile;
-        var deviceView = new ListCollectionView(App.Devices);
+        var defaultChoice = OutputDevice.WindowsDefault(App.WindowsDefaultName);
+        var deviceChoices = new List<OutputDevice> { defaultChoice };
+        deviceChoices.AddRange(App.Devices);
+        var deviceView = new ListCollectionView(deviceChoices);
         deviceView.GroupDescriptions.Add(new PropertyGroupDescription(nameof(OutputDevice.Driver)));
         deviceCombo.ItemsSource = deviceView;
-        deviceCombo.SelectedItem = profile == null ? null : App.FindDevice(profile.DeviceName, profile.DeviceHostApi);
+        var followsDefault = profile is { DeviceName: "" };
+        deviceCombo.SelectedItem = profile == null ? null : followsDefault ? defaultChoice : App.FindDevice(profile.DeviceName, profile.DeviceHostApi);
+        fallbackLabel.Visibility = fallbackCombo.Visibility = followsDefault ? Visibility.Collapsed : Visibility.Visible; // the default has no fallback
         var fallbackChoices = new List<OutputDevice> { noFallback };
         fallbackChoices.AddRange(App.Devices);
         fallbackCombo.ItemsSource = fallbackChoices;
@@ -766,7 +771,7 @@ public partial class SettingsWindow : Window
         report.AppendLine($"Windows: {System.Runtime.InteropServices.RuntimeInformation.OSDescription} · {System.Runtime.InteropServices.RuntimeInformation.OSArchitecture} · .NET {Environment.Version}");
         report.AppendLine($"Server: {(profile is { Host.Length: > 0 } ? $"{profile.Host}:{profile.Port}" : "none set")}");
         report.AppendLine($"Player: {audio.PlayerName} · {player.StatusText}{(player.State == PlayerState.Running ? (player.ExclusiveActive ? " · WASAPI exclusive" : player.ExclusiveRefused ? " · shared (device refused exclusive)" : " · shared") + (player.OutputSampleRate > 0 ? $" · {player.OutputSampleRate / 1000.0:0.#} kHz" : "") : "")}{(App.UsingFallbackDevice ? " (fallback device)" : "")}");
-        report.AppendLine($"Output device: {(profile is null || profile.DeviceName == "" ? "Windows default" : $"{profile.DeviceName} ({profile.DeviceHostApi})")} · exclusive {(audio.Exclusive ? "on" : "off")}");
+        report.AppendLine($"Output device: {(profile is null || profile.DeviceName == "" ? $"Windows default ({App.WindowsDefaultName})" : $"{profile.DeviceName} ({profile.DeviceHostApi})")} · exclusive {(audio.Exclusive ? "on" : "off")}");
         report.AppendLine().AppendLine("--- crash.log (end) ---").AppendLine(LogTail("crash.log", 60));
         report.AppendLine().AppendLine("--- squeezelite.log (end) ---").AppendLine(LogTail("squeezelite.log", 60));
         return report.ToString();
