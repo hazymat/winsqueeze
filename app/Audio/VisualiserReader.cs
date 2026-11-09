@@ -5,7 +5,7 @@ using WinSqueeze.Settings;
 namespace WinSqueeze.Audio;
 
 // Reads the samples our Squeezelite build shares (-v, see vendor/squeezelite/src/output_vis_win.c) and turns them into meter data ~30 times a second:
-// VU levels (RMS with ~300 ms ballistics, in dB), peak levels for the bar graph, and the 10 octave bands (the same analysis the EQ window shows), ~60 times a second. Looks back by the output latency so meters match what you hear.
+// VU levels (RMS with VU ballistics, in dB), peak levels for the bar graph, and the 10 octave bands (the same analysis the EQ window shows), ~60 times a second. Looks back by the output latency so meters match what you hear.
 public sealed class VisualiserReader : IDisposable
 {
     const int HeaderBytes = 32, FftSize = 1024, AnalyserSize = 4096; // a long window resolves the low octaves
@@ -86,7 +86,7 @@ public sealed class VisualiserReader : IDisposable
 
     void Analyse(short[] samples, int rate, double[][] octaves, double elapsedSeconds, bool live)
     {
-        // VU: RMS over the newest ~50 ms, integrated with a 300 ms time constant
+        // VU: RMS over the newest ~20 ms, integrated to VU ballistics (99% of a step in 300 ms)
         const int newest = AnalyserSize - FftSize; // frame where the newest FftSize frames start
         var rmsFrames = Math.Clamp(rate / 20, 1, FftSize);
         double sumLeft = 0, sumRight = 0, maxLeft = 0, maxRight = 0;
@@ -96,7 +96,8 @@ public sealed class VisualiserReader : IDisposable
             sumLeft += left * left; sumRight += right * right; maxLeft = Math.Max(maxLeft, Math.Abs(left)); maxRight = Math.Max(maxRight, Math.Abs(right));
         }
         var tuning = Tuning;
-        var vuFollow = 1 - Math.Exp(-elapsedSeconds / Math.Max(0.02, tuning.VuIntegrationMs / 1000));
+        // A VU meter reaches 99% of a step in its integration time (300 ms classic): a time constant of a fifth of that, ln(100) ≈ 4.6. Using the whole 300 ms as the time constant made the needles ~5× too slow, so on dense music they barely moved
+        var vuFollow = 1 - Math.Exp(-elapsedSeconds / Math.Max(0.01, tuning.VuIntegrationMs / 1000 / 4.6));
         vuLeft += (Math.Sqrt(sumLeft / rmsFrames) - vuLeft) * vuFollow; vuRight += (Math.Sqrt(sumRight / rmsFrames) - vuRight) * vuFollow;
         if (!double.IsFinite(vuLeft) || vuLeft < 0) vuLeft = 0; if (!double.IsFinite(vuRight) || vuRight < 0) vuRight = 0; // a bad value never sticks
         var framePower = Math.Max(sumLeft, sumRight) / rmsFrames;

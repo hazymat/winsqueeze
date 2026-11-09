@@ -148,7 +148,7 @@ export function receiveLevels(vu: number[], peak: number[], bands: number[]) {
   if (!meterFrame) { meterLastTime = performance.now(); meterFrame = requestAnimationFrame(easeMeters) }
 }
 function easeMeters(time: number) {
-  const elapsed = Math.max(0, Math.min(250, time - meterLastTime)), follow = 1 - Math.exp(-elapsed / 35), needleFollow = 1 - Math.exp(-elapsed / 75); meterLastTime = time // needles glide over the uneven arrival of updates (the VU is 300 ms-integrated anyway)
+  const elapsed = Math.max(0, Math.min(250, time - meterLastTime)), follow = 1 - Math.exp(-elapsed / 35), needleFollow = 1 - Math.exp(-elapsed / 25); meterLastTime = time // needles glide over the uneven arrival of updates without adding lag (the shell already applies VU ballistics)
   const from = (shown: number[], index: number, value: number) => Number.isFinite(shown[index]) ? shown[index] : value // a bad value never sticks
   const ease = (shown: number[], target: number[]) => target.map((value, index) => from(shown, index, value) + (value - from(shown, index, value)) * follow)
   const vuTarget = Date.now() - app.levels.at > 1000 ? [-90, -90] : app.levels.vu
