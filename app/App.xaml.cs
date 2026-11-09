@@ -306,7 +306,7 @@ public partial class App : Application
         Player.Start(Offline is { } offlineServer ? $"127.0.0.1:{offlineServer.SlimPort}" : profile.Host, outputDevice, Settings.Audio, Settings.PlayerMac, checkStartup);
         if (SqueezeliteHost.SupportsRecording) Recorder.Start(Settings.PlayerMac);
         Visualiser.Tuning = Settings.Meters;
-        if (SqueezeliteHost.SupportsVisualiser) Visualiser.Start(Settings.PlayerMac, Settings.Audio.LatencyMs);
+        if (SqueezeliteHost.SupportsVisualiser) Visualiser.Start(Settings.PlayerMac, () => Player.OutputLatencyMs > 0 ? Player.OutputLatencyMs : Settings.Audio.LatencyMs);
         Equaliser.Tuning = Settings.Equaliser; Equaliser.CurrentRate = () => Visualiser.SampleRate;
         if (SqueezeliteHost.SupportsEqualiser) Equaliser.Start(Settings.PlayerMac);
         if (resumeState.mode == "play") await ResumeAtAsync(resumeState.seconds);

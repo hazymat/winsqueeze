@@ -17,7 +17,7 @@ public sealed class VisualiserReader : IDisposable
     Thread? worker;
     volatile bool running;
     string mapName = "";
-    int latencyMs = 200;
+    Func<int> latencyMs = () => 200;
     double vuLeft, vuRight, peakLeft, peakRight;
     double loudnessPower; // the music's power averaged over ~8 s, so the spectrum can be shown relative to the track's loudness (Automatic 0 VU)
     double LoudnessOffsetDb => Tuning.AutoReference && loudnessPower > 0 ? Math.Clamp(-18 - 10 * Math.Log10(loudnessPower), -6, 24) : 0; // lifts quiet recordings to where -18 dBFS music sits
@@ -26,7 +26,7 @@ public sealed class VisualiserReader : IDisposable
     double peakHeldLeft, peakHeldRight; // seconds each bar has held its peak
     public MeterSettings Tuning { get; set; } = new(); // Settings › Meters, read every frame so changes show live
 
-    public void Start(string playerMac, int outputLatencyMs)
+    public void Start(string playerMac, Func<int> outputLatencyMs)
     {
         mapName = "Local\\squeezelite-vis-" + playerMac.Replace(":", "").ToLowerInvariant();
         latencyMs = outputLatencyMs;
@@ -57,9 +57,12 @@ public sealed class VisualiserReader : IDisposable
                     bufferSize = view.ReadInt32(4); var writeIndex = view.ReadInt32(8); live = view.ReadInt32(12) != 0; rate = view.ReadInt32(16); var updatedMs = view.ReadInt64(24);
                     if (bufferSize <= 0 || rate <= 0) break;
                     live = live && now - updatedMs < 1000;
-                    // The window ends where the speaker is now: behind the write position by the output latency
-                    var latencySamples = (int)((long)latencyMs * rate / 1000) * 2;
-                    var endIndex = ((writeIndex - Math.Min(latencySamples, bufferSize - samples.Length)) % bufferSize + bufferSize) % bufferSize & ~1;
+                    // The window ends where the speaker is now: behind the write position by the output latency, less the time since that write.
+                    // Shared mode fills the output in big chunks: without moving on between writes the meters stood still, then jumped
+                    var latencySamples = (int)((long)latencyMs() * rate / 1000) * 2;
+                    var sinceWriteSamples = (int)(Math.Clamp(now - updatedMs, 0, 1000) * rate / 1000) * 2;
+                    var lookBack = Math.Clamp(latencySamples - sinceWriteSamples, 0, bufferSize - samples.Length);
+                    var endIndex = ((writeIndex - lookBack) % bufferSize + bufferSize) % bufferSize & ~1;
                     var startIndex = ((endIndex - samples.Length) % bufferSize + bufferSize) % bufferSize;
                     var firstPart = Math.Min(samples.Length, bufferSize - startIndex);
                     // Ring after the EQ (default) or, when the meters shouldn't follow the EQ, the one before it (older builds have only the first)
