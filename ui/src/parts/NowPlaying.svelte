@@ -24,7 +24,7 @@
     if (!playing) return
     for (const kind of kinds) if ((kind === open || kind === 'lyrics') && untrack(() => info[kind]) === undefined) {
       info = Object.assign({}, untrack(() => info), { [kind]: 'loading' })
-      query('trackInfo', { kind, id: playing.id ?? 0, artistId: String(playing.artist_id ?? ''), albumId: String(playing.album_id ?? ''), artist: playing.artist ?? '', album: playing.album ?? '', title: playing.title ?? '', duration: Number(playing.duration ?? 0), remote: Number(playing.remote) === 1 ? 1 : 0 })
+      query('nowPlayingInfo', { kind, id: playing.id ?? 0, artistId: String(playing.artist_id ?? ''), albumId: String(playing.album_id ?? ''), artist: playing.artist ?? '', album: playing.album ?? '', title: playing.title ?? '', duration: Number(playing.duration ?? 0), remote: Number(playing.remote) === 1 ? 1 : 0 })
         .then(result => { if (infoFor === key) info = Object.assign({}, info, { [kind]: result ?? { found: false } }) })
     }
   })
