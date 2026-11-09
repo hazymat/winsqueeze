@@ -65,7 +65,7 @@
   .track img { width: 52px; height: 52px; border-radius: 6px; object-fit: cover; box-shadow: 0 8px 24px var(--shadow); }
   .names { min-width: 0; flex: 1; }
   .title { font-family: var(--font-text); font-style: italic; font-size: 21px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .artist { color: var(--fg-quiet); font-size: 13px; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0.02em; }
+  .artist { font-family: var(--font-text); font-variant-caps: all-small-caps; color: var(--fg-quiet); font-size: 16px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0.09em; }
   .controls { display: flex; gap: 4px; transition: opacity 0.4s ease; }
   .controls button { width: 36px; height: 36px; display: grid; place-items: center; background: none; border: 0; border-radius: 50%; color: var(--fg); opacity: 0.7; cursor: pointer; }
   .controls button:hover { opacity: 1; background: var(--hover); }

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { command } from '../bridge'
   import { app } from '../state.svelte'
-  import { playPosition, lineAt, versesOf, type TimedLine } from '../lib/lyrics'
+  import { playPosition, lineAt, versesOf, bookText, type TimedLine } from '../lib/lyrics'
   // Lyrics set as text: timed ones follow the song (the sung line lit and kept in view, a click on a line jumps there); plain ones as verses
   let { lyrics, stage = false }: { lyrics: any, stage?: boolean } = $props()
   const lines = $derived<TimedLine[]>(Array.isArray(lyrics?.events) ? lyrics.events : [])
@@ -25,17 +25,17 @@
 {#if timed}
   <div class="lyrics-text timed" class:stage bind:this={list} onwheel={readerScrolled}>
     {#each lines as line, index}
-      {#if line.text}<button class="line" class:sung={index < current} class:now={index === current} onclick={() => command('time', Math.max(0, line.t - 0.2).toFixed(1))} title="Play from here">{line.text}</button>
+      {#if line.text}<button class="line" class:sung={index < current} class:now={index === current} onclick={() => command('time', Math.max(0, line.t - 0.2).toFixed(1))} title="Play from here">{bookText(line.text)}</button>
       {:else}<span class="line gap" class:now={index === current} aria-hidden="true"></span>{/if}
     {/each}
   </div>
 {:else}
-  <div class="lyrics-text" class:stage>{#each versesOf(lyrics?.text) as verse}<p>{#each verse as line, index}{#if index}<br />{/if}{line}{/each}</p>{/each}</div>
+  <div class="lyrics-text" class:stage>{#each versesOf(lyrics?.text) as verse}<p>{#each verse as line, index}{#if index}<br />{/if}{bookText(line)}{/each}</p>{/each}</div>
 {/if}
 
 <style>
   /* A book's face rather than the UI's: Newsreader (optical sizes, so it suits both the tab and full screen), set loose with ragged lines */
-  .lyrics-text { font-family: var(--font-text); font-size: 17.5px; line-height: 1.5; font-optical-sizing: auto; font-weight: 400; letter-spacing: 0.003em; text-wrap: pretty; user-select: text; padding: 4px 0 0; }
+  .lyrics-text { font-family: var(--font-text); font-size: 17.5px; line-height: 1.5; font-optical-sizing: auto; font-weight: 400; letter-spacing: 0.003em; text-wrap: pretty; font-variant-numeric: oldstyle-nums proportional-nums; font-feature-settings: "kern", "liga", "clig"; user-select: text; padding: 4px 0 0; }
   .lyrics-text p { margin: 0 0 1.05em; }
   .timed { display: flex; flex-direction: column; align-items: flex-start; }
   .line { display: block; background: none; border: 0; padding: 0.14em 0; margin: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; opacity: 0.42; transition: opacity 0.35s ease, font-weight 0.35s ease; }
