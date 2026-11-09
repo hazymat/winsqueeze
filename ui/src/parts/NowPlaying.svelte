@@ -135,7 +135,8 @@
       {#if track?.conductor}<div class="quiet">Conductor {track.conductor}</div>{/if}
       {#if track?.band}<div class="quiet">Orchestra {track.band}</div>{/if}
       <div class="readout"><Readout /></div>
-      <Meters size="large" /><Hint id="meters-clicks" text="Left-click to cycle meter visualisations. Right-click to maximise the visualisation." />
+      <!-- One-time tip, once music is playing: the right-click cycle (full-window meters, then hi-fi) has no other visible sign -->
+      <div class="meter-box"><Meters size="large" />{#if app.nowPlaying?.mode === 'play'}<Hint id="meters-hifi" bubble align="end" text="Right-click for full screen and hi-fi" />{/if}</div>
     </div>
     <div class="queue-panel" class:tabbed={infoTabs.length > 0}>
       {#if infoTabs.length}
@@ -252,6 +253,9 @@
   .art.empty { display: grid; place-items: center; font-size: 80px; background: var(--panel-strong); }
   .meta { display: flex; flex-direction: column; gap: 6px; min-width: 0; max-height: 100%; overflow-y: auto; padding-bottom: 4px; }
   /* Meters shrink with short windows so they're never cut off */
+  .meter-box { position: relative; width: fit-content; }
+  /* Short windows have no room above the meters: the tip hangs below them instead */
+  @container now-playing (max-height: 460px) { .meter-box :global(.hint.bubble) { bottom: auto; top: calc(100% + 6px); } .meter-box :global(.hint.bubble::after) { top: auto; bottom: 100%; border-top-color: transparent; border-bottom-color: var(--accent); } }
   .meta { container-type: inline-size; overflow-x: hidden; } /* cqw below = the details column, so meters never overflow it (no sideways scrollbar at any scaling) */
   .meta :global(.large .vu) { width: min(190px, 24vh, (100cqw - 4px) / 2); height: auto; } .meta :global(.large .panel) { width: min(384px, 48vh + 4px, 30vh * var(--aspect), 100cqw); } .meta :global(.large .spectrum) { width: min(320px, 100cqw); }
   .readout :global(.readout) { flex-wrap: wrap; row-gap: 2px; }
@@ -315,6 +319,6 @@
   /* Short and narrow: art beside the details, so it's never cut off */
   @container now-playing (max-width: 900px) and (max-height: 560px) { .layout { grid-template-columns: auto minmax(0, 1fr); gap: 14px 18px; } .art-column { grid-column: 1; } .meta { grid-column: 2; align-items: flex-start; text-align: left; } .queue-panel { grid-column: 1 / 3; } .art { width: min(200px, 45cqh, 38cqw); } .meta :global(.large .vu) { width: min(120px, 22cqw); } }
   /* Short windows: the meters move to the right of the details and grow to the height available (VU face is 5:3); the queue shows only when there's width for it */
-  @container now-playing (max-height: 460px) { .now-playing { overflow: hidden; } .layout { height: 100%; min-height: 0; grid-template-columns: auto minmax(0, 1fr) minmax(280px, 0.9fr); grid-template-rows: minmax(0, 1fr); gap: 24px; padding: 16px 20px; } .art-column, .meta, .queue-panel { grid-column: auto; grid-row: 1; } .art { width: min(240px, 100cqh - 32px, 24cqw); max-width: none; } .meta { container-type: inline-size; display: grid; grid-template-columns: minmax(180px, 1fr) auto; column-gap: 24px; align-content: center; align-items: start; text-align: left; overflow: hidden; } .meta > :global(*) { grid-column: 1; } .meta > :global(.meters) { grid-column: 2; grid-row: 1 / span 12; align-self: center; } .meta :global(.large .vu) { width: min(190px, (100cqh - 40px) * 1.66, (100cqw - 212px) / 2); } .meta :global(.large .panel) { width: min(384px, (100cqh - 40px) * var(--aspect), 100cqw - 208px); } /* cqh: the view's height; cqw: the details column's width, leaving 180px for the text */ .readout { margin: 8px 0 0; min-width: 0; } .readout :global(.readout) { flex-wrap: wrap; white-space: normal; } }
+  @container now-playing (max-height: 460px) { .now-playing { overflow: hidden; } .layout { height: 100%; min-height: 0; grid-template-columns: auto minmax(0, 1fr) minmax(280px, 0.9fr); grid-template-rows: minmax(0, 1fr); gap: 24px; padding: 16px 20px; } .art-column, .meta, .queue-panel { grid-column: auto; grid-row: 1; } .art { width: min(240px, 100cqh - 32px, 24cqw); max-width: none; } .meta { container-type: inline-size; display: grid; grid-template-columns: minmax(180px, 1fr) auto; column-gap: 24px; align-content: center; align-items: start; text-align: left; overflow: hidden; } .meta > :global(*) { grid-column: 1; } .meta > .meter-box { grid-column: 2; grid-row: 1 / span 12; align-self: center; } .meta :global(.large .vu) { width: min(190px, (100cqh - 40px) * 1.66, (100cqw - 212px) / 2); } .meta :global(.large .panel) { width: min(384px, (100cqh - 40px) * var(--aspect), 100cqw - 208px); } /* cqh: the view's height; cqw: the details column's width, leaving 180px for the text */ .readout { margin: 8px 0 0; min-width: 0; } .readout :global(.readout) { flex-wrap: wrap; white-space: normal; } }
   @container now-playing (max-height: 460px) and (max-width: 1100px) { .layout { grid-template-columns: auto minmax(0, 1fr); } .queue-panel { display: none; } }
 </style>
