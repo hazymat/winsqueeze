@@ -31,6 +31,7 @@ Work one build phase at a time (SPEC.md › Build phases). Stop at the end of ea
 
 - UI text goes through `t('…')` / `tn(count, '…', '…')` (Svelte) or `L.T("…")` / `L.N(count, "…", "…")` (C#); fixed XAML text is translated by `L.Translate`. Keep the English literal inside the call so `tools/locales.mjs` can find it.
 - Every new or changed string needs its German entry in `locales/de.json` (informal "du"). Run `node tools/locales.mjs` to list what's missing.
+- What's new in every language. Stable: `docs/releases/<version>.md` is the short English list; add `docs/releases/<version>.<code>.md` with the same lines (same ★/▲ marks, same order) for every language in `locales/`. Dev: when squash-merging a PR with an `Impact: feature` or `Impact: improvement` trailer, add a `Notes-<code>: <the title in that language>` trailer for every language in `locales/` (e.g. `Notes-uk: …`); other commits may skip them and show in English. The build hides the translations in the release body and the app shows the user's language.
 
 ## Layout
 
