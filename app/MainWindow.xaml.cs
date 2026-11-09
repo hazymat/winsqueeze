@@ -207,6 +207,7 @@ public partial class MainWindow : Window
                 case "theme": darkTheme = message.TryGetProperty("dark", out var darkValue) && darkValue.GetBoolean(); ApplyWindowStyle(); break;
                 case "setTopmost": Topmost = message.GetProperty("on").GetBoolean(); break;
                 case "windowMode": SetWindowMode(Text(message, "mode")); break;
+                case "hifiWindow": SetHifiWindow(message.TryGetProperty("on", out var hifiOn) && hifiOn.GetBoolean()); break;
                 case "refreshLibrary": await App.Library.RefreshAsync(message.TryGetProperty("rebuild", out var rebuild) && rebuild.GetBoolean()); break;
             }
         }
@@ -217,7 +218,7 @@ public partial class MainWindow : Window
     public string DescribeForRestart()
     {
         var shownState = !IsVisible ? "hidden" : WindowState == WindowState.Maximized ? "maximised" : WindowState == WindowState.Minimized ? "minimised" : "normal";
-        var bounds = WindowState == WindowState.Normal ? new Rect(Left, Top, Width, Height) : RestoreBounds;
+        var bounds = boundsBeforeHifi ?? (WindowState == WindowState.Normal ? new Rect(Left, Top, Width, Height) : RestoreBounds);
         return string.Join(",", new object[] { shownState, bounds.Left, bounds.Top, bounds.Width, bounds.Height }.Select(part => Convert.ToString(part, System.Globalization.CultureInfo.InvariantCulture)));
     }
 
@@ -233,6 +234,28 @@ public partial class MainWindow : Window
         if (parts[0] == "hidden") return;
         Show();
         if (parts[0] == "maximised") WindowState = WindowState.Maximized; else if (parts[0] == "minimised") WindowState = WindowState.Minimized;
+    }
+
+    // Hi-fi mode: the window becomes a slim hi-fi separate (about 3.9:1, centred on where it was); its normal size and state come back after
+    Rect? boundsBeforeHifi; bool maximisedBeforeHifi;
+    void SetHifiWindow(bool on)
+    {
+        if (on && boundsBeforeHifi == null)
+        {
+            maximisedBeforeHifi = WindowState == WindowState.Maximized;
+            var before = WindowState == WindowState.Normal ? new Rect(Left, Top, Width, Height) : RestoreBounds;
+            boundsBeforeHifi = before;
+            var chromeHeight = Math.Max(0, ActualHeight - webView.ActualHeight); // title bar and borders when not frameless
+            WindowState = WindowState.Normal;
+            var hifiWidth = Math.Max(960, Math.Min(1400, before.Width)), hifiHeight = Math.Round(hifiWidth / 3.88) + chromeHeight;
+            Left = before.Left + (before.Width - hifiWidth) / 2; Top = before.Top + (before.Height - hifiHeight) / 2; Width = hifiWidth; Height = hifiHeight;
+        }
+        else if (!on && boundsBeforeHifi is Rect saved)
+        {
+            boundsBeforeHifi = null;
+            Left = saved.Left; Top = saved.Top; Width = saved.Width; Height = saved.Height;
+            if (maximisedBeforeHifi) WindowState = WindowState.Maximized;
+        }
     }
 
     public void SetWindowMode(string mode)
@@ -352,9 +375,9 @@ public partial class MainWindow : Window
     static string DisplayKey => string.Join("|", System.Windows.Forms.Screen.AllScreens.Select(screen => $"{screen.Bounds.X},{screen.Bounds.Y},{screen.Bounds.Width}x{screen.Bounds.Height}").OrderBy(text => text));
     public void SaveBounds()
     {
-        var bounds = WindowState == WindowState.Normal ? new Rect(Left, Top, Width, Height) : RestoreBounds;
+        var bounds = boundsBeforeHifi ?? (WindowState == WindowState.Normal ? new Rect(Left, Top, Width, Height) : RestoreBounds); // hi-fi mode remembers the normal window
         if (bounds.IsEmpty || double.IsNaN(bounds.Width) || double.IsInfinity(bounds.Width) || bounds.Width < 200) return;
-        App.Settings.General.WindowBounds[DisplayKey] = new[] { bounds.Left, bounds.Top, bounds.Width, bounds.Height, WindowState == WindowState.Maximized ? 1 : 0 };
+        App.Settings.General.WindowBounds[DisplayKey] = new[] { bounds.Left, bounds.Top, bounds.Width, bounds.Height, (boundsBeforeHifi != null ? maximisedBeforeHifi : WindowState == WindowState.Maximized) ? 1 : 0 };
     }
 
     public void RestoreBoundsForDisplays()

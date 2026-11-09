@@ -2,7 +2,7 @@
   let meterCount = 0
 </script>
 <script lang="ts">
-  import { app, ui, meters, meterView, writeSetting, tapMeters } from '../state.svelte'
+  import { app, ui, meters, meterView, writeSetting, tapMeters, cycleMeterView } from '../state.svelte'
   import { sendToShell } from '../bridge'
   import Analyser from './Analyser.svelte'
   import MeterPanel, { panelThemes } from './MeterPanel.svelte'
@@ -63,7 +63,7 @@
   const detentAngles = Array.from({ length: 16 }, (unused, index) => 21 + index * 25 / 15)
 </script>
 
-<button class="meters {size}" bind:clientWidth={meterWidth} class:idle={!active} onclick={toggle} onpointerdown={pressMeters} onpointermove={dragMeters} onpointerup={() => pressedAt = null} oncontextmenu={(event) => { event.preventDefault(); ui.metersFull = !ui.metersFull }} title={(app.meterSettings.styles.length < 2 ? 'Click to tap the meter' : 'Click to switch meter style') + (moveWindow ? ' · drag to move the window · right-click to close' : ' · right-click for full window')}>
+<button class="meters {size}" bind:clientWidth={meterWidth} class:idle={!active} onclick={toggle} onpointerdown={pressMeters} onpointermove={dragMeters} onpointerup={() => pressedAt = null} oncontextmenu={(event) => { event.preventDefault(); event.stopPropagation(); cycleMeterView() }} title={(app.meterSettings.styles.length < 2 ? 'Click to tap the meter' : 'Click to switch meter style') + (moveWindow ? ` · drag to move the window · right-click ${ui.hifi ? 'to close' : 'for hi-fi'}` : ' · right-click for full window')}>
   {#key meterView.epoch}
   {#if ui.meterStyle === 'vu'}
     {#each ['L', 'R'] as channel, channelIndex}
