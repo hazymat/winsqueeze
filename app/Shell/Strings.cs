@@ -9,7 +9,7 @@ namespace WinSqueeze;
 // The web UI gets the same files and the chosen code as ?lang=
 public static class L
 {
-    public static readonly (string code, string name)[] Languages = { ("en", "English"), ("de", "Deutsch") };
+    public static readonly (string code, string name)[] Languages = { ("en", "English"), ("de", "Deutsch"), ("uk", "Українська") };
     public static string Code { get; private set; } = "en";
     static Dictionary<string, string> dictionary = new();
 
@@ -28,8 +28,17 @@ public static class L
     public static string T(string english, params (string name, object? value)[] values)
     {
         var text = T(english);
+        // "форма1|форма2|форма3": languages with more than two plural forms pick one by {count}
+        if (text.Contains('|') && long.TryParse(Convert.ToString(values.FirstOrDefault(pair => pair.name == "count").value, CultureInfo.InvariantCulture), out var count)) { var forms = text.Split('|'); text = forms[Math.Min(PluralForm(count), forms.Length - 1)]; }
         foreach (var (name, value) in values) text = text.Replace("{" + name + "}", Convert.ToString(value, CultureInfo.CurrentCulture));
         return text;
+    }
+    // Which of a translation's "|" forms a count takes: one, few, many (Ukrainian and Polish); other languages have one form
+    static int PluralForm(long count)
+    {
+        long lastDigit = count % 10, lastTwo = count % 100;
+        bool few = lastDigit >= 2 && lastDigit <= 4 && (lastTwo < 12 || lastTwo > 14);
+        return Code switch { "uk" => lastDigit == 1 && lastTwo != 11 ? 0 : few ? 1 : 2, "pl" => count == 1 ? 0 : few ? 1 : 2, _ => 0 };
     }
     // Singular or plural by count, both forms being keys
     public static string N(long count, string one, string other, params (string name, object? value)[] values) => T(count == 1 ? one : other, new[] { ("count", (object?)count) }.Concat(values).ToArray());
