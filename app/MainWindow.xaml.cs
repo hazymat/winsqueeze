@@ -162,6 +162,11 @@ public partial class MainWindow : Window
                 case "historyDelete": App.History.Delete(Ids(message.GetProperty("ids"))); break;
                 case "historyClear": App.History.Clear(); break;
                 case "damagedClear": App.Damaged.Clear(); break;
+                case "saveHealthExport": // Library health › Export: the page builds both formats, the file type picked in the dialog decides which is written
+                    var exportDialog = new Microsoft.Win32.SaveFileDialog { FileName = $"WinSqueeze-library-health-{DateTime.Now:yyyy-MM-dd}", Filter = L.T("JSON, for scripts and AI") + " (*.json)|*.json|" + L.T("Plain text") + " (*.txt)|*.txt" };
+                    if (exportDialog.ShowDialog(this) != true) { Reply(message, null); break; }
+                    await File.WriteAllTextAsync(exportDialog.FileName, Text(message, exportDialog.FilterIndex == 2 ? "text" : "json"));
+                    Reply(message, new { file = Path.GetFileName(exportDialog.FileName) }); break;
                 case "goOffline": await App.GoOfflineAsync(false); break;
                 case "goOnline": await App.GoOnlineAsync(); break;
                 case "playerCommand": await App.ServerRequestAsync(Text(message, "id"), CommandParts(message.GetProperty("command"))); if (!(message.TryGetProperty("quiet", out var quiet) && quiet.GetBoolean())) await App.Session.RefreshPlayersAsync(); break; // power, sync and volume of any player, not just the selected one
