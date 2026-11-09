@@ -1,6 +1,6 @@
 <script lang="ts">
   // Hi-fi mode (SPEC.md › Hi-fi mode): the whole window becomes a champagne-aluminium hi-fi separate, with meters, a VFD, transport keys and a volume knob
-  import { app, ui, currentTrack, setHifi } from '../state.svelte'
+  import { app, ui, currentTrack, setHifi, readSetting, writeSetting } from '../state.svelte'
   import { command, sendToShell } from '../bridge'
   import Meters from './Meters.svelte'
   const stageWidth = 1280, stageHeight = 330
@@ -44,12 +44,45 @@
   function fitMeters() { if (!meterBox) return; const naturalWidth = meterBox.offsetWidth, naturalHeight = meterBox.offsetHeight; if (naturalWidth && naturalHeight) meterZoom = Math.min(470 / naturalWidth, 166 / naturalHeight) }
   $effect(() => { meterBox; stageZoom; ui.meterStyle; requestAnimationFrame(fitMeters) })
   // Bare metal moves the window; right-click anywhere goes back to the normal player
-  function pressPlate(event: MouseEvent) { if (event.button === 0 && !(event.target as HTMLElement).closest('button, .knob, .seek-zone')) sendToShell({ type: 'dragWindow' }) }
+  function pressPlate(event: MouseEvent) { if (event.button === 0 && !(event.target as HTMLElement).closest('button, .knob, .seek-zone, .clickable')) sendToShell({ type: 'dragWindow' }) }
+  // Firmware-style update (SPEC.md › Hi-fi mode): the standby lamp pulses blue when an update is ready; hovering it shows the update on the display with an Update key;
+  // pressing it plays a short "upgrading firmware" sequence before the updater takes over, and the unit comes back after the restart saying what it was updated to
+  const updateReady = $derived(String(app.status?.updateReady ?? ''))
+  let updateHover = $state(false), hoverTimer = 0, upgradeStartedAt = $state(0), animationNow = $state(0)
+  const enterUpdate = () => { clearTimeout(hoverTimer); if (updateReady) updateHover = true }
+  const leaveUpdate = () => { clearTimeout(hoverTimer); hoverTimer = window.setTimeout(() => updateHover = false, 900) }
+  function startUpgrade() {
+    if (upgradeStartedAt) return
+    writeSetting('hifiUpdateFrom', String(app.status?.version ?? '')) // reopen in hi-fi after the restart, to say what changed
+    upgradeStartedAt = animationNow = Date.now()
+    const frames = window.setInterval(() => { animationNow = Date.now(); if (animationNow - upgradeStartedAt > 2700) { clearInterval(frames); sendToShell({ type: 'applyUpdate' }) } }, 40)
+  }
+  // After the restart: shown on the display for a while, a click on it goes to the normal player where the What's new card is waiting
+  const updatedFrom = readSetting('hifiUpdateFrom', '')
+  let updatedNoticeUntil = $state(0)
+  $effect(() => { const version = String(app.status?.version ?? ''); if (!updatedFrom || !version) return; writeSetting('hifiUpdateFrom', ''); if (version !== updatedFrom) updatedNoticeUntil = Date.now() + 20000 })
+  const showingUpdated = $derived(updatedNoticeUntil > now)
+  function openWhatsNew() { updatedNoticeUntil = 0; setHifi(false) }
+  // What the display shows: the music, or one of the update screens
+  const screen = $derived.by(() => {
+    const normalTrack = track ? String(Number(status?.playlist_cur_index ?? 0) + 1).padStart(2, '0').slice(-2) : '--'
+    const seconds = Math.max(0, Math.floor(position)), minutes = Math.min(99, Math.floor(seconds / 60)), normalTime = track ? (String(minutes) + String(seconds % 60).padStart(2, '0')).padStart(4, ' ') : '----'
+    const version = String(app.status?.version ?? '')
+    if (upgradeStartedAt) {
+      const elapsed = animationNow - upgradeStartedAt, percent = Math.max(0, Math.min(100, Math.round((elapsed - 400) / 20)))
+      if (elapsed < 400) return { mode: 'upgrading', blank: true, trackDigits: '  ', timeDigits: '    ', colon: false, line1: '', line2: '', share: 0 }
+      if (percent >= 100) return { mode: 'upgrading', blank: false, trackDigits: 'UP', timeDigits: ' 100'.slice(-4), colon: false, line1: 'RESTARTING', line2: 'PLEASE WAIT', share: 1 }
+      return { mode: 'upgrading', blank: false, trackDigits: 'UP', timeDigits: String(percent).padStart(4, ' '), colon: false, line1: 'UPGRADING FIRMWARE', line2: `V${version} > V${updateReady}`, share: percent / 100 }
+    }
+    if (updateReady && updateHover) return { mode: 'prompt', blank: false, trackDigits: '  ', timeDigits: '    ', colon: false, line1: 'SOFTWARE UPDATE', line2: `V${updateReady} READY · PRESS UPDATE`, share: 0 }
+    if (showingUpdated) return { mode: 'updated', blank: false, trackDigits: 'UP', timeDigits: '    ', colon: false, line1: `UPDATED TO V${version}`, line2: "CLICK HERE FOR WHAT'S NEW", share: 0 }
+    return { mode: 'normal', blank: false, trackDigits: normalTrack, timeDigits: normalTime, colon: !!track, line1: track?.title ?? (app.status?.message || 'NO DISC'), line2: [track?.artist ?? track?.albumartist, track?.album].filter(Boolean).join(' · '), share: duration ? position / duration : 0 }
+  })
   // VFD: 5x7 dot matrix text, 7-segment digits and fixed indicators; unlit elements ghost faintly, as on a real tube
-  const font: Record<string, number[]> = { A: [14,17,17,17,31,17,17], B: [30,17,17,30,17,17,30], C: [14,17,16,16,16,17,14], D: [28,18,17,17,17,18,28], E: [31,16,16,30,16,16,31], F: [31,16,16,30,16,16,16], G: [14,17,16,23,17,17,15], H: [17,17,17,31,17,17,17], I: [14,4,4,4,4,4,14], J: [7,2,2,2,2,18,12], K: [17,18,20,24,20,18,17], L: [16,16,16,16,16,16,31], M: [17,27,21,21,17,17,17], N: [17,17,25,21,19,17,17], O: [14,17,17,17,17,17,14], P: [30,17,17,30,16,16,16], Q: [14,17,17,17,21,18,13], R: [30,17,17,30,20,18,17], S: [15,16,16,14,1,1,30], T: [31,4,4,4,4,4,4], U: [17,17,17,17,17,17,14], V: [17,17,17,17,17,10,4], W: [17,17,17,21,21,21,10], X: [17,17,10,4,10,17,17], Y: [17,17,17,10,4,4,4], Z: [31,1,2,4,8,16,31], '0': [14,17,19,21,25,17,14], '1': [4,12,4,4,4,4,14], '2': [14,17,1,2,4,8,31], '3': [31,2,4,2,1,17,14], '4': [2,6,10,18,31,2,2], '5': [31,16,30,1,1,17,14], '6': [6,8,16,30,17,17,14], '7': [31,1,2,4,8,8,8], '8': [14,17,17,14,17,17,14], '9': [14,17,17,15,1,2,12], ':': [0,12,12,0,12,12,0], '.': [0,0,0,0,0,12,12], ',': [0,0,0,0,12,4,8], '-': [0,0,0,31,0,0,0], "'": [12,4,8,0,0,0,0], '"': [10,10,0,0,0,0,0], '/': [0,1,2,4,8,16,0], '·': [0,0,0,12,12,0,0], '(': [2,4,8,8,8,4,2], ')': [8,4,2,2,2,4,8], '&': [12,18,20,8,21,18,13], '!': [4,4,4,4,4,0,4], '?': [14,17,1,2,4,0,4], '+': [0,4,4,31,4,4,0], '#': [10,10,31,10,31,10,10], ' ': [0,0,0,0,0,0,0] }
+  const font: Record<string, number[]> = { A: [14,17,17,17,31,17,17], B: [30,17,17,30,17,17,30], C: [14,17,16,16,16,17,14], D: [28,18,17,17,17,18,28], E: [31,16,16,30,16,16,31], F: [31,16,16,30,16,16,16], G: [14,17,16,23,17,17,15], H: [17,17,17,31,17,17,17], I: [14,4,4,4,4,4,14], J: [7,2,2,2,2,18,12], K: [17,18,20,24,20,18,17], L: [16,16,16,16,16,16,31], M: [17,27,21,21,17,17,17], N: [17,17,25,21,19,17,17], O: [14,17,17,17,17,17,14], P: [30,17,17,30,16,16,16], Q: [14,17,17,17,21,18,13], R: [30,17,17,30,20,18,17], S: [15,16,16,14,1,1,30], T: [31,4,4,4,4,4,4], U: [17,17,17,17,17,17,14], V: [17,17,17,17,17,10,4], W: [17,17,17,21,21,21,10], X: [17,17,10,4,10,17,17], Y: [17,17,17,10,4,4,4], Z: [31,1,2,4,8,16,31], '0': [14,17,19,21,25,17,14], '1': [4,12,4,4,4,4,14], '2': [14,17,1,2,4,8,31], '3': [31,2,4,2,1,17,14], '4': [2,6,10,18,31,2,2], '5': [31,16,30,1,1,17,14], '6': [6,8,16,30,17,17,14], '7': [31,1,2,4,8,8,8], '8': [14,17,17,14,17,17,14], '9': [14,17,17,15,1,2,12], ':': [0,12,12,0,12,12,0], '.': [0,0,0,0,0,12,12], ',': [0,0,0,0,12,4,8], '-': [0,0,0,31,0,0,0], "'": [12,4,8,0,0,0,0], '"': [10,10,0,0,0,0,0], '/': [0,1,2,4,8,16,0], '·': [0,0,0,12,12,0,0], '(': [2,4,8,8,8,4,2], ')': [8,4,2,2,2,4,8], '&': [12,18,20,8,21,18,13], '>': [16,8,4,2,4,8,16], '!': [4,4,4,4,4,0,4], '?': [14,17,1,2,4,0,4], '+': [0,4,4,31,4,4,0], '#': [10,10,31,10,31,10,10], ' ': [0,0,0,0,0,0,0] }
   // Accented letters show as their plain letter (É -> E); anything else the tube can't draw becomes a space
   const plain = (text: string) => text.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[’‘]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-').toUpperCase()
-  const segmentsOf: Record<string, string> = { '0': 'abcdef', '1': 'bc', '2': 'abdeg', '3': 'abcdg', '4': 'bcfg', '5': 'acdfg', '6': 'acdefg', '7': 'abc', '8': 'abcdefg', '9': 'abcdfg', '-': 'g', ' ': '' }
+  const segmentsOf: Record<string, string> = { '0': 'abcdef', '1': 'bc', '2': 'abdeg', '3': 'abcdg', '4': 'bcfg', '5': 'acdfg', '6': 'acdefg', '7': 'abc', '8': 'abcdefg', '9': 'abcdfg', '-': 'g', ' ': '', U: 'bcdef', P: 'abefg' }
   const formatNames: Record<string, string> = { flc: 'FLAC', flac: 'FLAC', alc: 'ALAC', mp3: 'MP3', aac: 'AAC', mp4: 'AAC', wav: 'WAV', aif: 'AIFF', ogg: 'OGG', ops: 'OPUS', wma: 'WMA', dsf: 'DSD', dff: 'DSD', wvp: 'WV', ape: 'APE' }
   let canvas = $state<HTMLCanvasElement>()
   const lit = '#8afce6', ghost = 'rgba(110, 255, 225, 0.075)', glow = 'rgba(70, 255, 215, 0.85)'
@@ -61,7 +94,7 @@
     const ratio = (window.devicePixelRatio || 1) * stageZoom
     if (canvas.width !== Math.round(vfdWidth * ratio)) { canvas.width = Math.round(vfdWidth * ratio); canvas.height = Math.round(vfdHeight * ratio) }
     const context = canvas.getContext('2d')!; context.setTransform(ratio, 0, 0, ratio, 0, 0); context.clearRect(0, 0, vfdWidth, vfdHeight)
-    const paint = (on: boolean) => { context.fillStyle = on ? lit : ghost; context.shadowColor = on ? glow : 'transparent'; context.shadowBlur = on ? 7 : 0 }
+    const paint = (wanted: boolean) => { const on = wanted && !screen.blank; context.fillStyle = on ? lit : ghost; context.shadowColor = on ? glow : 'transparent'; context.shadowBlur = on ? 7 : 0 }
     const dotLine = (text: string, left: number, top: number, pitch: number, cells: number) => {
       const shown = text.padEnd(cells, ' ').slice(0, cells)
       for (let cell = 0; cell < cells; cell++) { const rows = font[shown[cell]] ?? font[' ']; for (let row = 0; row < 7; row++) for (let column = 0; column < 5; column++) { paint(!!(rows[row] & (16 >> column))); context.fillRect(left + (cell * 6 + column) * pitch, top + row * pitch, pitch * 0.78, pitch * 0.78) } }
@@ -80,25 +113,24 @@
     // Indicators: play, pause, repeat, shuffle; the file's format, rate and depth on the right
     paint(playing); context.beginPath(); context.moveTo(18, 14); context.lineTo(26, 18.5); context.lineTo(18, 23); context.fill()
     paint(!!track && !playing); context.fillRect(34, 14, 3, 9); context.fillRect(40, 14, 3, 9)
-    label('REPEAT', 58, 23, Number(status?.['playlist repeat'] ?? 0) > 0); label('SHUFFLE', 112, 23, Number(status?.['playlist shuffle'] ?? 0) > 0)
+    label('REPEAT', 58, 23, Number(status?.['playlist repeat'] ?? 0) > 0); label('SHUFFLE', 112, 23, Number(status?.['playlist shuffle'] ?? 0) > 0); label('UPDATE', 178, 23, !!updateReady && (screen.mode !== 'normal' || tick % 4 < 2))
     const format = formatNames[String(track?.type ?? '').toLowerCase()] ?? String(track?.type ?? '').toUpperCase().slice(0, 4), rate = Number(track?.samplerate ?? 0), depth = Number(track?.samplesize ?? 0)
     label(depth ? `${depth}bit` : '', vfdWidth - 18, 23, true, 'right'); label(rate ? `${(rate / 1000).toFixed(rate % 1000 ? 1 : 0)}kHz` : '', vfdWidth - 72, 23, true, 'right'); label(format, vfdWidth - 132, 23, true, 'right')
     // Track number and elapsed time
-    const trackNumber = track ? String(Number(status?.playlist_cur_index ?? 0) + 1).padStart(2, '0').slice(-2) : '--'
-    label('TRACK', 18, 42, true); digit(trackNumber[0], 18, 48, 22, 36, 4.6); digit(trackNumber[1], 46, 48, 22, 36, 4.6)
-    const seconds = Math.max(0, Math.floor(position)), minutes = Math.min(99, Math.floor(seconds / 60)), timeDigits = track ? (String(minutes) + String(seconds % 60).padStart(2, '0')).padStart(4, ' ') : '----', timeRight = vfdWidth - 18
-    label('TIME', timeRight, 42, true, 'right')
+    const trackNumber = screen.trackDigits, timeDigits = screen.timeDigits, timeRight = vfdWidth - 18
+    label('TRACK', 18, 42, screen.mode === 'normal'); digit(trackNumber[0], 18, 48, 22, 36, 4.6); digit(trackNumber[1], 46, 48, 22, 36, 4.6)
+    label(screen.mode === 'upgrading' ? '%' : 'TIME', timeRight, 42, screen.mode === 'normal' || screen.mode === 'upgrading', 'right')
     digit(timeDigits[3], timeRight - 22, 48, 22, 36, 4.6); digit(timeDigits[2], timeRight - 50, 48, 22, 36, 4.6); digit(timeDigits[1], timeRight - 96, 48, 22, 36, 4.6); digit(timeDigits[0], timeRight - 124, 48, 22, 36, 4.6)
-    paint(!!track); context.fillRect(timeRight - 65, 58, 4.2, 4.2); context.fillRect(timeRight - 66, 72, 4.2, 4.2)
+    paint(screen.colon); context.fillRect(timeRight - 65, 58, 4.2, 4.2); context.fillRect(timeRight - 66, 72, 4.2, 4.2)
     // Title, then artist and album, in the dot matrix
     const pitch = 2.45, cells = Math.floor((vfdWidth - 36) / (6 * pitch))
-    const title = plain(track?.title ?? (app.status?.message || 'NO DISC')), byline = plain([track?.artist ?? track?.albumartist, track?.album].filter(Boolean).join(' · '))
+    const title = plain(screen.line1), byline = plain(screen.line2)
     dotLine(scrolled(title, cells), 18, 100, pitch, cells); dotLine(scrolled(byline, cells), 18, 100 + 7 * pitch + 9, pitch, cells)
     // Position bar
-    const segments = 56, barWidth = vfdWidth - 36, share = duration ? position / duration : 0
+    const segments = 56, barWidth = vfdWidth - 36, share = screen.share
     for (let segment = 0; segment < segments; segment++) { paint(segment / segments < share); context.fillRect(18 + segment * barWidth / segments, vfdHeight - 19, barWidth / segments - 2, 5) }
   }
-  $effect(() => { status; track; playing; position; tick; stageZoom; canvas; drawVfd() })
+  $effect(() => { screen; tick; stageZoom; canvas; drawVfd() })
   const keys: [string, string, string][] = [['previous', 'Previous track', 'M6 5h2v14H6zM9.5 12 19 5v14z'], ['rewind', 'Rewind (hold to scan)', 'M11 5v14L2 12zM21 5v14l-9-7z'], ['play', 'Play or pause', 'M3 5v14l9-7zM14 5h3v14h-3zM19 5h3v14h-3z'], ['forward', 'Fast-forward (hold to scan)', 'M3 5v14l9-7zM13 5v14l9-7z'], ['next', 'Next track', 'M5 5v14l9.5-7zM16 5h2v14h-2z']]
   function pressKey(name: string) {
     if (name === 'previous') command('playlist', 'index', '-1')
@@ -113,10 +145,14 @@
 <div class="hifi" role="dialog" aria-label="Hi-fi" tabindex="-1" onmousedown={pressPlate} oncontextmenu={(event) => { event.preventDefault(); setHifi(false) }}>
   <div class="plate"></div>
   <div class="stage" style:transform="translate(-50%, -50%) scale({stageZoom})">
-    <div class="brand">WinSqueeze</div>
-    <div class="standby" class:on={playing}></div>
+    <div class="update-zone" role="presentation" onpointerenter={enterUpdate} onpointerleave={leaveUpdate}>
+      <div class="brand">WinSqueeze</div>
+      <div class="standby" class:on={playing} class:update={!!updateReady} class:upgrading={!!upgradeStartedAt} title={updateReady ? `WinSqueeze ${updateReady} is ready` : ''}></div>
+      {#if updateReady}<button class="update-key" class:shown={updateHover || !!upgradeStartedAt} onclick={startUpgrade} title="Restart to update to {updateReady}">UPDATE</button>{/if}
+    </div>
     <div class="meter-window"><div class="meter-zoom" bind:this={meterBox} style:transform="scale({meterZoom})"><Meters size="large" zoom={meterZoom * stageZoom} moveWindow={true} /></div><div class="pane"></div></div>
-    <div class="display">
+    <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+    <div class="display" class:clickable={showingUpdated} onclick={(event) => { if (showingUpdated && !(event.target as HTMLElement).closest('.seek-zone')) openWhatsNew() }}>
       <canvas bind:this={canvas} style:width="{vfdWidth}px" style:height="{vfdHeight}px"></canvas><div class="mesh"></div><div class="pane"></div>
       <div class="seek-zone" bind:this={seekBar} role="slider" tabindex="-1" aria-label="Position" aria-valuenow={Math.round(position)} title="Click or drag to move through the track" onpointerdown={grabSeek} onpointermove={dragSeek} onpointerup={letGoSeek}></div>
     </div>
@@ -142,9 +178,20 @@
     background-blend-mode: overlay, normal, normal; box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -2px 2px rgba(0,0,0,0.25); }
   /* Scaled with a transform, not zoom: the meter fit below measures through it the same way in every WebView2 version */
   .stage { position: absolute; left: 50%; top: 50%; width: 1280px; height: 330px; --pad: 34px; }
-  .brand { position: absolute; left: var(--pad); bottom: 43px; font: 600 15px/1 "Segoe UI", Inter, sans-serif; letter-spacing: 3px; color: #4a3b28; text-shadow: 0 1px 0 rgba(255,245,225,0.75); pointer-events: none; }
-  .standby { position: absolute; left: calc(var(--pad) + 160px); bottom: 46px; width: 7px; height: 7px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #c9ffd9, #1fd25f 45%, #0b6b2c); box-shadow: 0 0 6px 2px rgba(60, 255, 120, 0.55), 0 1px 0 rgba(255,255,255,0.7); }
+  .update-zone { position: absolute; left: var(--pad); bottom: 26px; width: 300px; height: 40px; }
+  .brand { position: absolute; left: 0; bottom: 17px; font: 600 15px/1 "Segoe UI", Inter, sans-serif; letter-spacing: 3px; color: #4a3b28; text-shadow: 0 1px 0 rgba(255,245,225,0.75); pointer-events: none; }
+  .standby { position: absolute; left: 160px; bottom: 20px; width: 7px; height: 7px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #c9ffd9, #1fd25f 45%, #0b6b2c); box-shadow: 0 0 6px 2px rgba(60, 255, 120, 0.55), 0 1px 0 rgba(255,255,255,0.7); }
   .standby:not(.on) { background: radial-gradient(circle at 40% 35%, #ffd1c4, #c53a1c 50%, #5c140a); box-shadow: 0 0 5px 1px rgba(255, 70, 30, 0.45); }
+  /* Update ready: the lamp turns blue and breathes; faster while upgrading */
+  .standby.update { background: radial-gradient(circle at 40% 35%, #d9eeff, #2f8cff 45%, #0b3a8c); animation: update-pulse 1.6s ease-in-out infinite; }
+  .standby.upgrading { animation-duration: 0.35s; }
+  @keyframes update-pulse { 0%, 100% { box-shadow: 0 0 3px 1px rgba(60, 140, 255, 0.35); filter: brightness(0.75); } 50% { box-shadow: 0 0 10px 3px rgba(60, 150, 255, 0.85); filter: brightness(1.3); } }
+  .update-key { position: absolute; left: 184px; bottom: 9px; height: 26px; padding: 0 12px; border: 0; border-radius: 4px; cursor: pointer; font: 700 9.5px/1 "Segoe UI", Inter, sans-serif; letter-spacing: 2px; color: #4a3b28; text-shadow: 0 1px 0 rgba(255,245,225,0.8);
+    background: linear-gradient(180deg, #faf4ec 0%, #e2d7c6 45%, #d1c4b0 55%, #bcae98 100%); box-shadow: 0 0 0 1.5px #3b3022, 0 0 0 3px rgba(0,0,0,0.2), 0 2px 3px rgba(0,0,0,0.35), inset 0 1px 0 #fff8ec;
+    opacity: 0; translate: 0 3px; pointer-events: none; transition: opacity 250ms, translate 250ms; }
+  .update-key.shown { opacity: 1; translate: 0 0; pointer-events: auto; }
+  .update-key:active { translate: 0 1px; box-shadow: 0 0 0 1.5px #3b3022, 0 0 0 3px rgba(0,0,0,0.2), inset 0 2px 3px rgba(0,0,0,0.25); }
+  .display.clickable { cursor: pointer; }
   /* Window cut into the plate: black recess, the two meters behind smoked glass */
   .meter-window { position: absolute; left: var(--pad); top: 34px; width: 490px; height: 190px; border-radius: 6px; background: #0b0b0c; box-shadow: 0 -1px 0 rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.85), inset 0 3px 8px rgba(0,0,0,0.9); display: grid; place-items: center; overflow: hidden; }
   .pane { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: linear-gradient(160deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.03) 28%, rgba(255,255,255,0) 29%, rgba(255,255,255,0) 100%); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); }

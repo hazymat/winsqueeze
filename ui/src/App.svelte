@@ -99,6 +99,7 @@
   onShellMessage('windowMoved', message => windowMoved(Number(message.x)))
   onShellMessage('settings', message => { if (message.library) app.librarySettings = message.library; if (message.hints) app.hints = message.hints; if (message.playback) app.playback = message.playback; if (Array.isArray(message.trackInfo)) app.trackInfoTabs = message.trackInfo })
   sendToShell({ type: 'ready' })
+  if (readSetting('hifiUpdateFrom', '')) setHifi(true) // updated from hi-fi mode: come back as the unit, which says what it was updated to
   // Restore an unsaved playlist draft from last time
   request({ type: 'loadDraft' }).then(draft => { if (draft?.items) newPlaylist(draft.name ?? 'Untitled playlist', draft.items) })
 
