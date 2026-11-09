@@ -129,7 +129,6 @@
           <path d="M104.35 13.9 A1.75 1.75 0 0 1 105.5 11.85" class="lens-streak" filter="url(#{gradientId}-lens-glint)" />
           <circle cx="107.15" cy="12.55" r="0.22" class="lens-speck" />
         </g>
-        <text x="105" y="57" class="sign hot">+</text><text x="14" y="57" class="sign">−</text>
         <text x="60" y="53" class="channel" class:note={screwNote}>{screwNote || channel}</text>
         <rect x="5" y="5" width="110" height="62" fill="url(#{gradientId}{channel}-blob)" class="shade" /><rect x="5" y="5" width="110" height="62" filter="url(#{gradientId}{channel}-mottle)" class="shade mottle" />
         <rect x="5" y="5" width="110" height="62" fill="url(#{gradientId}{channel}-falloff)" class="shade" /><rect x="5" y="5" width="110" height="62" fill="url(#{gradientId}-lip)" class="shade" /><g clip-path="url(#{gradientId}-clip)"><rect x="5" y="6.6" width="110" height="62" class="shade inset" filter="url(#{gradientId}-inset)" /></g>
@@ -155,7 +154,7 @@
         </g>
       </svg>
       {/snippet}
-      <span class="meter-stack">{@render vuLayer('face')}{@render vuLayer('needles')}{@render vuLayer('front')}<span class="lamp-light"></span></span>
+      <span class="meter-stack">{@render vuLayer('face')}{@render vuLayer('needles')}{@render vuLayer('front')}<span class="lamp-light"></span><span class="peak-lamp" style:opacity={Math.pow(meters.lamp[channelIndex], 2)}><span class="peak-core" style:opacity={Math.pow(meters.lamp[channelIndex], 2)}></span></span></span>
     {/each}
   {:else if panelThemes[ui.meterStyle]}
     <MeterPanel theme={ui.meterStyle} levels={meters.vu} reference={meters.reference} {size} {textureScale} idle={!active} />
@@ -210,7 +209,6 @@
   .number { fill: #1d1a14; font-size: 6.5px; text-anchor: middle; dominant-baseline: middle; font-family: "Segoe UI", Arial, sans-serif; font-weight: 600; }
   .number.hot { fill: #c4291c; }
   .vu-label { fill: #1d1a14; font-size: 9px; font-weight: 700; font-family: "Segoe UI", Arial, sans-serif; }
-  .sign { fill: #1d1a14; font-size: 8px; font-weight: 700; text-anchor: middle; font-family: Arial, sans-serif; } .sign.hot { fill: #c4291c; }
   .channel { fill: rgba(29, 26, 20, 0.55); font-size: 6px; text-anchor: middle; font-family: var(--font-display); }
   .needle { stroke: #111; stroke-width: 0.9; } .needle.blade { stroke: none; } /* ballistics (a damped spring) in the shell, easing and window jog per frame in state.svelte.ts */
   .shroud-rim { fill: none; stroke: #fff3d6; stroke-width: 0.45; opacity: 0.45; transition: opacity 1s; } .idle .shroud-rim { opacity: 0.3; } .shroud-edge { fill: none; stroke: #000; stroke-width: 0.5; opacity: 0.6; }
@@ -231,6 +229,9 @@
   /* The lamp: one multiply layer over the window (face, print, needles, glass), so everything inside is lit by it, red ink included, and the
      compositor animates it without redrawing the face. Switching on, the filament glows from dark through deep orange to warm white; with no music it dims a little warmer */
   .lamp-light { grid-area: 1 / 1; align-self: start; justify-self: start; margin: 4.1667% 0 0 4.1667%; width: 91.667%; height: 86.111%; border-radius: 1.7%; pointer-events: none; mix-blend-mode: multiply; background: #fff; transition: background-color 1.2s ease; animation: lamp-on 1.6s cubic-bezier(0.25, 0.6, 0.35, 1); }
+  /* Peak lamp glow over the red lens (centre 106, 13.5 in the face's 120-wide box; all margins are % of width): dull red when barely lit, an orange-white filament when hot, spilling a little onto the face */
+  .peak-lamp { grid-area: 1 / 1; align-self: start; justify-self: start; position: relative; margin: 3.25% 0 0 80.333%; width: 16%; aspect-ratio: 1; border-radius: 50%; pointer-events: none; mix-blend-mode: screen; opacity: 0; background: radial-gradient(closest-side, #ff4a22 0%, #e2301a 20%, #b8220f 25%, rgba(190, 40, 20, 0.28) 34%, rgba(190, 40, 20, 0.08) 60%, transparent 100%); }
+  .peak-core { position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(closest-side at 50% 54%, #fff0c8 0%, #ffb070 9%, rgba(255, 110, 50, 0.5) 17%, transparent 25%); }
   .idle .lamp-light { background: #eee6dc; }
   @keyframes lamp-on { 0% { background: #261b12; } 35% { background: #bf6626; } }
   @media (prefers-reduced-motion: reduce) { .lamp-light { animation: none; } }
