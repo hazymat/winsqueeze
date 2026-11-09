@@ -131,8 +131,8 @@ public sealed partial class SqueezeliteHost : IDisposable
         var refusedMatch = OpenRefusedRegex().Match(logLine);
         if (logLine.Contains("opening WASAPI device in exclusive mode")) ExclusiveActive = true;
         else if (openedMatch.Success) { OutputSampleRate = int.Parse(openedMatch.Groups[2].Value); if (openedMatch.Groups[3].Success) OutputLatencyMs = int.Parse(openedMatch.Groups[3].Value); if (State == PlayerState.Failed) SetStatus(PlayerState.Running, L.T("Playing to {device}", ("device", openedMatch.Groups[1].Value))); else StatusChanged?.Invoke(); }
-        else if (ExclusiveActive && Device != null && refusedMatch.Success && exclusiveRefused.TryAdd(Device.SqueezeliteId, ExclusiveRefusalText(refusedMatch.Groups[1].Value))) ExclusiveFailed?.Invoke(Device.Name, exclusiveRefused[Device.SqueezeliteId]);
         else if (logLine.Contains("Invalid sample rate")) SetStatus(PlayerState.Failed, L.T("The device rejected this track's sample rate. Remove any -R override from Extra arguments so WinSqueeze can resample it."));
+        else if (ExclusiveActive && Device != null && refusedMatch.Success && exclusiveRefused.TryAdd(Device.SqueezeliteId, ExclusiveRefusalText(refusedMatch.Groups[1].Value))) ExclusiveFailed?.Invoke(Device.Name, exclusiveRefused[Device.SqueezeliteId]); // a rate problem isn't exclusive mode's fault (handled above)
     }
 
     void OnExited()
