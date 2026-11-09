@@ -9,12 +9,12 @@ namespace WinSqueeze;
 // The web UI gets the same files and the chosen code as ?lang=
 public static class L
 {
-    public static readonly (string code, string name)[] Languages = { ("en", "English"), ("de", "Deutsch"), ("uk", "Українська"), ("es", "Español"), ("fr", "Français"), ("ja", "日本語"), ("zh", "中文（简体）"), ("pl", "Polski"), ("it", "Italiano"), ("nl", "Nederlands"), ("pt", "Português"), ("sv", "Svenska"), ("cs", "Čeština"), ("da", "Dansk") };
+    public static readonly (string code, string name)[] Languages = { ("en", "English"), ("de", "Deutsch"), ("uk", "Українська"), ("es", "Español"), ("fr", "Français"), ("ja", "日本語"), ("zh", "中文（简体）"), ("pl", "Polski"), ("it", "Italiano"), ("nl", "Nederlands"), ("pt", "Português"), ("sv", "Svenska"), ("cs", "Čeština"), ("da", "Dansk"), ("nb", "Norsk bokmål") };
     public static string Code { get; private set; } = "en";
     static Dictionary<string, string> dictionary = new();
 
     // setting: "" follows Windows' display language, otherwise a code from Languages
-    public static string Resolve(string setting) { var wanted = setting != "" ? setting : CultureInfo.CurrentUICulture.TwoLetterISOLanguageName; return Languages.Any(language => language.code == wanted) ? wanted : "en"; }
+    public static string Resolve(string setting) { var wanted = setting != "" ? setting : CultureInfo.CurrentUICulture.TwoLetterISOLanguageName; if (wanted is "no" or "nn") wanted = "nb"; /* Nynorsk Windows gets Bokmål */ return Languages.Any(language => language.code == wanted) ? wanted : "en"; }
     public static void Load(string setting)
     {
         Code = Resolve(setting); dictionary = new();
