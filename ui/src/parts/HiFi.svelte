@@ -57,6 +57,8 @@
     upgradeStartedAt = animationNow = Date.now()
     const frames = window.setInterval(() => { animationNow = Date.now(); if (animationNow - upgradeStartedAt > 2700) { clearInterval(frames); sendToShell({ type: 'applyUpdate' }) } }, 40)
   }
+  let switchThrown = $state(false)
+  function throwSwitch() { if (switchThrown) return; switchThrown = true; window.setTimeout(() => setHifi(false), 260) } // let the lever finish its throw first
   // After the restart: shown on the display for a while, a click on it goes to the normal player where the What's new card is waiting
   const updatedFrom = readSetting('hifiUpdateFrom', '')
   let updatedNoticeUntil = $state(0)
@@ -162,8 +164,8 @@
       <div class="knob" role="slider" tabindex="-1" aria-label="Volume" aria-valuenow={volume} title="Volume {volume} (drag up or down, or scroll)" style:--angle="{knobAngle}deg" onpointerdown={grabKnob} onpointermove={turnKnob} onpointerup={letGoKnob} onwheel={wheelKnob}><div class="teeth"></div><div class="knurl"></div><div class="cap"></div><div class="pointer"><div class="mark"></div></div></div>
     </div>
     <div class="volume-label">VOLUME</div>
-    <!-- Power: a machined button set into the plate, back to the normal player -->
-    <button class="power" onclick={() => setHifi(false)} title="Back to the player (Esc or right-click)" aria-label="Back to the player"><svg viewBox="0 0 24 24"><path d="M12 3.5v8" /><path d="M7.2 6.6a7.5 7.5 0 1 0 9.6 0" /></svg></button>
+    <!-- Mode toggle: chrome bat-handle switch, flicked down (animated throw) goes back to the library -->
+    <button class="mode-switch" class:thrown={switchThrown} onclick={throwSwitch} title="Back to the library (Esc or right-click)" aria-label="Back to the library"><span class="engraving">HI-FI</span><span class="switch-body"><span class="nut"></span><span class="collar"></span><span class="lever"><span class="lever-shaft"></span><span class="lever-tip"></span></span></span><span class="engraving">LIBRARY</span></button>
   </div>
   </div>
 
@@ -209,7 +211,7 @@
   .key:active { transform: translateY(1px); background: linear-gradient(180deg, #d4c8b5 0%, #c8bba6 50%, #bcae98 100%); box-shadow: 0 0 0 1.5px #3b3022, 0 0 0 3px rgba(0,0,0,0.25), 0 1px 1px rgba(0,0,0,0.3), inset 0 2px 3px rgba(0,0,0,0.25); }
   .key:focus-visible { outline: 2px solid rgba(74, 59, 40, 0.6); outline-offset: 4px; }
   /* Volume: printed scale on the plate, a heavy turned knob with a knurled rim and a sunburst-finished cap */
-  .knob-well { position: absolute; right: 30px; top: 50%; translate: 0 -54%; width: 260px; height: 260px; }
+  .knob-well { position: absolute; right: 48px; top: 50%; translate: 0 -54%; width: 260px; height: 260px; }
   .scale { position: absolute; inset: 0; pointer-events: none; } .scale line { stroke: #5a4934; stroke-width: 1.4; } .scale line.major { stroke-width: 2.2; stroke: #3b2f20; }
   /* The light and the shadow stay put while the knob turns: only the knurled teeth and the pointer rotate (the turned cap's sheen doesn't move on a real knob either) */
   .knob { position: absolute; inset: 26px; border-radius: 50%; cursor: grab; touch-action: none; outline: none;
@@ -223,11 +225,19 @@
   .cap::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: repeating-radial-gradient(circle at 50% 50%, rgba(0,0,0,0.06) 0 0.6px, rgba(255,255,255,0.07) 0.6px 1.4px); }
   .pointer { position: absolute; inset: 0; rotate: var(--angle); pointer-events: none; }
   .mark { position: absolute; left: 50%; top: 18px; width: 9px; height: 9px; margin-left: -4.5px; border-radius: 50%; rotate: calc(-1 * var(--angle)); background: radial-gradient(circle at 50% 70%, #7a6548, #31271a); box-shadow: inset 0 1px 2px rgba(0,0,0,0.7), 0 1px 0 rgba(255,255,255,0.7); }
-  .volume-label { position: absolute; right: 30px; width: 260px; text-align: center; bottom: 26px; font: 600 9.5px/1 "Segoe UI", Inter, sans-serif; letter-spacing: 3px; color: #5a4934; text-shadow: 0 1px 0 rgba(255,245,225,0.7); pointer-events: none; }
-  .power { position: absolute; top: 14px; right: 16px; width: 30px; height: 30px; border: 0; border-radius: 50%; padding: 0; cursor: pointer; display: grid; place-items: center;
-    background: radial-gradient(circle at 50% 30%, #fdf9f2 0%, #e4d9c8 45%, #c6b8a2 100%);
-    box-shadow: 0 0 0 1.5px #3b3022, 0 0 0 3.5px rgba(0,0,0,0.16), 0 0 0 4.5px rgba(255,248,232,0.55), 0 2px 3px rgba(0,0,0,0.4), inset 0 1px 0 #fff8ec, inset 0 -2px 2px rgba(0,0,0,0.18); }
-  .power svg { width: 15px; height: 15px; } .power path { fill: none; stroke: #4a3b28; stroke-width: 2.3; stroke-linecap: round; filter: drop-shadow(0 1px 0 rgba(255,245,225,0.8)); }
-  .power:active { transform: translateY(1px); background: radial-gradient(circle at 50% 40%, #e6dccb 0%, #d0c3ae 60%, #bcae98 100%); box-shadow: 0 0 0 1.5px #3b3022, 0 0 0 3.5px rgba(0,0,0,0.16), 0 0 0 4.5px rgba(255,248,232,0.55), 0 1px 1px rgba(0,0,0,0.3), inset 0 2px 3px rgba(0,0,0,0.25); }
-  .power:focus-visible { outline: 2px solid rgba(74, 59, 40, 0.6); outline-offset: 5px; }
+  .volume-label { position: absolute; right: 48px; width: 260px; text-align: center; bottom: 26px; font: 600 9.5px/1 "Segoe UI", Inter, sans-serif; letter-spacing: 3px; color: #5a4934; text-shadow: 0 1px 0 rgba(255,245,225,0.7); pointer-events: none; }
+  .mode-switch { position: absolute; top: 9px; right: 3px; width: 54px; height: 84px; border: 0; padding: 0; background: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: space-between; }
+  .engraving { font: 700 7.5px/1 "Segoe UI", Inter, sans-serif; letter-spacing: 1.4px; margin-right: -1.4px; color: #4a3b28; text-shadow: 0 1px 0 rgba(255,245,225,0.75); }
+  .switch-body { position: relative; width: 26px; height: 26px; }
+  .nut { position: absolute; inset: 0; clip-path: polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0 50%); background: linear-gradient(160deg, #fbfbf8 0%, #c9c6bf 38%, #8e8a82 62%, #dcd9d2 100%); filter: drop-shadow(0 2px 2px rgba(0,0,0,0.45)); }
+  .collar { position: absolute; inset: 6px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #ffffff 0%, #bdb9b1 45%, #5f5b54 100%); box-shadow: 0 0 0 1px rgba(40,34,26,0.55), inset 0 -1px 2px rgba(0,0,0,0.4); }
+  .collar::after { content: ''; position: absolute; inset: 4px; border-radius: 50%; background: radial-gradient(circle at 50% 50%, #1d1a16 0%, #4a463f 100%); }
+  /* Lever pivots at the collar centre; the throw is a fold through the viewer (scaleY 1 -> -1), like a real bat handle seen face-on */
+  .lever { position: absolute; left: 50%; bottom: 50%; width: 9px; height: 23px; margin-left: -4.5px; transform-origin: 50% 100%; transition: transform 0.22s cubic-bezier(0.55, 0, 0.75, 1.4); filter: drop-shadow(1px 2px 1.5px rgba(0,0,0,0.45)); }
+  .lever-shaft { position: absolute; left: 2px; right: 2px; top: 3px; bottom: 0; background: linear-gradient(90deg, #5d5a54 0%, #d9d6cf 30%, #ffffff 45%, #a7a39b 70%, #4a4741 100%); clip-path: polygon(0 0, 100% 0, 80% 100%, 20% 100%); }
+  .lever-tip { position: absolute; left: 0; top: -3px; width: 9px; height: 9px; border-radius: 50%; background: radial-gradient(circle at 38% 32%, #ffffff 0%, #d4d1ca 35%, #7c7870 80%, #4f4b45 100%); }
+  .mode-switch.thrown .lever { transform: scaleY(-1); }
+  .mode-switch.thrown .lever-tip { background: radial-gradient(circle at 38% 68%, #ffffff 0%, #d4d1ca 35%, #7c7870 80%, #4f4b45 100%); }
+  .mode-switch:hover .lever { transform: scaleY(0.9); } .mode-switch.thrown:hover .lever { transform: scaleY(-1); }
+  .mode-switch:focus-visible { outline: 2px solid rgba(74, 59, 40, 0.6); outline-offset: 2px; border-radius: 6px; }
 </style>
