@@ -143,7 +143,8 @@ export function receiveLevels(vu: number[], peak: number[], bands: number[]) {
     if (!Number.isFinite(loudnessPower) || loudnessPower < 0) loudnessPower = 0
   }
   loudnessAt = receivedAt
-  meters.reference = app.meterSettings.autoReference && loudnessPower ? Math.max(-24, Math.min(-6, 10 * Math.log10(loudnessPower) + 4)) : app.meterSettings.referenceDbfs
+  // in half-dB steps: the VU face's percent scale follows it, and redrawing that face on every update stalled the needles
+  meters.reference = app.meterSettings.autoReference && loudnessPower ? Math.round(2 * Math.max(-24, Math.min(-6, 10 * Math.log10(loudnessPower) + 4))) / 2 : app.meterSettings.referenceDbfs
   app.levels = { vu, peak, bands, at: receivedAt }
   if (!meterFrame) { meterLastTime = performance.now(); meterFrame = requestAnimationFrame(easeMeters) }
 }
