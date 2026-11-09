@@ -586,9 +586,10 @@
               </Expander>
               <Expander Header="About the developer" Style="{StaticResource More}">
                 <StackPanel Margin="0,6,0,0" TextBlock.Foreground="#2B3A4E">
-                  <TextBlock TextWrapping="Wrap" LineHeight="19" Text="Hi, I'm Mat, from London. I've used Squeezebox since 2005 and have owned more of its hardware than I'd like to admit. I have a music degree from a UK university, so music has always been the main thing." />
-                  <TextBlock TextWrapping="Wrap" LineHeight="19" Margin="0,8,0,0" Text="A confession: AI tools write a lot of WinSqueeze's code. Please don't let that put you off. I'm a critical and careful user of AI. I decide what goes in and how it works, I check what the AI produces, and I value human decisions far more than computer-made ones." />
-                  <TextBlock TextWrapping="Wrap" LineHeight="19" Margin="0,8,0,0">If something's wrong or could be better, tell me in <Hyperlink x:Name="discussionsLink" NavigateUri="https://github.com/hazymat/winsqueeze/discussions">GitHub Discussions</Hyperlink>.</TextBlock>
+                  <TextBlock TextWrapping="Wrap" LineHeight="19" Text="Hello, I’m Mat, from London. I’m a music grad, pianist, and as someone who has owned and used Squeezebox devices since 2005 you can imagine, a bit of a serious music fan." />
+                  <TextBlock TextWrapping="Wrap" LineHeight="19" Margin="0,8,0,0" Text="I wrote this app primarily for me, but I hope you like it too." />
+                  <TextBlock TextWrapping="Wrap" LineHeight="19" Margin="0,8,0,0" Text="Computer Science was my first degree and I’ve been coding since 1988. But you may have guessed AI tools were involved somewhat in the production of WinSqueeze’s code. Please don’t let that put you off. I’m a critical and careful user of AI, and value human decisions far more than computer-made ones. And so my approach is this: human-led design and human-checked code." />
+                  <TextBlock TextWrapping="Wrap" LineHeight="19" Margin="0,8,0,0">If something is wrong, or could be improved, please let me know in <Hyperlink x:Name="discussionsLink" NavigateUri="https://github.com/hazymat/winsqueeze/discussions">GitHub Discussions</Hyperlink>.</TextBlock>
                 </StackPanel>
               </Expander>
             </StackPanel>
