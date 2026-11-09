@@ -8,7 +8,8 @@ import japanese from '../../../locales/ja.json'
 import chinese from '../../../locales/zh.json'
 import polish from '../../../locales/pl.json'
 import italian from '../../../locales/it.json'
-const dictionaries: Record<string, Record<string, string>> = { de: german, uk: ukrainian, es: spanish, fr: french, ja: japanese, zh: chinese, pl: polish, it: italian }
+import dutch from '../../../locales/nl.json'
+const dictionaries: Record<string, Record<string, string>> = { de: german, uk: ukrainian, es: spanish, fr: french, ja: japanese, zh: chinese, pl: polish, it: italian, nl: dutch }
 export const language = new URLSearchParams(location.search).get('lang') ?? 'en'
 const dictionary = dictionaries[language] ?? {}
 if (typeof document !== 'undefined') document.documentElement.lang = language
