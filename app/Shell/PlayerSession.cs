@@ -52,7 +52,7 @@ public sealed class PlayerSession
         polling = true;
         try
         {
-            LastStatus = await App.ServerRequestAsync(PlayerId, "status", 0, 500, "tags:aAcdlKjJotTIrsSeNfYmu");
+            LastStatus = await App.ServerRequestAsync(PlayerId, "status", 0, 500, "tags:aAcdlKjJotTIrsSeNfYmuy");
             failedPolls = 0;
             LastStatusJson = LastStatus.ValueKind == JsonValueKind.Undefined ? "{}" : LastStatus.GetRawText();
             StatusUpdated?.Invoke();
