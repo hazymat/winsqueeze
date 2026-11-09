@@ -26,6 +26,7 @@ public sealed class Recorder : IDisposable
     public string SessionFolder { get; private set; } = ""; // "<station> - yyyy-MM-dd, HH.mm.ss" per recording (default), or "<station>" for all of them
     string noteText = "";
     public string Note { get => noteText; private set { noteText = value; if (value != "") NoteId++; } } // last thing worth telling the user (saved, or an error)
+    public bool NoteIsSaved { get; private set; } // the note says where a recording was saved (offers Open in Explorer)
     public int NoteId { get; private set; }
     public event Action? Changed;
     static RecordingSettings Tuning => App.Instance.Settings.Recording;
@@ -43,7 +44,7 @@ public sealed class Recorder : IDisposable
 
     void Begin(JsonElement status)
     {
-        if (!IsStream(status)) { Note = L.T("Recording works on radio stations and other streams"); Changed?.Invoke(); return; }
+        if (!IsStream(status)) { NoteIsSaved = false; Note = L.T("Recording works on radio stations and other streams"); Changed?.Invoke(); return; }
         station = ""; // read once per recording: plugins later swap in the programme name, which would scatter files across folders
         ReadSong(status);
         lock (writeLock) { Recording = true; FilesThisRecording = 0; StartedAt = DateTime.Now; Note = ""; SessionFolder = Path.Combine(Folder, Tuning.FolderPerStation ? Safe(station) : $"{Safe(station)} - {StartedAt:yyyy-MM-dd, HH.mm.ss}"); }
@@ -55,7 +56,7 @@ public sealed class Recorder : IDisposable
         lock (writeLock)
         {
             if (!Recording) return;
-            Recording = false; Note = FilesThisRecording > 1 ? L.T("{message}: {count} files in {folder}", ("message", message), ("count", FilesThisRecording), ("folder", SessionFolder)) : L.T("{message} in {folder}", ("message", message), ("folder", SessionFolder));
+            Recording = false; NoteIsSaved = true; Note = FilesThisRecording > 1 ? L.T("{message}: {count} files in {folder}", ("message", message), ("count", FilesThisRecording), ("folder", SessionFolder)) : L.T("{message} in {folder}", ("message", message), ("folder", SessionFolder));
             WriteRequest(false, "", "");
         }
         Changed?.Invoke();
@@ -102,7 +103,7 @@ public sealed class Recorder : IDisposable
             if (!Recording) return;
             var folder = SessionFolder;
             try { Directory.CreateDirectory(folder); }
-            catch (Exception error) { Recording = false; Note = L.T("Can't create the recordings folder: {error}", ("error", error.Message)); WriteRequest(false, "", ""); Changed?.Invoke(); return; }
+            catch (Exception error) { Recording = false; NoteIsSaved = false; Note = L.T("Can't create the recordings folder: {error}", ("error", error.Message)); WriteRequest(false, "", ""); Changed?.Invoke(); return; }
             var song = songArtist != "" && songTitle != "" ? $"{songArtist} - {songTitle}" : FirstOf(songTitle, station);
             var stem = Path.Combine(folder, $"{(Tuning.FolderPerStation ? DateTime.Now.ToString("yyyy-MM-dd HH.mm") : (FilesThisRecording + 1).ToString("00"))} {Safe(song, 80)}"); // numbered in recording order, or dated in a shared station folder; programme blurbs can run to paragraphs
             if (stem.Length > 230) stem = stem[..230];
@@ -159,7 +160,7 @@ public sealed class Recorder : IDisposable
                 var error = view.ReadInt32(ErrorOffset);
                 if (view.ReadInt32(AppliedOffset) == request && error > 0)
                 {
-                    Recording = false; Note = error == 1 ? L.T("Can't write to {folder}", ("folder", Path.GetDirectoryName(CurrentFile))) : L.T("Recording stopped: the FLAC encoder failed"); WriteRequest(false, "", ""); changed = true;
+                    Recording = false; NoteIsSaved = false; Note = error == 1 ? L.T("Can't write to {folder}", ("folder", Path.GetDirectoryName(CurrentFile))) : L.T("Recording stopped: the FLAC encoder failed"); WriteRequest(false, "", ""); changed = true;
                 }
             }
             catch (Exception error) { CrashReporter.Write("Recorder update failed", error, false); view?.Dispose(); sharedFile?.Dispose(); view = null; sharedFile = null; }

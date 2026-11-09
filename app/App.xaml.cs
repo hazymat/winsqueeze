@@ -521,7 +521,7 @@ public partial class App : Application
         replayGain = OwnReplayGainMode != "0",
         transitions = OwnTransitionType != "0",
         sampleRate = Player.OutputSampleRate,
-        recording = new { available = SqueezeliteHost.SupportsRecording && Settings.Recording.ShowButton, on = Recorder.Recording, file = System.IO.Path.GetFileName(Recorder.CurrentFile), startedAt = Recorder.Recording ? new DateTimeOffset(Recorder.StartedAt).ToUnixTimeMilliseconds() : 0, files = Recorder.FilesThisRecording, note = Recorder.Note, noteId = Recorder.NoteId, folder = Recorder.SessionFolder },
+        recording = new { available = SqueezeliteHost.SupportsRecording && Settings.Recording.ShowButton, on = Recorder.Recording, file = System.IO.Path.GetFileName(Recorder.CurrentFile), startedAt = Recorder.Recording ? new DateTimeOffset(Recorder.StartedAt).ToUnixTimeMilliseconds() : 0, files = Recorder.FilesThisRecording, note = Recorder.Note, noteSaved = Recorder.NoteIsSaved, noteId = Recorder.NoteId, folder = Recorder.SessionFolder },
         fallback = UsingFallbackDevice,
         offline = IsOffline,
         serverBack = ServerBack,
