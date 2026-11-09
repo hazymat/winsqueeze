@@ -44,7 +44,9 @@
   {#key meterView.epoch}
   {#if ui.meterStyle === 'vu'}
     {#each ['L', 'R'] as channel, channelIndex}
-      <svg viewBox="0 0 120 72" class="vu" aria-hidden="true">
+      <!-- Face, needles and front glass as three stacked copies, so a moving needle repaints only its own layer (see MeterPanel) -->
+      {#snippet vuLayer(layer: string)}
+      <svg viewBox="0 0 120 72" class="vu layer-{layer}" aria-hidden="true">
         <defs>
           <!-- Warm lamp below the face: brightest at bottom centre, falling off upward and outward -->
           <radialGradient id={gradientId + channel} cx={channelIndex ? '53%' : '47%'} cy="100%" r="95%" fx={channelIndex ? '57%' : '44%'} fy="105%">
@@ -93,6 +95,7 @@
         {#if size !== 'small'}<rect x="5" y="5" width="110" height="62" filter="url(#{gradientId}-grain)" class="shade grain" />
         <g clip-path="url(#{gradientId}-clip)"><line x1={pivotX + 1.6} y1={pivotY} x2={pivotX + 1.6} y2={pivotY - 60} class="needle-shadow" filter="url(#{gradientId}-soft)" transform="rotate({needleAngle(meters.vu[channelIndex] ?? -90, restAngle)} {pivotX} {pivotY - 1.2})" /></g>{/if}
         <g clip-path="url(#{gradientId}-clip)"><line x1={pivotX} y1={pivotY} x2={pivotX} y2={pivotY - 60} class="needle" transform="rotate({needleAngle(meters.vu[channelIndex] ?? -90, restAngle)} {pivotX} {pivotY})" /></g>
+        <g class="front">
         <rect x="7" y="65.6" width="106" height="1" class="lit-edge" />
         <!-- Acrylic window edge: light bends through the thick rim, a bright band with a darker inner seam -->
         <rect x="5.7" y="5.7" width="108.6" height="60.6" rx="1.6" class="rim-glow" /><rect x="7.3" y="7.3" width="105.4" height="57.4" rx="1" class="rim-seam" /><path d="M6 6.2 H114" class="rim-catch" />
@@ -103,14 +106,18 @@
             <ellipse cx={channelIndex ? 88 : 30} cy={channelIndex ? 22 : 48} rx="16" ry="7" transform="rotate({channelIndex ? -18 : 24} {channelIndex ? 88 : 30} {channelIndex ? 22 : 48})" fill="#fff" filter="url(#{gradientId}-smudge)" class="smudge" />
             <rect x="5" y="5" width="110" height="62" filter="url(#{gradientId}{channel}-dust)" class="dust" />
           </g>{/if}
+        </g>
       </svg>
+      {/snippet}
+      <span class="meter-stack">{@render vuLayer('face')}{@render vuLayer('needles')}{@render vuLayer('front')}</span>
     {/each}
   {:else if panelThemes[ui.meterStyle]}
     <MeterPanel theme={ui.meterStyle} levels={meters.vu} reference={meters.reference} {size} {textureScale} idle={!active} />
   {:else if ui.meterStyle === 'oledvu'}
     {#each ['L', 'R'] as channel, channelIndex}
       <!-- Cropped to the scale: the panel holds just the arc, numbers, needle and channel, centred top to bottom -->
-      <svg viewBox="0 17 120 54" class="vu oledvu" aria-hidden="true">
+      {#snippet oledLayer(layer: string)}
+      <svg viewBox="0 17 120 54" class="vu oledvu layer-{layer}" aria-hidden="true">
         <defs><filter id={gradientId + '-glow'} x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="1.4" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter></defs>
         <defs><linearGradient id="oled-glass-sheen" x1="0" y1="0" x2="0.35" y2="1"><stop offset="0" stop-color="rgba(255,255,255,0.10)" /><stop offset="0.45" stop-color="rgba(255,255,255,0.02)" /><stop offset="1" stop-color="rgba(0,0,0,0.12)" /></linearGradient></defs>
         <rect x="0" y="17" width="120" height="54" rx="5" class="glass" />
@@ -128,6 +135,8 @@
         <text x="60" y="64" class="oled-channel">{channel}</text>
         <defs><clipPath id={gradientId + '-oled-clip'}><rect x="5" y="18" width="110" height="48" /></clipPath></defs>
       </svg>
+      {/snippet}
+      <span class="meter-stack">{@render oledLayer('face')}{@render oledLayer('needles')}</span>
     {/each}
   {:else}
     <!-- Spectrum analyser (the third style; stored as 'oled' so earlier choices carry over) -->
@@ -184,5 +193,12 @@
   /* Full window (right-click): as big as the window allows */
   .full { gap: 2vw; } .full .vu { width: min(46vw, (100vh - 140px) * 1.66); height: auto; } .full .spectrum { width: min(92vw, (100vh - 140px) * 2.2); height: min(70vh, 46vw); } .small .spectrum { width: 64px; height: 29px; }
   .spectrum :global(.analyser) { flex: 1; }
+  /* Layers: the face hides needles and front glass, the needle layer (its own compositor layer) shows only needles, the front layer only the glass */
+  .meter-stack { display: grid; } .meter-stack > svg { grid-area: 1 / 1; }
+  .layer-face :is(.needle, .needle-shadow, .oled-needle, .front), .layer-front :is(.needle, .needle-shadow) { display: none; }
+  .layer-needles, .layer-front { pointer-events: none; } .layer-needles { will-change: transform; }
+  /* display: none, not visibility: hidden: hidden filtered shapes still cost (and drew their noise) in each copy */
+  .layer-needles :not(:has(.needle, .needle-shadow, .oled-needle), .needle, .needle-shadow, .oled-needle, defs, defs *), .layer-front :not(:has(.front), .front, .front *, defs, defs *) { display: none; }
+  .oledvu.layer-needles { background: none; backdrop-filter: none; box-shadow: none; }
   .oledvu :is(.oled-line, .oled-tick, .oled-number, .oled-label, .oled-needle) { filter: drop-shadow(0 0 1.2px rgba(63, 184, 255, 0.7)); }
 </style>

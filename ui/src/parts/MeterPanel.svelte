@@ -43,7 +43,10 @@
   const greenLabels = [0.01, 0.1, 0.5, 1, 5, 10, 50, 100, 200, 500]
 </script>
 
-<svg viewBox="0 0 {width} {height}" class="panel {theme}" class:idle aria-hidden="true" style:--aspect={panelThemes[theme].aspect}>
+<!-- Three stacked copies: the textured face, the needles alone on their own compositor layer, and the glass and caps in front.
+     A moving needle then repaints only its own thin layer, never the filtered face (repainting that every frame stalled the needles) -->
+{#snippet layerSvg(layer: string)}
+<svg viewBox="0 0 {width} {height}" class="panel {theme} layer-{layer}" class:idle aria-hidden="true" style:--aspect={panelThemes[theme].aspect}>
   <defs>
     <filter id={id + '-grain'} x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency={grainFrequency} numOctaves="1" seed="7" /><feColorMatrix values="0 0 0 0 0.2  0 0 0 0 0.15  0 0 0 0 0.08  0 0 0 1.1 -0.5" /></filter>
     <filter id={id + '-brushed'} x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.004 0.9" numOctaves="2" seed="3" /><feColorMatrix values="0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0 0.52  0 0 0 0.6 0" /></filter>
@@ -78,7 +81,7 @@
         <rect x={deck.x + 4} y="14" width="110" height="68" filter="url(#{id}-grain)" class="grain" />
         <line x1={centreX + 1.6} y1={pivotY} x2={centreX + 1.6} y2={pivotY - 86} class="needle-shadow" filter="url(#{id}-soft)" transform="rotate({angle} {centreX} {pivotY - 2})" />
         <line x1={centreX} y1={pivotY} x2={centreX} y2={pivotY - 86} class="needle dark" transform="rotate({angle} {centreX} {pivotY})" />
-        <ellipse cx={centreX} cy="82" rx="13" ry="5.5" fill="url(#{id}-brass)" /><rect x={deck.x + 4} y="14" width="110" height="68" fill="none" stroke="#000" stroke-width="3" opacity="0.18" filter="url(#{id}-soft)" />
+        <g class="front"><ellipse cx={centreX} cy="82" rx="13" ry="5.5" fill="url(#{id}-brass)" /><rect x={deck.x + 4} y="14" width="110" height="68" fill="none" stroke="#000" stroke-width="3" opacity="0.18" filter="url(#{id}-soft)" /></g>
       </g>
     {/each}
     <text x="150" y="20" class="panel-label">PEAK</text><text x="150" y="26" class="panel-label">CHECK</text>
@@ -113,15 +116,18 @@
         <ellipse cx={centreX} cy="82" rx="19" ry="9" fill="url(#{id}-copper)" /><ellipse cx={centreX} cy="82" rx="11" ry="5" fill="#2a0c04" opacity="0.6" />
         <line x1={centreX + 1.4} y1={pivotY} x2={centreX + 1.4} y2={pivotY - 50} class="needle-shadow" filter="url(#{id}-soft)" transform="rotate({angle} {centreX} {pivotY - 2})" />
         <line x1={centreX} y1={pivotY} x2={centreX} y2={pivotY - 50} class="needle round-needle" transform="rotate({angle} {centreX} {pivotY})" />
+        <g class="front">
         <rect x={centreX - 34} y="85" width="68" height="9" rx="1.5" fill="url(#{id}-bridge)" stroke="#3a3a3a" stroke-width="0.4" />
         {#each [-26, 26] as offset}<circle cx={centreX + offset} cy="89.5" r="3.6" fill="url(#{id}-chrome)" stroke="#333" stroke-width="0.4" /><path d="M{centreX + offset - 2} 89.5 H{centreX + offset + 2} M{centreX + offset} 87.5 V91.5" stroke="#2a2a2a" stroke-width="0.7" />{/each}
         {#each [-14, 14] as offset}<rect x={centreX + offset - 3} y="87" width="6" height="5" rx="0.8" fill="#2b2b2b" opacity="0.7" />{/each}
         <circle cx={centreX} cy={pivotY} r="5" fill="url(#{id}-copper)" stroke="#d9d9d9" stroke-width="1.1" /><circle cx={centreX} cy={pivotY} r="1.8" fill="#f2c9a0" />
         <path d={facePath} fill="url(#{id}-dome)" />
         <path d={facePath} fill="none" stroke="#000" stroke-width="5" opacity="0.35" filter="url(#{id}-soft)" />
+        </g>
       </g>
+      <g class="front">
       <path d={facePath} fill="none" stroke="#000" stroke-width="1" opacity="0.7" />
-      <circle cx={centreX} cy="114" r="7" fill="#1c1c1c" stroke="#000" stroke-width="0.8" /><circle cx={centreX} cy="114" r="7" fill="url(#{id}-dome)" /><path d="M{centreX - 5} 114 H{centreX + 5}" stroke="#000" stroke-width="1.6" stroke-linecap="round" />
+      <circle cx={centreX} cy="114" r="7" fill="#1c1c1c" stroke="#000" stroke-width="0.8" /><circle cx={centreX} cy="114" r="7" fill="url(#{id}-dome)" /><path d="M{centreX - 5} 114 H{centreX + 5}" stroke="#000" stroke-width="1.6" stroke-linecap="round" /></g>
     {/each}
 
   {:else if theme === 'monitor'}
@@ -147,9 +153,10 @@
         <line x1={meter.centre + 1.8} y1={pivotY} x2={meter.centre + 1.8} y2={pivotY - 106} class="needle-shadow" filter="url(#{id}-soft)" transform="rotate({angle} {meter.centre} {pivotY - 2})" />
         <line x1={meter.centre} y1={pivotY} x2={meter.centre} y2={pivotY - 106} class="needle dark" transform="rotate({angle} {meter.centre} {pivotY})" />
       {/each}
+      <g class="front">
       <rect x="12" y="12" width="416" height="70" filter="url(#{id}-grain)" class="grain" />
       <rect x="12" y="12" width="416" height="70" fill="none" stroke="#000" stroke-width="4" opacity="0.28" filter="url(#{id}-soft)" />
-      <rect x="12" y="12" width="416" height="70" fill="url(#{id}-sheen)" />
+      <rect x="12" y="12" width="416" height="70" fill="url(#{id}-sheen)" /></g>
     </g>
     <rect x="8" y="90" width="424" height="12" rx="1" fill="#d5d8db" /><rect x="8" y="90" width="424" height="0.8" fill="#fff" opacity="0.8" />
 
@@ -177,7 +184,7 @@
       </g>
     {/each}
     <rect x="165" y="44" width="30" height="12" rx="1.5" fill="#05070c" stroke="#1e2430" stroke-width="0.5" /><text x="180" y="51.5" class="display-text">STANDBY</text>
-    <rect x="6" y="6" width={width - 12} height={height - 12} rx="2" fill="url(#{id}-sheen)" />
+    <rect x="6" y="6" width={width - 12} height={height - 12} rx="2" fill="url(#{id}-sheen)" class="front" />
 
   {:else if theme === 'green'}
     <!-- Smoked glass front, two wide fluorescent meters: a fan of green bars, watts above and dB below, a black centre panel with little lit legends -->
@@ -199,18 +206,26 @@
           <text x={centreX} y="84" class="green-title">POWER</text><text x={centreX} y="92" class="green-small dim">dB · {green.channel}</text>
         </g>
         <line x1={centreX} y1={pivotY} x2={centreX} y2={pivotY - 84} class="needle green-needle" transform="rotate({angle} {centreX} {pivotY})" filter="url(#{id}-glow)" />
-        <rect x={green.x} y="8" width="150" height="100" filter="url(#{id}-grain)" class="grain dark-grain" />
+        <rect x={green.x} y="8" width="150" height="100" filter="url(#{id}-grain)" class="grain dark-grain front" />
       </g>
-      <rect x={green.x} y="8" width="150" height="100" rx="2" fill="none" stroke="#2c3a31" stroke-width="0.8" />
+      <rect x={green.x} y="8" width="150" height="100" rx="2" fill="none" stroke="#2c3a31" stroke-width="0.8" class="front" />
     {/each}
     <rect x="162" y="8" width="36" height="100" fill="#060707" />
     <g filter="url(#{id}-glow)">{#each [[30, 'PHASE'], [56, 'CAPACITOR'], [82, 'DUAL MONO']] as [lineY, text]}<text x="166" y={Number(lineY) - 3} class="legend">{text}</text><rect x="178" y={lineY} width="16" height="1.4" class="legend-bar" />{/each}</g>
-    <path d="M0 0 L{width * 0.42} 0 L{width * 0.2} {height} L0 {height} Z" fill="#fff" opacity="0.05" /><rect width={width} height={height} rx="4" fill="url(#{id}-sheen)" />
+    <g class="front"><path d="M0 0 L{width * 0.42} 0 L{width * 0.2} {height} L0 {height} Z" fill="#fff" opacity="0.05" /><rect width={width} height={height} rx="4" fill="url(#{id}-sheen)" /></g>
   {/if}
 </svg>
+{/snippet}
+<span class="meter-stack">{@render layerSvg('face')}{@render layerSvg('needles')}{@render layerSvg('front')}</span>
 
 <style>
   .panel { display: block; }
+  /* Layers (see the top of the markup): the face hides needles and front parts, the needle layer shows only needles, the front layer only the front parts */
+  .meter-stack { display: grid; } .meter-stack > svg { grid-area: 1 / 1; }
+  .layer-face :is(.needle, .needle-shadow, .front), .layer-front :is(.needle, .needle-shadow) { display: none; }
+  .layer-needles, .layer-front { pointer-events: none; } .layer-needles { will-change: transform; }
+  /* display: none, not visibility: hidden: hidden filtered shapes still cost (and drew their noise) in each copy */
+  .layer-needles :not(:has(.needle, .needle-shadow), .needle, .needle-shadow, defs, defs *), .layer-front :not(:has(.front), .front, .front *, defs, defs *) { display: none; }
   .face { stroke: rgba(0, 0, 0, 0.4); stroke-width: 0.5; }
   .idle .face, .idle .lamp, .idle .spill { opacity: 0.7; } .idle .lamp { opacity: 0.45; }
   .idle :is(.blue-ink, .green-ink) { opacity: 0.6; }
