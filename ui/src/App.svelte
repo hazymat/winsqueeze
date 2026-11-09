@@ -88,7 +88,7 @@
   onShellMessage('openSection', message => openSection(message.section))
   onShellMessage('newPlaylist', () => { if (!playlist.open) newPlaylist(); else playlist.collapsed = false })
   onShellMessage('levels', message => receiveLevels(message.vu, message.peak, message.bands))
-  onShellMessage('meterSettings', message => app.meterSettings = { referenceDbfs: message.referenceDbfs, autoReference: message.autoReference })
+  onShellMessage('meterSettings', message => { app.meterSettings = { referenceDbfs: message.referenceDbfs, autoReference: message.autoReference, styles: Array.isArray(message.styles) && message.styles.length ? message.styles : ['vu'] }; if (!app.meterSettings.styles.includes(ui.meterStyle)) { ui.meterStyle = app.meterSettings.styles[0]; writeSetting('meterStyle', ui.meterStyle) } })
   // The skin is chosen in Settings › Appearance and applied live; cached locally so the next start paints in it straight away
   onShellMessage('skin', message => {
     ui.skin = message.skin || 'auto'; ui.coverAccent = !!message.coverAccent; ui.coverBackdrop = message.coverBackdrop !== false; ui.accent = message.accent ?? ''; ui.glassTransparency = message.glassTransparency ?? -1; ui.glassTintHue = message.glassTintHue ?? 0; ui.lookVersion++ // every skin message repaints the glass, even when nothing changed

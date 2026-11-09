@@ -458,7 +458,7 @@
             <TextBlock Style="{StaticResource Quiet}" Margin="22,2,0,0" Text="No title bar or standard border: drag from the top strip, resize from the edges. Untick for the standard Windows title bar." />
           </StackPanel>
         </Border>
-        <Border Style="{StaticResource Callout}" Margin="0"><DockPanel><TextBlock Style="{StaticResource CalloutIcon}" /><TextBlock Style="{StaticResource CalloutText}" Text="Meter style: click the meters in Now playing to cycle VU, OLED VU and bars." /></DockPanel></Border>
+        <Border Style="{StaticResource Callout}" Margin="0"><DockPanel><TextBlock Style="{StaticResource CalloutIcon}" /><TextBlock Style="{StaticResource CalloutText}" Text="Meter style: click the meters in Now playing to cycle through the styles ticked in Meters." /></DockPanel></Border>
       </StackPanel>
       </ScrollViewer>
     </TabItem>
@@ -466,6 +466,13 @@
       <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="20,8,20,16">
           <Border Style="{StaticResource Callout}" Margin="0,0,0,12"><DockPanel><TextBlock Style="{StaticResource CalloutIcon}" /><TextBlock Style="{StaticResource CalloutText}" Text="All meters read the exact samples sent to your DAC (with hardware volume on, that's the full-level signal, before the device's volume). Changes show live." /></DockPanel></Border>
+          <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+            <StackPanel>
+              <TextBlock Text="Click the meters to cycle" Style="{StaticResource CardTitle}" />
+              <TextBlock Style="{StaticResource Quiet}" Margin="0,2,0,8" TextWrapping="Wrap" Text="Tick the styles a click moves through, in this order. With just one ticked, a click taps the meter instead." />
+              <Border BorderBrush="#E3E5E8" BorderThickness="1" CornerRadius="6" ClipToBounds="True"><StackPanel x:Name="meterStylesList" /></Border>
+            </StackPanel>
+          </Border>
           <Border Style="{StaticResource Card}">
             <StackPanel>
               <StackPanel x:Name="metersPanel" />

@@ -4,6 +4,7 @@
   export const panelThemes: Record<string, { aspect: number }> = { deck: { aspect: 300 / 96 }, orange: { aspect: 236 / 130 }, monitor: { aspect: 440 / 110 }, blue: { aspect: 360 / 110 }, green: { aspect: 360 / 120 } }
 </script>
 <script lang="ts">
+  import { meters } from '../state.svelte'
   let { theme, levels, reference, size, idle, textureScale = 1 }: { theme: string, levels: number[], reference: number, size: string, idle: boolean, textureScale?: number } = $props()
   const id = `panel-${panelCount++}`
   const height = $derived(theme === 'monitor' || theme === 'blue' ? 110 : theme === 'deck' ? 96 : theme === 'orange' ? 130 : 120)
@@ -19,6 +20,8 @@
   const powerAngle = (decibels: number, span: number, top = 3) => decibels <= -40 ? -span - 6 + 6 * Math.max(0, Math.min(1, (decibels + 46) / 6)) : Math.min(span + 5, -span + (decibels + 40) / (40 + top) * span * 2)
   const point = (centreX: number, centreY: number, angle: number, radius: number) => [centreX + radius * Math.sin(angle * Math.PI / 180), centreY - radius * Math.cos(angle * Math.PI / 180)]
   const arc = (centreX: number, centreY: number, fromAngle: number, toAngle: number, radius: number) => { const [startX, startY] = point(centreX, centreY, fromAngle, radius); const [endX, endY] = point(centreX, centreY, toAngle, radius); return `M${startX} ${startY} A${radius} ${radius} 0 0 1 ${endX} ${endY}` }
+  // A tap or a window drag jogs the needles (meters.jog), never below their rest pin
+  const jogged = (angle: number, rest: number, channelIndex: number) => Math.max(rest, angle + (meters.jog[channelIndex % 2] ?? 0))
   const relative = (channelIndex: number) => (levels[channelIndex] ?? -90) - reference
   const sum = $derived(10 * Math.log10((Math.pow(10, relative(0) / 10) + Math.pow(10, relative(1) / 10)) / 2 + 1e-12))
   const wattsAt = (wattage: number, full = 100) => 10 * Math.log10(wattage / full)
@@ -67,7 +70,7 @@
     </defs>
     <rect width={width} height={height} rx="4" fill="url(#{id}-silver)" /><rect width={width} height={height} rx="4" filter="url(#{id}-brushed)" opacity="0.5" />
     {#each deckWindows as deck, channelIndex}
-      {@const centreX = deck.x + 59}{@const pivotY = 118}{@const angle = vuAngle(relative(channelIndex), 34)}
+      {@const centreX = deck.x + 59}{@const pivotY = 118}{@const angle = jogged(vuAngle(relative(channelIndex), 34), vuAngle(-90, 34), channelIndex)}
       <rect x={deck.x} y="10" width="118" height="76" rx="3" fill="#6d7075" /><rect x={deck.x + 0.5} y="10.5" width="117" height="75" rx="3" fill="none" stroke="#f4f6f8" stroke-width="0.8" opacity="0.7" />
       <rect x={deck.x + 4} y="14" width="110" height="68" rx="1.5" fill="url(#{id}-deckface)" class="face" />
       <g clip-path="url(#{id}-deck-{deck.channel})">
@@ -99,7 +102,7 @@
       {#each orangeMeters as meter}<clipPath id="{id}-orange-{meter.channel}"><path d="M{meter.x + 58 - 26.5} 96 A48 48 0 1 1 {meter.x + 58 + 26.5} 96 Z" /></clipPath>{/each}
     </defs>
     {#each orangeMeters as meter, channelIndex}
-      {@const centreX = meter.x + 58}{@const pivotY = 89}{@const angle = roundAngle(relative(channelIndex))}{@const facePath = `M${centreX - 26.5} 96 A48 48 0 1 1 ${centreX + 26.5} 96 Z`}
+      {@const centreX = meter.x + 58}{@const pivotY = 89}{@const angle = jogged(roundAngle(relative(channelIndex)), roundAngle(-90), channelIndex)}{@const facePath = `M${centreX - 26.5} 96 A48 48 0 1 1 ${centreX + 26.5} 96 Z`}
       <path d={facePath} fill="#ffb24a" filter="url(#{id}-bloom)" class="spill" />
       <rect x={meter.x + 2} y="2" width="112" height="126" rx="16" fill="#121212" stroke="#2c2c2c" stroke-width="1" />
       <circle cx={centreX} cy="56" r="51" fill="#050505" stroke="#2a2a2a" stroke-width="0.8" />
@@ -142,8 +145,8 @@
     <g clip-path="url(#{id}-monitor)">
       <rect x="20" y="74" width="400" height="10" fill="#ffffff" filter="url(#{id}-bloom)" class="lamp" />
       <line x1={12 + 416 / 3} y1="14" x2={12 + 416 / 3} y2="80" class="divider" /><line x1={12 + 416 * 2 / 3} y1="14" x2={12 + 416 * 2 / 3} y2="80" class="divider" />
-      {#each monitorMeters as meter}
-        {@const pivotY = 132}{@const angle = powerAngle(meter.decibels, 34)}
+      {#each monitorMeters as meter, meterIndex}
+        {@const pivotY = 132}{@const angle = jogged(powerAngle(meter.decibels, 34), powerAngle(-90, 34), meterIndex)}
         <path d={arc(meter.centre, pivotY, -34, 34, 100)} class="ink-line thin" /><path d={arc(meter.centre, pivotY, powerAngle(0, 34), 34, 101.2)} class="red-band thin" />
         {#each monitorLabels as [wattage, text]}{@const markAngle = powerAngle(wattsAt(wattage), 34)}{@const [tipX, tipY] = point(meter.centre, pivotY, markAngle, 100.5)}{@const [leftX, leftY] = point(meter.centre, pivotY, markAngle - 1, 104.5)}{@const [rightX, rightY] = point(meter.centre, pivotY, markAngle + 1, 104.5)}{@const [labelX, labelY] = point(meter.centre, pivotY, markAngle, 108.5)}
           <path d="M{tipX} {tipY} L{leftX} {leftY} L{rightX} {rightY} Z" class="marker" /><text x={labelX} y={labelY} class="monitor-number">{text}</text>{/each}
@@ -168,7 +171,7 @@
     </defs>
     <rect width={width} height={height} rx="4" fill="#06070a" /><rect x="6" y="6" width={width - 12} height={height - 12} rx="2" fill="#020305" stroke="#1c1f26" stroke-width="0.8" />
     {#each blueWindows as blue, channelIndex}
-      {@const centreX = blue.x + 70}{@const pivotY = 96}{@const angle = powerAngle(relative(channelIndex), 52)}
+      {@const centreX = blue.x + 70}{@const pivotY = 96}{@const angle = jogged(powerAngle(relative(channelIndex), 52), powerAngle(-90, 52), channelIndex)}
       <rect x={blue.x} y="12" width="140" height="78" rx="2" fill="url(#{id}-blue)" class="face" />
       <g clip-path="url(#{id}-blue-{blue.channel})">
         <ellipse cx={centreX} cy="74" rx="44" ry="22" fill="#7fb0ff" opacity="0.35" filter="url(#{id}-bloom)" class="lamp" />
@@ -194,7 +197,7 @@
     </defs>
     <rect width={width} height={height} rx="4" fill="#0b0d0c" />
     {#each greenWindows as green, channelIndex}
-      {@const centreX = green.x + 75}{@const pivotY = 112}{@const angle = powerAngle(relative(channelIndex), 55, 7)}
+      {@const centreX = green.x + 75}{@const pivotY = 112}{@const angle = jogged(powerAngle(relative(channelIndex), 55, 7), powerAngle(-90, 55, 7), channelIndex)}
       <rect x={green.x} y="8" width="150" height="100" rx="2" fill="url(#{id}-green)" class="face" />
       <g clip-path="url(#{id}-green-{green.channel})">
         <g filter="url(#{id}-glow)" class="green-ink">

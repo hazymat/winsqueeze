@@ -10,7 +10,7 @@ export const app = $state({
   library: { text: '', done: 0, total: 0 }, librarySettings: { AlbumSource: 'folders', ContributorGrouping: 'any' } as any, playback: { QueueEnd: 'stop', ContinueAdds: 'album', ContinueFrom: 'artist' } as Record<string, string>, hints: { hidden: false, dismissed: [] as string[] }, trackInfoTabs: [] as string[], indexVersion: 0, receivedAt: 0,
   // Meter data from Squeezelite (~30 a second while playing): VU in dBFS, peak amplitude 0..1, spectrum bands 0..1
   levels: { vu: [-90, -90], peak: [0, 0], bands: Array(10).fill(0), at: 0 },
-  meterSettings: { referenceDbfs: -18, autoReference: true }, // Settings › Meters
+  meterSettings: { referenceDbfs: -18, autoReference: true, styles: ['vu', 'green', 'oled'] as string[] }, // Settings › Meters (styles: the ones a click cycles through, in order)
   window: { glass: false, frameless: false, maximised: false }
 })
 // Where you were browsing survives restarts (and updates)
@@ -166,6 +166,8 @@ export function windowMoved(x: number) {
 }
 // The case speeds up one way, the needles lag the other way (~10° for a brisk 1000 px/s drag)
 const kickNeedles = (speedChange: number) => { for (let channel = 0; channel < 2; channel++) jogSpeed[channel] -= speedChange * 0.14 }
+// A tap on the meter: both needles kick up and wobble back, a little differently
+export function tapMeters() { jogSpeed[0] += 70; jogSpeed[1] += 58; startMeterFrames() }
 function swingNeedles(elapsed: number) {
   if (windowSpeed && performance.now() - windowMovedAt > 60) { kickNeedles(-windowSpeed); windowSpeed = 0 } // the window stopped: the needles swing on
   const steps = Math.max(1, Math.ceil(elapsed / 4)), seconds = elapsed / 1000 / steps

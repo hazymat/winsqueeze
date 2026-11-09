@@ -23,7 +23,7 @@
   <div class="whats-new" role="dialog" aria-label="What's new">
     <header><div><h3>What's new</h3><span class="versions">{whatsNew.fromVersion} → {whatsNew.toVersion}</span></div><button class="dismiss" onclick={() => whatsNew = null} aria-label="Dismiss">×</button></header>
     <div class="releases">
-      <ul>{#each items as item}<li class="rank-{item.rank}">{#if item.rank < 2}<span class="tag">{item.rank === 0 ? 'New' : 'Better'}</span>{/if}{item.text} <span class="version">{item.version}</span></li>{:else}<li class="quiet">Notes are on the <a href="https://github.com/hazymat/winsqueeze/releases" target="_blank" rel="noreferrer">releases page</a>.</li>{/each}</ul>
+      <ul>{#each items as item}<li class="rank-{item.rank}">{#if item.rank < 2}<span class="tag">{item.rank === 0 ? 'New' : 'Better'}</span>{/if}{#each item.text.split('**') as part, index}{#if index % 2}<strong>{part}</strong>{:else}{part}{/if}{/each} <span class="version">{item.version}</span></li>{:else}<li class="quiet">Notes are on the <a href="https://github.com/hazymat/winsqueeze/releases" target="_blank" rel="noreferrer">releases page</a>.</li>{/each}</ul>
     </div>
     <button class="ok" onclick={() => whatsNew = null}>Got it</button>
   </div>
