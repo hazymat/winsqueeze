@@ -33,12 +33,12 @@ public static class L
         foreach (var (name, value) in values) text = text.Replace("{" + name + "}", Convert.ToString(value, CultureInfo.CurrentCulture));
         return text;
     }
-    // Which of a translation's "|" forms a count takes: one, few, many (Ukrainian and Polish); other languages have one form
+    // Which of a translation's "|" forms a count takes: one, few, many (Ukrainian, Polish and Czech); other languages have one form
     static int PluralForm(long count)
     {
         long lastDigit = count % 10, lastTwo = count % 100;
         bool few = lastDigit >= 2 && lastDigit <= 4 && (lastTwo < 12 || lastTwo > 14);
-        return Code switch { "uk" => lastDigit == 1 && lastTwo != 11 ? 0 : few ? 1 : 2, "pl" => count == 1 ? 0 : few ? 1 : 2, _ => 0 };
+        return Code switch { "uk" => lastDigit == 1 && lastTwo != 11 ? 0 : few ? 1 : 2, "pl" => count == 1 ? 0 : few ? 1 : 2, "cs" => count == 1 ? 0 : count >= 2 && count <= 4 ? 1 : 2, _ => 0 };
     }
     // Singular or plural by count, both forms being keys
     public static string N(long count, string one, string other, params (string name, object? value)[] values) => T(count == 1 ? one : other, new[] { ("count", (object?)count) }.Concat(values).ToArray());
