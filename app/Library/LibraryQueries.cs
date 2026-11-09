@@ -61,6 +61,9 @@ public sealed class LibraryQueries
             "genreAlbums" => new { own = Query(connection, $"SELECT DISTINCT {albumColumns} FROM albums a JOIN album_tracks at ON at.album_key=a.key JOIN track_genres tg ON tg.track_id=at.track_id WHERE a.source=$source AND tg.genre_id=$genre ORDER BY {AlbumOrder(Text("sort"))}", ("$source", albumSource), ("$genre", Text("key"))) },
             "albums" => new { own = Query(connection, $"SELECT {albumColumns} FROM albums a WHERE a.source=$source ORDER BY {AlbumOrder(Text("sort"))}", ("$source", albumSource)) },
             "compilations" => new { own = Query(connection, $"SELECT {albumColumns} FROM albums a WHERE a.source=$source AND a.compilation=1 ORDER BY {AlbumOrder(Text("sort"))}", ("$source", albumSource)) },
+            // Recently updated: newest 100 by their newest file change, as Lyrion's own; "added" carries that time so Date added groups by it
+            "updatedAlbums" => new { own = Query(connection, "SELECT a.key, a.title, a.artist, a.year, a.cover_id AS cover, a.track_count AS tracks, a.duration, a.format, MAX(t.modified) AS added FROM albums a JOIN album_tracks at ON at.album_key=a.key JOIN tracks t ON t.id=at.track_id WHERE a.source=$source GROUP BY a.key ORDER BY added DESC, a.artist_norm, a.title_norm LIMIT 100", ("$source", albumSource)) },
+            "randomAlbums" => new { own = Query(connection, $"SELECT {albumColumns} FROM albums a WHERE a.source=$source ORDER BY random() LIMIT 100", ("$source", albumSource)) },
             "newAlbums" => new { own = NewAlbums(connection, 0, 100) }, // New music: the newest 100, as Lyrion's own New Music
             "folder" => Folder(connection, Text("key")),
             "album" => Album(connection, Text("key")),

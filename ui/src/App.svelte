@@ -99,6 +99,7 @@
   onShellMessage('windowMoved', message => windowMoved(Number(message.x)))
   onShellMessage('settings', message => { if (message.library) app.librarySettings = message.library; if (message.hints) app.hints = message.hints; if (message.playback) app.playback = message.playback; if (Array.isArray(message.trackInfo)) app.trackInfoTabs = message.trackInfo })
   sendToShell({ type: 'ready' })
+  if (readSetting('hifiUpdateFrom', '')) setHifi(true) // updated from hi-fi mode: come back as the unit, which says what it was updated to
   // Restore an unsaved playlist draft from last time
   request({ type: 'loadDraft' }).then(draft => { if (draft?.items) newPlaylist(draft.name ?? 'Untitled playlist', draft.items) })
 
@@ -197,7 +198,7 @@
 <WhatsNew {mini} offset={!!app.status?.updateReady} />
 {#if (ui.trackInfo || ui.itemInfo) && !mini}<TrackInfo ids={ui.trackInfo ?? []} items={ui.itemInfo} />{/if}
 {#if ui.metersFull && !mini}<!-- svelte-ignore a11y_no_noninteractive_element_interactions --><!-- blank frosted areas drag the window, like the meters themselves -->
-<div class="meters-full" role="dialog" aria-label="Meters" tabindex="-1" oncontextmenu={(event) => { event.preventDefault(); cycleMeterView() }} onmousedown={(event) => { if (event.button === 0 && !(event.target as HTMLElement).closest("button")) sendToShell({ type: "dragWindow" }) }} bind:clientWidth={fullWidth} bind:clientHeight={fullHeight}><div class="meters-zoom" bind:this={fullMeters} style:zoom={fullZoom}><Meters size="large" zoom={fullZoom} moveWindow={true} /></div><button class="meters-full-close" onclick={() => ui.metersFull = false} title="Close (Esc)">✕</button></div>{/if}
+<div class="meters-full" role="dialog" aria-label="Meters" tabindex="-1" oncontextmenu={(event) => { event.preventDefault(); cycleMeterView() }} onmousedown={(event) => { if (event.button === 0 && !(event.target as HTMLElement).closest("button")) sendToShell({ type: "dragWindow" }) }} bind:clientWidth={fullWidth} bind:clientHeight={fullHeight}><div class="meters-zoom" bind:this={fullMeters} style:zoom={fullZoom}><Meters size="large" zoom={fullZoom} moveWindow={true} /></div><button class="meters-full-close" onclick={() => ui.metersFull = false} title="Back to the player (Esc)" aria-label="Back to the player"><Icon name="return" /></button></div>{/if}
 {#if ui.hifi}<HiFi />{/if}
 {#if app.window.frameless && !app.window.maximised}<ResizeEdges />{/if}
 {#if copyMenu}<div class="copy-menu" style:left="{copyMenu.left}px" style:top="{copyMenu.top}px"><button onclick={copySelection}>Copy</button></div>{/if}
@@ -393,5 +394,5 @@
   .copy-menu button:hover { background: var(--hover); }
   /* Right-click on the meters: they fill the window, like Task Manager's graphs */
   .meters-full { position: fixed; inset: 0; z-index: 85; outline: none; display: grid; place-items: center; background: color-mix(in srgb, var(--panel-solid) 88%, transparent); backdrop-filter: blur(30px) saturate(1.3); }
-  .meters-full-close { position: absolute; top: 14px; right: 14px; width: 34px; height: 34px; border: 0; border-radius: 8px; background: var(--hover); color: var(--fg); font-size: 14px; cursor: pointer; }
+  .meters-full-close { position: absolute; top: 14px; right: 14px; width: 34px; height: 34px; border: 0; border-radius: 8px; background: var(--hover); color: var(--fg); display: grid; place-items: center; cursor: pointer; }
 </style>

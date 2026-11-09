@@ -1,10 +1,11 @@
 <script lang="ts">
   // Crisp transport icons as SVG: text glyphs (⏮ ▶ ⏭) render off-centre with colour fringes in WebView2
-  let { name, size = 18 }: { name: 'back' | 'history' | 'forward' | 'previous' | 'next' | 'play' | 'pause' | 'volume' | 'speaker' | 'pin' | 'favourites' | 'artists' | 'genres' | 'composers' | 'performers' | 'folders' | 'albums' | 'new' | 'queue' | 'plus' | 'settings' | 'playlists' | 'verified' | 'grid-large' | 'grid-small' | 'list' | 'cards' | 'minimise' | 'maximise' | 'restore' | 'close' | 'full-screen' | 'exit-full-screen' | 'lyrics' | 'download' | 'radio' | 'apps' | 'health'; size?: number } = $props()
+  let { name, size = 18 }: { name: 'back' | 'return' | 'history' | 'forward' | 'previous' | 'next' | 'play' | 'pause' | 'volume' | 'speaker' | 'pin' | 'favourites' | 'artists' | 'genres' | 'composers' | 'performers' | 'folders' | 'albums' | 'new' | 'queue' | 'plus' | 'settings' | 'playlists' | 'verified' | 'grid-large' | 'grid-small' | 'list' | 'cards' | 'minimise' | 'maximise' | 'restore' | 'close' | 'full-screen' | 'exit-full-screen' | 'lyrics' | 'download' | 'radio' | 'apps' | 'health'; size?: number } = $props()
 </script>
 
 <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" class="icon">
   {#if name === 'back'}<path d="M14.5 5.5L8 12l6.5 6.5" class="stroke" />
+  {:else if name === 'return'}<path d="M9.5 4.5L5 9l4.5 4.5" class="stroke" /><path d="M5.5 9H14a5.5 5.5 0 0 1 0 11h-3" class="stroke" />
   {:else if name === 'forward'}<path d="M9.5 5.5L16 12l-6.5 6.5" class="stroke" />
   {:else if name === 'play'}<path d="M8 5.14v13.72a1 1 0 0 0 1.52.85l10.6-6.86a1 1 0 0 0 0-1.7L9.52 4.29A1 1 0 0 0 8 5.14z" />
   {:else if name === 'pause'}<rect x="6.5" y="5" width="4" height="14" rx="1.2" /><rect x="13.5" y="5" width="4" height="14" rx="1.2" />

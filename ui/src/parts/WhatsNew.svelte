@@ -4,15 +4,16 @@
   let { mini = false, offset = false }: { mini?: boolean; offset?: boolean } = $props()
   let noticeOpen = $state(false)
   // After an update restart: a small glass card with the notes of every version since the one you had
-  let whatsNew = $state<{ fromVersion: string; toVersion: string; releases: { version: string; date: string; notes: string }[] } | null>(null)
-  onShellMessage('whatsNew', message => whatsNew = { fromVersion: message.fromVersion, toVersion: message.toVersion, releases: message.releases })
+  let whatsNew = $state<{ fromVersion: string; toVersion: string; stableChannel: boolean; releases: { version: string; date: string; notes: string; isDev: boolean }[] } | null>(null)
+  let showAll = $state(false)
+  onShellMessage('whatsNew', message => { whatsNew = { fromVersion: message.fromVersion, toVersion: message.toVersion, stableChannel: !!message.stableChannel, releases: message.releases }; showAll = false })
   const lines = (notes: string) => notes.split('\n').map(line => line.trim().replace(/^[-*]\s*/, '')).filter(line => line && !/^[A-Z][a-z]+(-[A-Za-z]+)+: /.test(line) && !/^(Squeezelite: rebuilt|Fix the build|Notes for the .* release)/i.test(line)) // drop git trailers (Key-Name: value) and build housekeeping
   // Biggest first: ★ marks a new feature, ▲ a noticeable improvement (set by the commit's Impact: trailer), the rest are smaller fixes; newest first within each
-  const items = $derived.by(() => {
-    if (!whatsNew) return []
-    const all = whatsNew.releases.flatMap(release => lines(release.notes).map(line => ({ version: release.version, rank: line.startsWith('★') ? 0 : line.startsWith('▲') ? 1 : 2, text: line.replace(/^[★▲]\s*/, '') })))
-    return all.sort((first, second) => first.rank - second.rank)
-  })
+  const ranked = (releases: { version: string; notes: string }[]) => releases.flatMap(release => lines(release.notes).map(line => ({ version: release.version, rank: line.startsWith('★') ? 0 : line.startsWith('▲') ? 1 : 2, text: line.replace(/^[★▲]\s*/, '') }))).sort((first, second) => first.rank - second.rank)
+  // Stable channel: the hand-written stable summary up top, every dev build's change folded away below it
+  const splitStable = $derived(!!whatsNew?.stableChannel && whatsNew.releases.some(release => !release.isDev) && whatsNew.releases.some(release => release.isDev))
+  const items = $derived(whatsNew ? ranked(splitStable ? whatsNew.releases.filter(release => !release.isDev) : whatsNew.releases) : [])
+  const allChanges = $derived(whatsNew && splitStable ? ranked(whatsNew.releases.filter(release => release.isDev)) : [])
 </script>
 <svelte:window onkeydown={(event) => { if (event.key === 'Escape' && noticeOpen) { event.preventDefault(); noticeOpen = false } }} />
 
@@ -24,6 +25,10 @@
     <header><div><h3>What's new</h3><span class="versions">{whatsNew.fromVersion} → {whatsNew.toVersion}</span></div><button class="dismiss" onclick={() => whatsNew = null} aria-label="Dismiss">×</button></header>
     <div class="releases">
       <ul>{#each items as item}<li class="rank-{item.rank}">{#if item.rank < 2}<span class="tag">{item.rank === 0 ? 'New' : 'Better'}</span>{/if}{#each item.text.split('**') as part, index}{#if index % 2}<strong>{part}</strong>{:else}{part}{/if}{/each} <span class="version">{item.version}</span></li>{:else}<li class="quiet">Notes are on the <a href="https://github.com/hazymat/winsqueeze/releases" target="_blank" rel="noreferrer">releases page</a>.</li>{/each}</ul>
+      {#if allChanges.length}
+        <button class="all-toggle" aria-expanded={showAll} onclick={() => showAll = !showAll}><span class="chevron" class:open={showAll}>›</span>Every change ({allChanges.length})</button>
+        {#if showAll}<ul class="all">{#each allChanges as item}<li>{#each item.text.split('**') as part, index}{#if index % 2}<strong>{part}</strong>{:else}{part}{/if}{/each} <span class="version">{item.version}</span></li>{/each}</ul>{/if}
+      {/if}
     </div>
     <button class="ok" onclick={() => whatsNew = null}>Got it</button>
   </div>
@@ -47,5 +52,8 @@
   .mini-notice.open { transform: translateY(0); } .mini-notice span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   @media (prefers-reduced-motion: reduce) { .whats-new { animation: none; } }
   .tag { display: inline-block; margin-right: 6px; padding: 0 6px; border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; vertical-align: 1px; background: var(--accent); color: var(--on-accent); } .rank-1 .tag { background: var(--accent-soft); color: var(--accent); }
+  .all-toggle { align-self: flex-start; display: flex; align-items: center; gap: 6px; background: none; border: 0; padding: 2px 0; color: var(--fg-quiet); font: inherit; font-size: 12px; cursor: pointer; } .all-toggle:hover { color: var(--fg); }
+  .chevron { display: inline-block; transition: transform 160ms ease; } .chevron.open { transform: rotate(90deg); }
+  ul.all { margin-top: 0; font-size: 12px; color: var(--fg-quiet); }
   .rank-0 { font-weight: 600; } .version { color: var(--fg-quiet); font-size: 11px; font-weight: 400; }
 </style>
