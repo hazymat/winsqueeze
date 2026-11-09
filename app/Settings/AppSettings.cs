@@ -151,6 +151,7 @@ public class GeneralSettings
     public bool StartWithWindows { get; set; }
     public bool StartMinimised { get; set; }
     public bool ResumeOnStartup { get; set; } // carry on at startup only if the server was still playing to this player (off by default)
+    public bool ResumeAfterUpdate { get; set; } = true; // a restart for an update or version switch carries on from the same spot (on by default)
     public bool CloseToTray { get; set; } // off: Close (X) quits. Was CloseHidesToTray (on by default), renamed so everyone gets the new default
     public bool CloseToTrayTipShown { get; set; }
     public OtherSqueezeliteAction OtherSqueezelite { get; set; } = OtherSqueezeliteAction.Ask;
