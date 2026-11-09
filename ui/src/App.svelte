@@ -194,7 +194,8 @@
 <svelte:window bind:innerWidth={width} bind:innerHeight={height} onkeydown={onKey} onmouseup={(event) => { if (event.button === 3 && nav.stack.length) back(); if (event.button === 4) forward() }} oncontextmenu={onContextMenu} onpointerdown={(event) => { if (copyMenu && !(event.target as HTMLElement).closest('.copy-menu')) copyMenu = null }} />
 <WhatsNew {mini} offset={!!app.status?.updateReady} />
 {#if (ui.trackInfo || ui.itemInfo) && !mini}<TrackInfo ids={ui.trackInfo ?? []} items={ui.itemInfo} />{/if}
-{#if ui.metersFull && !mini}<div class="meters-full" role="dialog" aria-label="Meters" bind:clientWidth={fullWidth} bind:clientHeight={fullHeight}><div class="meters-zoom" bind:this={fullMeters} style:zoom={fullZoom}><Meters size="large" zoom={fullZoom} moveWindow={true} /></div><button class="meters-full-close" onclick={() => ui.metersFull = false} title="Close (Esc or right-click)">✕</button></div>{/if}
+{#if ui.metersFull && !mini}<!-- svelte-ignore a11y_no_noninteractive_element_interactions --><!-- blank frosted areas drag the window, like the meters themselves -->
+<div class="meters-full" role="dialog" aria-label="Meters" tabindex="-1" oncontextmenu={(event) => { event.preventDefault(); ui.metersFull = false }} onmousedown={(event) => { if (event.button === 0 && !(event.target as HTMLElement).closest("button")) sendToShell({ type: "dragWindow" }) }} bind:clientWidth={fullWidth} bind:clientHeight={fullHeight}><div class="meters-zoom" bind:this={fullMeters} style:zoom={fullZoom}><Meters size="large" zoom={fullZoom} moveWindow={true} /></div><button class="meters-full-close" onclick={() => ui.metersFull = false} title="Close (Esc or right-click)">✕</button></div>{/if}
 {#if app.window.frameless && !app.window.maximised}<ResizeEdges />{/if}
 {#if copyMenu}<div class="copy-menu" style:left="{copyMenu.left}px" style:top="{copyMenu.top}px"><button onclick={copySelection}>Copy</button></div>{/if}
 
@@ -388,6 +389,6 @@
   .copy-menu button { display: block; min-width: 90px; text-align: left; background: none; border: 0; color: var(--fg); font: inherit; padding: 6px 10px; border-radius: 5px; cursor: pointer; }
   .copy-menu button:hover { background: var(--hover); }
   /* Right-click on the meters: they fill the window, like Task Manager's graphs */
-  .meters-full { position: fixed; inset: 0; z-index: 85; display: grid; place-items: center; background: color-mix(in srgb, var(--panel-solid) 88%, transparent); backdrop-filter: blur(30px) saturate(1.3); }
+  .meters-full { position: fixed; inset: 0; z-index: 85; outline: none; display: grid; place-items: center; background: color-mix(in srgb, var(--panel-solid) 88%, transparent); backdrop-filter: blur(30px) saturate(1.3); }
   .meters-full-close { position: absolute; top: 14px; right: 14px; width: 34px; height: 34px; border: 0; border-radius: 8px; background: var(--hover); color: var(--fg); font-size: 14px; cursor: pointer; }
 </style>
