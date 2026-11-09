@@ -18,7 +18,7 @@
     const widthPixels = Math.floor(columnsRect.right * pixelRatio + 0.01) - leftPixels, heightPixels = Math.floor(columnsRect.bottom * pixelRatio + 0.01) - topPixels
     canvasPlacement = `left: ${(leftPixels - columnsRect.left * pixelRatio) / devicePerCss}px; top: ${(topPixels - columnsRect.top * pixelRatio) / devicePerCss}px; width: ${widthPixels / devicePerCss}px; height: ${heightPixels / devicePerCss}px`
     if (canvasElement.width !== widthPixels || canvasElement.height !== heightPixels) { canvasElement.width = widthPixels; canvasElement.height = heightPixels }
-    layoutVersion++
+    measure(); layoutVersion++
   }
   $effect(() => {
     if (!canvasElement) return
@@ -26,40 +26,52 @@
     window.addEventListener('resize', sizeCanvas)
     return () => { observer.disconnect(); window.removeEventListener('resize', sizeCanvas) }
   })
-  // Peak hold: a floating segment marks each bar's recent top, holds ~0.8 s, then drifts down; peakTick keeps it falling after the music stops
-  const peakHoldMs = 800, peakFallPerSecond = 0.9 // in bar heights per second
-  let peakLevels: number[] = [], peakHeldAt: number[] = [], peakDrawnAt = 0, peakTick = $state(0), peakFrame = 0
-  $effect(() => () => cancelAnimationFrame(peakFrame))
-  $effect(() => {
-    layoutVersion; peakTick; const context = canvasElement?.getContext('2d')
-    if (!context || !columnsElement || !canvasElement!.height) return
-    const canvasWidth = canvasElement!.width, canvasHeight = canvasElement!.height, columnsRect = columnsElement.getBoundingClientRect()
+  // Where each bar sits, in canvas pixels: measured only when the layout changes. Measuring every frame forced a layout of the whole page per frame, which stalled the meters
+  let geometry: { barLefts: number[], barWidthPixels: number, pitchPixels: number, segmentPixels: number } | null = null
+  function measure() {
+    if (!canvasElement || !columnsElement || !canvasElement.height || !columnsElement.clientHeight) { geometry = null; return }
+    const canvasWidth = canvasElement.width, canvasHeight = canvasElement.height, columnsRect = columnsElement.getBoundingClientRect()
     const devicePerCss = canvasHeight / columnsElement.clientHeight, gapPixels = Math.max(1, Math.round(devicePerCss * 0.6))
     const pitchPixels = Math.max(gapPixels * 2, Math.floor(canvasHeight / segments)), segmentPixels = pitchPixels - gapPixels
-    const colours = getComputedStyle(columnsElement), onColour = colours.getPropertyValue('--segment-on'), offColour = colours.getPropertyValue('--segment-off')
-    context.clearRect(0, 0, canvasWidth, canvasHeight)
     // Bars share one whole-pixel width and repeat on a whole-pixel column pitch (scaled about the middle), so gaps match too
     const toPixels = (cssX: number) => (cssX - columnsRect.left) / columnsRect.width * canvasWidth
     const columnElements = Array.from(columnsElement.querySelectorAll<HTMLElement>('.column')), columnStarts = columnElements.map(column => toPixels(column.getBoundingClientRect().left))
     const columnPitch = columnStarts.length > 1 ? columnStarts[1] - columnStarts[0] : canvasWidth, pitchScale = Math.max(1, Math.round(columnPitch)) / columnPitch
     const firstStart = Math.round(canvasWidth / 2 + (columnStarts[0] - canvasWidth / 2) * pitchScale)
-    let barIndex = 0, barWidthPixels = 0, peaksFloating = false
-    const now = performance.now(), sinceDrawn = Math.min(0.25, (now - (peakDrawnAt || now)) / 1000); peakDrawnAt = now
+    const barLefts: number[] = []; let barWidthPixels = 0
     columnElements.forEach((column, columnIndex) => column.querySelectorAll<HTMLElement>('.bar').forEach(bar => {
-      const level = barLevels[barIndex] ?? 0, barRect = bar.getBoundingClientRect(), lit = litCount(level)
+      const barRect = bar.getBoundingClientRect()
+      barWidthPixels ||= Math.max(1, Math.round(barRect.width / columnsRect.width * canvasWidth))
+      barLefts.push(firstStart + Math.round((columnStarts[columnIndex] - columnStarts[0]) * pitchScale) + Math.round((toPixels(barRect.left) - columnStarts[columnIndex]) * pitchScale))
+    }))
+    geometry = { barLefts, barWidthPixels, pitchPixels, segmentPixels }; coloursAt = 0
+  }
+  $effect(() => { barLevels.length; segments; const frame = requestAnimationFrame(() => { measure(); layoutVersion++ }); return () => cancelAnimationFrame(frame) }) // bars added or removed
+  // Peak hold: a floating segment marks each bar's recent top, holds ~0.8 s, then drifts down; peakTick keeps it falling after the music stops
+  const peakHoldMs = 800, peakFallPerSecond = 0.9 // in bar heights per second
+  let peakLevels: number[] = [], peakHeldAt: number[] = [], peakDrawnAt = 0, peakTick = $state(0), peakFrame = 0, onColour = '', offColour = '', coloursAt = 0
+  $effect(() => () => cancelAnimationFrame(peakFrame))
+  $effect(() => {
+    layoutVersion; peakTick; const context = canvasElement?.getContext('2d')
+    if (!context || !geometry || !columnsElement) return
+    const { barLefts, barWidthPixels, pitchPixels, segmentPixels } = geometry, canvasHeight = canvasElement!.height, now = performance.now()
+    if (now - coloursAt > 1000) { const colours = getComputedStyle(columnsElement); onColour = colours.getPropertyValue('--segment-on'); offColour = colours.getPropertyValue('--segment-off'); coloursAt = now } // skin changes show within a second
+    context.clearRect(0, 0, canvasElement!.width, canvasHeight)
+    let peaksFloating = false
+    const sinceDrawn = Math.min(0.25, (now - (peakDrawnAt || now)) / 1000); peakDrawnAt = now
+    barLefts.forEach((leftPixels, barIndex) => {
+      const level = barLevels[barIndex] ?? 0, lit = litCount(level)
       if (!(level < (peakLevels[barIndex] ?? 0))) { peakLevels[barIndex] = level; peakHeldAt[barIndex] = now }
       else if (now - peakHeldAt[barIndex] > peakHoldMs) peakLevels[barIndex] = Math.max(level, peakLevels[barIndex] - peakFallPerSecond * sinceDrawn)
-      const peakSegment = litCount(peakLevels[barIndex++]) - 1
+      const peakSegment = litCount(peakLevels[barIndex]) - 1
       if (peakSegment >= lit) peaksFloating = true
-      barWidthPixels ||= Math.max(1, Math.round(barRect.width / columnsRect.width * canvasWidth))
-      const leftPixels = firstStart + Math.round((columnStarts[columnIndex] - columnStarts[0]) * pitchScale) + Math.round((toPixels(barRect.left) - columnStarts[columnIndex]) * pitchScale)
       for (let segmentIndex = 0; segmentIndex < segments; segmentIndex++) {
         // Lit segments brighten up the scale (dim at the bottom, full at the top); the peak cap is always full brightness
         const isPeak = segmentIndex === peakSegment && peakSegment > 0, isLit = segmentIndex < lit || isPeak
         context.fillStyle = isLit ? onColour : offColour; context.globalAlpha = isLit && !isPeak ? 0.5 + 0.5 * segmentIndex / Math.max(1, segments - 1) : 1
         context.fillRect(leftPixels, canvasHeight - segmentIndex * pitchPixels - segmentPixels, barWidthPixels, segmentPixels)
       }
-    }))
+    })
     context.globalAlpha = 1
     cancelAnimationFrame(peakFrame); if (peaksFloating) peakFrame = requestAnimationFrame(() => peakTick++)
   })
