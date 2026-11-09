@@ -772,6 +772,34 @@ public partial class SettingsWindow : Window
         return report.ToString();
     }
 
+    // The report with what identifies this network, PC or person taken out, for posting in public (SPEC.md › Diagnostics)
+    string RedactedDiagnosticsReport()
+    {
+        static string Replace(string input, string pattern, System.Text.RegularExpressions.MatchEvaluator evaluator) => System.Text.RegularExpressions.Regex.Replace(input, pattern, evaluator, System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        string[] publicHosts = { "github.com", "api.github.com", "musicbrainz.org", "en.wikipedia.org", "www.wikidata.org", "query.wikidata.org", "coverartarchive.org", "lrclib.net", "ws.audioscrobbler.com", "localhost", "127.0.0.1" };
+        var report = DiagnosticsReport();
+        report = Replace(report, @"(?:[a-z]:|\\\\[^\\\s]+)\\(?:[^\\\r\n""<>|:*?\s]+(?: [^\\\r\n""<>|:*?\s]+)*\\)*[^\\\r\n""<>|:*?\s]*", match => "<path>"); // C:\... and \\server\share\..., folder names may have spaces
+        report = Replace(report, @"(?<=://)[^/:\s""'<>]+", match => publicHosts.Contains(match.Value.ToLowerInvariant()) ? match.Value : "<host>");
+        report = Replace(report, @"\b(?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2}\b", match => "<mac>");
+        report = Replace(report, @"\b(?:[0-9a-f]{1,4}:){3,7}[0-9a-f]{1,4}\b", match => "<ip>"); // IPv6
+        report = Replace(report, @"\b(?:\d{1,3}\.){3}\d{1,3}\b", match => match.Value is "127.0.0.1" or "0.0.0.0" ? match.Value : "<ip>");
+        var privateNames = new List<(string name, string label)> { (Environment.MachineName, "<pc>"), (Settings.Audio.PlayerName, "<player>"), (Environment.UserName, "<user>"), (Environment.UserDomainName, "<pc>") };
+        privateNames.AddRange(Settings.Profiles.Select(profile => (profile.Host, "<server>")));
+        foreach (var (name, label) in privateNames.Where(entry => entry.name.Trim().Length > 1).OrderByDescending(entry => entry.name.Length)) report = Replace(report, $@"(?<![\w-]){System.Text.RegularExpressions.Regex.Escape(name.Trim())}(?![\w-])", match => label);
+        return report;
+    }
+
+    void SendDiagnostics()
+    {
+        var report = sendDiagnosticsText.Text.TrimEnd();
+        try { Clipboard.SetText(report); } catch { }
+        var bodyWithReport = $"**What happened?**\n\n\n\n**Diagnostics**\n```\n{report}\n```\n";
+        var body = Uri.EscapeDataString(bodyWithReport).Length < 6000 ? bodyWithReport : "**What happened?**\n\n\n\n**Diagnostics**\n\n(they're on your clipboard: press Ctrl+V here)\n"; // GitHub refuses very long links
+        OpenUrl($"https://github.com/hazymat/winsqueeze/discussions/new?category=general&title={Uri.EscapeDataString($"Diagnostics from WinSqueeze {App.Updater.CurrentVersion}")}&body={Uri.EscapeDataString(body)}");
+        sendDiagnosticsPanel.Visibility = Visibility.Collapsed;
+        copyDiagnosticsDone.Text = "Copied and opened GitHub. Nothing is sent until you post it.";
+    }
+
     void WireAboutTab()
     {
         versionText.Text = $"WinSqueeze {App.Updater.CurrentVersion}";
@@ -779,6 +807,10 @@ public partial class SettingsWindow : Window
         squeezeliteSourceLink.RequestNavigate += (sender, args) => OpenUrl(args.Uri.AbsoluteUri);
         discussionsLink.RequestNavigate += (sender, args) => OpenUrl(args.Uri.AbsoluteUri);
         openLogsButton.Click += (sender, args) => Process.Start(new ProcessStartInfo(AppPaths.LogsFolder) { UseShellExecute = true });
+        sendDiagnosticsButton.Click += (sender, args) => { sendDiagnosticsText.Text = RedactedDiagnosticsReport(); sendDiagnosticsPanel.Visibility = Visibility.Visible; copyDiagnosticsDone.Text = ""; };
+        sendDiagnosticsGoButton.Click += (sender, args) => SendDiagnostics();
+        sendDiagnosticsCancelButton.Click += (sender, args) => sendDiagnosticsPanel.Visibility = Visibility.Collapsed;
+        privacyViewsLink.Click += (sender, args) => settingsTabs.SelectedItem = nowPlayingViewsTab;
         copyDiagnosticsButton.Click += (sender, args) => { try { Clipboard.SetText(DiagnosticsReport()); copyDiagnosticsDone.Text = "Copied. Check it before posting anywhere public: it includes your server address."; } catch (Exception error) { copyDiagnosticsDone.Text = "Couldn't copy: " + error.Message; } };
         channelCombo.SelectedItem = channelCombo.Items.Cast<ComboBoxItem>().First(item => (string)item.Tag == Settings.General.UpdateChannel);
         channelCombo.SelectionChanged += async (sender, args) =>

@@ -348,6 +348,12 @@ Unhandled errors, background task errors, WebView2 renderer failures and UI-thre
 
 **Copy diagnostics** (Settings › About) copies a plain-text report to the clipboard: version and channel, Windows, server address, player state, output device, and the end of crash.log and squeezelite.log. No passwords.
 
+**Send diagnostics…** (next to it) shows the same report in an editable box with server and other URL host names, PC, player and Windows user names, IP and MAC addresses and folder paths replaced by `<server>`, `<host>`, `<pc>`, `<player>`, `<user>`, `<ip>`, `<mac>`, `<path>`. Copy and open GitHub Discussions copies it and opens a new Discussion (General) with a "What happened?" prompt and the report filled in (or a note to paste it, when the link would be too long). Nothing is sent until the user posts it there. There is no telemetry.
+
+## Privacy
+
+Settings › About says: "The developer takes privacy seriously. Apart from update checks and the Artist, Album and Lyrics lookups (which you can turn off in Now playing views), WinSqueeze sends nothing outside your network." An expander, What leaves your network, tables each case: update checks (GitHub, the release list, no ID or usage data), Artist / Album / Lyrics (MusicBrainz, Wikipedia, Wikidata, Cover Art Archive, LRCLIB, Last.fm only with the user's key; artist, album and track names) and Send diagnostics (GitHub Discussions, only when the user posts it). Keep both accurate whenever a feature starts talking to the internet.
+
 ## Server library
 
 Settings › Server › Library starts Lyrion's own library scans and follows them, for when music was added or retagged.

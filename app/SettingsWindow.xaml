@@ -565,7 +565,25 @@
             <StackPanel>
               <TextBlock x:Name="versionText" FontSize="16" FontWeight="SemiBold" />
               <TextBlock x:Name="dataFolderText" Style="{StaticResource Quiet}" />
-              <StackPanel Orientation="Horizontal" Margin="0,10,0,0"><Button x:Name="openLogsButton" Content="Open logs folder" /><Button x:Name="copyDiagnosticsButton" Content="Copy diagnostics" Margin="8,0,0,0" ToolTip="Copies version, Windows, server, player and audio details plus the end of the logs, ready to paste into a bug report" /><TextBlock x:Name="copyDiagnosticsDone" Style="{StaticResource Quiet}" VerticalAlignment="Center" Margin="10,0,0,0" /></StackPanel>
+              <StackPanel Orientation="Horizontal" Margin="0,10,0,0"><Button x:Name="openLogsButton" Content="Open logs folder" /><Button x:Name="copyDiagnosticsButton" Content="Copy diagnostics" Margin="8,0,0,0" ToolTip="Copies version, Windows, server, player and audio details plus the end of the logs, ready to paste into a bug report" /><Button x:Name="sendDiagnosticsButton" Content="Send diagnostics…" Margin="8,0,0,0" ToolTip="Shows the report with your server, PC and folder names taken out, then opens a new GitHub Discussion for it" /><TextBlock x:Name="copyDiagnosticsDone" Style="{StaticResource Quiet}" VerticalAlignment="Center" Margin="10,0,0,0" /></StackPanel>
+              <Border x:Name="sendDiagnosticsPanel" Style="{StaticResource Callout}" Visibility="Collapsed">
+                <StackPanel>
+                  <DockPanel><TextBlock Style="{StaticResource CalloutIcon}" Text="&#xE72E;" /><TextBlock Style="{StaticResource CalloutText}" Text="Nothing is sent until you post it on GitHub. Server, PC and user names, IP and MAC addresses and folder paths are taken out. You can edit it here." /></DockPanel>
+                  <TextBox x:Name="sendDiagnosticsText" Margin="0,8,0,0" Padding="4,3" FontFamily="Consolas" FontSize="11" Height="200" AcceptsReturn="True" TextWrapping="NoWrap" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" />
+                  <StackPanel Orientation="Horizontal" Margin="0,8,0,0"><Button x:Name="sendDiagnosticsGoButton" Content="Copy and open GitHub Discussions" FontWeight="SemiBold" /><Button x:Name="sendDiagnosticsCancelButton" Content="Cancel" /></StackPanel>
+                </StackPanel>
+              </Border>
+              <Border Style="{StaticResource Callout}"><DockPanel><TextBlock Style="{StaticResource CalloutIcon}" Text="&#xE72E;" /><TextBlock Style="{StaticResource CalloutText}">The developer takes privacy seriously. Apart from update checks and the Artist, Album and Lyrics lookups (which you can turn off in <Hyperlink x:Name="privacyViewsLink">Now playing views</Hyperlink>), WinSqueeze sends nothing outside your network.</TextBlock></DockPanel></Border>
+              <Expander Header="What leaves your network" Style="{StaticResource More}">
+                <Grid Margin="0,6,0,0" TextBlock.Foreground="#2B3A4E">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="150" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                  <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+                  <TextBlock Grid.Row="0" Grid.Column="0" FontWeight="SemiBold" Text="What" /><TextBlock Grid.Row="0" Grid.Column="1" FontWeight="SemiBold" Text="Goes to" /><TextBlock Grid.Row="0" Grid.Column="2" FontWeight="SemiBold" Text="Sends" />
+                  <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,6,0,0" Text="Update checks" /><TextBlock Grid.Row="1" Grid.Column="1" Margin="0,6,8,0" TextWrapping="Wrap" Text="GitHub" /><TextBlock Grid.Row="1" Grid.Column="2" Margin="0,6,0,0" TextWrapping="Wrap" Text="A request for the release list. No ID, no usage data" />
+                  <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,6,0,0" Text="Artist, Album, Lyrics" /><TextBlock Grid.Row="2" Grid.Column="1" Margin="0,6,8,0" TextWrapping="Wrap" Text="MusicBrainz, Wikipedia, Wikidata, Cover Art Archive, LRCLIB; Last.fm only with your key" /><TextBlock Grid.Row="2" Grid.Column="2" Margin="0,6,0,0" TextWrapping="Wrap" Text="Artist, album and track names" />
+                  <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,6,0,0" Text="Send diagnostics" /><TextBlock Grid.Row="3" Grid.Column="1" Margin="0,6,8,0" TextWrapping="Wrap" Text="GitHub Discussions, when you post it" /><TextBlock Grid.Row="3" Grid.Column="2" Margin="0,6,0,0" TextWrapping="Wrap" Text="The report you checked first" />
+                </Grid>
+              </Expander>
               <Expander Header="About the developer" Style="{StaticResource More}">
                 <StackPanel Margin="0,6,0,0" TextBlock.Foreground="#2B3A4E">
                   <TextBlock TextWrapping="Wrap" LineHeight="19" Text="Hi, I'm Mat, from London. I've used Squeezebox since 2005 and have owned more of its hardware than I'd like to admit. I have a music degree from a UK university, so music has always been the main thing." />
