@@ -134,7 +134,7 @@ public partial class App : Application
         mainWindow = new MainWindow();
         trayIcon = new TrayIcon();
         Player.StatusChanged += () => Dispatcher.BeginInvoke(OnPlayerStatusChanged);
-        Player.ExclusiveFailed += deviceName => Dispatcher.BeginInvoke(async () => { trayIcon.ShowTip("Playing in shared mode", $"{deviceName} wouldn't open in exclusive mode, so WinSqueeze switched to shared mode. To stop it trying, untick Exclusive mode in Settings › Audio."); await StartPlayerAsync(true); });
+        Player.ExclusiveFailed += (deviceName, reason) => Dispatcher.BeginInvoke(async () => { trayIcon.ShowTip("Playing in shared mode", $"{deviceName} refused exclusive mode: {reason}. WinSqueeze is playing it shared."); await StartPlayerAsync(true); });
         Damaged.Load(); Damaged.PlayerRequest = command => ServerRequestAsync(Settings.PlayerMac, command);
         Player.DecodeLine += decodeLine => Dispatcher.BeginInvoke(() => Damaged.OnLogLine(decodeLine));
         Damaged.Found += OnDamagedFound;
