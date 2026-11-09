@@ -24,13 +24,17 @@
     if (!playing) return
     for (const kind of kinds) if ((kind === open || kind === 'lyrics') && untrack(() => info[kind]) === undefined) {
       info = Object.assign({}, untrack(() => info), { [kind]: 'loading' })
-      query('trackInfo', { kind, id: playing.id ?? 0, artistId: String(playing.artist_id ?? ''), albumId: String(playing.album_id ?? ''), artist: playing.artist ?? '', album: playing.album ?? '', title: playing.title ?? '', duration: Number(playing.duration ?? 0), remote: Number(playing.remote) === 1 ? 1 : 0 })
+      query('nowPlayingInfo', { kind, id: playing.id ?? 0, artistId: String(playing.artist_id ?? ''), albumId: String(playing.album_id ?? ''), artist: playing.artist ?? '', album: playing.album ?? '', title: playing.title ?? '', duration: Number(playing.duration ?? 0), remote: Number(playing.remote) === 1 ? 1 : 0 })
         .then(result => { if (infoFor === key) info = Object.assign({}, info, { [kind]: result ?? { found: false } }) })
     }
   })
   const missing = (kind: string) => info[kind] && info[kind] !== 'loading' && !info[kind].found
   const chooseTab = (key: string) => { ui.infoTab = key; writeSetting('infoTab', key) }
-  const paragraphs = (text: string) => text.split(/\n\s*\n|\n/).map(paragraph => paragraph.trim()).filter(Boolean)
+  // The shell sends tidy blocks: paragraphs, "## " headings and "• " lists. Long text shows its opening, the rest behind Show more
+  const blocksOf = (text: string) => text.split(/\n\s*\n/).map(block => block.trim()).filter(Boolean)
+  const shortCount = (blocks: string[]) => { let length = 0, count = 0; for (const block of blocks) { if (count > 0 && length + block.length > 700) break; length += block.length; count++ } return count }
+  let expanded = $state(false)
+  $effect(() => { trackKey; infoKey; expanded = false })
   const infoImage = (image: string) => image.startsWith('http') ? image : serverArt(image, 300)
   // The album opens with this track marked (folder or tag album, whichever the library uses)
   async function openAlbum() { const trackId = Number(track?.id); const place = trackId > 0 ? await query('trackPlace', { id: trackId }) : null; if (place?.album) openView({ kind: 'album', key: String(place.album), title: place.albumTitle, highlight: String(trackId) }); else toast('That album isn’t in the library') }
@@ -67,7 +71,11 @@
           {:else if !result.found}<p class="quiet">{infoKey === 'lyrics' ? 'No lyrics found for this track' : infoKey === 'album' ? 'Nothing found about this album' : 'Nothing found about this artist'}</p>
           {:else}
             <div class="info-head">{#if result.image}<img class="info-pic" class:round={infoKey === 'artist'} src={infoImage(result.image)} alt="" />{/if}<div><h2>{result.heading}</h2>{#if result.subheading}<div class="quiet">{result.subheading}</div>{/if}</div></div>
-            {#if infoKey === 'lyrics'}<pre>{result.text}</pre>{:else}{#each paragraphs(result.text) as paragraph}<p>{paragraph}</p>{/each}{/if}
+            {#if infoKey === 'lyrics'}<pre>{result.text}</pre>{:else}
+              {@const blocks = blocksOf(result.text)}{@const shown = expanded ? blocks.length : shortCount(blocks)}
+              {#each blocks.slice(0, shown) as block}{#if block.startsWith('## ')}<h3>{block.slice(3)}</h3>{:else if block.startsWith('• ')}<ul>{#each block.split('\n') as item}<li>{item.replace(/^• /, '')}</li>{/each}</ul>{:else}<p>{block}</p>{/if}{/each}
+              {#if shown < blocks.length}<button class="more" onclick={() => expanded = true}>Show more</button>{/if}
+            {/if}
             <div class="source">From {result.source}{#if result.link}&nbsp;· <button class="link" onclick={() => sendToShell({ type: 'openUrl', url: result.link })}>Read more</button>{/if}</div>
           {/if}
         </div>
@@ -112,7 +120,8 @@
   .info-tabs .queue-tab { display: flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--panel); border-radius: 9px; padding: 6px 12px; } .info-tabs .queue-tab.on { border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
   .track-group { flex: 1; display: flex; align-items: center; gap: 2px; padding: 3px; border-radius: 9px; background: var(--panel); border: 1px solid var(--line); min-width: 0; } .track-group button { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
   .this-track { flex: none; width: 26px; height: 26px; margin: 0 4px 0 1px; border-radius: 5px; overflow: hidden; box-shadow: 0 1px 4px var(--shadow); } .this-track img { width: 100%; height: 100%; display: block; object-fit: cover; }
-  .info { padding: 2px 4px 4px; user-select: text; text-align: left; } .info h2 { margin: 0 0 2px; font-size: 18px; } .info p { margin: 12px 0 0; line-height: 1.55; font-size: 13.5px; } .info .quiet { font-size: 12.5px; }
+  .info { padding: 2px 4px 4px; user-select: text; text-align: left; } .info h2 { margin: 0 0 2px; font-size: 18px; } .info p { margin: 12px 0 0; line-height: 1.55; font-size: 13.5px; } .info .quiet { font-size: 12.5px; } .info h3 { margin: 18px 0 0; font-size: 14px; color: var(--fg); } .info ul { margin: 8px 0 0; padding-left: 18px; font-size: 13.5px; line-height: 1.5; } .info li { margin: 2px 0; }
+  .info .more { margin-top: 10px; background: none; border: 0; padding: 0; color: var(--accent); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; } .info .more:hover { text-decoration: underline; }
   .info-head { display: flex; gap: 12px; align-items: center; } .info-pic { flex: none; width: 64px; height: 64px; object-fit: cover; border-radius: 8px; box-shadow: 0 6px 18px var(--shadow); } .info-pic.round { border-radius: 50%; }
   .lyrics pre { margin: 14px 0 0; font: inherit; font-size: 15px; line-height: 1.7; white-space: pre-wrap; }
   .source { margin-top: 18px; padding-top: 10px; border-top: 1px solid var(--line); color: var(--fg-quiet); font-size: 11.5px; } .source .link { color: inherit; text-decoration: underline; text-underline-offset: 2px; }

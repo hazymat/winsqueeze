@@ -59,6 +59,7 @@ public sealed class TrackInfo
                     (_, "lastfm") => await FromLastFmAsync(request),
                     _ => null
                 };
+                if (result is { Found: true } && request.Kind != "lyrics") result = Tidy(request, result);
                 if (result is { Found: true }) return result;
             }
             catch (Exception error) { CrashReporter.Note($"Track info {request.Kind} from {source.Key}: {error.Message}"); }
@@ -146,12 +147,12 @@ public sealed class TrackInfo
                 && wikidata.TryGetProperty("entities", out var entities)) foreach (var item in entities.EnumerateObject()) if (item.Value.TryGetProperty("sitelinks", out var sitelinks) && sitelinks.TryGetProperty("enwiki", out var enwiki)) pageTitle = LyrionClient.ReadString(enwiki, "title");
         }
         if (pageTitle == "") return null;
-        var page = await GetJsonAsync($"https://en.wikipedia.org/w/api.php?action=query&prop=extracts|pageimages&exintro=1&explaintext=1&piprop=thumbnail&pithumbsize=400&redirects=1&format=json&titles={Uri.EscapeDataString(pageTitle)}");
+        var page = await GetJsonAsync($"https://en.wikipedia.org/w/api.php?action=query&prop=extracts|pageimages|pageprops&ppprop=disambiguation&exintro=1&explaintext=1&piprop=thumbnail&pithumbsize=400&redirects=1&format=json&titles={Uri.EscapeDataString(pageTitle)}");
         if (page is not { } pageResult || !pageResult.TryGetProperty("query", out var query) || !query.TryGetProperty("pages", out var pages)) return null;
         foreach (var wikiPage in pages.EnumerateObject())
         {
             var extract = LyrionClient.ReadString(wikiPage.Value, "extract");
-            if (extract == "") continue;
+            if (extract == "" || wikiPage.Value.TryGetProperty("pageprops", out var pageProps) && pageProps.TryGetProperty("disambiguation", out _)) continue;
             var image = wikiPage.Value.TryGetProperty("thumbnail", out var thumbnail) ? LyrionClient.ReadString(thumbnail, "source") : "";
             return Found(request, extract, "Wikipedia", request.Kind == "artist" ? image : "", $"https://en.wikipedia.org/wiki/{Uri.EscapeDataString(LyrionClient.ReadString(wikiPage.Value, "title").Replace(' ', '_'))}");
         }
@@ -190,6 +191,48 @@ public sealed class TrackInfo
     }
 
     // ---- Text ----
+    // Artist and album text: never a "may refer to" list, never text that doesn't name the artist (a loose title match), and tidied into blocks the UI lays out:
+    // paragraphs separated by a blank line, "## " headings, "• " list lines. Reference and link sections are dropped
+    static Result Tidy(Request request, Result result)
+    {
+        if (Regex.IsMatch(result.Text, @"\bmay (also )?refer to\b|\bmight (also )?refer to\b", RegexOptions.IgnoreCase)) return new(false);
+        var firstArtist = Regex.Split(request.Artist, @"\s*(?:[,;&/]|\bfeat\.?|\bfeaturing\b|\band\b|\bwith\b)\s*", RegexOptions.IgnoreCase).FirstOrDefault(name => name.Trim() != "") ?? request.Artist;
+        var artistKey = Normalise(Regex.Replace(firstArtist, @"^the\s+", "", RegexOptions.IgnoreCase));
+        if (artistKey.Length >= 3 && !Normalise(result.Text).Contains(artistKey)) return new(false);
+        var text = Prose(result.Text);
+        return text == "" ? new(false) : result with { Text = text };
+    }
+
+    static string Prose(string source)
+    {
+        var text = Regex.Replace(source.Replace("\r\n", "\n").Replace('\r', '\n'), @"\[([^\]]+)\]\([^)]*\)", "$1"); // markdown links keep their words
+        text = Regex.Replace(text, @"(\*\*|__)(.+?)\1", "$2"); text = Regex.Replace(text, @"(?<![\w*])[*_]([^*_\n]+)[*_](?![\w*])", "$1");
+        var lines = text.Split('\n'); var blocks = new List<string>(); var paragraph = new List<string>(); var list = new List<string>();
+        void Flush() { if (paragraph.Count > 0) blocks.Add(string.Join(" ", paragraph)); if (list.Count > 0) blocks.Add(string.Join("\n", list)); paragraph.Clear(); list.Clear(); }
+        for (var index = 0; index < lines.Length; index++)
+        {
+            var line = lines[index].Trim().TrimStart('>').Trim();
+            var next = index + 1 < lines.Length ? lines[index + 1].Trim() : "";
+            string heading = "";
+            if (line != "" && Regex.IsMatch(next, @"^[-=]{3,}$")) { heading = line; index++; } // underlined heading
+            else if (Regex.Match(line, @"^#{1,6}\s+(.+?)\s*#*$") is { Success: true } hashHeading) heading = hashHeading.Groups[1].Value;
+            else if (Regex.Match(line, @"^==+\s*(.+?)\s*==+$") is { Success: true } wikiHeading) heading = wikiHeading.Groups[1].Value;
+            if (heading != "")
+            {
+                Flush();
+                if (Regex.IsMatch(heading, @"^(references|external links|see also|notes|sources|further reading|track listing|personnel)$", RegexOptions.IgnoreCase)) break; // the rest is lists of links and credits
+                blocks.Add("## " + heading); continue;
+            }
+            if (line == "" || Regex.IsMatch(line, @"^[-=_*]{3,}$")) { Flush(); continue; }
+            if (Regex.Match(line, @"^[*\-+•]\s+(.+)$") is { Success: true } bullet) { if (paragraph.Count > 0) Flush(); list.Add("• " + bullet.Groups[1].Value); continue; }
+            if (list.Count > 0) Flush();
+            paragraph.Add(line);
+        }
+        Flush();
+        while (blocks.Count > 0 && blocks[^1].StartsWith("## ")) blocks.RemoveAt(blocks.Count - 1); // a heading with nothing under it
+        return string.Join("\n\n", blocks).Trim();
+    }
+
     static string LuceneEscape(string text) => Regex.Replace(text, @"([+\-&|!(){}\[\]^""~*?:\\/])", @"\$1");
     static string Normalise(string name) => Regex.Replace(name.ToLowerInvariant().Replace("&", "and"), @"[^\p{L}\p{N}]+", "");
     static string HtmlToText(string html)

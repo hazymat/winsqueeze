@@ -192,7 +192,7 @@ Each tab tries its ticked sources in order and shows the first that has somethin
 | Album | Server plugin (`musicartistinfo albumreview`), Wikipedia (the release group found on MusicBrainz, then as for Artist), Last.fm |
 | Lyrics | The file's own tags (Lyrion's lyrics tag), server plugin (`musicartistinfo lyrics`), LRCLIB |
 
-The shell does the lookups (MusicBrainz is held to one request a second, every request carries a WinSqueeze User-Agent) and keeps the results for the session. Online sources are sent only the artist, album and track names. The plugin is used only when the server has it (`can musicartistinfo biography ?`).
+Artist and album text is never a disambiguation ("may refer to") page and must name the track's artist, or that source is skipped (this stops loose title matches, e.g. another song of the same name). It is tidied into paragraphs, headings and lists (Markdown, wiki and HTML formatting removed; references and link sections dropped), and long text shows its opening with Show more. The shell does the lookups (MusicBrainz is held to one request a second, every request carries a WinSqueeze User-Agent) and keeps the results for the session. Online sources are sent only the artist, album and track names. The plugin is used only when the server has it (`can musicartistinfo biography ?`).
 
 ## Playback and fidelity
 
