@@ -22,7 +22,7 @@
     const key = trackKey, open = infoKey, kinds = infoTabs, playing = track
     if (key !== infoFor) { infoFor = key; info = {} }
     if (!playing) return
-    for (const kind of kinds.filter(kind => kind === open || kind === 'lyrics').concat(open === 'artist' ? ['timeline'] : [])) if (untrack(() => info[kind]) === undefined) {
+    for (const kind of kinds.filter(kind => kind === open || kind === 'lyrics').concat(open === 'artist' ? ['timeline'] : open === 'album' ? ['credits'] : [])) if (untrack(() => info[kind]) === undefined) {
       info = Object.assign({}, untrack(() => info), { [kind]: 'loading' })
       query('nowPlayingInfo', { kind, id: playing.id ?? 0, artistId: String(playing.artist_id ?? ''), albumId: String(playing.album_id ?? ''), artist: playing.artist ?? '', album: playing.album ?? '', title: playing.title ?? '', duration: Number(playing.duration ?? 0), remote: Number(playing.remote) === 1 ? 1 : 0 })
         .then(result => { if (infoFor === key) info = Object.assign({}, info, { [kind]: result ?? { found: false } }) })
@@ -48,17 +48,45 @@
   const shortCount = (blocks: string[]) => { let length = 0, count = 0; for (const block of blocks) { if (count > 0 && length + block.length > 700) break; length += block.length; count++ } return count }
   let expanded = $state(false)
   $effect(() => { trackKey; infoKey; expanded = false })
-  // Artist splits into Summary, Timeline and Full bio; a view shows while it's still loading so the row doesn't jump, and goes once it has nothing
+  // Artist splits into Summary, Timeline and Full bio, Album into Summary and Credits; a view shows while it's still loading so the row doesn't jump, and goes once it has nothing
   const pending = (value: any) => value === undefined || value === 'loading'
-  const artistViews = $derived.by(() => {
-    const bio = info.artist, timeline = info.timeline, views: { key: string, label: string }[] = []
-    if (pending(bio) || bio.found) views.push({ key: 'summary', label: 'Summary' })
-    if (pending(timeline) || timeline.found) views.push({ key: 'timeline', label: 'Timeline' })
-    if (bio?.found && shortCount(blocksOf(bio.text)) < blocksOf(bio.text).length) views.push({ key: 'bio', label: 'Full bio' })
+  const subViews = $derived.by(() => {
+    const about = info[infoKey], extra = info[infoKey === 'artist' ? 'timeline' : 'credits'], views: { key: string, label: string }[] = []
+    if (infoKey !== 'artist' && infoKey !== 'album') return views
+    if (pending(about) || about.found) views.push({ key: 'summary', label: 'Summary' })
+    if (pending(extra) || extra.found) views.push(infoKey === 'artist' ? { key: 'timeline', label: 'Timeline' } : { key: 'credits', label: 'Credits' })
+    if (infoKey === 'artist' && about?.found && shortCount(blocksOf(about.text)) < blocksOf(about.text).length) views.push({ key: 'bio', label: 'Full bio' })
     return views
   })
-  const artistView = $derived(artistViews.some(view => view.key === ui.artistView) ? ui.artistView : (artistViews[0]?.key ?? 'summary'))
-  const chooseArtistView = (key: string) => { ui.artistView = key; writeSetting('artistView', key) }
+  const chosenView = $derived(infoKey === 'album' ? ui.albumView : ui.artistView)
+  const subView = $derived(subViews.some(view => view.key === chosenView) ? chosenView : (subViews[0]?.key ?? 'summary'))
+  const chooseSubView = (key: string) => { if (infoKey === 'album') { ui.albumView = key; writeSetting('albumView', key) } else { ui.artistView = key; writeSetting('artistView', key) } }
+  // Credits: who played, wrote and produced it. People are grouped by what they did, each with their roles and the tracks they're on; the playing track's people come first
+  const creditGroups = [['performer', 'Performers'], ['writer', 'Writers'], ['production', 'Production'], ['artwork', 'Artwork and notes']]
+  const playingNumber = (credits: any) => credits?.tracks?.find((item: any) => titleKey(item.title) === titleKey(track?.title ?? ''))?.n ?? 0
+  const trackRange = (numbers: number[], tracks: any[]) => {
+    const label = (number: number) => tracks.find(item => item.n === number)?.label ?? String(number), runs: string[] = []
+    let first = numbers[0], last = numbers[0]
+    for (const number of numbers.slice(1).concat([0])) { if (number === last + 1) { last = number; continue } runs.push(first === last ? label(first) : last === first + 1 ? `${label(first)}, ${label(last)}` : `${label(first)}–${label(last)}`); first = last = number }
+    return runs.join(', ')
+  }
+  const peopleIn = (credits: any, group: string) => {
+    const people: { name: string, roles: { role: string, tracks: string, here: boolean }[] }[] = [], here = playingNumber(credits)
+    for (const credit of credits.credits.filter((credit: any) => credit.group === group)) {
+      let person = people.find(item => item.name === credit.name)
+      if (!person) people.push(person = { name: credit.name, roles: [] })
+      person.roles.push({ role: credit.role, tracks: credit.tracks.length ? trackRange(credit.tracks, credits.tracks) : '', here: credit.tracks.includes(here) })
+    }
+    return people
+  }
+  const peopleHere = (credits: any) => {
+    const here = playingNumber(credits), people: { name: string, roles: string[] }[] = []
+    if (!here) return people
+    for (const credit of credits.credits.filter((credit: any) => credit.all || credit.tracks.includes(here))) { let person = people.find(item => item.name === credit.name); if (!person) people.push(person = { name: credit.name, roles: [] }); person.roles.push(credit.role) }
+    return people
+  }
+  const initials = (name: string) => name.split(/\s+/).filter(word => /^\p{L}/u.test(word)).map(word => word[0]).slice(0, 2).join('').toUpperCase() || '♪'
+  const nameHue = (name: string) => { let hash = 0; for (const letter of name) hash = (hash * 31 + letter.charCodeAt(0)) % 360; return hash }
   const infoImage = (image: string) => image.startsWith('http') ? image : serverArt(image, 300)
   // The album opens with this track marked (folder or tag album, whichever the library uses)
   async function openAlbum() { const trackId = Number(track?.id); const place = trackId > 0 ? await query('trackPlace', { id: trackId }) : null; if (place?.album) openView({ kind: 'album', key: String(place.album), title: place.albumTitle, highlight: String(trackId) }); else toast('That album isn’t in the library') }
@@ -91,10 +119,13 @@
         {@const result = info[infoKey]}
         <div class="info" class:lyrics={infoKey === 'lyrics'}>
           {#if !track}<p class="quiet">Nothing playing</p>
-          {:else if infoKey === 'artist'}
-            {#if artistViews.length > 1}<div class="sub-tabs" role="tablist">{#each artistViews as view (view.key)}<button role="tab" class:on={artistView === view.key} aria-selected={artistView === view.key} onclick={() => chooseArtistView(view.key)}>{view.label}</button>{/each}</div>{/if}
-            {#if !artistViews.length}<p class="quiet">Nothing found about this artist</p>
-            {:else if artistView === 'timeline'}
+          {:else if infoKey === 'lyrics'}
+            {#if pending(result)}<p class="quiet">Looking…</p>{:else if !result.found}<p class="quiet">No lyrics found for this track</p>
+            {:else}<div class="info-head"><div><h2>{result.heading}</h2>{#if result.subheading}<div class="quiet">{result.subheading}</div>{/if}</div></div><pre>{result.text}</pre>{@render source(result.source, result.link, 'Read more')}{/if}
+          {:else}
+            {#if subViews.length > 1}<div class="sub-tabs" role="tablist">{#each subViews as view (view.key)}<button role="tab" class:on={subView === view.key} aria-selected={subView === view.key} onclick={() => chooseSubView(view.key)}>{view.label}</button>{/each}</div>{/if}
+            {#if !subViews.length}<p class="quiet">{infoKey === 'album' ? 'Nothing found about this album' : 'Nothing found about this artist'}</p>
+            {:else if subView === 'timeline'}
               {#if pending(info.timeline)}<p class="quiet">Looking…</p>{:else}
                 <ol class="timeline">
                   {#each timelineYears(info.timeline.events) as group (group.year)}
@@ -111,32 +142,44 @@
                     </li>
                   {/each}
                 </ol>
-                <div class="source">From {info.timeline.source}&nbsp;· <button class="link" onclick={() => sendToShell({ type: 'openUrl', url: info.timeline.link })}>MusicBrainz page</button></div>
+                {@render source(info.timeline.source, info.timeline.link, 'MusicBrainz page')}
+              {/if}
+            {:else if subView === 'credits'}
+              {#if pending(info.credits)}<p class="quiet">Looking…</p>{:else}
+                {@const credits = info.credits.events}{@const here = peopleHere(credits)}{@const number = playingNumber(credits)}
+                {#if here.length}
+                  <div class="credits-here"><div class="here-head"><span class="here-number">{credits.tracks.find((item: any) => item.n === number)?.label}</span>{track?.title}</div>
+                    {#each here as person}<div class="here-person"><span class="who">{person.name}</span><span class="what">{person.roles.join(', ')}</span></div>{/each}
+                  </div>
+                {/if}
+                {#each creditGroups as [group, title]}{@const people = peopleIn(credits, group)}
+                  {#if people.length}
+                    <h3 class="credit-group">{title}</h3>
+                    {#each people as person}
+                      <div class="credit"><span class="avatar" style:--hue={nameHue(person.name)} aria-hidden="true">{initials(person.name)}</span>
+                        <div class="credit-text"><div class="credit-name">{person.name}</div><div class="roles">{#each person.roles as role}<span class="role" class:here={role.here}>{role.role}{#if role.tracks}<span class="tracks">{role.tracks}</span>{/if}</span>{/each}</div></div>
+                      </div>
+                    {/each}
+                  {/if}
+                {/each}
+                {@render source(`${info.credits.source}${info.credits.subheading ? ` (the ${info.credits.subheading} release)` : ''}`, info.credits.link, 'MusicBrainz page')}
               {/if}
             {:else if pending(result)}<p class="quiet">Looking…</p>
             {:else}
-              {@const blocks = blocksOf(result.text)}{@const shown = artistView === 'bio' ? blocks.length : shortCount(blocks)}
-              <div class="info-head">{#if result.image}<img class="info-pic round" src={infoImage(result.image)} alt="" />{/if}<div><h2>{result.heading}</h2>{#if result.subheading}<div class="quiet">{result.subheading}</div>{/if}</div></div>
+              {@const blocks = blocksOf(result.text)}{@const shown = subView === 'bio' || expanded ? blocks.length : shortCount(blocks)}
+              <div class="info-head">{#if result.image}<img class="info-pic" class:round={infoKey === 'artist'} src={infoImage(result.image)} alt="" />{/if}<div><h2>{result.heading}</h2>{#if result.subheading}<div class="quiet">{result.subheading}</div>{/if}</div></div>
               {#each blocks.slice(0, shown) as block}{#if block.startsWith('## ')}<h3>{block.slice(3)}</h3>{:else if block.startsWith('• ')}<ul>{#each block.split('\n') as item}<li>{item.replace(/^• /, '')}</li>{/each}</ul>{:else}<p>{block}</p>{/if}{/each}
-              {#if shown < blocks.length}<button class="more" onclick={() => chooseArtistView('bio')}>Full bio</button>{/if}
-              <div class="source">From {result.source}{#if result.link}&nbsp;· <button class="link" onclick={() => sendToShell({ type: 'openUrl', url: result.link })}>Read more</button>{/if}</div>
+              {#if shown < blocks.length}<button class="more" onclick={() => infoKey === 'artist' ? chooseSubView('bio') : expanded = true}>{infoKey === 'artist' ? 'Full bio' : 'Show more'}</button>{/if}
+              {@render source(result.source, result.link, 'Read more')}
             {/if}
-          {:else if pending(result)}<p class="quiet">Looking…</p>
-          {:else if !result.found}<p class="quiet">{infoKey === 'lyrics' ? 'No lyrics found for this track' : 'Nothing found about this album'}</p>
-          {:else}
-            <div class="info-head">{#if result.image}<img class="info-pic" src={infoImage(result.image)} alt="" />{/if}<div><h2>{result.heading}</h2>{#if result.subheading}<div class="quiet">{result.subheading}</div>{/if}</div></div>
-            {#if infoKey === 'lyrics'}<pre>{result.text}</pre>{:else}
-              {@const blocks = blocksOf(result.text)}{@const shown = expanded ? blocks.length : shortCount(blocks)}
-              {#each blocks.slice(0, shown) as block}{#if block.startsWith('## ')}<h3>{block.slice(3)}</h3>{:else if block.startsWith('• ')}<ul>{#each block.split('\n') as item}<li>{item.replace(/^• /, '')}</li>{/each}</ul>{:else}<p>{block}</p>{/if}{/each}
-              {#if shown < blocks.length}<button class="more" onclick={() => expanded = true}>Show more</button>{/if}
-            {/if}
-            <div class="source">From {result.source}{#if result.link}&nbsp;· <button class="link" onclick={() => sendToShell({ type: 'openUrl', url: result.link })}>Read more</button>{/if}</div>
           {/if}
         </div>
       {/if}
     </div>
   </div>
 </section>
+
+{#snippet source(from: string, link: string, label: string)}<div class="source">From {from}{#if link}&nbsp;· <button class="link" onclick={() => sendToShell({ type: 'openUrl', url: link })}>{label}</button>{/if}</div>{/snippet}
 
 <style>
   .now-playing { position: relative; height: 100%; overflow: hidden; container: now-playing / size; } /* art sizes to the space actually left (cqh/cqw) */
@@ -179,7 +222,7 @@
   .info-head { display: flex; gap: 12px; align-items: center; } .info-pic { flex: none; width: 64px; height: 64px; object-fit: cover; border-radius: 8px; box-shadow: 0 6px 18px var(--shadow); } .info-pic.round { border-radius: 50%; }
   /* Timeline: a line down the left, years in the display face, albums with their sleeves; your own albums open from it */
   /* Summary · Timeline · Full bio: a small segmented row that stays at the top while the view scrolls */
-  .sub-tabs { position: sticky; top: -2px; z-index: 1; display: flex; gap: 2px; width: fit-content; margin: 0 0 14px; padding: 3px; border-radius: 8px; background: var(--panel-strong); border: 1px solid var(--line); backdrop-filter: blur(var(--blur)); }
+  .sub-tabs { position: sticky; top: -2px; z-index: 1; display: flex; gap: 2px; width: fit-content; margin: 0 0 14px; padding: 3px; border-radius: 8px; background: color-mix(in srgb, var(--bg) 90%, var(--fg)); border: 1px solid var(--line); box-shadow: 0 4px 12px var(--shadow); }
   .sub-tabs button { background: none; border: 0; border-radius: 6px; padding: 4px 11px; color: var(--fg-quiet); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; } .sub-tabs button:hover { color: var(--fg); } .sub-tabs button.on { background: var(--accent-soft); color: var(--accent); }
   .timeline { list-style: none; margin: 4px 0 0; padding: 0 0 0 18px; position: relative; }
   .timeline::before { content: ""; position: absolute; left: 5px; top: 8px; bottom: 8px; width: 2px; border-radius: 1px; background: linear-gradient(var(--accent), color-mix(in srgb, var(--accent) 15%, transparent)); }
@@ -191,6 +234,16 @@
   .event-text { flex: 1; min-width: 0; } .event-title { font-size: 13.5px; line-height: 1.3; } .event-detail { font-size: 11.5px; color: var(--fg-quiet); }
   .event.album .event-title { font-weight: 600; } .event.start .event-title, .event.end .event-title { color: var(--fg-quiet); font-style: italic; } .event.nominated .event-title, .event.label .event-title, .event.member .event-title { color: color-mix(in srgb, var(--fg) 80%, var(--bg)); }
   .owned { flex: none; border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 2px 9px; font: inherit; font-size: 11px; font-weight: 600; cursor: pointer; } .now { flex: none; font-size: 11px; font-weight: 600; color: var(--on-accent); background: var(--accent); border-radius: 999px; padding: 2px 9px; } .event.playing .sleeve { box-shadow: 0 0 0 2px var(--accent), 0 2px 10px var(--shadow); } .owned:hover { background: color-mix(in srgb, var(--accent) 25%, transparent); }
+  /* Credits: the playing track's people in a card, then everyone by what they did, roles as chips with their track numbers */
+  .credits-here { margin: 2px 0 6px; padding: 12px 14px; border-radius: 10px; background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 16%, transparent), color-mix(in srgb, var(--accent) 5%, transparent)); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); }
+  .here-head { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 13.5px; margin-bottom: 8px; } .here-number { flex: none; min-width: 20px; height: 20px; padding: 0 5px; box-sizing: border-box; border-radius: 10px; background: var(--accent); color: var(--on-accent); font-size: 11px; display: grid; place-items: center; }
+  .here-person { display: flex; gap: 10px; padding: 2px 0; font-size: 13px; line-height: 1.4; } .here-person .who { flex: none; font-weight: 600; width: min(38%, 170px); } .here-person .what { color: var(--fg-quiet); }
+  .info h3.credit-group { margin: 20px 0 6px; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-quiet); font-weight: 700; }
+  .credit { display: flex; gap: 10px; align-items: flex-start; padding: 6px 0; } .credit + .credit { border-top: 1px solid color-mix(in srgb, var(--line) 60%, transparent); }
+  .avatar { flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 700; color: #fff; background: linear-gradient(135deg, hsl(var(--hue) 45% 48%), hsl(calc(var(--hue) + 40) 45% 36%)); box-shadow: 0 2px 6px var(--shadow); }
+  .credit-text { flex: 1; min-width: 0; } .credit-name { font-size: 13.5px; font-weight: 600; line-height: 1.3; }
+  .roles { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; } .role { display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px; border-radius: 999px; font-size: 11.5px; line-height: 18px; background: var(--panel-strong); border: 1px solid var(--line); }
+  .role .tracks { color: var(--fg-quiet); font-size: 10.5px; font-variant-numeric: tabular-nums; } .role.here { border-color: color-mix(in srgb, var(--accent) 55%, transparent); background: var(--accent-soft); }
   .lyrics pre { margin: 14px 0 0; font: inherit; font-size: 15px; line-height: 1.7; white-space: pre-wrap; }
   .source { margin-top: 18px; padding-top: 10px; border-top: 1px solid var(--line); color: var(--fg-quiet); font-size: 11.5px; } .source .link { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
   @media (max-width: 1100px) { .layout { grid-template-columns: minmax(180px, 0.8fr) minmax(280px, 1.2fr); grid-template-rows: auto 1fr; } .art-column { grid-row: 1; } .meta { grid-row: 1; } .queue-panel { grid-column: 1 / 3; } .art { max-width: min(260px, 42cqh); } }
