@@ -6,12 +6,12 @@ namespace WinSqueeze.Library;
 // Library health (SPEC.md › Library health): tag and file problems found in the local index. Read-only: nothing on the server or in the files changes
 public static partial class LibraryHealth
 {
-    public const int Version = 1; // bump when the checks change, so cached reports are rebuilt
+    public const int Version = 2; // bump when the checks change, so cached reports are rebuilt
     static readonly string[] classicalGenreWords = { "classical", "baroque", "opera", "choral", "chamber", "orchestral", "symphon", "concert", "renaissance", "medieval", "early music", "lieder", "oratorio", "sacred" };
     [GeneratedRegex(@"[^\p{L}\p{N}]+")] private static partial Regex NonWordRegex();
 
     sealed class UnitTrack { public long Id, TagAlbumId; public int Disc, TrackNo, Year; public string TitleNorm = "", Composer = "", AlbumArtistTag = "", ArtistTag = ""; }
-    sealed class Unit { public string Key = "", Title = "", Artist = "", Cover = "", Folder = "", Format = ""; public List<UnitTrack> Tracks = new(); }
+    sealed class Unit { public string Key = "", Title = "", Artist = "", Cover = "", Folder = "", Format = ""; public bool Compilation; public List<UnitTrack> Tracks = new(); }
 
     // Each check walks folder albums (one folder = one CD) when the library has files, else tag albums
     static string UnitSource(Microsoft.Data.Sqlite.SqliteConnection connection) => Convert.ToInt64(Query(connection, "SELECT COUNT(*) AS albums FROM albums WHERE source='f'")[0]["albums"]) > 0 ? "f" : "t";
@@ -28,8 +28,8 @@ public static partial class LibraryHealth
         var rootPaths = (Meta(connection, "root_path") ?? "").Split('\n', StringSplitOptions.RemoveEmptyEntries); // one per music folder
         var unitSource = UnitSource(connection);
         string Relative(object? path) { var folderPath = path as string ?? ""; var rootPath = rootPaths.FirstOrDefault(root => folderPath.StartsWith(root)); return rootPath != null ? folderPath[rootPath.Length..].TrimStart('/') : folderPath; }
-        var units = Query(connection, "SELECT a.key, a.title, a.artist, a.cover_id, a.format, f.path FROM albums a LEFT JOIN folders f ON f.id=a.folder_id WHERE a.source=$source", ("$source", unitSource))
-            .ToDictionary(row => (string)row["key"]!, row => new Unit { Key = (string)row["key"]!, Title = row["title"] as string ?? "", Artist = row["artist"] as string ?? "", Cover = row["cover_id"] as string ?? "", Format = row["format"] as string ?? "", Folder = Relative(row["path"]) });
+        var units = Query(connection, "SELECT a.key, a.title, a.artist, a.cover_id, a.format, a.compilation, f.path FROM albums a LEFT JOIN folders f ON f.id=a.folder_id WHERE a.source=$source", ("$source", unitSource))
+            .ToDictionary(row => (string)row["key"]!, row => new Unit { Key = (string)row["key"]!, Title = row["title"] as string ?? "", Artist = row["artist"] as string ?? "", Cover = row["cover_id"] as string ?? "", Format = row["format"] as string ?? "", Compilation = Convert.ToInt64(row["compilation"] ?? 0L) == 1, Folder = Relative(row["path"]) });
         // Raw artist and album artist tags per track, names sorted so the order on the track doesn't matter
         var creditNames = new Dictionary<(long trackId, string role), List<string>>();
         foreach (var row in Query(connection, "SELECT tc.track_id, tc.role, c.name FROM track_contributors tc JOIN contributors c ON c.id=tc.contributor_id WHERE tc.role IN ('albumartist','artist')"))
@@ -103,7 +103,8 @@ public static partial class LibraryHealth
             if (tracks.All(track => track.AlbumArtistTag == "" && track.ArtistTag == "")) Problem("artist", "No artist or album artist on any track");
             else if (withAlbumArtist.Count > 0 && withAlbumArtist.Count < tracks.Count) Problem("artist", $"Album artist missing on {tracks.Count - withAlbumArtist.Count} of {tracks.Count} tracks");
             else if (withAlbumArtist.Select(track => track.AlbumArtistTag).Distinct().Count() > 1) Problem("artist", $"Album artist differs between tracks: {Few(withAlbumArtist.Select(track => track.AlbumArtistTag).Distinct().ToList(), 3, " / ")}");
-            else if (withAlbumArtist.Count == 0 && tracks.Select(track => track.ArtistTag).Where(artist => artist != "").Distinct().Count() > 1) Problem("artist", "No album artist, and the tracks have different artists");
+            // A compilation (Lyrion's flag, or no artist on most tracks) is meant to have different artists and often no album artist
+            else if (withAlbumArtist.Count == 0 && !unit.Compilation && tracks.Select(track => track.ArtistTag).Where(artist => artist != "").Distinct().Count() > 1) Problem("artist", "No album artist, and the tracks have different artists");
             if (unitSource == "f")
             {
                 var tagAlbumIds = tracks.Select(track => track.TagAlbumId).Where(tagAlbumId => tagAlbumId > 0).Distinct().ToList();
