@@ -2,7 +2,6 @@
   let meterCount = 0
 </script>
 <script lang="ts">
-  import { untrack } from 'svelte'
   import { app, ui, meters, meterView, writeSetting, tapMeters } from '../state.svelte'
   import { sendToShell } from '../bridge'
   import Analyser from './Analyser.svelte'
@@ -45,24 +44,6 @@
   const bladePath = `M${pivotX - 0.9} ${pivotY - 14} L${pivotX - 0.16} ${pivotY - 61} L${pivotX + 0.16} ${pivotY - 61} L${pivotX + 0.9} ${pivotY - 14} Z`
   // Dragging the window jogs the needle (meters.jog); it can't swing below the rest pin
   const vuAngle = (channelIndex: number) => Math.max(restAngle, needleAngle(meters.vu[channelIndex] ?? -90, restAngle) + (meters.jog[channelIndex] ?? 0))
-  // Lamp: a filament that warms up when the meter appears (deep orange to warm white over ~1.5 s) and dims, warmer, when the music stops
-  const lampKeys: [number, string[]][] = [[0, ['#2a1c10', '#22160c', '#1a1008', '#120b05']], [0.35, ['#d06a20', '#a8501a', '#7a3a12', '#4a240a']], [0.72, ['#f3e3c4', '#e6cc9c', '#c9a46e', '#8d6a3e']], [1, ['#fff3d6', '#f8deaa', '#dcb47a', '#a17a48']]]
-  const mixColour = (from: string, to: string, amount: number) => '#' + [1, 3, 5].map(offset => Math.round(parseInt(from.slice(offset, offset + 2), 16) * (1 - amount) + parseInt(to.slice(offset, offset + 2), 16) * amount).toString(16).padStart(2, '0')).join('')
-  const lampStops = (heat: number) => { const upper = lampKeys.findIndex(([level]) => level >= heat), [lowLevel, lowColours] = lampKeys[Math.max(0, upper - 1)], [highLevel, highColours] = lampKeys[Math.max(0, upper)]; return lowColours.map((colour, index) => mixColour(colour, highColours[index], highLevel > lowLevel ? (heat - lowLevel) / (highLevel - lowLevel) : 1)) }
-  let lampHeat = $state(0)
-  $effect(() => {
-    const target = active ? 1 : 0.72; let frame = 0, lastTime = performance.now(), lastDrawn = 0
-    const warm = (time: number) => {
-      const elapsed = Math.min(100, time - lastTime); lastTime = time
-      const heat = lampHeat + (target - lampHeat) * (1 - Math.exp(-elapsed / (target > lampHeat ? 380 : 650))) // heats faster than it cools
-      const done = Math.abs(target - heat) < 0.004
-      if (done || time - lastDrawn > 33) { lampHeat = done ? target : heat; lastDrawn = time } // ~30 redraws a second is smooth enough for a lamp
-      frame = done ? 0 : requestAnimationFrame(warm)
-    }
-    if (ui.meterStyle !== 'vu') untrack(() => lampHeat = target); else if (untrack(() => lampHeat) !== target) frame = requestAnimationFrame(warm)
-    return () => cancelAnimationFrame(frame)
-  })
-  const lamp = $derived(lampStops(lampHeat))
   // Zero-adjust screw: drag sideways to set a fixed 0 VU (right reads higher), double-click for automatic; the note replaces the channel letter while turning
   let screwDrag = $state(null as null | { startX: number, startReference: number, reference: number, turned: boolean })
   let screwNote = $state(''), screwNoteTimer = 0
@@ -82,7 +63,7 @@
   const detentAngles = Array.from({ length: 16 }, (unused, index) => 21 + index * 25 / 15)
 </script>
 
-<button class="meters {size}" style="--lamp-glow: {lampHeat}" bind:clientWidth={meterWidth} class:idle={!active} onclick={toggle} onpointerdown={pressMeters} onpointermove={dragMeters} onpointerup={() => pressedAt = null} oncontextmenu={(event) => { event.preventDefault(); ui.metersFull = !ui.metersFull }} title={(app.meterSettings.styles.length < 2 ? 'Click to tap the meter' : 'Click to switch meter style') + (moveWindow ? ' · drag to move the window · right-click to close' : ' · right-click for full window')}>
+<button class="meters {size}" bind:clientWidth={meterWidth} class:idle={!active} onclick={toggle} onpointerdown={pressMeters} onpointermove={dragMeters} onpointerup={() => pressedAt = null} oncontextmenu={(event) => { event.preventDefault(); ui.metersFull = !ui.metersFull }} title={(app.meterSettings.styles.length < 2 ? 'Click to tap the meter' : 'Click to switch meter style') + (moveWindow ? ' · drag to move the window · right-click to close' : ' · right-click for full window')}>
   {#key meterView.epoch}
   {#if ui.meterStyle === 'vu'}
     {#each ['L', 'R'] as channel, channelIndex}
@@ -92,7 +73,7 @@
         <defs>
           <!-- Warm lamp below the face: brightest at bottom centre, falling off upward and outward -->
           <radialGradient id={gradientId + channel} cx={channelIndex ? '53%' : '47%'} cy="100%" r="95%" fx={channelIndex ? '57%' : '44%'} fy="105%">
-            <stop offset="0%" stop-color={lamp[0]} /><stop offset="38%" stop-color={lamp[1]} /><stop offset="75%" stop-color={lamp[2]} /><stop offset="100%" stop-color={lamp[3]} />
+            <stop offset="0%" stop-color="#fff3d6" /><stop offset="38%" stop-color="#f8deaa" /><stop offset="75%" stop-color="#dcb47a" /><stop offset="100%" stop-color="#a17a48" />
           </radialGradient>
           <!-- Bulb shading: the bezel lip shadows the top, corners fall off into the dark, the lamp lights the window's bottom edge -->
           <linearGradient id={gradientId + '-lip'} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1a0e00" stop-opacity="0.32" /><stop offset="5%" stop-color="#1a0e00" stop-opacity="0.12" /><stop offset="12%" stop-color="#1a0e00" stop-opacity="0.02" /><stop offset="22%" stop-color="#1a0e00" stop-opacity="0" /></linearGradient>
@@ -174,7 +155,7 @@
         </g>
       </svg>
       {/snippet}
-      <span class="meter-stack">{@render vuLayer('face')}{@render vuLayer('needles')}{@render vuLayer('front')}</span>
+      <span class="meter-stack">{@render vuLayer('face')}{@render vuLayer('needles')}{@render vuLayer('front')}<span class="lamp-light"></span></span>
     {/each}
   {:else if panelThemes[ui.meterStyle]}
     <MeterPanel theme={ui.meterStyle} levels={meters.vu} reference={meters.reference} {size} {textureScale} idle={!active} />
@@ -211,7 +192,7 @@
 </button>
 
 <style>
-  .meters { display: flex; gap: 4px; background: none; border: 0; padding: 0; cursor: pointer; align-items: center; }
+  .meters { display: flex; gap: 4px; background: none; border: 0; padding: 0; cursor: pointer; align-items: center; } .meters:focus-visible { outline: none; } /* a meter is an object, not a form control: no focus ring after full window and back */
   .small .vu { width: 60px; height: 36px; } .large .vu { width: 190px; height: 114px; }
   /* Whole panels keep their own shape and size: tall round meters, long low monitor strips… */
   .small :global(.panel) { height: 34px; width: auto; max-width: 130px; }
@@ -223,15 +204,13 @@
   .bezel { fill: #15161a; stroke: #2c2e34; stroke-width: 1; }
   .face { stroke: rgba(0, 0, 0, 0.5); stroke-width: 0.8; }
   .scale { fill: none; stroke: #1d1a14; stroke-width: 0.9; stroke-linecap: round; }
-  /* Red ink is only as bright as the lamp behind the face: cold, it sinks into the dark brown like the black print does */
-  .meters { --red-ink: color-mix(in srgb, #c4291c calc(min(1, var(--lamp-glow) * 1.4) * 100%), #2a0d07); }
-  .red-line { fill: none; stroke: var(--red-ink); stroke-width: 0.9; }
-  .red-band { fill: none; stroke: var(--red-ink); stroke-width: 3; }
-  .tick { stroke: #1d1a14; stroke-width: 0.9; stroke-linecap: round; } .tick.minor { stroke-width: 0.6; } .tick.hot { stroke: var(--red-ink); }
+  .red-line { fill: none; stroke: #c4291c; stroke-width: 0.9; }
+  .red-band { fill: none; stroke: #c4291c; stroke-width: 3; }
+  .tick { stroke: #1d1a14; stroke-width: 0.9; stroke-linecap: round; } .tick.minor { stroke-width: 0.6; } .tick.hot { stroke: #c4291c; }
   .number { fill: #1d1a14; font-size: 6.5px; text-anchor: middle; dominant-baseline: middle; font-family: "Segoe UI", Arial, sans-serif; font-weight: 600; }
-  .number.hot { fill: var(--red-ink); }
+  .number.hot { fill: #c4291c; }
   .vu-label { fill: #1d1a14; font-size: 9px; font-weight: 700; font-family: "Segoe UI", Arial, sans-serif; }
-  .sign { fill: #1d1a14; font-size: 8px; font-weight: 700; text-anchor: middle; font-family: Arial, sans-serif; } .sign.hot { fill: var(--red-ink); }
+  .sign { fill: #1d1a14; font-size: 8px; font-weight: 700; text-anchor: middle; font-family: Arial, sans-serif; } .sign.hot { fill: #c4291c; }
   .channel { fill: rgba(29, 26, 20, 0.55); font-size: 6px; text-anchor: middle; font-family: var(--font-display); }
   .needle { stroke: #111; stroke-width: 0.9; } .needle.blade { stroke: none; } /* ballistics (a damped spring) in the shell, easing and window jog per frame in state.svelte.ts */
   .shroud-rim { fill: none; stroke: #fff3d6; stroke-width: 0.45; opacity: 0.45; transition: opacity 1s; } .idle .shroud-rim { opacity: 0.3; } .shroud-edge { fill: none; stroke: #000; stroke-width: 0.5; opacity: 0.6; }
@@ -240,15 +219,21 @@
   .percent { stroke-width: 0.5; } .percent-number { fill: #1d1a14; font-size: 3.6px; text-anchor: middle; dominant-baseline: middle; font-family: "Segoe UI", Arial, sans-serif; }
   .lens-shadow { fill: #2a1500; opacity: 0.28; } .lens-ring { stroke: #1a140c; stroke-width: 0.25; }
   .lens-core { stop-color: #6a1a12; } .lens-mid { stop-color: #40100b; } .lens-edge { stop-color: #1e0604; }
-  .lens-inner-shadow { fill: none; stroke: #000; stroke-width: 0.5; opacity: 0.55; } .lens-caustic { fill: #ffb070; opacity: calc(0.4 * var(--lamp-glow)); }
+  .lens-inner-shadow { fill: none; stroke: #000; stroke-width: 0.5; opacity: 0.55; } .lens-caustic { fill: #ffb070; opacity: 0.4; }
   .lens-streak { fill: none; stroke: #fff; stroke-width: 0.42; stroke-linecap: round; opacity: 0.55; } .lens-speck { fill: #fff; opacity: 0.3; }
   .shade { pointer-events: none; } .mottle { opacity: 0.07; }
   .rim-glow { fill: none; stroke: #ffe6b4; stroke-width: 1.3; } .rim-seam { fill: none; stroke: #3a2508; stroke-width: 0.45; opacity: 0.35; } .rim-catch { stroke: #fff8e6; stroke-width: 0.5; opacity: 0.6; }
   .grain { opacity: 0.45; } .full .grain { opacity: 0.18; } .needle-shadow { stroke: #2a1a05; stroke-width: 1.1; stroke-linecap: round; opacity: 0.2; }
-  .rim-glow { opacity: calc(0.4 * var(--lamp-glow)); } .idle .rim-catch { opacity: 0.3; } .rim-catch, .refraction { transition: opacity 1s; }
+  .rim-glow { opacity: 0.4; } .idle .rim-catch { opacity: 0.3; } .rim-catch, .refraction { transition: opacity 1s; }
   .refraction { opacity: 0.42; } .refraction.patches { opacity: 0.21; } .refraction-seam { opacity: 0.22; } .smudge { opacity: 0.06; } .dust { opacity: 0.22; }
   .idle .refraction { opacity: 0.35; } .idle .refraction.patches { opacity: 0.17; }
-  .lit-edge { fill: #ffe7b0; opacity: calc(0.75 * var(--lamp-glow) * var(--lamp-glow)); }
+  .lit-edge { fill: #ffe7b0; opacity: 0.75; }
+  /* The lamp: one multiply layer over the window (face, print, needles, glass), so everything inside is lit by it, red ink included, and the
+     compositor animates it without redrawing the face. Switching on, the filament glows from dark through deep orange to warm white; with no music it dims a little warmer */
+  .lamp-light { grid-area: 1 / 1; align-self: start; justify-self: start; margin: 4.1667% 0 0 4.1667%; width: 91.667%; height: 86.111%; border-radius: 1.7%; pointer-events: none; mix-blend-mode: multiply; background: #fff; transition: background-color 1.2s ease; animation: lamp-on 1.6s cubic-bezier(0.25, 0.6, 0.35, 1); }
+  .idle .lamp-light { background: #eee6dc; }
+  @keyframes lamp-on { 0% { background: #261b12; } 35% { background: #bf6626; } }
+  @media (prefers-reduced-motion: reduce) { .lamp-light { animation: none; } }
   /* OLED VU: a frosted glass pane over whatever is behind, with a fine top-lit edge */
   .glass { fill: url(#oled-glass-sheen); stroke: rgba(255, 255, 255, 0.16); stroke-width: 0.6; }
   .oledvu { border-radius: 6px; backdrop-filter: blur(10px) saturate(1.3); background: rgba(8, 14, 22, 0.28); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 4px 14px rgba(0, 0, 0, 0.25); }
