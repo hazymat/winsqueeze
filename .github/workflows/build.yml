@@ -69,7 +69,7 @@ jobs:
           vpk download github --repoUrl $env:REPO_URL --channel $channel --token $env:GH_TOKEN -o releases  # previous release, for delta updates
           $global:LASTEXITCODE = 0
           # Notes (worked out before packing, so the release is born with them): every change since the previous release (one line each, written for users), skipping the bot's player builds
-          $previousTag = gh api "repos/$env:GITHUB_REPOSITORY/releases?per_page=5" --jq ('[.[] | select(.tag_name != "v' + $version + '")][0].tag_name')
+          $previousTag = gh api "repos/$env:GITHUB_REPOSITORY/releases?per_page=5" --jq ('[.[] | select(.draft | not) | select(.tag_name != "v' + $version + '")][0].tag_name') # a stale draft (a failed upload) has no tag to count from
           $previousSha = if ($previousTag) { gh api "repos/$env:GITHUB_REPOSITORY/commits/$previousTag" --jq .sha } else { "" }
           # A commit's "Impact: feature" or "Impact: improvement" trailer marks its line with ★ or ▲, so What's new lists the biggest changes first
           $notes = if ($previousSha) { git log "$previousSha..HEAD" --no-merges --perl-regexp --author='^((?!github-actions).)*$' --invert-grep --grep='^Notes for the .* release' --pretty="%(trailers:key=Impact,valueonly,separator=)%x1f%s" | ForEach-Object { $parts = $_ -split [char]0x1f, 2; $mark = switch -regex ($parts[0].Trim()) { '^feature' { [char]0x2605 + ' ' } '^improvement' { [char]0x25B2 + ' ' } default { '' } }; "- $mark$($parts[1])" } } else { "" }
