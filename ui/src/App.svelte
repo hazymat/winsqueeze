@@ -42,14 +42,14 @@
   // Switched-on custom views (SPEC.md › Custom views): one entry each, or one per group for views that share a group
   const levelGlyphs: Record<string, string> = { genre: 'genres', composer: 'composers', artist: 'artists', performer: 'performers' }
   const customSections = $derived(((app.librarySettings.CustomViews ?? []) as any[]).filter(view => view.Enabled).reduce((entries: string[][], view) => { const key = view.Group ? 'customgroup:' + view.Group : 'custom:' + view.Id; if (!entries.some(entry => entry[0] === key)) entries.push([key, view.Group || view.Name, levelGlyphs[view.Levels?.[view.Levels.length - 1]] ?? 'albums']); return entries }, []))
-  const allSections = $derived([['queue', 'Now playing', 'queue'], ['favourites', 'Favourites', 'favourites'], ['radio', 'Radio', 'radio'], ['apps', 'Apps', 'apps'], ['playlists', 'Playlists', 'playlists'], ['artists', 'Artists', 'artists'], ['genres', 'Genres', 'genres'], ['composers', 'Composers', 'composers'], ['performers', 'Performers', 'performers'], ['folders', folderMode ? 'Folders' : 'Albums', folderMode ? 'folders' : 'albums'], ['new', 'New music', 'new'], ['downloads', 'Downloaded', 'download'], ['history', 'History', 'history'], ['health', 'Library health', 'health']].concat(customSections) as [string, string, any][])
+  const allSections = $derived([['queue', 'Now playing', 'queue'], ['favourites', 'Favourites', 'favourites'], ['radio', 'Radio', 'radio'], ['apps', 'Apps', 'apps'], ['playlists', 'Playlists', 'playlists'], ['artists', 'Artists', 'artists'], ['albumartists', 'Album artists', 'artists'], ['genres', 'Genres', 'genres'], ['composers', 'Composers', 'composers'], ['performers', 'Performers', 'performers'], ['folders', folderMode ? 'Folders' : 'Albums', folderMode ? 'folders' : 'albums'], ['compilations', 'Compilations', 'albums'], ['new', 'New music', 'new'], ['downloads', 'Downloaded', 'download'], ['history', 'History', 'history'], ['health', 'Library health', 'health']].concat(customSections) as [string, string, any][])
   const pinGlyphs: Record<string, string> = { genre: 'genres', artist: 'artists', composer: 'composers', performer: 'performers', album: 'albums', folder: 'folders', playlist: 'playlists', app: 'apps' }
   const pinSections = $derived(Object.entries(pins.views).map(([key, view]) => [key, view.title ?? '', pinGlyphs[view.kind] ?? 'pin']) as [string, string, any][])
   // Sidebar and bottom-bar customisation (one shared setting): every section shows by default; order, spacers and hidden ones are remembered per PC
   // The layout is section keys plus spacers ("spacer-…"); out of the box one spacer sits under the first section
   const isSpacer = (key: string) => key.startsWith('spacer-')
-  // Radio and Apps arrive next to Favourites in a sidebar customised before they existed
-  function initialLayout(): string[] { const stored: string[] = JSON.parse(readSetting('sectionOrder', '[]')); if (stored.length && !stored.includes('radio')) stored.splice(stored.includes('favourites') ? stored.indexOf('favourites') + 1 : stored.length, 0, 'radio', 'apps'); if (readSetting('spacersAdded', '')) return stored; return stored.length ? stored.slice(0, 1).concat(['spacer-1'], stored.slice(1)) : ['queue', 'spacer-1', 'favourites', 'radio', 'spacer-2'] } // new install: Now playing | Favourites, Radio | the rest
+  // Sections added later arrive next to their neighbour in a sidebar customised before they existed (Radio and Apps by Favourites, Album artists by Artists, Compilations by Albums)
+  function initialLayout(): string[] { const stored: string[] = JSON.parse(readSetting('sectionOrder', '[]')); for (const [neighbour, arrivals] of [['favourites', ['radio', 'apps']], ['artists', ['albumartists']], ['folders', ['compilations']]] as [string, string[]][]) if (stored.length && !stored.includes(arrivals[0])) arrivals.slice().reverse().forEach(arrival => stored.splice(stored.includes(neighbour) ? stored.indexOf(neighbour) + 1 : stored.length, 0, arrival)); if (readSetting('spacersAdded', '')) return stored; return stored.length ? stored.slice(0, 1).concat(['spacer-1'], stored.slice(1)) : ['queue', 'spacer-1', 'favourites', 'radio', 'spacer-2'] } // new install: Now playing | Favourites, Radio | the rest
   let layoutOrder = $state<string[]>(initialLayout())
   // Stored order first (unknown keys dropped), then any section not placed yet
   const placeable = $derived(allSections.concat(pinSections))
@@ -66,7 +66,7 @@
   const cancelHold = () => clearTimeout(holdTimer)
   let hiddenSections = $state<string[]>(JSON.parse(readSetting('hiddenSections', '[]')))
   // Sections that start hidden (Customise sidebar adds them): each is hidden once, the first time this PC sees it
-  const startHidden = ['downloads', 'history', 'new'], hiddenOnce: string[] = JSON.parse(readSetting('hiddenOnce', '[]')), newlyHidden = startHidden.filter(key => !hiddenOnce.includes(key))
+  const startHidden = ['downloads', 'history', 'new', 'albumartists', 'compilations'], hiddenOnce: string[] = JSON.parse(readSetting('hiddenOnce', '[]')), newlyHidden = startHidden.filter(key => !hiddenOnce.includes(key))
   if (newlyHidden.length) { hiddenSections = hiddenSections.concat(newlyHidden.filter(key => !hiddenSections.includes(key))); writeSetting('hiddenSections', JSON.stringify(hiddenSections)); writeSetting('hiddenOnce', JSON.stringify(hiddenOnce.concat(newlyHidden))) }
   let customising = $state(false)
   const toggleSection = (key: string) => { hiddenSections = hiddenSections.includes(key) ? hiddenSections.filter(hidden => hidden !== key) : hiddenSections.concat([key]); writeSetting('hiddenSections', JSON.stringify(hiddenSections)) }
@@ -264,10 +264,12 @@
         <main class="content">
           {#if everything}
             <SearchView bind:this={searchView} {searchBox} />
-          {:else if view.kind === 'artists' || view.kind === 'composers' || view.kind === 'performers' || view.kind === 'genres'}
-            {#key view.kind}<PeopleList kind={view.kind} title={({ artists: 'Artists', composers: 'Composers', performers: 'Performers', genres: 'Genres' } as Record<string, string>)[view.kind]} />{/key}
+          {:else if view.kind === 'artists' || view.kind === 'albumartists' || view.kind === 'composers' || view.kind === 'performers' || view.kind === 'genres'}
+            {#key view.kind}<PeopleList kind={view.kind} title={({ artists: 'Artists', albumartists: 'Album artists', composers: 'Composers', performers: 'Performers', genres: 'Genres' } as Record<string, string>)[view.kind]} />{/key}
           {:else if view.kind === 'new'}
             <AlbumsOf kind="new" title="New music" />
+          {:else if view.kind === 'compilations'}
+            <AlbumsOf kind="compilations" title="Compilations" />
           {:else if view.kind === 'folders'}
             {#if folderMode}<FolderView />{:else}<AlbumsOf kind="albums" title="Albums" />{/if}
           {:else if view.kind === 'folder'}

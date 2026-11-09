@@ -32,7 +32,7 @@ public sealed partial class LibrarySync
             using var lyrionClient = new LyrionClient(profile);
             var serverStatus = await lyrionClient.GetServerStatusAsync();
             if (serverStatus.Scanning) return false; // mid-scan the server's library is partial; sync once the scan finishes
-            var signature = $"{serverStatus.LastScan}|{serverStatus.TotalSongs}|{serverStatus.TotalAlbums}|{serverStatus.TotalArtists}|{librarySettings.NameSeparators}|derive5|{librarySettings.NameOrder}|{librarySettings.ReadSurnameFirst}";
+            var signature = $"{serverStatus.LastScan}|{serverStatus.TotalSongs}|{serverStatus.TotalAlbums}|{serverStatus.TotalArtists}|{librarySettings.NameSeparators}|derive6|{librarySettings.NameOrder}|{librarySettings.ReadSurnameFirst}";
             var databasePath = DatabasePath(profile);
             if (!force && File.Exists(databasePath))
             {
@@ -114,17 +114,17 @@ public sealed partial class LibrarySync
             LyrionClient.ReadString(item, "coverid"), LyrionClient.ReadLong(item, "addedTime"), LyrionClient.ReadLong(item, "modificationTime"), contributors, genreIds);
     }
 
-    record TagAlbum(long Id, string Title, string Artist, int Year);
+    record TagAlbum(long Id, string Title, string Artist, int Year, bool Compilation);
 
     static async Task<Dictionary<long, TagAlbum>> FetchTagAlbumsAsync(LyrionClient lyrionClient)
     {
         var tagAlbums = new Dictionary<long, TagAlbum>();
         for (var pageStart = 0; ; pageStart += pageSize)
         {
-            var page = await lyrionClient.RequestAsync("", "albums", pageStart, pageSize, "tags:lya");
+            var page = await lyrionClient.RequestAsync("", "albums", pageStart, pageSize, "tags:lyaw");
             if (page.ValueKind != JsonValueKind.Object || !page.TryGetProperty("albums_loop", out var albumsLoop)) break;
             var pageCount = 0;
-            foreach (var item in albumsLoop.EnumerateArray()) { pageCount++; var albumId = LyrionClient.ReadLong(item, "id"); tagAlbums[albumId] = new TagAlbum(albumId, LyrionClient.ReadString(item, "album"), LyrionClient.ReadString(item, "artist"), LyrionClient.ReadInt(item, "year")); }
+            foreach (var item in albumsLoop.EnumerateArray()) { pageCount++; var albumId = LyrionClient.ReadLong(item, "id"); tagAlbums[albumId] = new TagAlbum(albumId, LyrionClient.ReadString(item, "album"), LyrionClient.ReadString(item, "artist"), LyrionClient.ReadInt(item, "year"), LyrionClient.ReadInt(item, "compilation") == 1); }
             if (pageCount < pageSize) break;
         }
         return tagAlbums;
@@ -223,12 +223,14 @@ public sealed partial class LibrarySync
             var artistCounts = orderedMembers.GroupBy(member => albumArtistByTrack[member.track.Id]).OrderByDescending(group => group.Count()).ToList();
             var albumArtist = !isFolderAlbum && tagAlbums.TryGetValue(orderedMembers[0].track.TagAlbumId, out var tagAlbum) && tagAlbum.Artist != "" ? tagAlbum.Artist : artistCounts.Count > 0 && artistCounts[0].Count() * 2 >= orderedMembers.Count ? artistCounts[0].Key : "Various Artists";
             var title = isFolderAlbum ? (string)folderRows[folderId]["name"]! : tagAlbums.TryGetValue(orderedMembers[0].track.TagAlbumId, out var titledAlbum) ? titledAlbum.Title : "Unknown album";
+            // Compilation: Lyrion's flag on the tag album (most of a folder's tracks for folder albums), or a Various Artists album
+            var compilation = TextNormaliser.Normalise(albumArtist) == "various artists" || orderedMembers.Count(member => tagAlbums.TryGetValue(member.track.TagAlbumId, out var memberAlbum) && memberAlbum.Compilation) * 2 > orderedMembers.Count;
             var formatGroups = orderedMembers.GroupBy(member => FormatSummary(member.track)).OrderByDescending(group => group.Count()).ToList();
             var format = formatGroups.Count == 1 ? formatGroups[0].Key : formatGroups[0].Key + " (mixed)";
-            Execute(connection, "INSERT INTO albums VALUES($key,$source,$title,$titleNorm,$artist,$artistNorm,$year,$cover,$count,$duration,$added,$folder,$format)",
+            Execute(connection, "INSERT INTO albums VALUES($key,$source,$title,$titleNorm,$artist,$artistNorm,$year,$cover,$count,$duration,$added,$folder,$format,$compilation)",
                 ("$key", albumKey), ("$source", albumKey[..1]), ("$title", title), ("$titleNorm", TextNormaliser.Normalise(title)), ("$artist", albumArtist), ("$artistNorm", TextNormaliser.Normalise(albumArtist)),
                 ("$year", orderedMembers.Max(member => member.track.Year)), ("$cover", orderedMembers.Select(member => member.track.CoverId).FirstOrDefault(coverId => coverId != "")), ("$count", orderedMembers.Count),
-                ("$duration", orderedMembers.Sum(member => member.track.Duration)), ("$added", orderedMembers.Max(member => member.track.Added)), ("$folder", folderId), ("$format", format));
+                ("$duration", orderedMembers.Sum(member => member.track.Duration)), ("$added", orderedMembers.Max(member => member.track.Added)), ("$folder", folderId), ("$format", format), ("$compilation", compilation ? 1 : 0));
             if (isFolderAlbum) Execute(connection, "UPDATE folders SET album_key=$key WHERE id=$id", ("$key", albumKey), ("$id", folderId));
             foreach (var (track, discNo) in orderedMembers) Execute(connection, "INSERT INTO album_tracks VALUES($key,$track,$disc,$trackNo)", ("$key", albumKey), ("$track", track.Id), ("$disc", discNo), ("$trackNo", track.TrackNo));
             // Credits: first album-artist name is the album's own artist, the rest are 'with'; track-level roles follow

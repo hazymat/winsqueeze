@@ -9,15 +9,15 @@
   import { artUrl } from '../bridge'
   import { browseState } from '../lib/browse.svelte'
   // custom: one level of a custom view (SPEC.md › Custom views); rows come from its scope, and a click takes the next step
-  let { kind, title, detail = '', custom }: { kind: 'artists' | 'composers' | 'performers' | 'genres' | 'custom'; title: string; detail?: string; custom?: { viewId: string; genres: string[]; filters: CustomStep[]; level: string } } = $props()
+  let { kind, title, detail = '', custom }: { kind: 'artists' | 'albumartists' | 'composers' | 'performers' | 'genres' | 'custom'; title: string; detail?: string; custom?: { viewId: string; genres: string[]; filters: CustomStep[]; level: string } } = $props()
   let rows = $state<any[]>([])
   let role = $state('')
   const roleNames: Record<string, string> = { '': 'All', conductor: 'Conductors', band: 'Bands & orchestras', soloist: 'Soloists' }
-  $effect(() => { app.indexVersion; app.librarySettings.AlbumSource; (custom ? query('customLevel', { genres: custom.genres, filters: custom.filters, level: custom.level }) : query(kind, { role })).then(result => rows = Array.isArray(result) ? result : []) })
+  $effect(() => { app.indexVersion; app.librarySettings.AlbumSource; (custom ? query('customLevel', { genres: custom.genres, filters: custom.filters, level: custom.level }) : query(kind === 'albumartists' ? 'albumArtists' : kind, { role })).then(result => rows = Array.isArray(result) ? result : []) })
   const plain = (text: string) => (text ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
   // Matches from the start of any word: "jarr" finds Keith Jarrett
   const shown = $derived(ui.search.length >= 2 ? rows.filter(row => plain(row.name).split(/[\s,.&/-]+/).some(word => word.startsWith(plain(ui.search)))) : rows)
-  const viewKind: string = custom ? custom.level : ({ artists: 'artist', composers: 'composer', performers: 'performer', genres: 'genre' } as Record<string, string>)[kind] // keyed per kind (or custom step) by the parent
+  const viewKind: string = custom ? custom.level : ({ artists: 'artist', albumartists: 'artist', composers: 'composer', performers: 'performer', genres: 'genre' } as Record<string, string>)[kind] // keyed per kind (or custom step) by the parent
   const stepTo = (row: any): CustomStep[] => custom!.filters.concat([{ kind: custom!.level, key: String(row.key), name: row.name }])
   // A custom row is selected (and played) as its whole scope: the view's genres plus every step to it
   const selectKey = (row: any) => custom ? JSON.stringify({ genres: custom.genres, filters: stepTo(row).map(step => ({ kind: step.kind, key: step.key })) }) : String(row.key)

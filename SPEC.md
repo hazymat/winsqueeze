@@ -99,10 +99,12 @@ Back and Forward (buttons, Alt+Left/Right, mouse side buttons, Esc for Back) wor
 | Radio | The server's radio plugins (`radios`), as an icon grid | That plugin's menu |
 | Apps | The server's apps and streaming services (`apps`: Qobuz, TIDAL, Spotty, BBC Sounds, podcasts…), as an icon grid | That app's menu |
 | Artists | One merged list of every artist and album artist (no separate "album artist" concept) | That artist's albums: their own first, then a separate "Also appears on" group of contributing albums |
+| Album artists | Off by default (Customise sidebar adds it). Only names on an album artist tag, so artists who just appear on compilations stay out (as Lyrion's own Album Artists menu) | That artist's page, as Artists |
 | Genres | All genres | Albums in that genre, grouped under album artist headings, with contributing albums folded under the main artist as above |
 | Composers | Everyone credited as composer | Albums (CDs) containing at least one work by them, not a list of works |
 | Performers | Merged conductors, bands/orchestras/ensembles and soloists, with a role filter chip | Albums they appear on |
 | Folders | The music folder tree as stored on disk | Subfolders; a folder of tracks opens as an album |
+| Compilations | Off by default (Customise sidebar adds it). Albums Lyrion marks as compilations, plus any album whose album artist is Various Artists (in Folder albums mode, a folder counts when most of its tracks are on a compilation) | The album |
 | New music | Off by default (Customise sidebar adds it). The newest 100 albums by when the server first saw them (Lyrion's added time, kept through a clear and rescan; an album counts from its newest track), grouped by month added, newest first; no Sort menu | The album |
 | Queue | Current player's queue | — |
 
