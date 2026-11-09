@@ -30,22 +30,24 @@
     {/each}
   </div>
 {:else}
-  <div class="lyrics-text" class:stage>{#each versesOf(lyrics?.text) as verse}<p>{#each verse as line, index}{#if index}<br />{/if}{bookText(line)}{/each}</p>{/each}</div>
+  <div class="lyrics-text" class:stage>{#each versesOf(lyrics?.text) as verse}<p>{#each verse as line}<span class="verse-line">{bookText(line)}</span>{/each}</p>{/each}</div>
 {/if}
 
 <style>
   /* A book's face rather than the UI's: Newsreader (optical sizes, so it suits both the tab and full screen), set loose with ragged lines */
-  .lyrics-text { font-family: var(--font-text); font-size: 17.5px; line-height: 1.5; font-optical-sizing: auto; font-weight: 400; letter-spacing: 0.003em; text-wrap: pretty; font-variant-numeric: oldstyle-nums proportional-nums; font-feature-settings: "kern", "liga", "clig"; user-select: text; padding: 4px 0 0; }
-  .lyrics-text p { margin: 0 0 1.05em; }
+  .lyrics-text { font-family: var(--font-text); font-size: 17.5px; line-height: 1.62; font-optical-sizing: auto; font-weight: 400; letter-spacing: 0.003em; text-wrap: pretty; font-variant-numeric: oldstyle-nums proportional-nums; font-feature-settings: "kern", "liga", "clig"; user-select: text; padding: 4px 0 0; }
+  .lyrics-text p { margin: 0 0 1.4em; }
+  /* As poetry is set: a line too long for the column carries on indented, so it never reads as a new line */
+  .verse-line, .line { display: block; padding-left: 1.3em; text-indent: -1.3em; }
   .timed { display: flex; flex-direction: column; align-items: flex-start; }
-  .line { display: block; background: none; border: 0; padding: 0.14em 0; margin: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; opacity: 0.42; transition: opacity 0.35s ease, font-weight 0.35s ease; }
+  .line { display: block; background: none; border: 0; padding: 0.12em 0 0.12em 1.3em; margin: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; opacity: 0.42; transition: opacity 0.35s ease, font-weight 0.35s ease; }
   .line:hover { opacity: 0.75; }
   .line.sung { opacity: 0.6; }
   .line.now { opacity: 1; font-weight: 560; }
-  .line.gap { height: 0.7em; cursor: default; }
+  .line.gap { height: 0.9em; cursor: default; }
   /* Full screen: big type, the sung line bright and the rest a quiet wash */
   .stage { font-size: clamp(26px, 3.4vw, 58px); line-height: 1.28; letter-spacing: -0.006em; padding: 0; }
-  .stage .line { padding: 0.17em 0; opacity: 0.26; }
+  .stage .line { padding: 0.17em 0 0.17em 1.3em; opacity: 0.26; }
   .stage .line.sung { opacity: 0.4; }
   .stage .line.now { opacity: 1; font-weight: 520; }
   .stage .line:hover:not(.now) { opacity: 0.55; }
