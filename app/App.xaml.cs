@@ -24,6 +24,7 @@ public partial class App : Application
     public Offline.DownloadManager Downloads { get; } = new();
     public PlayHistory History { get; } = new();
     public DamagedFiles Damaged { get; } = new();
+    public TrackInfo TrackInfo { get; } = new();
     public event Action<DamagedFiles.DamagedFile, string>? DamagedFound;
     public event Action? HistoryChanged;
     public Offline.OfflineServer? Offline { get; private set; } // set while playing downloads without the server
@@ -496,6 +497,8 @@ public partial class App : Application
     public void NotifyLibraryChanged() => LibraryChanged?.Invoke();
     public event Action? HintsChanged;
     public void NotifyHintsChanged() => HintsChanged?.Invoke();
+    public event Action? TrackInfoChanged;
+    public void NotifyTrackInfoChanged() { TrackInfo.Forget(); TrackInfoChanged?.Invoke(); }
 
     public void ShowMainWindow() { mainWindow.Show(); if (mainWindow.WindowState == WindowState.Minimized) mainWindow.WindowState = WindowState.Normal; mainWindow.Activate(); }
     public void ToggleMainWindow() { if (mainWindow.IsVisible && mainWindow.WindowState != WindowState.Minimized) mainWindow.Hide(); else ShowMainWindow(); }

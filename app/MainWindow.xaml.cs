@@ -43,6 +43,7 @@ public partial class MainWindow : Window
         Microsoft.Win32.SystemEvents.DisplaySettingsChanged += (sender, args) => Dispatcher.BeginInvoke(RestoreBoundsForDisplays);
         App.LibraryChanged += () => { PushSettings(); Push("{\"type\":\"indexUpdated\"}"); };
         App.HintsChanged += PushSettings;
+        App.TrackInfoChanged += PushSettings;
         // WebView2 forwards accelerator keys to WPF as KeyDown
         PreviewKeyDown += (sender, keyArgs) =>
         {
@@ -111,6 +112,7 @@ public partial class MainWindow : Window
                 case "dismissHint": if (!App.Settings.General.DismissedHints.Contains(Text(message, "id"))) { App.Settings.General.DismissedHints.Add(Text(message, "id")); App.Settings.Save(); } break;
                 case "setCustomViews": App.Settings.Library.CustomViews = message.GetProperty("views").Deserialize<List<CustomView>>() ?? new(); App.Settings.Save(); App.NotifyLibraryChanged(); break;
                 case "openSettings": App.OpenSettings(Text(message, "tab")); break;
+                case "openUrl": if (Uri.TryCreate(Text(message, "url"), UriKind.Absolute, out var webAddress) && (webAddress.Scheme == "https" || webAddress.Scheme == "http")) System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(webAddress.AbsoluteUri) { UseShellExecute = true }); break;
                 case "quit": App.Quit(); break;
                 case "applyUpdate": await App.Updater.RestartToUpdateAsync(); break;
                 case "command": await App.Session.RequestAsync(true, CommandParts(message.GetProperty("command"))); break;
@@ -119,6 +121,7 @@ public partial class MainWindow : Window
                     var queryName = Text(message, "name");
                     var queryParameters = message.TryGetProperty("params", out var parameters) ? parameters : default;
                     var queries = App.Library.Queries;
+                    if (queryName == "trackInfo") { Reply(message, (await App.TrackInfo.LookupAsync(new TrackInfo.Request(Text(queryParameters, "kind"), long.TryParse(Text(queryParameters, "id"), out var infoTrackId) ? infoTrackId : 0, Text(queryParameters, "artistId"), Text(queryParameters, "albumId"), Text(queryParameters, "artist"), Text(queryParameters, "album"), Text(queryParameters, "title"), double.TryParse(Text(queryParameters, "duration"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var infoDuration) ? infoDuration : 0, Text(queryParameters, "remote") == "1"))).ToJson()); break; }
                     if (queryName == "history") { var before = queryParameters.ValueKind == JsonValueKind.Object && queryParameters.TryGetProperty("before", out var beforeValue) ? beforeValue.GetInt64() : 0; Reply(message, await Task.Run(() => App.History.Recent(before, 400))); break; }
                     if (queryName == "health") { Reply(message, await App.Library.HealthAsync(queryParameters.ValueKind == JsonValueKind.Object && queryParameters.TryGetProperty("rescan", out var rescan) && rescan.ValueKind == JsonValueKind.True)); break; }
                     if (queryName == "damaged") { Reply(message, App.Damaged.Files.OrderByDescending(damagedFile => damagedFile.Unplayable).ThenByDescending(damagedFile => damagedFile.Errors).Select(damagedFile => new { id = damagedFile.Id, title = damagedFile.Title, artist = damagedFile.Artist, album = damagedFile.Album, errors = damagedFile.Errors, unplayable = damagedFile.Unplayable, firstError = damagedFile.FirstError, path = damagedFile.Path })); break; }
@@ -376,7 +379,7 @@ public partial class MainWindow : Window
     public void PushSkin() => Push(JsonSerializer.Serialize(new { type = "skin", skin = App.Settings.General.Skin, coverAccent = App.Settings.General.CoverAccent, coverBackdrop = App.Settings.General.CoverBackdrop, accent = App.Settings.General.AccentColour, glassTransparency = App.Settings.General.GlassTransparency, glassTintHue = App.Settings.General.GlassTintHue }));
     public void PushWhatsNew(string fromVersion, string toVersion, List<ReleaseEntry> releases) => Push(JsonSerializer.Serialize(new { type = "whatsNew", fromVersion, toVersion, releases = releases.Select(release => new { version = release.Version, date = release.Published.ToString("d MMM"), notes = release.Notes, url = release.Url }) }));
     public void ApplyUiScale() { if (webView.CoreWebView2 != null) webView.ZoomFactor = Math.Clamp(App.Settings.General.UiScale, 0.75, 1.5); }
-    void PushSettings() => Push(JsonSerializer.Serialize(new { type = "settings", library = App.Settings.Library, playback = new { App.Settings.Playback.QueueEnd, App.Settings.Playback.ContinueAdds, App.Settings.Playback.ContinueFrom }, hints = new { hidden = App.Settings.General.HideHints, dismissed = App.Settings.General.DismissedHints } }));
+    void PushSettings() => Push(JsonSerializer.Serialize(new { type = "settings", library = App.Settings.Library, playback = new { App.Settings.Playback.QueueEnd, App.Settings.Playback.ContinueAdds, App.Settings.Playback.ContinueFrom }, hints = new { hidden = App.Settings.General.HideHints, dismissed = App.Settings.General.DismissedHints }, trackInfo = App.Settings.TrackInfo.Tabs.Where(tab => tab.On).Select(tab => tab.Key) }));
     public void PushMeterSettings() => Push(JsonSerializer.Serialize(new { type = "meterSettings", referenceDbfs = App.Settings.Meters.ReferenceDbfs, autoReference = App.Settings.Meters.AutoReference }));
     void PushWindowState() => Push(JsonSerializer.Serialize(new { type = "window", glass = glassActive, frameless = App.Settings.General.Frameless, maximised = WindowState == WindowState.Maximized }));
 

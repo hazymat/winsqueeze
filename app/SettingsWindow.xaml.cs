@@ -20,7 +20,7 @@ public partial class SettingsWindow : Window
     public SettingsWindow()
     {
         InitializeComponent(); settingsTabs.SelectedItem = generalTab; // the first sidebar item is a section heading
-        WireGeneralTab(); WireServersTab(); WireServerLibraryTab(); WireAudioTab(); WirePlaybackTab(); WireLibraryTab(); WireBrowsingTab(); WireAppearanceTab(); WireMetersTab(); WireShortcutsAndNotifications(); WireRecordingTab(); WireAboutTab();
+        WireGeneralTab(); WireServersTab(); WireServerLibraryTab(); WireAudioTab(); WirePlaybackTab(); WireNowPlayingViewsTab(); WireLibraryTab(); WireBrowsingTab(); WireAppearanceTab(); WireMetersTab(); WireShortcutsAndNotifications(); WireRecordingTab(); WireAboutTab();
         App.DevicesChanged += LoadDevices;
         App.StatusChanged += ShowPlayerStatus;
         Closed += (sender, args) => { App.DevicesChanged -= LoadDevices; App.StatusChanged -= ShowPlayerStatus; };
@@ -29,8 +29,91 @@ public partial class SettingsWindow : Window
 
     public void SelectTab(string tabName)
     {
-        var tabByName = new Dictionary<string, TabItem> { ["General"] = generalTab, ["Servers"] = serversTab, ["ServerLibrary"] = serverLibraryTab, ["Audio"] = audioTab, ["Playback"] = playbackTab, ["Library"] = libraryTab, ["Browsing"] = browsingTab, ["About"] = aboutTab };
+        var tabByName = new Dictionary<string, TabItem> { ["General"] = generalTab, ["Servers"] = serversTab, ["ServerLibrary"] = serverLibraryTab, ["Audio"] = audioTab, ["Playback"] = playbackTab, ["NowPlayingViews"] = nowPlayingViewsTab, ["Library"] = libraryTab, ["Browsing"] = browsingTab, ["About"] = aboutTab };
         settingsTabs.SelectedItem = tabByName.TryGetValue(tabName, out var selectedTab) ? selectedTab : generalTab; // the first item is a section heading
+    }
+
+    // ---- Now playing views (SPEC.md › Now playing views): which tabs sit beside Up next, in what order, and where each looks ----
+    static readonly Dictionary<string, string> infoNames = new() { ["artist"] = "Artist", ["album"] = "Album", ["lyrics"] = "Lyrics", ["plugin"] = "Server plugin", ["wikipedia"] = "Wikipedia", ["lastfm"] = "Last.fm", ["tags"] = "File's own tags", ["lrclib"] = "LRCLIB" };
+    static readonly Brush quietBrush = new SolidColorBrush(Color.FromRgb(0x88, 0x88, 0x88)), okBrush = new SolidColorBrush(Color.FromRgb(0x1F, 0x7A, 0x3A)), lineBrush = new SolidColorBrush(Color.FromRgb(0xEC, 0xEE, 0xF1)), lockedBrush = new SolidColorBrush(Color.FromRgb(0xF6, 0xF7, 0xF9));
+    bool? infoPluginInstalled;
+
+    void WireNowPlayingViewsTab()
+    {
+        var trackInfo = Settings.TrackInfo;
+        lastFmKeyBox.Text = trackInfo.LastFmKey;
+        lastFmLink.RequestNavigate += (sender, args) => { Process.Start(new ProcessStartInfo(args.Uri.AbsoluteUri) { UseShellExecute = true }); args.Handled = true; };
+        lastFmKeyBox.LostFocus += (sender, args) =>
+        {
+            var hadKey = trackInfo.LastFmKey != ""; if (lastFmKeyBox.Text.Trim() == trackInfo.LastFmKey) return;
+            trackInfo.LastFmKey = lastFmKeyBox.Text;
+            if (!hadKey && trackInfo.LastFmKey != "") foreach (var sources in trackInfo.Sources.Values) foreach (var source in sources.Where(source => source.Key == "lastfm")) source.On = true; // a new key switches Last.fm on
+            SaveTrackInfo(); DrawInfoSources();
+        };
+        settingsTabs.SelectionChanged += async (sender, args) => { if (args.Source != settingsTabs || settingsTabs.SelectedItem != nowPlayingViewsTab) return; infoPluginInstalled = await App.TrackInfo.PluginInstalledAsync(); DrawInfoSources(); };
+        DrawInfoTabs(); DrawInfoSources();
+    }
+
+    void SaveTrackInfo() { Settings.Save(); App.NotifyTrackInfoChanged(); }
+
+    void DrawInfoTabs()
+    {
+        infoTabsList.Children.Clear();
+        infoTabsList.Children.Add(InfoRow(null, new InfoChoice { Key = "upnext" }, "Up next", "", null, DrawInfoTabs, arrows: true)); // always there, always first
+        foreach (var tab in Settings.TrackInfo.Tabs) infoTabsList.Children.Add(InfoRow(Settings.TrackInfo.Tabs, tab, infoNames[tab.Key], tab.Key == "artist" ? "biography and photo" : tab.Key == "album" ? "review and background" : "", null, DrawInfoTabs, arrows: true));
+    }
+
+    void DrawInfoSources()
+    {
+        infoSourcesGrid.Children.Clear();
+        var hasLastFmKey = Settings.TrackInfo.LastFmKey != "";
+        foreach (var tabKey in TrackInfoSettings.TabKeys)
+        {
+            var column = new StackPanel();
+            column.Children.Add(new Border { Background = lockedBrush, BorderBrush = new SolidColorBrush(Color.FromRgb(0xE3, 0xE5, 0xE8)), BorderThickness = new Thickness(0, 0, 0, 1), Padding = new Thickness(10, 6, 10, 6), Child = new TextBlock { Text = infoNames[tabKey], FontWeight = FontWeights.SemiBold } });
+            var sources = Settings.TrackInfo.Sources[tabKey];
+            foreach (var source in sources)
+            {
+                var (note, noteBrush) = source.Key switch { "plugin" => (infoPluginInstalled == true ? "✓ installed" : infoPluginInstalled == false ? "not installed" : "", infoPluginInstalled == true ? okBrush : quietBrush), "wikipedia" => ("via MusicBrainz", quietBrush), "lrclib" => ("online", quietBrush), "lastfm" => (hasLastFmKey ? "" : "needs a key", quietBrush), _ => ("", quietBrush) };
+                column.Children.Add(InfoRow(sources, source, infoNames[source.Key], note, noteBrush, DrawInfoSources, arrows: false, usable: source.Key != "lastfm" || hasLastFmKey));
+            }
+            infoSourcesGrid.Children.Add(new Border { BorderBrush = new SolidColorBrush(Color.FromRgb(0xE3, 0xE5, 0xE8)), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(6), ClipToBounds = true, Margin = new Thickness(tabKey == "artist" ? 0 : 4, 0, tabKey == "lyrics" ? 0 : 4, 0), Background = Brushes.White, Child = column });
+        }
+    }
+
+    // One row: drag grip (or lock), tickbox, name, note, and for tabs up/down arrows. list = null for the fixed Up next row
+    FrameworkElement InfoRow(List<InfoChoice>? list, InfoChoice choice, string name, string note, Brush? noteBrush, Action redraw, bool arrows, bool usable = true)
+    {
+        var locked = list == null; var position = list?.IndexOf(choice) ?? -1;
+        var row = new DockPanel { LastChildFill = true };
+        var grip = new TextBlock { Text = locked ? "\uE72E" : "\uE76F", FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = locked ? 12 : 14, Foreground = quietBrush, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0), Width = 14, Cursor = locked ? null : System.Windows.Input.Cursors.SizeAll, ToolTip = locked ? null : "Drag to reorder" };
+        if (!locked) { grip.LayoutTransform = new RotateTransform(90); grip.MouseLeftButtonDown += (sender, args) => DragDrop.DoDragDrop(grip, new DataObject(typeof(InfoChoice), choice), DragDropEffects.Move); }
+        DockPanel.SetDock(grip, Dock.Left); row.Children.Add(grip);
+        var box = new CheckBox { Margin = new Thickness(0), VerticalAlignment = VerticalAlignment.Center, IsChecked = locked || (usable && choice.On), IsEnabled = !locked && usable };
+        box.Click += (sender, args) => { choice.On = box.IsChecked == true; SaveTrackInfo(); };
+        DockPanel.SetDock(box, Dock.Left); row.Children.Add(box);
+        var label = new TextBlock { Text = name, Margin = new Thickness(6, 0, 10, 0), VerticalAlignment = VerticalAlignment.Center, FontWeight = arrows ? FontWeights.SemiBold : FontWeights.Normal, Foreground = locked || !usable ? quietBrush : Brushes.Black, TextTrimming = TextTrimming.CharacterEllipsis };
+        DockPanel.SetDock(label, Dock.Left); row.Children.Add(label);
+        if (arrows)
+        {
+            var arrowPanel = new StackPanel { Orientation = Orientation.Horizontal }; DockPanel.SetDock(arrowPanel, Dock.Right);
+            foreach (var (glyph, step) in new[] { ("\uE70E", -1), ("\uE70D", 1) })
+            {
+                var arrow = new Button { Content = glyph, FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 10, Padding = new Thickness(6, 3, 6, 3), Margin = new Thickness(4, 0, 0, 0), IsEnabled = !locked && position + step >= 0 && position + step < list!.Count, ToolTip = step < 0 ? "Move up" : "Move down" };
+                arrow.Click += (sender, args) => { list!.RemoveAt(position); list.Insert(position + step, choice); SaveTrackInfo(); redraw(); };
+                arrowPanel.Children.Add(arrow);
+            }
+            row.Children.Add(arrowPanel);
+        }
+        var noteText = new TextBlock { Text = note, Foreground = noteBrush ?? quietBrush, FontSize = arrows ? 13 : 11.5, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = arrows ? HorizontalAlignment.Left : HorizontalAlignment.Right, TextTrimming = TextTrimming.CharacterEllipsis };
+        row.Children.Add(noteText);
+        var rowBorder = new Border { Child = row, Padding = new Thickness(10, 7, 10, 7), Background = locked ? lockedBrush : Brushes.White, BorderBrush = lineBrush, BorderThickness = new Thickness(0, locked || position == 0 && !arrows ? 0 : 1, 0, 0), AllowDrop = !locked };
+        if (!locked)
+        {
+            rowBorder.DragOver += (sender, args) => { args.Effects = args.Data.GetData(typeof(InfoChoice)) is InfoChoice dragged && list!.Contains(dragged) ? DragDropEffects.Move : DragDropEffects.None; args.Handled = true; };
+            rowBorder.Drop += (sender, args) => { if (args.Data.GetData(typeof(InfoChoice)) is not InfoChoice dragged || !list!.Contains(dragged) || dragged == choice) return; list.Remove(dragged); list.Insert(Math.Min(position, list.Count), dragged); SaveTrackInfo(); redraw(); }; // dropped on a row: takes that row's place
+        }
+        return rowBorder;
     }
 
     void WireGeneralTab()

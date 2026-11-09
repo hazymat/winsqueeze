@@ -180,6 +180,20 @@ Building a playlist works like opening a case: start it, browse anywhere while i
 - **Meters** are driven by the real playback level of the bundled Squeezelite (see Risks). For other players, they show a muted idle state. Three styles, cycled by clicking the meters: analogue **VU needles**, **OLED VU** (needle meters drawn as a glowing display) or a **spectrum analyser** (segmented cyan columns in a recessed glass window, matching the EQ; segments brighten up the scale, and a floating peak segment holds about 0.8 s over each column before drifting down). All spectrum displays (the small one by the volume, Now playing's and the EQ window's) use the same 10-octave analysis and scale. By default the meters show the sound after the EQ but before WinSqueeze's volume, and 0 VU follows each track's average loudness. **Settings › Meters** can switch each of those (follow EQ, follow volume, automatic 0 VU), and tunes the fixed 0 VU reference (−18 dBFS), VU ballistics and spectrum fall. Our Squeezelite exports two rings (before and after the EQ, both before the volume) plus the volume gain.
 - **Signal readout:** format, sample rate, bit depth, and a "bit-perfect" badge when the whole chain is untouched.
 
+### Now playing views
+
+The queue panel in Now playing has tabs along its top: **Up next** (the queue) on its own, then a group about the playing track, led by a small copy of its cover: **Artist** (biography and photo), **Album** (review and background) and **Lyrics**. The group follows the track; Up next stays as it was. Lyrics are looked up as each track starts, so the Lyrics tab greys out when there are none. Unticking all three tabs in Settings gives the plain Up next panel. The chosen tab is remembered. The mini player has no tabs.
+
+Each tab tries its ticked sources in order and shows the first that has something, with the source named underneath (and a link where there is one):
+
+| Tab | Sources (default order) |
+|---|---|
+| Artist | Server plugin (Lyrion's Music & Artist Information: `musicartistinfo biography` and `artistphoto`), Wikipedia (the artist found on MusicBrainz, its Wikidata link naming the English Wikipedia page, whose introduction is shown), Last.fm (only with the user's own API key; off until one is entered) |
+| Album | Server plugin (`musicartistinfo albumreview`), Wikipedia (the release group found on MusicBrainz, then as for Artist), Last.fm |
+| Lyrics | The file's own tags (Lyrion's lyrics tag), server plugin (`musicartistinfo lyrics`), LRCLIB |
+
+The shell does the lookups (MusicBrainz is held to one request a second, every request carries a WinSqueeze User-Agent) and keeps the results for the session. Online sources are sent only the artist, album and track names. The plugin is used only when the server has it (`can musicartistinfo biography ?`).
+
 ## Playback and fidelity
 
 Fidelity is a headline feature, not an afterthought. Playback always goes through the bundled Squeezelite (FFmpeg build), never the browser engine.
@@ -341,7 +355,7 @@ Settings › Server › Library starts Lyrion's own library scans and follows th
 
 ## Settings and servers
 
-A separate Settings window with tabs, in standard Windows style, listed in a sidebar under section headings: Server (Servers, Library), Player (Audio, Playback, Recording), Library (Library & cache, Browsing), Look, App. Changes apply immediately (no OK/Apply). Each page is a column of cards with headings; explanations are info or warning callouts, longer detail sits in expandable panels (with tables where it helps, e.g. how names are split), and keyboard shortcuts are tables of keycaps. First run opens it straight on the Servers tab.
+A separate Settings window with tabs, in standard Windows style, listed in a sidebar under section headings: Server (Servers, Library), Player (Audio, Playback, Now playing views, Recording), Library (Library & cache, Browsing), Look, App. Changes apply immediately (no OK/Apply). Each page is a column of cards with headings; explanations are info or warning callouts, longer detail sits in expandable panels (with tables where it helps, e.g. how names are split), and keyboard shortcuts are tables of keycaps. First run opens it straight on the Servers tab.
 
 | Tab | Settings |
 | --- | --- |
@@ -349,6 +363,7 @@ A separate Settings window with tabs, in standard Windows style, listed in a sid
 | Servers | Server finder (auto-discovery); profiles list (name, address, port, optional username/password); default profile; test connection |
 | Library (server) | Scan status and progress; Scan for changes; Playlists only; Clear and rescan everything (see Server library) |
 | Audio | Output device; driver type; exclusive mode on/off; volume mode (fixed / digital); player name (defaults to the computer name); extra Squeezelite arguments (advanced); fidelity warnings |
+| Now playing views | Tabs: Up next first and fixed (ticked, locked), then Artist, Album, Lyrics, each with a tickbox, a drag grip and up/down arrows to set the order. Sources: one list per tab, each source with a tickbox and drag grip (the plugin shows whether the server has it; Last.fm needs a key). Last.fm API key (stored encrypted for this Windows user, never exported) |
 | Playback | For the selected player (Lyrion player prefs, written only when changed): between tracks (nothing/gapless, crossfade, fade in, fade out, fade out and in), its length, smart (no crossfade within an album); ReplayGain (off, track, album, smart). On this PC these break bit-perfect, and the fidelity badge says so |
 | Library & cache | Album source (tags / folders); contributor grouping (any credit / album artist text only); name separators; refresh interval; Refresh now; Rebuild cache; cache size and location; clear art cache; Library health (damaged file count, Open library health) |
 | Appearance | Skin; auto-switch rule (follow Windows / schedule / fixed); light and dark skin pair; meter style (VU needle / OLED VU / OLED bars); album list default (grid / list); accent from cover art on/off; reduce transparency |

@@ -84,6 +84,34 @@ public class PlaybackSettings
     public Dictionary<string, long> ContinueRecent { get; set; } = new(); // album key or "t<track id>" -> unix seconds when Keep playing added it
 }
 
+// Now playing's Artist, Album and Lyrics tabs beside Up next (SPEC.md › Now playing views)
+public class InfoChoice { public string Key { get; set; } = ""; public bool On { get; set; } = true; }
+public class TrackInfoSettings
+{
+    public List<InfoChoice> Tabs { get; set; } = new(); // order shown; unticked ones keep their place
+    public Dictionary<string, List<InfoChoice>> Sources { get; set; } = new(); // per tab, tried from the top
+    public string ProtectedLastFmKey { get; set; } = ""; // DPAPI, current user only; never exported
+    [JsonIgnore] public string LastFmKey
+    {
+        get { if (ProtectedLastFmKey == "") return ""; try { return Encoding.UTF8.GetString(ProtectedData.Unprotect(Convert.FromBase64String(ProtectedLastFmKey), null, DataProtectionScope.CurrentUser)); } catch { return ""; } }
+        set { ProtectedLastFmKey = value.Trim() == "" ? "" : Convert.ToBase64String(ProtectedData.Protect(Encoding.UTF8.GetBytes(value.Trim()), null, DataProtectionScope.CurrentUser)); }
+    }
+    public static readonly string[] TabKeys = { "artist", "album", "lyrics" };
+    public static readonly Dictionary<string, string[]> SourceKeys = new() { ["artist"] = new[] { "plugin", "wikipedia", "lastfm" }, ["album"] = new[] { "plugin", "wikipedia", "lastfm" }, ["lyrics"] = new[] { "tags", "plugin", "lrclib" } };
+    // Fills in anything missing (first run, or a source added in a later version), off for Last.fm until there's a key
+    public void Normalise()
+    {
+        Tabs = Tabs.Where(tab => TabKeys.Contains(tab.Key)).GroupBy(tab => tab.Key).Select(group => group.First()).ToList();
+        foreach (var tabKey in TabKeys) if (Tabs.All(tab => tab.Key != tabKey)) Tabs.Add(new InfoChoice { Key = tabKey });
+        foreach (var (tabKey, sourceKeys) in SourceKeys)
+        {
+            var sources = (Sources.TryGetValue(tabKey, out var saved) ? saved : new()).Where(source => sourceKeys.Contains(source.Key)).GroupBy(source => source.Key).Select(group => group.First()).ToList();
+            foreach (var sourceKey in sourceKeys) if (sources.All(source => source.Key != sourceKey)) sources.Add(new InfoChoice { Key = sourceKey, On = sourceKey != "lastfm" });
+            Sources[tabKey] = sources;
+        }
+    }
+}
+
 public class LibrarySettings
 {
     public string AlbumSource { get; set; } = "folders"; // folders | tags
@@ -158,6 +186,7 @@ public class AppSettings
     public LibrarySettings Library { get; set; } = new();
     public RecordingSettings Recording { get; set; } = new();
     public PlaybackSettings Playback { get; set; } = new();
+    public TrackInfoSettings TrackInfo { get; set; } = new();
     public List<ServerProfile> Profiles { get; set; } = new();
     public string DefaultProfileId { get; set; } = "";
     public string PlayerMac { get; set; } = ""; // own stable MAC so we never collide with another Squeezelite on this PC
@@ -174,6 +203,7 @@ public class AppSettings
         AppSettings settings;
         try { settings = File.Exists(AppPaths.SettingsFile) ? JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(AppPaths.SettingsFile), jsonOptions) ?? new() : new(); }
         catch { settings = new(); }
+        settings.TrackInfo.Normalise();
         if (settings.PlayerMac == "") { settings.PlayerMac = NewLocalMac(); settings.Save(); }
         return settings;
     }
@@ -192,6 +222,7 @@ public class AppSettings
         var exported = JsonSerializer.Deserialize<AppSettings>(JsonSerializer.Serialize(this, jsonOptions), jsonOptions)!;
         exported.PlayerMac = "";
         foreach (var profile in exported.Profiles) profile.ProtectedPassword = "";
+        exported.TrackInfo.ProtectedLastFmKey = "";
         return JsonSerializer.Serialize(exported, jsonOptions);
     }
 
@@ -202,6 +233,7 @@ public class AppSettings
         imported.PlayerMac = current.PlayerMac;
         foreach (var profile in imported.Profiles) profile.ProtectedPassword = current.Profiles.FirstOrDefault(existing => existing.Id == profile.Id)?.ProtectedPassword ?? "";
         imported.General.CloseToTrayTipShown = current.General.CloseToTrayTipShown;
+        imported.TrackInfo.ProtectedLastFmKey = current.TrackInfo.ProtectedLastFmKey; imported.TrackInfo.Normalise();
         return imported;
     }
 

@@ -7,7 +7,7 @@ export type PlaylistItem = { id: number; title: string; artist: string; duration
 
 export const app = $state({
   status: null as any, nowPlaying: null as any, players: [] as any[], syncGroups: [] as string[][], groupVolumes: {} as Record<string, number>, selectedPlayer: '', ownPlayer: '',
-  library: { text: '', done: 0, total: 0 }, librarySettings: { AlbumSource: 'folders', ContributorGrouping: 'any' } as any, playback: { QueueEnd: 'stop', ContinueAdds: 'album', ContinueFrom: 'artist' } as Record<string, string>, hints: { hidden: false, dismissed: [] as string[] }, indexVersion: 0, receivedAt: 0,
+  library: { text: '', done: 0, total: 0 }, librarySettings: { AlbumSource: 'folders', ContributorGrouping: 'any' } as any, playback: { QueueEnd: 'stop', ContinueAdds: 'album', ContinueFrom: 'artist' } as Record<string, string>, hints: { hidden: false, dismissed: [] as string[] }, trackInfoTabs: [] as string[], indexVersion: 0, receivedAt: 0,
   // Meter data from Squeezelite (~30 a second while playing): VU in dBFS, peak amplitude 0..1, spectrum bands 0..1
   levels: { vu: [-90, -90], peak: [0, 0], bands: Array(10).fill(0), at: 0 },
   meterSettings: { referenceDbfs: -18, autoReference: true }, // Settings › Meters
@@ -17,7 +17,7 @@ export const app = $state({
 const savedNav = (() => { try { return JSON.parse(readSetting('nav', '')) } catch { return null } })()
 export const nav = $state({ section: (savedNav?.section ?? 'artists') as string, stack: (savedNav?.stack ?? []) as View[] })
 $effect.root(() => { $effect(() => { writeSetting('nav', JSON.stringify({ section: nav.section, stack: nav.stack })) }) })
-export const ui = $state({ search: '', scope: 'list' as 'list' | 'everything', expanded: false, meterStyle: readSetting('meterStyle', 'vu').replace(/^ledbar$/, 'vu'), skin: readSetting('skin', 'auto'), coverAccent: readSetting('coverAccent', '') === '1', coverBackdrop: readSetting('coverBackdrop', '1') !== '0', accent: readSetting('accent', ''), glassTransparency: Number(readSetting('glassTransparency', '-1')), glassTintHue: Number(readSetting('glassTintHue', '0')), lookVersion: 0, pinned: false, metersFull: false, trackInfo: null as null | number[], itemInfo: null as null | { name: string, fields: [string, string][] }[], toast: null as null | { text: string; undo?: () => unknown; redo?: () => unknown; action?: { label: string; key: string; run: () => unknown }; ms: number; id: number } })
+export const ui = $state({ search: '', scope: 'list' as 'list' | 'everything', expanded: false, meterStyle: readSetting('meterStyle', 'vu').replace(/^ledbar$/, 'vu'), skin: readSetting('skin', 'auto'), coverAccent: readSetting('coverAccent', '') === '1', coverBackdrop: readSetting('coverBackdrop', '1') !== '0', accent: readSetting('accent', ''), glassTransparency: Number(readSetting('glassTransparency', '-1')), glassTintHue: Number(readSetting('glassTintHue', '0')), lookVersion: 0, infoTab: readSetting('infoTab', 'queue'), pinned: false, metersFull: false, trackInfo: null as null | number[], itemInfo: null as null | { name: string, fields: [string, string][] }[], toast: null as null | { text: string; undo?: () => unknown; redo?: () => unknown; action?: { label: string; key: string; run: () => unknown }; ms: number; id: number } })
 export const playlist = $state({ open: false, collapsed: false, name: 'Untitled playlist', items: [] as PlaylistItem[], history: [] as number[] })
 
 export function readSetting(name: string, fallback: string) { try { return localStorage.getItem('ws.' + name) ?? fallback } catch { return fallback } }
