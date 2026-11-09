@@ -2,7 +2,8 @@
 // The shell picks the language (Windows' display language or Settings › General › Language) and passes it as ?lang=
 import german from '../../../locales/de.json'
 import ukrainian from '../../../locales/uk.json'
-const dictionaries: Record<string, Record<string, string>> = { de: german, uk: ukrainian }
+import spanish from '../../../locales/es.json'
+const dictionaries: Record<string, Record<string, string>> = { de: german, uk: ukrainian, es: spanish }
 export const language = new URLSearchParams(location.search).get('lang') ?? 'en'
 const dictionary = dictionaries[language] ?? {}
 if (typeof document !== 'undefined') document.documentElement.lang = language
