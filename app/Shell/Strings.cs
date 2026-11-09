@@ -14,7 +14,7 @@ public static class L
     static Dictionary<string, string> dictionary = new();
 
     // setting: "" follows Windows' display language, otherwise a code from Languages
-    public static string Resolve(string setting) { var wanted = setting != "" ? setting : CultureInfo.CurrentUICulture.TwoLetterISOLanguageName; return Languages.Any(language => language.code == wanted) ? wanted : "en"; }
+    public static string Resolve(string setting) { var wanted = setting != "" ? setting : CultureInfo.CurrentUICulture.TwoLetterISOLanguageName; if (wanted is "no" or "nn") wanted = "nb"; // Nynorsk Windows gets Bokmål return Languages.Any(language => language.code == wanted) ? wanted : "en"; }
     public static void Load(string setting)
     {
         Code = Resolve(setting); dictionary = new();
