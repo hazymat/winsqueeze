@@ -14,7 +14,8 @@ import swedish from '../../../locales/sv.json'
 import czech from '../../../locales/cs.json'
 import danish from '../../../locales/da.json'
 import norwegian from '../../../locales/nb.json'
-const dictionaries: Record<string, Record<string, string>> = { de: german, uk: ukrainian, es: spanish, fr: french, ja: japanese, zh: chinese, pl: polish, it: italian, nl: dutch, pt: portuguese, sv: swedish, cs: czech, da: danish, nb: norwegian }
+import finnish from '../../../locales/fi.json'
+const dictionaries: Record<string, Record<string, string>> = { de: german, uk: ukrainian, es: spanish, fr: french, ja: japanese, zh: chinese, pl: polish, it: italian, nl: dutch, pt: portuguese, sv: swedish, cs: czech, da: danish, nb: norwegian, fi: finnish }
 export const language = new URLSearchParams(location.search).get('lang') ?? 'en'
 const dictionary = dictionaries[language] ?? {}
 if (typeof document !== 'undefined') document.documentElement.lang = language
