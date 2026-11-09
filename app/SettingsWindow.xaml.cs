@@ -84,15 +84,16 @@ public partial class SettingsWindow : Window
     }
 
     // One row: drag grip (or lock), tickbox, name, note, and for tabs up/down arrows. list = null for the fixed Up next row
-    FrameworkElement InfoRow(List<InfoChoice>? list, InfoChoice choice, string name, string note, Brush? noteBrush, Action redraw, bool arrows, bool usable = true)
+    FrameworkElement InfoRow(List<InfoChoice>? list, InfoChoice choice, string name, string note, Brush? noteBrush, Action redraw, bool arrows, bool usable = true, Action? save = null)
     {
+        save ??= SaveTrackInfo;
         var locked = list == null; var position = list?.IndexOf(choice) ?? -1;
         var row = new DockPanel { LastChildFill = true };
         var grip = new TextBlock { Text = locked ? "\uE72E" : "\uE76F", FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = locked ? 12 : 14, Foreground = quietBrush, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0), Width = 14, Cursor = locked ? null : System.Windows.Input.Cursors.SizeAll, ToolTip = locked ? null : "Drag to reorder" };
         if (!locked) { grip.LayoutTransform = new RotateTransform(90); grip.MouseLeftButtonDown += (sender, args) => DragDrop.DoDragDrop(grip, new DataObject(typeof(InfoChoice), choice), DragDropEffects.Move); }
         DockPanel.SetDock(grip, Dock.Left); row.Children.Add(grip);
         var box = new CheckBox { Margin = new Thickness(0), VerticalAlignment = VerticalAlignment.Center, IsChecked = locked || (usable && choice.On), IsEnabled = !locked && usable };
-        box.Click += (sender, args) => { choice.On = box.IsChecked == true; SaveTrackInfo(); };
+        box.Click += (sender, args) => { choice.On = box.IsChecked == true; save(); };
         DockPanel.SetDock(box, Dock.Left); row.Children.Add(box);
         var label = new TextBlock { Text = name, Margin = new Thickness(6, 0, 10, 0), VerticalAlignment = VerticalAlignment.Center, FontWeight = arrows ? FontWeights.SemiBold : FontWeights.Normal, Foreground = locked || !usable ? quietBrush : Brushes.Black, TextTrimming = TextTrimming.CharacterEllipsis };
         DockPanel.SetDock(label, Dock.Left); row.Children.Add(label);
@@ -102,7 +103,7 @@ public partial class SettingsWindow : Window
             foreach (var (glyph, step) in new[] { ("\uE70E", -1), ("\uE70D", 1) })
             {
                 var arrow = new Button { Content = glyph, FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 10, Padding = new Thickness(6, 3, 6, 3), Margin = new Thickness(4, 0, 0, 0), IsEnabled = !locked && position + step >= 0 && position + step < list!.Count, ToolTip = step < 0 ? "Move up" : "Move down" };
-                arrow.Click += (sender, args) => { list!.RemoveAt(position); list.Insert(position + step, choice); SaveTrackInfo(); redraw(); };
+                arrow.Click += (sender, args) => { list!.RemoveAt(position); list.Insert(position + step, choice); save(); redraw(); };
                 arrowPanel.Children.Add(arrow);
             }
             row.Children.Add(arrowPanel);
@@ -113,7 +114,7 @@ public partial class SettingsWindow : Window
         if (!locked)
         {
             rowBorder.DragOver += (sender, args) => { args.Effects = args.Data.GetData(typeof(InfoChoice)) is InfoChoice dragged && list!.Contains(dragged) ? DragDropEffects.Move : DragDropEffects.None; args.Handled = true; };
-            rowBorder.Drop += (sender, args) => { if (args.Data.GetData(typeof(InfoChoice)) is not InfoChoice dragged || !list!.Contains(dragged) || dragged == choice) return; list.Remove(dragged); list.Insert(Math.Min(position, list.Count), dragged); SaveTrackInfo(); redraw(); }; // dropped on a row: takes that row's place
+            rowBorder.Drop += (sender, args) => { if (args.Data.GetData(typeof(InfoChoice)) is not InfoChoice dragged || !list!.Contains(dragged) || dragged == choice) return; list.Remove(dragged); list.Insert(Math.Min(position, list.Count), dragged); save(); redraw(); }; // dropped on a row: takes that row's place
         }
         return rowBorder;
     }
@@ -694,6 +695,15 @@ public partial class SettingsWindow : Window
         framelessBox.Click += (sender, args) => { general.Frameless = framelessBox.IsChecked == true; Settings.Save(); App.ApplyWindowStyle(); };
     }
 
+    // Meter styles a click cycles through: tick and reorder like the Now playing views; at least one stays ticked
+    static readonly Dictionary<string, string> meterStyleNames = new() { ["vu"] = "Beige VU", ["deck"] = "Tape deck", ["orange"] = "Round amber meters", ["monitor"] = "Power monitor", ["blue"] = "Blue power amp", ["green"] = "Green fluorescent", ["oledvu"] = "OLED VU", ["oled"] = "Spectrum analyser" };
+    void DrawMeterStyles()
+    {
+        meterStylesList.Children.Clear();
+        foreach (var style in Settings.Meters.Styles) meterStylesList.Children.Add(InfoRow(Settings.Meters.Styles, style, meterStyleNames[style.Key], "", null, DrawMeterStyles, arrows: true, save: SaveMeterStyles));
+    }
+    void SaveMeterStyles() { var noneTicked = Settings.Meters.Styles.All(style => !style.On); Settings.Meters.Normalise(); Settings.Save(); App.ApplyMeters(); if (noneTicked) DrawMeterStyles(); }
+
     // Meters: one slider row per setting, saved and pushed as it moves
     void WireMetersTab()
     {
@@ -727,8 +737,8 @@ public partial class SettingsWindow : Window
             AddRow("VU ballistics", "How quickly the needles follow the music. 300 ms is a classic VU.", 50, 1000, 10, meters => meters.VuIntegrationMs, (meters, value) => meters.VuIntegrationMs = value, "ms");
             AddRow("Spectrum fall", "How fast the spectrum columns fall back.", 50, 1000, 10, meters => meters.SpectrumFallMs, (meters, value) => meters.SpectrumFallMs = value, "ms");
         }
-        Build();
-        metersResetButton.Click += (sender, args) => { Settings.Meters = new MeterSettings(); Settings.Save(); App.ApplyMeters(); Build(); };
+        Build(); DrawMeterStyles();
+        metersResetButton.Click += (sender, args) => { Settings.Meters = new MeterSettings(); Settings.Meters.Normalise(); Settings.Save(); App.ApplyMeters(); Build(); DrawMeterStyles(); };
     }
 
     // A mid, fairly saturated colour for a hue, for the tint swatch

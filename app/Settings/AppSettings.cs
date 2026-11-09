@@ -43,6 +43,18 @@ public class MeterSettings
     public double ReferenceDbfs { get; set; } = -18; // RMS level that reads 0 VU when not automatic
     public double VuIntegrationMs { get; set; } = 300; // needle ballistics
     public double SpectrumFallMs { get; set; } = 250;
+    public List<InfoChoice> Styles { get; set; } = new(); // the styles a click on the meters cycles through, in order (one ticked: a click taps the meter)
+    public static readonly string[] StyleKeys = { "vu", "deck", "orange", "monitor", "blue", "green", "oledvu", "oled" };
+    public static readonly string[] DefaultStyles = { "vu", "green", "oled" };
+    // Fills in anything missing (first run, or a style added in a later version); at least one stays ticked
+    public void Normalise()
+    {
+        Styles = Styles.Where(style => StyleKeys.Contains(style.Key)).GroupBy(style => style.Key).Select(group => group.First()).ToList();
+        var firstRun = Styles.Count == 0;
+        foreach (var styleKey in StyleKeys) if (Styles.All(style => style.Key != styleKey)) Styles.Add(new InfoChoice { Key = styleKey, On = firstRun ? DefaultStyles.Contains(styleKey) : false });
+        if (firstRun) Styles = DefaultStyles.Select(styleKey => Styles.First(style => style.Key == styleKey)).Concat(Styles.Where(style => !DefaultStyles.Contains(style.Key))).ToList();
+        if (Styles.All(style => !style.On)) Styles[0].On = true;
+    }
 }
 
 // Graphic equaliser and its window (SPEC.md › Equaliser)
@@ -207,7 +219,7 @@ public class AppSettings
         AppSettings settings;
         try { settings = File.Exists(AppPaths.SettingsFile) ? JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(AppPaths.SettingsFile), jsonOptions) ?? new() : new(); }
         catch { settings = new(); }
-        settings.TrackInfo.Normalise();
+        settings.TrackInfo.Normalise(); settings.Meters.Normalise();
         if (settings.PlayerMac == "") { settings.PlayerMac = NewLocalMac(); settings.Save(); }
         return settings;
     }
@@ -237,7 +249,7 @@ public class AppSettings
         imported.PlayerMac = current.PlayerMac;
         foreach (var profile in imported.Profiles) profile.ProtectedPassword = current.Profiles.FirstOrDefault(existing => existing.Id == profile.Id)?.ProtectedPassword ?? "";
         imported.General.CloseToTrayTipShown = current.General.CloseToTrayTipShown;
-        imported.TrackInfo.ProtectedLastFmKey = current.TrackInfo.ProtectedLastFmKey; imported.TrackInfo.Normalise();
+        imported.TrackInfo.ProtectedLastFmKey = current.TrackInfo.ProtectedLastFmKey; imported.TrackInfo.Normalise(); imported.Meters.Normalise();
         return imported;
     }
 

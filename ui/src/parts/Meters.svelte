@@ -3,7 +3,7 @@
 </script>
 <script lang="ts">
   import { untrack } from 'svelte'
-  import { app, ui, meters, meterView, writeSetting } from '../state.svelte'
+  import { app, ui, meters, meterView, writeSetting, tapMeters } from '../state.svelte'
   import { sendToShell } from '../bridge'
   import Analyser from './Analyser.svelte'
   import MeterPanel, { panelThemes } from './MeterPanel.svelte'
@@ -24,13 +24,13 @@
   }
   // Same octaves and scale as the EQ window's analyser
   const spectrumScale = ['30', '24', '18', '12', '6']
-  const meterStyles = ['vu', 'deck', 'orange', 'monitor', 'blue', 'green', 'oledvu', 'oled'] // analogue faces after classic amps and decks sit between the VU and the OLED styles
   const bandLabels = ['31', '63', '125', '250', '500', '1k', '2k', '4k', '8k', '16k'] // octave centres (Hz)
   // Full window: dragging the meters moves the window (a click still switches style)
   let pressedAt = null as null | { x: number, y: number }, dragged = false
   const pressMeters = (event: PointerEvent) => { dragged = false; pressedAt = moveWindow && event.button === 0 ? { x: event.clientX, y: event.clientY } : null }
   const dragMeters = (event: PointerEvent) => { if (pressedAt && Math.hypot(event.clientX - pressedAt.x, event.clientY - pressedAt.y) > 4) { pressedAt = null; dragged = true; sendToShell({ type: 'dragWindow' }) } }
-  const toggle = () => { if (dragged) { dragged = false; return } ui.meterStyle = meterStyles[(meterStyles.indexOf(ui.meterStyle) + 1) % meterStyles.length]; writeSetting('meterStyle', ui.meterStyle) }
+  // A click moves on to the next style ticked in Settings › Meters; with only one ticked it taps the meter instead
+  const toggle = () => { if (dragged) { dragged = false; return } const styles = app.meterSettings.styles; if (styles.length < 2) { tapMeters(); return } ui.meterStyle = styles[(styles.indexOf(ui.meterStyle) + 1) % styles.length]; writeSetting('meterStyle', ui.meterStyle) }
   const gradientId = `vu-lamp-${meterCount++}`
   // Classic VU scale: dB mark -> needle angle (degrees from vertical), pivot sits below the face like a real meter
   const scaleMarks: [number, number][] = [[-20, -48], [-10, -31], [-7, -21], [-5, -12], [-3, -1], [-2, 6], [-1, 13], [0, 21], [1, 29], [2, 37], [3, 46]]
@@ -68,11 +68,11 @@
   let screwNote = $state(''), screwNoteTimer = 0
   const screwAngle = $derived(-30 + ((screwDrag?.reference ?? meters.reference) + 16) * 7.5)
   const showScrewNote = (note: string, holdMs: number) => { clearTimeout(screwNoteTimer); screwNote = note; if (holdMs) screwNoteTimer = setTimeout(() => screwNote = '', holdMs) }
-  const setReference = (reference: number) => { app.meterSettings = { referenceDbfs: reference, autoReference: false }; meters.reference = reference; showScrewNote(`0 VU = ${reference} dBFS`.replace('-', '−'), 0) }
+  const setReference = (reference: number) => { app.meterSettings = { referenceDbfs: reference, autoReference: false, styles: app.meterSettings.styles }; meters.reference = reference; showScrewNote(`0 VU = ${reference} dBFS`.replace('-', '−'), 0) }
   const grabScrew = (event: PointerEvent) => { if (size === 'small' || event.button !== 0) return; event.stopPropagation(); (event.currentTarget as Element).setPointerCapture(event.pointerId); screwDrag = { startX: event.clientX, startReference: Math.round(meters.reference), reference: Math.round(meters.reference), turned: false } }
   const turnScrew = (event: PointerEvent) => { if (!screwDrag) return; const reference = Math.max(-24, Math.min(-8, Math.round(screwDrag.startReference - (event.clientX - screwDrag.startX) / 6))); if (reference !== screwDrag.reference || !screwDrag.turned && Math.abs(event.clientX - screwDrag.startX) > 3) { screwDrag.reference = reference; screwDrag.turned = true; setReference(reference) } }
   const releaseScrew = () => { if (!screwDrag) return; if (screwDrag.turned) { sendToShell({ type: 'setMeterReference', referenceDbfs: screwDrag.reference }); showScrewNote(screwNote, 1500) } screwDrag = null }
-  const autoScrew = (event: MouseEvent) => { event.stopPropagation(); if (size === 'small') return; app.meterSettings = { referenceDbfs: app.meterSettings.referenceDbfs, autoReference: true }; sendToShell({ type: 'setMeterReference', auto: true }); showScrewNote('Automatic 0 VU', 1500) }
+  const autoScrew = (event: MouseEvent) => { event.stopPropagation(); if (size === 'small') return; app.meterSettings = { referenceDbfs: app.meterSettings.referenceDbfs, autoReference: true, styles: app.meterSettings.styles }; sendToShell({ type: 'setMeterReference', auto: true }); showScrewNote('Automatic 0 VU', 1500) }
   // OLED VU: one even scale line; above it, a tick per mark and dense detents across the 0..+3 zone (like the Transporter display)
   // Its pivot sits just below the display, closer than the analogue meter's, so the scale is a wider arc and the resting needle lies flatter
   const oledPivotY = 78, oledSpread = 1.25, oledRadius = 42, oledRestAngle = -68
@@ -81,7 +81,7 @@
   const detentAngles = Array.from({ length: 16 }, (unused, index) => 21 + index * 25 / 15)
 </script>
 
-<button class="meters {size}" style="--lamp-glow: {lampHeat}" bind:clientWidth={meterWidth} class:idle={!active} onclick={toggle} onpointerdown={pressMeters} onpointermove={dragMeters} onpointerup={() => pressedAt = null} oncontextmenu={(event) => { event.preventDefault(); ui.metersFull = !ui.metersFull }} title={moveWindow ? 'Click to switch meter style · drag to move the window · right-click to close' : 'Click to switch meter style · right-click for full window'}>
+<button class="meters {size}" style="--lamp-glow: {lampHeat}" bind:clientWidth={meterWidth} class:idle={!active} onclick={toggle} onpointerdown={pressMeters} onpointermove={dragMeters} onpointerup={() => pressedAt = null} oncontextmenu={(event) => { event.preventDefault(); ui.metersFull = !ui.metersFull }} title={(app.meterSettings.styles.length < 2 ? 'Click to tap the meter' : 'Click to switch meter style') + (moveWindow ? ' · drag to move the window · right-click to close' : ' · right-click for full window')}>
   {#key meterView.epoch}
   {#if ui.meterStyle === 'vu'}
     {#each ['L', 'R'] as channel, channelIndex}
