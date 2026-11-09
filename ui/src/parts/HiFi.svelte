@@ -3,7 +3,6 @@
   import { app, ui, currentTrack, setHifi } from '../state.svelte'
   import { command, sendToShell } from '../bridge'
   import Meters from './Meters.svelte'
-  import Icon from './Icon.svelte'
   const stageWidth = 1280, stageHeight = 330
   let windowWidth = $state(stageWidth), windowHeight = $state(stageHeight)
   const stageZoom = $derived(Math.min(windowWidth / stageWidth, windowHeight / stageHeight))
@@ -41,7 +40,8 @@
   function clickScan(direction: number) { if (scanTimer) { stopScan(); return } stopScan(); command('time', direction > 0 ? '+10' : '-10') }
   // Meter bridge: the real meters, zoomed to fit the window cut into the faceplate
   let meterBox = $state<HTMLElement>(), meterZoom = $state(1)
-  function fitMeters() { if (!meterBox) return; const rect = meterBox.getBoundingClientRect(), scale = meterZoom * stageZoom, naturalWidth = rect.width / scale, naturalHeight = rect.height / scale; if (naturalWidth && naturalHeight) meterZoom = Math.min(470 / naturalWidth, 166 / naturalHeight) }
+  // Fit from layout size (offsetWidth/Height): no zoom, transform or screen scaling can skew it, so the fit is the same on every monitor
+  function fitMeters() { if (!meterBox) return; const naturalWidth = meterBox.offsetWidth, naturalHeight = meterBox.offsetHeight; if (naturalWidth && naturalHeight) meterZoom = Math.min(470 / naturalWidth, 166 / naturalHeight) }
   $effect(() => { meterBox; stageZoom; ui.meterStyle; requestAnimationFrame(fitMeters) })
   // Bare metal moves the window; right-click anywhere goes back to the normal player
   function pressPlate(event: MouseEvent) { if (event.button === 0 && !(event.target as HTMLElement).closest('button, .knob, .seek-zone')) sendToShell({ type: 'dragWindow' }) }
@@ -115,7 +115,7 @@
   <div class="stage" style:transform="translate(-50%, -50%) scale({stageZoom})">
     <div class="brand">WinSqueeze</div>
     <div class="standby" class:on={playing}></div>
-    <div class="meter-window"><div class="meter-zoom" bind:this={meterBox} style:zoom={meterZoom}><Meters size="large" zoom={meterZoom * stageZoom} moveWindow={true} /></div><div class="pane"></div></div>
+    <div class="meter-window"><div class="meter-zoom" bind:this={meterBox} style:transform="scale({meterZoom})"><Meters size="large" zoom={meterZoom * stageZoom} moveWindow={true} /></div><div class="pane"></div></div>
     <div class="display">
       <canvas bind:this={canvas} style:width="{vfdWidth}px" style:height="{vfdHeight}px"></canvas><div class="mesh"></div><div class="pane"></div>
       <div class="seek-zone" bind:this={seekBar} role="slider" tabindex="-1" aria-label="Position" aria-valuenow={Math.round(position)} title="Click or drag to move through the track" onpointerdown={grabSeek} onpointermove={dragSeek} onpointerup={letGoSeek}></div>
@@ -126,9 +126,10 @@
       <div class="knob" role="slider" tabindex="-1" aria-label="Volume" aria-valuenow={volume} title="Volume {volume} (drag up or down, or scroll)" style:--angle="{knobAngle}deg" onpointerdown={grabKnob} onpointermove={turnKnob} onpointerup={letGoKnob} onwheel={wheelKnob}><div class="teeth"></div><div class="knurl"></div><div class="cap"></div><div class="pointer"><div class="mark"></div></div></div>
     </div>
     <div class="volume-label">VOLUME</div>
+    <!-- Power: a machined button set into the plate, back to the normal player -->
+    <button class="power" onclick={() => setHifi(false)} title="Back to the player (Esc or right-click)" aria-label="Back to the player"><svg viewBox="0 0 24 24"><path d="M12 3.5v8" /><path d="M7.2 6.6a7.5 7.5 0 1 0 9.6 0" /></svg></button>
   </div>
-  <button class="close" onclick={() => setHifi(false)} title="Back to the player (Esc or right-click)" aria-label="Back to the player"><Icon name="return" /></button>
-</div>
+  </div>
 
 <style>
   .hifi { position: fixed; inset: 0; z-index: 90; overflow: hidden; outline: none; user-select: none; }
@@ -176,5 +177,10 @@
   .pointer { position: absolute; inset: 0; rotate: var(--angle); pointer-events: none; }
   .mark { position: absolute; left: 50%; top: 18px; width: 9px; height: 9px; margin-left: -4.5px; border-radius: 50%; rotate: calc(-1 * var(--angle)); background: radial-gradient(circle at 50% 70%, #7a6548, #31271a); box-shadow: inset 0 1px 2px rgba(0,0,0,0.7), 0 1px 0 rgba(255,255,255,0.7); }
   .volume-label { position: absolute; right: 30px; width: 260px; text-align: center; bottom: 26px; font: 600 9.5px/1 "Segoe UI", Inter, sans-serif; letter-spacing: 3px; color: #5a4934; text-shadow: 0 1px 0 rgba(255,245,225,0.7); pointer-events: none; }
-  .close { position: absolute; top: 12px; right: 12px; width: 30px; height: 30px; border: 0; border-radius: 8px; background: rgba(20, 22, 26, 0.78); color: #fff; display: grid; place-items: center; cursor: pointer; box-shadow: 0 1px 0 rgba(255,255,255,0.6), inset 0 1px 2px rgba(0,0,0,0.5); z-index: 1; }
+  .power { position: absolute; top: 14px; right: 16px; width: 30px; height: 30px; border: 0; border-radius: 50%; padding: 0; cursor: pointer; display: grid; place-items: center;
+    background: radial-gradient(circle at 50% 30%, #fdf9f2 0%, #e4d9c8 45%, #c6b8a2 100%);
+    box-shadow: 0 0 0 1.5px #3b3022, 0 0 0 3.5px rgba(0,0,0,0.16), 0 0 0 4.5px rgba(255,248,232,0.55), 0 2px 3px rgba(0,0,0,0.4), inset 0 1px 0 #fff8ec, inset 0 -2px 2px rgba(0,0,0,0.18); }
+  .power svg { width: 15px; height: 15px; } .power path { fill: none; stroke: #4a3b28; stroke-width: 2.3; stroke-linecap: round; filter: drop-shadow(0 1px 0 rgba(255,245,225,0.8)); }
+  .power:active { transform: translateY(1px); background: radial-gradient(circle at 50% 40%, #e6dccb 0%, #d0c3ae 60%, #bcae98 100%); box-shadow: 0 0 0 1.5px #3b3022, 0 0 0 3.5px rgba(0,0,0,0.16), 0 0 0 4.5px rgba(255,248,232,0.55), 0 1px 1px rgba(0,0,0,0.3), inset 0 2px 3px rgba(0,0,0,0.25); }
+  .power:focus-visible { outline: 2px solid rgba(74, 59, 40, 0.6); outline-offset: 5px; }
 </style>

@@ -237,8 +237,7 @@ public partial class MainWindow : Window
     }
 
     // Hi-fi mode: the window becomes a slim hi-fi separate (about 3.9:1, centred on where it was); its normal size and state come back after
-    Rect? boundsBeforeHifi; bool maximisedBeforeHifi; double hifiAspect = 3.88;
-    [StructLayout(LayoutKind.Sequential)] struct SizingRect { public int Left, Top, Right, Bottom; }
+    Rect? boundsBeforeHifi; bool maximisedBeforeHifi;
     void SetHifiWindow(bool on)
     {
         if (on && boundsBeforeHifi == null)
@@ -250,7 +249,6 @@ public partial class MainWindow : Window
             WindowState = WindowState.Normal;
             double hifiWidth = Math.Max(960, Math.Min(1400, before.Width)), hifiHeight = Math.Round(hifiWidth / 3.88) + chromeHeight;
             Left = before.Left + (before.Width - hifiWidth) / 2; Top = before.Top + (before.Height - hifiHeight) / 2; Width = hifiWidth; Height = hifiHeight;
-            hifiAspect = hifiWidth / hifiHeight;
         }
         else if (!on && boundsBeforeHifi is Rect saved)
         {
@@ -346,15 +344,6 @@ public partial class MainWindow : Window
         // Windows draws the backdrop solid while the frame looks inactive; telling it the frame is still active keeps the glass (Appearance setting)
         const int WM_NCACTIVATE = 0x0086;
         if (messageId == WM_NCACTIVATE && wParam == IntPtr.Zero && glassActive && App.Settings.General.GlassWhenInactive) { handled = true; return DefWindowProc(windowHandle, messageId, (IntPtr)1, (IntPtr)(-1)); } // -1: don't paint a native caption over ours
-        // Hi-fi mode keeps its shape while the window is resized: the dragged side leads, the other follows
-        const int WM_SIZING = 0x0214;
-        if (messageId == WM_SIZING && boundsBeforeHifi != null)
-        {
-            var sizing = Marshal.PtrToStructure<SizingRect>(lParam); int edge = wParam.ToInt32(), width = sizing.Right - sizing.Left, height = sizing.Bottom - sizing.Top;
-            if (edge is 3 or 6) sizing.Right = sizing.Left + (int)Math.Round(height * hifiAspect); // top or bottom: width follows
-            else { height = (int)Math.Round(width / hifiAspect); if (edge is 4 or 5) sizing.Top = sizing.Bottom - height; else sizing.Bottom = sizing.Top + height; }
-            Marshal.StructureToPtr(sizing, lParam, false); handled = true; return (IntPtr)1;
-        }
         const int WM_SETTINGCHANGE = 0x001A, WM_THEMECHANGED = 0x031A, WM_DWMCOMPOSITIONCHANGED = 0x031E, WM_DWMCOLORIZATIONCOLORCHANGED = 0x0320;
         if (messageId is WM_SETTINGCHANGE or WM_THEMECHANGED or WM_DWMCOMPOSITIONCHANGED or WM_DWMCOLORIZATIONCOLORCHANGED && !restyleQueued && DateTime.UtcNow - lastRestyle > TimeSpan.FromSeconds(2)) // never loops on our own restyle
         {
