@@ -1,7 +1,9 @@
 <script lang="ts">
-  import { trackArt, query, sendToShell } from '../bridge'
+  import { untrack } from 'svelte'
+  import { trackArt, serverArt, query, sendToShell } from '../bridge'
   import { isDamaged } from '../lib/damaged.svelte'
-  import { app, currentTrack, openView, openSection, personView, ui, toast } from '../state.svelte'
+  import { app, currentTrack, openView, openSection, personView, ui, toast, writeSetting } from '../state.svelte'
+  import Icon from './Icon.svelte'
   import Meters from './Meters.svelte'
   import Hint from './Hint.svelte'
   import Readout from './Readout.svelte'
@@ -10,6 +12,26 @@
   const track = $derived(currentTrack())
   const cover = $derived(trackArt(track, 600))
   const goTo = (kind: string, name: string) => personView(kind, name).then(openView)
+  // Artist, Album and Lyrics beside Up next (SPEC.md › Now playing views): about the playing track; Lyrics is looked up early so it can grey out when there are none
+  const infoNames: Record<string, string> = { artist: 'Artist', album: 'Album', lyrics: 'Lyrics' }
+  const infoTabs = $derived(app.trackInfoTabs)
+  const infoKey = $derived(infoTabs.includes(ui.infoTab) ? ui.infoTab : 'queue')
+  const trackKey = $derived(track ? [track.id, track.artist, track.album, track.title].join('|') : '')
+  let info = $state<Record<string, any>>({}), infoFor = ''
+  $effect(() => {
+    const key = trackKey, open = infoKey, kinds = infoTabs, playing = track
+    if (key !== infoFor) { infoFor = key; info = {} }
+    if (!playing) return
+    for (const kind of kinds) if ((kind === open || kind === 'lyrics') && untrack(() => info[kind]) === undefined) {
+      info = Object.assign({}, untrack(() => info), { [kind]: 'loading' })
+      query('trackInfo', { kind, id: playing.id ?? 0, artistId: String(playing.artist_id ?? ''), albumId: String(playing.album_id ?? ''), artist: playing.artist ?? '', album: playing.album ?? '', title: playing.title ?? '', duration: Number(playing.duration ?? 0), remote: Number(playing.remote) === 1 ? 1 : 0 })
+        .then(result => { if (infoFor === key) info = Object.assign({}, info, { [kind]: result ?? { found: false } }) })
+    }
+  })
+  const missing = (kind: string) => info[kind] && info[kind] !== 'loading' && !info[kind].found
+  const chooseTab = (key: string) => { ui.infoTab = key; writeSetting('infoTab', key) }
+  const paragraphs = (text: string) => text.split(/\n\s*\n|\n/).map(paragraph => paragraph.trim()).filter(Boolean)
+  const infoImage = (image: string) => image.startsWith('http') ? image : serverArt(image, 300)
   // The album opens with this track marked (folder or tag album, whichever the library uses)
   async function openAlbum() { const trackId = Number(track?.id); const place = trackId > 0 ? await query('trackPlace', { id: trackId }) : null; if (place?.album) openView({ kind: 'album', key: String(place.album), title: place.albumTitle, highlight: String(trackId) }); else toast('That album isn’t in the library') }
 </script>
@@ -29,7 +51,28 @@
       <div class="readout"><Readout /></div>
       <Meters size="large" /><Hint id="meters-clicks" text="Left-click to cycle meter visualisations. Right-click to maximise the visualisation." />
     </div>
-    <div class="queue-panel"><QueueView /></div>
+    <div class="queue-panel" class:tabbed={infoTabs.length > 0}>
+      {#if infoTabs.length}
+        <div class="info-tabs" role="tablist">
+          <button role="tab" class="queue-tab" class:on={infoKey === 'queue'} aria-selected={infoKey === 'queue'} onclick={() => chooseTab('queue')}><Icon name="queue" size={15} />Up next</button>
+          <div class="track-group" title="About the track that's playing">{#if cover}<span class="this-track"><img src={cover} alt="" /></span>{/if}{#each infoTabs as kind (kind)}<button role="tab" class:on={infoKey === kind} class:none={kind === 'lyrics' && missing('lyrics')} aria-selected={infoKey === kind} title={kind === 'lyrics' && missing('lyrics') ? 'No lyrics found for this track' : ''} onclick={() => chooseTab(kind)}>{infoNames[kind]}</button>{/each}</div>
+        </div>
+      {/if}
+      {#if infoKey === 'queue'}<div class="queue-body"><QueueView /></div>
+      {:else}
+        {@const result = info[infoKey]}
+        <div class="info" class:lyrics={infoKey === 'lyrics'}>
+          {#if !track}<p class="quiet">Nothing playing</p>
+          {:else if !result || result === 'loading'}<p class="quiet">Looking…</p>
+          {:else if !result.found}<p class="quiet">{infoKey === 'lyrics' ? 'No lyrics found for this track' : infoKey === 'album' ? 'Nothing found about this album' : 'Nothing found about this artist'}</p>
+          {:else}
+            <div class="info-head">{#if result.image}<img class="info-pic" class:round={infoKey === 'artist'} src={infoImage(result.image)} alt="" />{/if}<div><h2>{result.heading}</h2>{#if result.subheading}<div class="quiet">{result.subheading}</div>{/if}</div></div>
+            {#if infoKey === 'lyrics'}<pre>{result.text}</pre>{:else}{#each paragraphs(result.text) as paragraph}<p>{paragraph}</p>{/each}{/if}
+            <div class="source">From {result.source}{#if result.link}&nbsp;· <button class="link" onclick={() => sendToShell({ type: 'openUrl', url: result.link })}>Read more</button>{/if}</div>
+          {/if}
+        </div>
+      {/if}
+    </div>
   </div>
 </section>
 
@@ -60,8 +103,21 @@
   .readout { margin: 14px 0 6px; }
   /* The queue scrolls on its own, smoothly, with room for fingers */
   .queue-panel { align-self: stretch; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; /* a skin-coloured floor under the glass, so text stays readable over light covers and see-through glass */ --fg-quiet: color-mix(in srgb, var(--fg) 70%, var(--bg)); background: linear-gradient(color-mix(in srgb, var(--bg) 45%, transparent), color-mix(in srgb, var(--bg) 45%, transparent)), var(--glass); backdrop-filter: blur(var(--blur)) saturate(1.4); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+  /* Up next on its own; Artist, Album and Lyrics grouped behind the playing cover, since they're about this track */
+  .queue-panel.tabbed { display: flex; flex-direction: column; overflow: hidden; } .queue-body, .info { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+  .tabbed .queue-body :global(.head h3) { display: none; } /* the Up next tab names it */
+  .info-tabs { display: flex; gap: 10px; margin: 0 0 12px; flex: none; align-items: stretch; }
+  .info-tabs button { background: none; border: 0; border-radius: 7px; padding: 6px 10px; color: var(--fg-quiet); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .info-tabs button:hover { color: var(--fg); } .info-tabs button.on { background: var(--accent-soft); color: var(--accent); } .info-tabs button.none { opacity: 0.4; }
+  .info-tabs .queue-tab { display: flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--panel); border-radius: 9px; padding: 6px 12px; } .info-tabs .queue-tab.on { border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+  .track-group { flex: 1; display: flex; align-items: center; gap: 2px; padding: 3px; border-radius: 9px; background: var(--panel); border: 1px solid var(--line); min-width: 0; } .track-group button { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .this-track { flex: none; width: 26px; height: 26px; margin: 0 4px 0 1px; border-radius: 5px; overflow: hidden; box-shadow: 0 1px 4px var(--shadow); } .this-track img { width: 100%; height: 100%; display: block; object-fit: cover; }
+  .info { padding: 2px 4px 4px; user-select: text; text-align: left; } .info h2 { margin: 0 0 2px; font-size: 18px; } .info p { margin: 12px 0 0; line-height: 1.55; font-size: 13.5px; } .info .quiet { font-size: 12.5px; }
+  .info-head { display: flex; gap: 12px; align-items: center; } .info-pic { flex: none; width: 64px; height: 64px; object-fit: cover; border-radius: 8px; box-shadow: 0 6px 18px var(--shadow); } .info-pic.round { border-radius: 50%; }
+  .lyrics pre { margin: 14px 0 0; font: inherit; font-size: 15px; line-height: 1.7; white-space: pre-wrap; }
+  .source { margin-top: 18px; padding-top: 10px; border-top: 1px solid var(--line); color: var(--fg-quiet); font-size: 11.5px; } .source .link { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
   @media (max-width: 1100px) { .layout { grid-template-columns: minmax(180px, 0.8fr) minmax(280px, 1.2fr); grid-template-rows: auto 1fr; } .art-column { grid-row: 1; } .meta { grid-row: 1; } .queue-panel { grid-column: 1 / 3; } .art { max-width: min(260px, 42cqh); } }
-  @media (max-width: 900px) { .now-playing { overflow-y: auto; } .layout { height: auto; min-height: 100%; grid-template-columns: 1fr; padding: 20px 14px; } .art-column, .meta, .queue-panel { grid-column: 1; grid-row: auto; } .art { max-width: min(340px, 62cqh, 100cqw - 28px); } .meta { align-items: center; text-align: center; overflow: visible; max-height: none; } .queue-panel { overflow: visible; } }
+  @media (max-width: 900px) { .queue-panel.tabbed, .queue-body, .info { overflow: visible; } .now-playing { overflow-y: auto; } .layout { height: auto; min-height: 100%; grid-template-columns: 1fr; padding: 20px 14px; } .art-column, .meta, .queue-panel { grid-column: 1; grid-row: auto; } .art { max-width: min(340px, 62cqh, 100cqw - 28px); } .meta { align-items: center; text-align: center; overflow: visible; max-height: none; } .queue-panel { overflow: visible; } }
   /* Short and narrow: art beside the details, so it's never cut off */
   @container now-playing (max-width: 900px) and (max-height: 560px) { .layout { grid-template-columns: auto minmax(0, 1fr); gap: 14px 18px; } .art-column { grid-column: 1; } .meta { grid-column: 2; align-items: flex-start; text-align: left; } .queue-panel { grid-column: 1 / 3; } .art { width: min(200px, 45cqh, 38cqw); } .meta :global(.large .vu) { width: min(120px, 22cqw); } }
   /* Short windows: the meters move to the right of the details and grow to the height available (VU face is 5:3); the queue shows only when there's width for it */

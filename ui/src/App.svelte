@@ -94,7 +94,7 @@
     writeSetting('skin', ui.skin); writeSetting('coverAccent', ui.coverAccent ? '1' : ''); writeSetting('coverBackdrop', ui.coverBackdrop ? '1' : '0'); writeSetting('accent', ui.accent); writeSetting('glassTransparency', String(ui.glassTransparency)); writeSetting('glassTintHue', String(ui.glassTintHue))
   })
   onShellMessage('window', message => app.window = { glass: !!message.glass, frameless: !!message.frameless, maximised: !!message.maximised })
-  onShellMessage('settings', message => { if (message.library) app.librarySettings = message.library; if (message.hints) app.hints = message.hints; if (message.playback) app.playback = message.playback })
+  onShellMessage('settings', message => { if (message.library) app.librarySettings = message.library; if (message.hints) app.hints = message.hints; if (message.playback) app.playback = message.playback; if (Array.isArray(message.trackInfo)) app.trackInfoTabs = message.trackInfo })
   sendToShell({ type: 'ready' })
   // Restore an unsaved playlist draft from last time
   request({ type: 'loadDraft' }).then(draft => { if (draft?.items) newPlaylist(draft.name ?? 'Untitled playlist', draft.items) })

@@ -228,6 +228,34 @@
       </StackPanel>
       </ScrollViewer>
     </TabItem>
+    <TabItem Header="Now playing views" x:Name="nowPlayingViewsTab">
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel Margin="20,8,20,16">
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <TextBlock Text="Tabs" Style="{StaticResource CardTitle}" />
+            <TextBlock Style="{StaticResource Quiet}" FontSize="13" Margin="0,0,0,8" Text="Additional tabs next to &quot;Up next&quot;" />
+            <Border BorderBrush="#E3E5E8" BorderThickness="1" CornerRadius="6" ClipToBounds="True"><StackPanel x:Name="infoTabsList" /></Border>
+          </StackPanel>
+        </Border>
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <TextBlock Text="Sources" Style="{StaticResource CardTitle}" />
+            <TextBlock Style="{StaticResource Quiet}" FontSize="13" Margin="0,0,0,8" Text="Tried from the top; the first with a result is shown" />
+            <UniformGrid x:Name="infoSourcesGrid" Columns="3" />
+            <Border Style="{StaticResource Callout}"><DockPanel><TextBlock Style="{StaticResource CalloutIcon}" /><TextBlock Style="{StaticResource CalloutText}" Text="Online sources are sent the artist, album and track name only" /></DockPanel></Border>
+          </StackPanel>
+        </Border>
+        <Border Style="{StaticResource Card}" Margin="0">
+          <StackPanel>
+            <DockPanel><TextBlock DockPanel.Dock="Right" Text="optional" Foreground="#888" /><TextBlock Text="Last.fm" Style="{StaticResource CardTitle}" /></DockPanel>
+            <TextBlock Style="{StaticResource Quiet}" FontSize="13" Margin="0,0,0,8">Free key from <Hyperlink x:Name="lastFmLink" NavigateUri="https://www.last.fm/api/account/create">last.fm/api</Hyperlink>. Adds Last.fm as a source for Artist and Album</TextBlock>
+            <DockPanel><TextBlock Text="API key" Width="110" VerticalAlignment="Center" /><TextBox x:Name="lastFmKeyBox" Padding="4,3" /></DockPanel>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+      </ScrollViewer>
+    </TabItem>
     <TabItem Header="Recording" x:Name="recordingTab">
       <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel Margin="20,8,20,16">
