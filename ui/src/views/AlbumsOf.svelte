@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from '../lib/i18n'
+  import { t, tn } from '../lib/i18n'
   import { query } from '../bridge'
   import { app, addToPlaylist, playlist, albumItems, readSetting, writeSetting } from '../state.svelte'
   import { browseState, groupAlbums } from '../lib/browse.svelte'
@@ -30,7 +30,7 @@
 </script>
 
 <div class="page-width" bind:clientWidth={pageWidth}></div>
-<PageHead title={title || result.name || ''} detail={albumCount ? `${albumCount} ${albumCount === 1 ? 'album' : 'albums'}` : ''}>
+<PageHead title={title || result.name || ''} detail={albumCount ? tn(albumCount, '{count} album', '{count} albums') : ''}>
   {#snippet titleExtra()}{#if kind !== 'albums' && kind !== 'custom' && key}<PinButton view={{ kind, key, title: title || result.name || '' }} />{/if}{/snippet}
   {#if playlist.open && (result.own ?? []).length}<button class="ghost" onclick={addAll}>{t('＋ Add all to {playlist}', { playlist: playlist.name })}</button>{/if}
   {#if kind === 'new' && newMode === 'random'}<button class="ghost" onclick={() => shuffles++}>{t('Shuffle again')}</button>{/if}

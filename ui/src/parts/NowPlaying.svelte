@@ -2,6 +2,7 @@
   import { untrack } from 'svelte'
   import { trackArt, serverArt, query, sendToShell } from '../bridge'
   import { isDamaged } from '../lib/damaged.svelte'
+  import { fit } from '../lib/fit'
   import { infoQuery, infoKinds } from '../lib/nowPlayingInfo'
   import { app, currentTrack, openView, openSection, personView, ui, toast, writeSetting, formatTime } from '../state.svelte'
   import Icon from './Icon.svelte'
@@ -141,8 +142,8 @@
     </div>
     <div class="queue-panel" class:tabbed={infoTabs.length > 0}>
       {#if infoTabs.length}
-        <div class="info-tabs" role="tablist">
-          <button role="tab" class="queue-tab" class:on={infoKey === 'queue'} aria-selected={infoKey === 'queue'} onclick={() => chooseTab('queue')}><Icon name="queue" size={15} />{t('Up next')}</button>
+        <div class="info-tabs" role="tablist" use:fit>
+          <button role="tab" class="queue-tab" class:on={infoKey === 'queue'} aria-selected={infoKey === 'queue'} onclick={() => chooseTab('queue')} title={t('Up next')}><Icon name="queue" size={15} /><span class="tab-text">{t('Up next')}</span></button>
           <div class="track-group" title={t('About the track that\'s playing')}>{#if cover}<span class="this-track"><img src={cover} alt="" /></span>{/if}{#each infoTabs as kind (kind)}<button role="tab" class:on={infoKey === kind} class:none={kind === 'lyrics' && missing('lyrics')} aria-selected={infoKey === kind} title={kind === 'lyrics' && missing('lyrics') ? t('No lyrics found for this track') : ''} onclick={() => chooseTab(kind)}>{infoNames[kind]}</button>{/each}</div>
         </div>
       {/if}
@@ -244,7 +245,7 @@
   .now-playing { position: relative; height: 100%; overflow: hidden; container: now-playing / size; } /* art sizes to the space actually left (cqh/cqw) */
   .grain { position: absolute; inset: 0; pointer-events: none; opacity: 0.035; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); } /* a touch of noise breaks up banding in the blurred backdrop */
   .backdrop { position: absolute; inset: -80px; background-size: cover; background-position: center; filter: blur(70px) saturate(1.7) brightness(0.6); opacity: 0.75; pointer-events: none; }
-  .layout { position: relative; height: 100%; box-sizing: border-box; display: grid; grid-template-columns: minmax(200px, 1fr) minmax(220px, 0.9fr) minmax(300px, 1.1fr); gap: 28px; padding: 28px 28px 20px; align-items: center; }
+  .layout { position: relative; height: 100%; box-sizing: border-box; display: grid; grid-template-columns: minmax(200px, 1fr) minmax(220px, 0.9fr) minmax(340px, 1.1fr); gap: 28px; padding: 28px 28px 20px; align-items: center; }
   .art-column { display: flex; justify-content: center; }
   .damaged { color: var(--warn); font-size: 13px; margin: 2px 0 6px; }
   .damaged .link { color: inherit; text-decoration: underline; }
@@ -277,7 +278,10 @@
   .info-tabs button { background: none; border: 0; border-radius: 7px; padding: 6px 10px; color: var(--fg-quiet); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
   .info-tabs button:hover { color: var(--fg); } .info-tabs button.on { background: var(--accent-soft); color: var(--accent); } .info-tabs button.none { opacity: 0.4; }
   .info-tabs .queue-tab { display: flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--panel); border-radius: 9px; padding: 6px 12px; } .info-tabs .queue-tab.on { border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
-  .track-group { flex: 1; display: flex; align-items: center; gap: 2px; padding: 3px; border-radius: 9px; background: var(--panel); border: 1px solid var(--line); min-width: 0; } .track-group button { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .track-group { flex: 1; display: flex; align-items: center; gap: 2px; padding: 3px; border-radius: 9px; background: var(--panel); border: 1px solid var(--line); min-width: 0; } .track-group button { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  /* Longer languages: first drop the cover and tighten the tabs, then Up next shows just its icon (its name stays as the tooltip) */
+  .info-tabs:global(.fit-1) { gap: 6px; } .info-tabs:global(.fit-1) .this-track { display: none; } .info-tabs:global(.fit-1) .track-group button { padding: 6px 7px; }
+  .info-tabs:global(.fit-2) .queue-tab .tab-text { display: none; } .info-tabs:global(.fit-2) .queue-tab { padding: 6px 10px; }
   .this-track { flex: none; width: 26px; height: 26px; margin: 0 4px 0 1px; border-radius: 5px; overflow: hidden; box-shadow: 0 1px 4px var(--shadow); } .this-track img { width: 100%; height: 100%; display: block; object-fit: cover; }
   .info { padding: 2px 4px 4px; user-select: text; text-align: left; } .info h2 { margin: 0 0 2px; font-size: 18px; } .info p { margin: 12px 0 0; line-height: 1.55; font-size: 13.5px; } .info .quiet { font-size: 12.5px; } .info h3 { margin: 18px 0 0; font-size: 14px; color: var(--fg); } .info ul { margin: 8px 0 0; padding-left: 18px; font-size: 13.5px; line-height: 1.5; } .info li { margin: 2px 0; }
   .info .more { margin-top: 10px; background: none; border: 0; padding: 0; color: var(--accent); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; } .info .more:hover { text-decoration: underline; }

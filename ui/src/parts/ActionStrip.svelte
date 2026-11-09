@@ -1,6 +1,7 @@
 <script lang="ts">
   import { ui, undoToast } from '../state.svelte'
   import { t, tn } from '../lib/i18n'
+  import { fit } from '../lib/fit'
   import { selection, clearSelection, runAction, actionKey, type SelectionAction, type MenuChoice } from '../lib/selection.svelte'
   // One fixed place in the layout, above the transport, for the selection's actions and for messages with Undo
   const count = $derived(selection.keys.length)
@@ -31,13 +32,13 @@
     {#if !menu.choices}<div class="loading">{t('Loading…')}</div>{:else}{#each menu.choices as choice (choice.label + (choice.detail ?? ''))}<button role="menuitem" onclick={() => choose(choice)}><span>{choice.label}</span>{#if choice.detail}<span class="detail">{choice.detail}</span>{/if}</button>{/each}{/if}
   </div>
 {/if}
-<div class="strip" class:visible role="status" aria-live="polite">
+<div class="strip" class:visible role="status" aria-live="polite" use:fit={3}>
   {#if count}
     <span class="count">{selectedText(selection.noun, count)}</span>
     <!-- Something just done to the selection (moved, removed…) can be undone without leaving it -->
     {#if ui.toast?.undo}
       {#key ui.toast.id}<svg class="ring" viewBox="0 0 20 20" aria-hidden="true" style:--ms={`${ui.toast.ms}ms`}><circle class="track" cx="10" cy="10" r="8" /><circle class="left" cx="10" cy="10" r="8" pathLength="100" /></svg>{/key}
-      <span class="message inline">{ui.toast.text}</span><button class="undo inline" onclick={undoToast}>{t('Undo')}<kbd>{t('Ctrl+Z')}</kbd></button>
+      <span class="message inline" data-fit-skip>{ui.toast.text}</span><button class="undo inline" onclick={undoToast}>{t('Undo')}<kbd>{t('Ctrl+Z')}</kbd></button>
     {/if}
     <div class="actions">
       {#each actions as action (action.label)}<button class:danger={action.danger} class:open={menu?.label === action.label} onclick={() => press(action)}>{action.label}{#if actionKey(action)}<kbd>{actionKey(action) === 'Delete' ? t('Del') : actionKey(action) === 'Enter' ? t('Enter') : actionKey(action)}</kbd>{/if}</button>{/each}
@@ -47,7 +48,7 @@
     {#key ui.toast.id}
       <svg class="ring" viewBox="0 0 20 20" aria-hidden="true" style:--ms={`${ui.toast.ms}ms`}><circle class="track" cx="10" cy="10" r="8" /><circle class="left" cx="10" cy="10" r="8" pathLength="100" /></svg>
     {/key}
-    <span class="message">{ui.toast.text}</span>
+    <span class="message" data-fit-skip>{ui.toast.text}</span>
     <div class="actions">
       {#if ui.toast.action}<button onclick={() => { const action = ui.toast?.action; ui.toast = null; action?.run() }}>{ui.toast.action.label}<kbd>{ui.toast.action.key}</kbd></button>{/if}
       {#if ui.toast.undo}<button class="undo" onclick={undoToast}>{t('Undo')}<kbd>{t('Ctrl+Z')}</kbd></button>{/if}
@@ -74,6 +75,9 @@
   .detail { color: var(--fg-quiet); font-size: 11px; }
   .loading { padding: 8px 12px; color: var(--fg-quiet); }
   .wrap { position: relative; }
+  /* Longer languages: drop the key hints, then tighten the buttons, then let them wrap onto a second row */
+  .strip:global(.fit-1) kbd { display: none; } .strip:global(.fit-2) button { padding: 5px 8px; } .strip:global(.fit-2) .actions { gap: 4px; }
+  .strip.visible:global(.fit-3) { height: auto; flex-wrap: wrap; padding: 6px 16px; row-gap: 6px; } .strip:global(.fit-3) .actions { flex-wrap: wrap; overflow: visible; }
   .undo { color: var(--accent); font-weight: 600; background: none; }
   .message.inline { color: var(--fg-quiet); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
   kbd { font-family: var(--font-ui); font-size: 10px; color: var(--fg-quiet); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }

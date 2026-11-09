@@ -1126,5 +1126,12 @@
   "Save every problem, with file paths, as a JSON or text file": "Зберегти всі проблеми зі шляхами до файлів як JSON або текстовий файл",
   "Export…": "Експортувати…",
   "JSON, for scripts and AI": "JSON, для скриптів і ШІ",
-  "Plain text": "Звичайний текст"
+  "Plain text": "Звичайний текст",
+  "Save & close": "Зберегти й закрити",
+  "Saving…": "Збереження…",
+  "Saving {done} of {total}…": "Збереження {done} з {total}…",
+  "on {title}": "на {title}",
+  "Unplayable": "Не відтворюється",
+  "{count} error": "{count} помилка",
+  "{count} errors": "{count} помилка|{count} помилки|{count} помилок"
 }

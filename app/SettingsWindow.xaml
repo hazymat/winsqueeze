@@ -15,11 +15,12 @@
     <!-- Keycaps for the shortcut tables -->
     <Style TargetType="Border" x:Key="Keycap"><Setter Property="Background" Value="#F3F4F6" /><Setter Property="BorderBrush" Value="#CDD1D7" /><Setter Property="BorderThickness" Value="1,1,1,2" /><Setter Property="CornerRadius" Value="4" /><Setter Property="Padding" Value="6,1" /><Setter Property="Margin" Value="0,2,4,2" /></Style>
     <Style TargetType="Button"><Setter Property="Padding" Value="12,4" /><Setter Property="Margin" Value="0,0,8,0" /></Style>
-    <Style TargetType="CheckBox"><Setter Property="Margin" Value="0,8,0,0" /></Style>
+    <!-- Tickbox text wraps, so longer translations stay inside the page instead of running past its edge -->
+    <Style TargetType="CheckBox"><Setter Property="Margin" Value="0,8,0,0" /><Setter Property="ContentTemplate"><Setter.Value><DataTemplate><TextBlock Text="{Binding}" TextWrapping="Wrap" /></DataTemplate></Setter.Value></Setter></Style>
     <!-- Settings pages in a left sidebar, grouped under small section headings; the page's name heads its content -->
     <Style TargetType="TabControl">
       <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TabControl">
-        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="190" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" MinWidth="190" MaxWidth="260" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
           <Border Background="#F3F3F3" BorderBrush="#E2E2E2" BorderThickness="0,0,1,0"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel IsItemsHost="True" Margin="8,10" /></ScrollViewer></Border>
           <DockPanel Grid.Column="1" Background="#F7F8FA"><TextBlock DockPanel.Dock="Top" Text="{Binding SelectedItem.Header, RelativeSource={RelativeSource TemplatedParent}}" FontSize="22" FontWeight="SemiBold" Margin="20,16,20,4" />
             <ContentPresenter ContentSource="SelectedContent" /></DockPanel>
@@ -196,7 +197,7 @@
         <Border Style="{StaticResource Card}">
           <StackPanel>
             <TextBlock Text="Between tracks" Style="{StaticResource CardTitle}" />
-            <ComboBox x:Name="transitionTypeCombo" Width="260" HorizontalAlignment="Left" Margin="0,4,0,0">
+            <ComboBox x:Name="transitionTypeCombo" MinWidth="260" HorizontalAlignment="Left" Margin="0,4,0,0">
               <ComboBoxItem Content="Nothing (gapless)" Tag="0" />
               <ComboBoxItem Content="Crossfade" Tag="1" />
               <ComboBoxItem Content="Fade in" Tag="2" />
@@ -204,7 +205,7 @@
               <ComboBoxItem Content="Fade out and in" Tag="4" />
             </ComboBox>
             <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-              <TextBlock Text="Length" Width="60" VerticalAlignment="Center" />
+              <TextBlock Text="Length" Margin="0,0,8,0" MinWidth="60" VerticalAlignment="Center" />
               <Slider x:Name="transitionDurationSlider" Minimum="0" Maximum="10" Width="200" IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center" />
               <TextBlock x:Name="transitionDurationText" Width="60" Margin="8,0,0,0" VerticalAlignment="Center" />
             </StackPanel>
@@ -215,7 +216,7 @@
           <StackPanel>
             <TextBlock Text="ReplayGain" Style="{StaticResource CardTitle}" />
             <TextBlock Style="{StaticResource Quiet}" Margin="0,0,0,6" Text="Evens out loudness using the files' ReplayGain tags." />
-            <ComboBox x:Name="replayGainCombo" Width="260" HorizontalAlignment="Left">
+            <ComboBox x:Name="replayGainCombo" MinWidth="260" HorizontalAlignment="Left">
               <ComboBoxItem Content="Off" Tag="0" />
               <ComboBoxItem Content="Track gain" Tag="1" />
               <ComboBoxItem Content="Album gain" Tag="2" />
@@ -252,7 +253,7 @@
           <StackPanel>
             <DockPanel><TextBlock DockPanel.Dock="Right" Text="optional" Foreground="#888" /><TextBlock Text="Last.fm" Style="{StaticResource CardTitle}" /></DockPanel>
             <TextBlock Style="{StaticResource Quiet}" FontSize="13" Margin="0,0,0,8">Free key from <Hyperlink x:Name="lastFmLink" NavigateUri="https://www.last.fm/api/account/create">last.fm/api</Hyperlink>. Adds Last.fm as a source for Artist and Album</TextBlock>
-            <DockPanel><TextBlock Text="API key" Width="110" VerticalAlignment="Center" /><TextBox x:Name="lastFmKeyBox" Padding="4,3" /></DockPanel>
+            <DockPanel><TextBlock Text="API key" Margin="0,0,8,0" MinWidth="110" VerticalAlignment="Center" /><TextBox x:Name="lastFmKeyBox" Padding="4,3" /></DockPanel>
           </StackPanel>
         </Border>
       </StackPanel>
@@ -314,9 +315,9 @@
             <Grid Margin="0,4,0,0">
               <Grid.ColumnDefinitions><ColumnDefinition Width="230" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
               <Grid.RowDefinitions><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
-              <TextBlock Text="Composer and conductor names" VerticalAlignment="Center" />
-              <ComboBox x:Name="nameOrderBox" Grid.Column="1" Width="260" HorizontalAlignment="Left"><ComboBoxItem Tag="surname" Content="Surname, Forename (Kapustin, Nikolai)" /><ComboBoxItem Tag="forename" Content="Forename Surname (Nikolai Kapustin)" /></ComboBox>
-              <TextBlock Grid.Row="1" Text="Name separators" VerticalAlignment="Center" Margin="0,8,0,0" />
+              <TextBlock Text="Composer and conductor names" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,12,0" />
+              <ComboBox x:Name="nameOrderBox" Grid.Column="1" MinWidth="260" HorizontalAlignment="Left"><ComboBoxItem Tag="surname" Content="Surname, Forename (Kapustin, Nikolai)" /><ComboBoxItem Tag="forename" Content="Forename Surname (Nikolai Kapustin)" /></ComboBox>
+              <TextBlock Grid.Row="1" Text="Name separators" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,8,12,0" />
               <TextBox x:Name="separatorsBox" Grid.Row="1" Grid.Column="1" Margin="0,8,0,0" ToolTip="Space between each" />
             </Grid>
             <CheckBox x:Name="readSurnameFirstBox" Content="Read composer and conductor tags like &quot;Kapustin, Nikolai&quot; as one person" />
@@ -340,9 +341,9 @@
               <Grid.ColumnDefinitions><ColumnDefinition Width="210" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
               <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
               <TextBlock Text="Counts in Genres, Artists and other lists" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,12,0" />
-              <ComboBox x:Name="listCountsBox" Grid.Column="1" Width="300" HorizontalAlignment="Left" VerticalAlignment="Center" />
+              <ComboBox x:Name="listCountsBox" Grid.Column="1" MinWidth="300" HorizontalAlignment="Left" VerticalAlignment="Center" />
               <TextBlock Grid.Row="1" Text="Show how many items graphically" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,8,12,0" />
-              <ComboBox x:Name="listGraphicBox" Grid.Row="1" Grid.Column="1" Width="300" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0,8,0,0" />
+              <ComboBox x:Name="listGraphicBox" Grid.Row="1" Grid.Column="1" MinWidth="300" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0,8,0,0" />
               <Border Grid.Row="2" Grid.Column="1" Width="300" HorizontalAlignment="Left" Background="#1B2233" CornerRadius="6" Padding="10,6" Margin="0,8,0,0"><StackPanel x:Name="listGraphicPreview" /></Border>
             </Grid>
           </StackPanel>
@@ -385,7 +386,7 @@
             <TextBlock Text="Starting grouping for each area" Style="{StaticResource CardTitle}" />
             <TextBlock Style="{StaticResource Quiet}" Margin="0,0,0,4" Text="Change it any time from the view's Group menu." />
             <Grid x:Name="defaultGroupingGrid">
-              <Grid.ColumnDefinitions><ColumnDefinition Width="120" /><ColumnDefinition Width="200" /></Grid.ColumnDefinitions>
+              <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" MinWidth="120" /><ColumnDefinition Width="Auto" MinWidth="200" /></Grid.ColumnDefinitions>
             </Grid>
             <Border Style="{StaticResource Callout}"><DockPanel><TextBlock Style="{StaticResource CalloutIcon}" /><TextBlock Style="{StaticResource CalloutText}" Text="Sort and View are remembered per area from the toolbar in the main window." /></DockPanel></Border>
           </StackPanel>
@@ -411,7 +412,7 @@
           <StackPanel>
             <TextBlock Text="Skin" Style="{StaticResource CardTitle}" />
             <TextBlock Style="{StaticResource Quiet}" Margin="0,0,0,6" Text="The main window changes as you pick." />
-            <ComboBox x:Name="skinBox" Width="260" HorizontalAlignment="Left" />
+            <ComboBox x:Name="skinBox" MinWidth="260" HorizontalAlignment="Left" />
           </StackPanel>
         </Border>
         <Border Style="{StaticResource Card}">
@@ -430,7 +431,7 @@
           <StackPanel>
             <TextBlock Text="Size" Style="{StaticResource CardTitle}" />
             <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-              <TextBlock Text="Scale" Width="100" VerticalAlignment="Center" />
+              <TextBlock Text="Scale" Margin="0,0,8,0" MinWidth="100" VerticalAlignment="Center" />
               <Slider x:Name="uiScaleSlider" Minimum="75" Maximum="150" Width="220" IsSnapToTickEnabled="True" TickFrequency="5" VerticalAlignment="Center" />
               <TextBlock x:Name="uiScaleText" Width="50" Margin="8,0,0,0" VerticalAlignment="Center" />
               <Button x:Name="uiScaleResetButton" Content="Reset to 100%" />
@@ -442,12 +443,12 @@
             <TextBlock Text="Glass" Style="{StaticResource CardTitle}" />
             <CheckBox x:Name="glassBox" Content="Let the desktop show through the window, frosted (Windows 11)" Margin="0,4,0,8" />
             <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-              <TextBlock Text="Transparency" Width="100" VerticalAlignment="Center" />
+              <TextBlock Text="Transparency" Margin="0,0,8,0" MinWidth="100" VerticalAlignment="Center" />
               <Slider x:Name="glassTransparencySlider" Minimum="0" Maximum="100" Width="220" IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center" />
               <TextBlock x:Name="glassTransparencyText" Width="70" Margin="8,0,0,0" VerticalAlignment="Center" />
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-              <TextBlock Text="Tint" Width="100" VerticalAlignment="Center" />
+              <TextBlock Text="Tint" Margin="0,0,8,0" MinWidth="100" VerticalAlignment="Center" />
               <Slider x:Name="glassTintSlider" Minimum="0" Maximum="360" Width="220" IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center" />
               <Border x:Name="glassTintSwatch" Width="22" Height="16" CornerRadius="3" Margin="8,0,0,0" BorderBrush="#40FFFFFF" BorderThickness="1" />
               <TextBlock x:Name="glassTintText" Width="60" Margin="6,0,0,0" VerticalAlignment="Center" />
@@ -514,7 +515,7 @@
             <CheckBox x:Name="startMinimisedBox" Content="Start minimised to tray" />
             <CheckBox x:Name="closeHidesBox" Content="Close (X) keeps WinSqueeze running in the tray (otherwise it quits)" />
             <TextBlock Style="{StaticResource Label}" Text="When another Squeezelite is running at launch" Margin="0,14,0,3" />
-            <ComboBox x:Name="otherSqueezeliteCombo" Width="320" HorizontalAlignment="Left">
+            <ComboBox x:Name="otherSqueezeliteCombo" MinWidth="320" HorizontalAlignment="Left">
               <ComboBoxItem Content="Ask me" Tag="Ask" />
               <ComboBoxItem Content="Always stop it" Tag="Stop" />
               <ComboBoxItem Content="Leave it running" Tag="Leave" />
@@ -600,10 +601,10 @@
                 <Grid Margin="0,6,0,0" TextBlock.Foreground="#2B3A4E">
                   <Grid.ColumnDefinitions><ColumnDefinition Width="150" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                   <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
-                  <TextBlock Grid.Row="0" Grid.Column="0" FontWeight="SemiBold" Text="What" /><TextBlock Grid.Row="0" Grid.Column="1" FontWeight="SemiBold" Text="Goes to" /><TextBlock Grid.Row="0" Grid.Column="2" FontWeight="SemiBold" Text="Sends" />
-                  <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,6,0,0" Text="Update checks" /><TextBlock Grid.Row="1" Grid.Column="1" Margin="0,6,8,0" TextWrapping="Wrap" Text="GitHub" /><TextBlock Grid.Row="1" Grid.Column="2" Margin="0,6,0,0" TextWrapping="Wrap" Text="A request for the release list. No ID, no usage data" />
-                  <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,6,0,0" Text="Artist, Album, Lyrics" /><TextBlock Grid.Row="2" Grid.Column="1" Margin="0,6,8,0" TextWrapping="Wrap" Text="MusicBrainz, Wikipedia, Wikidata, Cover Art Archive, LRCLIB; Last.fm only with your key" /><TextBlock Grid.Row="2" Grid.Column="2" Margin="0,6,0,0" TextWrapping="Wrap" Text="Artist, album and track names" />
-                  <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,6,0,0" Text="Send diagnostics" /><TextBlock Grid.Row="3" Grid.Column="1" Margin="0,6,8,0" TextWrapping="Wrap" Text="GitHub Discussions, when you post it" /><TextBlock Grid.Row="3" Grid.Column="2" Margin="0,6,0,0" TextWrapping="Wrap" Text="The report you checked first" />
+                  <TextBlock Grid.Row="0" Grid.Column="0" FontWeight="SemiBold" TextWrapping="Wrap" Text="What" /><TextBlock Grid.Row="0" Grid.Column="1" FontWeight="SemiBold" Text="Goes to" /><TextBlock Grid.Row="0" Grid.Column="2" FontWeight="SemiBold" Text="Sends" />
+                  <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,6,8,0" TextWrapping="Wrap" Text="Update checks" /><TextBlock Grid.Row="1" Grid.Column="1" Margin="0,6,8,0" TextWrapping="Wrap" Text="GitHub" /><TextBlock Grid.Row="1" Grid.Column="2" Margin="0,6,0,0" TextWrapping="Wrap" Text="A request for the release list. No ID, no usage data" />
+                  <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,6,8,0" TextWrapping="Wrap" Text="Artist, Album, Lyrics" /><TextBlock Grid.Row="2" Grid.Column="1" Margin="0,6,8,0" TextWrapping="Wrap" Text="MusicBrainz, Wikipedia, Wikidata, Cover Art Archive, LRCLIB; Last.fm only with your key" /><TextBlock Grid.Row="2" Grid.Column="2" Margin="0,6,0,0" TextWrapping="Wrap" Text="Artist, album and track names" />
+                  <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,6,8,0" TextWrapping="Wrap" Text="Send diagnostics" /><TextBlock Grid.Row="3" Grid.Column="1" Margin="0,6,8,0" TextWrapping="Wrap" Text="GitHub Discussions, when you post it" /><TextBlock Grid.Row="3" Grid.Column="2" Margin="0,6,0,0" TextWrapping="Wrap" Text="The report you checked first" />
                 </Grid>
               </Expander>
               <Expander Header="About the developer" Style="{StaticResource More}">
@@ -621,7 +622,7 @@
               <TextBlock Text="Updates" Style="{StaticResource CardTitle}" />
               <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
                 <TextBlock Text="Channel" VerticalAlignment="Center" Margin="0,0,8,0" />
-                <ComboBox x:Name="channelCombo" Width="200" Margin="0,0,12,0">
+                <ComboBox x:Name="channelCombo" MinWidth="200" Margin="0,0,12,0">
                   <ComboBoxItem Content="Stable releases" Tag="stable" />
                   <ComboBoxItem Content="Dev builds (every change)" Tag="dev" />
                 </ComboBox>

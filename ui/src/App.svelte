@@ -224,7 +224,7 @@
           {#if customising && isSpacer(key)}
             <div class="section customise spacer-row" data-sort-row title={t('Hold and drag to move')}><span class="grip">⋮⋮</span><span class="spacer-line"></span><button class="remove-spacer no-hold" onclick={() => removeSpacer(key)} aria-label={t('Remove spacer')}>×</button></div>
           {:else if customising}
-            <label class="section customise" data-sort-row title={t('Hold and drag to reorder')}><span class="grip">⋮⋮</span><input type="checkbox" checked={!hiddenSections.includes(key)} onchange={() => toggleSection(key)} /><span class="glyph"><Icon name={glyph} /></span>{label}{#if pins.views[key]}<button class="remove-spacer no-hold" onclick={(event) => { event.preventDefault(); togglePin(pins.views[key]) }} aria-label={t('Unpin')} title={t('Unpin')}>×</button>{/if}</label>
+            <label class="section customise" data-sort-row title={t('Hold and drag to reorder')}><span class="grip">⋮⋮</span><input type="checkbox" checked={!hiddenSections.includes(key)} onchange={() => toggleSection(key)} /><span class="glyph"><Icon name={glyph} /></span><span class="customise-label">{label}</span>{#if pins.views[key]}<button class="remove-spacer no-hold" onclick={(event) => { event.preventDefault(); togglePin(pins.views[key]) }} aria-label={t('Unpin')} title={t('Unpin')}>×</button>{/if}</label>
           {:else if isSpacer(key)}
             <div class="divider"></div>
           {:else}
@@ -336,7 +336,8 @@
   .customise { cursor: grab; } .grip { color: var(--fg-quiet); font-size: 10px; margin-right: -6px; } .customise input { margin: 0 -4px 0 0; accent-color: var(--accent); }
   .customise-toggle { align-self: flex-start; background: none; border: 0; color: var(--fg-quiet); font: inherit; font-size: 11px; padding: 4px 10px; cursor: pointer; opacity: 0.7; }
   .customise-toggle:hover { opacity: 1; color: var(--accent); }
-  .customise-actions { display: flex; gap: 8px; padding: 8px 10px 4px; } .customise-actions button { flex: 1; white-space: nowrap; padding: 6px 8px; }
+  .customise-actions { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 10px 4px; } .customise-actions button { flex: 1 1 auto; white-space: nowrap; padding: 6px 8px; }
+  .customise-label { min-width: 0; overflow-wrap: anywhere; hyphens: auto; } /* long compound words (Albuminterpreten) break inside the narrow sidebar while customising */
   .sidebar-player { padding: 0 0 10px; } .sidebar-player :global(.current) { height: 30px; font-size: 12.5px; }
   .divider { height: 1px; background: var(--line); margin: 8px 10px; }
   .spacer-row { min-height: 30px; } .spacer-line { flex: 1; height: 0; border-top: 1px dashed var(--line); }
@@ -369,7 +370,7 @@
   .tabbar { display: flex; justify-content: space-around; background: var(--glass); backdrop-filter: blur(var(--blur)); border-top: 1px solid var(--line); }
   .tabbar button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; background: none; border: 0; color: var(--fg-quiet); font: inherit; font-size: 10px; padding: 6px 0; cursor: pointer; min-width: 0; }
   .tabbar button.on { color: var(--accent); }
-  .tab-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .tab-label { max-width: 100%; text-align: center; line-height: 1.15; overflow-wrap: break-word; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; } /* two short lines rather than cutting a longer translation off */
   @media (max-width: 480px) { .tab-label { display: none; } .tabbar .glyph { font-size: 18px; } }
   .pin-top { display: grid; place-items: center; width: 34px; height: 30px; margin-left: auto; background: none; border: 0; border-radius: 6px; color: var(--fg); opacity: 0.45; cursor: pointer; transform: rotate(45deg); transition: opacity 120ms, transform 120ms, background 120ms; }
   .pin-top:hover { opacity: 0.8; background: var(--hover); }
