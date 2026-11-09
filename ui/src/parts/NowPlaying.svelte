@@ -183,15 +183,15 @@
           {:else}
             {#if showCredits && info.credits?.found}
               <button class="back" onclick={() => showCredits = false}>← Album</button>
-                {@const credits = info.credits.events}{@const number = playingNumber(credits)}
+                {@const credits = info.credits.events}{@const number = playingNumber(credits)}{@const firstGroup = creditGroups.find(([group]) => peopleIn(credits, group).length)?.[0]}
                 {#each creditGroups as [group, title]}{@const people = peopleIn(credits, group)}
                   {#if people.length}
-                    <h3 class="credit-group">{title}</h3>
+                    <h3 class="credit-group">{title}{#if group === firstGroup}<span class="track-key" title="Each bar is a track on the album: lit where they appear, blue is the one playing">Tracks {credits.tracks[0].label}–{credits.tracks[credits.tracks.length - 1].label}</span>{/if}</h3>
                     <div class="credit-list">
                       {#each people as person}
                         <div class="credit-row" class:here={person.tracks.has(number)} title={person.detail.join('\n')}>
                           <div class="credit-name">{person.name}</div><div class="credit-roles">{person.roles.join(', ')}</div>
-                          <div class="track-map" style:width={`${credits.tracks.length * 6 - 2}px`} aria-hidden="true">{#if person.tracks.size}{#each credits.tracks as item}<i class:on={person.tracks.has(item.n)} class:current={item.n === number}></i>{/each}{/if}</div>
+                          <div class="track-map" style:width={`${credits.tracks.length * 6 - 2}px`} aria-hidden="true">{#if person.tracks.size}{#each credits.tracks as item}<i class:on={person.tracks.has(item.n)} class:current={item.n === number} title={`${item.label}. ${item.title}`}></i>{/each}{/if}</div>
                         </div>
                       {/each}
                     </div>
@@ -290,7 +290,7 @@
   .from + p { margin-top: 4px; }
   .tag-table { display: grid; grid-template-columns: minmax(90px, 0.6fr) 1.4fr; margin: 0; border-top: 1px solid var(--line); } .tag-table dt, .tag-table dd { margin: 0; padding: 6px 4px; border-bottom: 1px solid var(--line); font-size: 13px; line-height: 1.4; } .tag-table dt { color: var(--fg-quiet); } .tag-table dd { white-space: pre-line; }
   /* Credits: liner-notes table. Name, roles, and a strip with a cell per track; the playing track's column is lit down the whole list */
-  .info h3.credit-group { margin: 22px 0 6px; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-quiet); font-weight: 700; } .info .back + h3.credit-group { margin-top: 4px; }
+  .info h3.credit-group { margin: 22px 0 6px; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-quiet); font-weight: 700; } .info .back + h3.credit-group { margin-top: 4px; } .track-key { float: right; margin-right: 4px; font-weight: 400; text-transform: none; letter-spacing: 0; font-size: 11px; opacity: 0.7; cursor: help; }
   .credit-list { border-top: 1px solid var(--line); }
   .credit-row { display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.2fr) auto; gap: 12px; align-items: baseline; padding: 7px 4px 7px 8px; border-bottom: 1px solid var(--line); box-shadow: inset 2px 0 0 transparent; }
   .credit-row.here { box-shadow: inset 2px 0 0 var(--accent); background: color-mix(in srgb, var(--accent) 6%, transparent); }
