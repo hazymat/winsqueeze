@@ -72,6 +72,7 @@
   const grabScrew = (event: PointerEvent) => { if (size === 'small' || event.button !== 0) return; event.stopPropagation(); (event.currentTarget as Element).setPointerCapture(event.pointerId); screwDrag = { startX: event.clientX, startReference: Math.round(meters.reference), reference: Math.round(meters.reference), turned: false } }
   const turnScrew = (event: PointerEvent) => { if (!screwDrag) return; const reference = Math.max(-24, Math.min(-8, Math.round(screwDrag.startReference - (event.clientX - screwDrag.startX) / 6))); if (reference !== screwDrag.reference || !screwDrag.turned && Math.abs(event.clientX - screwDrag.startX) > 3) { screwDrag.reference = reference; screwDrag.turned = true; setReference(reference) } }
   const releaseScrew = () => { if (!screwDrag) return; if (screwDrag.turned) { sendToShell({ type: 'setMeterReference', referenceDbfs: screwDrag.reference }); showScrewNote(screwNote, 1500) } screwDrag = null }
+  const nudgeScrew = (event: KeyboardEvent) => { const step = event.key === 'ArrowRight' ? -1 : event.key === 'ArrowLeft' ? 1 : 0; if (!step) return; event.preventDefault(); const reference = Math.max(-24, Math.min(-8, Math.round(meters.reference) + step)); setReference(reference); sendToShell({ type: 'setMeterReference', referenceDbfs: reference }); showScrewNote(screwNote, 1500) }
   const autoScrew = (event: MouseEvent) => { event.stopPropagation(); if (size === 'small') return; app.meterSettings = { referenceDbfs: app.meterSettings.referenceDbfs, autoReference: true, styles: app.meterSettings.styles }; sendToShell({ type: 'setMeterReference', auto: true }); showScrewNote('Automatic 0 VU', 1500) }
   // OLED VU: one even scale line; above it, a tick per mark and dense detents across the 0..+3 zone (like the Transporter display)
   // Its pivot sits just below the display, closer than the analogue meter's, so the scale is a wider arc and the resting needle lies flatter
@@ -113,6 +114,10 @@
           <radialGradient id={gradientId + '-shroud'} cx="50%" cy="20%" r="80%"><stop offset="0%" stop-color="#3a352e" /><stop offset="55%" stop-color="#1b1915" /><stop offset="100%" stop-color="#0b0a08" /></radialGradient>
           <linearGradient id={gradientId + '-blade'} x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#050505" /><stop offset="55%" stop-color="#141414" /><stop offset="80%" stop-color="#5a5248" /><stop offset="100%" stop-color="#1a1a1a" /></linearGradient>
           <radialGradient id={gradientId + '-screw'} cx="40%" cy="35%" r="70%"><stop offset="0%" stop-color="#d8d2c6" /><stop offset="60%" stop-color="#8a8276" /><stop offset="100%" stop-color="#3c372f" /></radialGradient>
+          <radialGradient id={gradientId + '-lens'} cx="50%" cy="58%" r="58%" fx="46%" fy="64%"><stop offset="0%" class="lens-core" /><stop offset="55%" class="lens-mid" /><stop offset="100%" class="lens-edge" /></radialGradient>
+          <linearGradient id={gradientId + '-lens-ring'} x1="0.2" y1="0" x2="0.6" y2="1"><stop offset="0%" stop-color="#b9a585" /><stop offset="45%" stop-color="#6e5d45" /><stop offset="100%" stop-color="#2e261c" /></linearGradient>
+          <filter id={gradientId + '-lens-blur'} x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="0.3" /></filter>
+          <filter id={gradientId + '-lens-glint'} x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="0.12" /></filter>
           <clipPath id={gradientId + '-clip'}><rect x="5" y="5" width="110" height="62" rx="2" /></clipPath>
         </defs>
         <rect x="0" y="0" width="120" height="72" rx="5" class="bezel" />
@@ -133,7 +138,16 @@
           <line x1={tickX1} y1={tickY1} x2={tickX2} y2={tickY2} class="tick minor" /><text x={textX} y={textY} class="percent-number">{percent}</text>
         {/each}
         <text x="16" y="22" class="vu-label">VU</text>
-        <circle cx="106" cy="13.5" r="2.8" class="pilot" /><circle cx="105.2" cy="12.7" r="0.9" class="pilot-glint" />
+        <!-- Pilot lamp: a domed red lens in a brass ring. The ring sits proud, so the lamp below throws its soft shadow up the face; the room shows as a curved streak on the dome, and the meter's own lamp glows through the lens at the bottom -->
+        <g class="lens">
+          <ellipse cx="106" cy="12.7" rx="3.7" ry="3.5" class="lens-shadow" filter="url(#{gradientId}-soft)" />
+          <circle cx="106" cy="13.5" r="3.2" fill="url(#{gradientId}-lens-ring)" class="lens-ring" />
+          <circle cx="106" cy="13.5" r="2.35" fill="url(#{gradientId}-lens)" />
+          <circle cx="106" cy="13.5" r="2.25" class="lens-inner-shadow" filter="url(#{gradientId}-lens-blur)" />
+          <ellipse cx="106.15" cy="14.75" rx="1.35" ry="0.55" class="lens-caustic" filter="url(#{gradientId}-lens-blur)" />
+          <path d="M104.35 13.9 A1.75 1.75 0 0 1 105.5 11.85" class="lens-streak" filter="url(#{gradientId}-lens-glint)" />
+          <circle cx="107.15" cy="12.55" r="0.22" class="lens-speck" />
+        </g>
         <text x="105" y="57" class="sign hot">+</text><text x="14" y="57" class="sign">−</text>
         <text x="60" y="53" class="channel" class:note={screwNote}>{screwNote || channel}</text>
         <rect x="5" y="5" width="110" height="62" fill="url(#{gradientId}{channel}-blob)" class="shade" /><rect x="5" y="5" width="110" height="62" filter="url(#{gradientId}{channel}-mottle)" class="shade mottle" />
@@ -145,7 +159,7 @@
         <!-- Movement cover: a dark Bakelite dome the needle rises out of, its rim catching the lamp, with the zero-adjust screw -->
         <g clip-path="url(#{gradientId}-clip)"><ellipse cx="60" cy="74" rx="25" ry="16" fill="url(#{gradientId}-shroud)" /><path d="M35.6 74 A24.4 15.4 0 0 1 84.4 74" class="shroud-rim" /><ellipse cx="60" cy="74" rx="25" ry="16" class="shroud-edge" />
           <circle cx="60" cy="64" r="2.6" fill="url(#{gradientId}-screw)" class="screw" /><line x1="57.8" y1="64" x2="62.2" y2="64" class="screw-slot" transform="rotate({screwAngle} 60 64)" /></g>
-        {#if size !== 'small'}<circle cx="60" cy="64" r="4.5" class="screw-grip" role="slider" tabindex="-1" aria-label="0 VU" aria-valuenow={meters.reference} onpointerdown={grabScrew} onpointermove={turnScrew} onpointerup={releaseScrew} onpointercancel={releaseScrew} onclick={(event) => event.stopPropagation()} ondblclick={autoScrew}><title>Drag to set 0 VU · double-click for automatic</title></circle>{/if}
+        {#if size !== 'small'}<circle cx="60" cy="64" r="4.5" class="screw-grip" role="slider" tabindex="-1" aria-label="0 VU" aria-valuenow={meters.reference} onpointerdown={grabScrew} onpointermove={turnScrew} onpointerup={releaseScrew} onpointercancel={releaseScrew} onclick={(event) => event.stopPropagation()} onkeydown={nudgeScrew} ondblclick={autoScrew}><title>Drag to set 0 VU · double-click for automatic</title></circle>{/if}
         <rect x="7" y="65.6" width="106" height="1" class="lit-edge" />
         <!-- Acrylic window edge: light bends through the thick rim, a bright band with a darker inner seam -->
         <rect x="5.7" y="5.7" width="108.6" height="60.6" rx="1.6" class="rim-glow" /><rect x="7.3" y="7.3" width="105.4" height="57.4" rx="1" class="rim-seam" /><path d="M6 6.2 H114" class="rim-catch" />
@@ -209,20 +223,25 @@
   .bezel { fill: #15161a; stroke: #2c2e34; stroke-width: 1; }
   .face { stroke: rgba(0, 0, 0, 0.5); stroke-width: 0.8; }
   .scale { fill: none; stroke: #1d1a14; stroke-width: 0.9; stroke-linecap: round; }
-  .red-line { fill: none; stroke: #c4291c; stroke-width: 0.9; }
-  .red-band { fill: none; stroke: #c4291c; stroke-width: 3; }
-  .tick { stroke: #1d1a14; stroke-width: 0.9; stroke-linecap: round; } .tick.minor { stroke-width: 0.6; } .tick.hot { stroke: #c4291c; }
+  /* Red ink is only as bright as the lamp behind the face: cold, it sinks into the dark brown like the black print does */
+  .meters { --red-ink: color-mix(in srgb, #c4291c calc(min(1, var(--lamp-glow) * 1.4) * 100%), #2a0d07); }
+  .red-line { fill: none; stroke: var(--red-ink); stroke-width: 0.9; }
+  .red-band { fill: none; stroke: var(--red-ink); stroke-width: 3; }
+  .tick { stroke: #1d1a14; stroke-width: 0.9; stroke-linecap: round; } .tick.minor { stroke-width: 0.6; } .tick.hot { stroke: var(--red-ink); }
   .number { fill: #1d1a14; font-size: 6.5px; text-anchor: middle; dominant-baseline: middle; font-family: "Segoe UI", Arial, sans-serif; font-weight: 600; }
-  .number.hot { fill: #c4291c; }
+  .number.hot { fill: var(--red-ink); }
   .vu-label { fill: #1d1a14; font-size: 9px; font-weight: 700; font-family: "Segoe UI", Arial, sans-serif; }
-  .sign { fill: #1d1a14; font-size: 8px; font-weight: 700; text-anchor: middle; font-family: Arial, sans-serif; } .sign.hot { fill: #c4291c; }
+  .sign { fill: #1d1a14; font-size: 8px; font-weight: 700; text-anchor: middle; font-family: Arial, sans-serif; } .sign.hot { fill: var(--red-ink); }
   .channel { fill: rgba(29, 26, 20, 0.55); font-size: 6px; text-anchor: middle; font-family: var(--font-display); }
   .needle { stroke: #111; stroke-width: 0.9; } .needle.blade { stroke: none; } /* ballistics (a damped spring) in the shell, easing and window jog per frame in state.svelte.ts */
   .shroud-rim { fill: none; stroke: #fff3d6; stroke-width: 0.45; opacity: 0.45; transition: opacity 1s; } .idle .shroud-rim { opacity: 0.3; } .shroud-edge { fill: none; stroke: #000; stroke-width: 0.5; opacity: 0.6; }
   .screw { stroke: #1a1712; stroke-width: 0.3; } .screw-grip { fill: transparent; pointer-events: all; cursor: ew-resize; outline: none; } .channel.note { font-size: 4.2px; font-family: "Segoe UI", Arial, sans-serif; fill: rgba(29, 26, 20, 0.75); } .screw-slot { stroke: #26221c; stroke-width: 0.55; stroke-linecap: round; }
   .inset { fill: none; stroke: #1c1206; stroke-width: 4; opacity: 0.55; }
   .percent { stroke-width: 0.5; } .percent-number { fill: #1d1a14; font-size: 3.6px; text-anchor: middle; dominant-baseline: middle; font-family: "Segoe UI", Arial, sans-serif; }
-  .pilot { fill: #2b2620; stroke: #7a6646; stroke-width: 0.5; } .pilot-glint { fill: #fff; opacity: 0.45; }
+  .lens-shadow { fill: #2a1500; opacity: 0.28; } .lens-ring { stroke: #1a140c; stroke-width: 0.25; }
+  .lens-core { stop-color: #6a1a12; } .lens-mid { stop-color: #40100b; } .lens-edge { stop-color: #1e0604; }
+  .lens-inner-shadow { fill: none; stroke: #000; stroke-width: 0.5; opacity: 0.55; } .lens-caustic { fill: #ffb070; opacity: calc(0.4 * var(--lamp-glow)); }
+  .lens-streak { fill: none; stroke: #fff; stroke-width: 0.42; stroke-linecap: round; opacity: 0.55; } .lens-speck { fill: #fff; opacity: 0.3; }
   .shade { pointer-events: none; } .mottle { opacity: 0.07; }
   .rim-glow { fill: none; stroke: #ffe6b4; stroke-width: 1.3; } .rim-seam { fill: none; stroke: #3a2508; stroke-width: 0.45; opacity: 0.35; } .rim-catch { stroke: #fff8e6; stroke-width: 0.5; opacity: 0.6; }
   .grain { opacity: 0.45; } .full .grain { opacity: 0.18; } .needle-shadow { stroke: #2a1a05; stroke-width: 1.1; stroke-linecap: round; opacity: 0.2; }
