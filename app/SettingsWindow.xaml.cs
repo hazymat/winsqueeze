@@ -12,15 +12,15 @@ namespace WinSqueeze;
 // Changes apply immediately (no OK/Apply), SPEC.md › Settings
 public partial class SettingsWindow : Window
 {
-    static readonly OutputDevice noFallback = new(-1, "None: wait for the chosen device", "");
+    static readonly OutputDevice noFallback = new(-1, L.T("None: wait for the chosen device"), "");
     App App => App.Instance;
     AppSettings Settings => App.Settings;
     bool loadingControls;
 
     public SettingsWindow()
     {
-        InitializeComponent(); settingsTabs.SelectedItem = generalTab; // the first sidebar item is a section heading
-        WireGeneralTab(); WireServersTab(); WireServerLibraryTab(); WireAudioTab(); WirePlaybackTab(); WireNowPlayingViewsTab(); WireLibraryTab(); WireBrowsingTab(); WireAppearanceTab(); WireMetersTab(); WireShortcutsAndNotifications(); WireRecordingTab(); WireAboutTab();
+        InitializeComponent(); L.Translate(this); settingsTabs.SelectedItem = generalTab; // the first sidebar item is a section heading
+        WireLanguage(); WireGeneralTab(); WireServersTab(); WireServerLibraryTab(); WireAudioTab(); WirePlaybackTab(); WireNowPlayingViewsTab(); WireLibraryTab(); WireBrowsingTab(); WireAppearanceTab(); WireMetersTab(); WireShortcutsAndNotifications(); WireRecordingTab(); WireAboutTab();
         App.DevicesChanged += LoadDevices;
         App.StatusChanged += ShowPlayerStatus;
         Closed += (sender, args) => { App.DevicesChanged -= LoadDevices; App.StatusChanged -= ShowPlayerStatus; };
@@ -34,7 +34,7 @@ public partial class SettingsWindow : Window
     }
 
     // ---- Now playing views (SPEC.md › Now playing views): which tabs sit beside Up next, in what order, and where each looks ----
-    static readonly Dictionary<string, string> infoNames = new() { ["artist"] = "Artist", ["album"] = "Album", ["lyrics"] = "Lyrics", ["plugin"] = "Server plugin", ["wikipedia"] = "Wikipedia", ["lastfm"] = "Last.fm", ["tags"] = "File's own tags", ["lrclib"] = "LRCLIB" };
+    static readonly Dictionary<string, string> infoNames = new() { ["artist"] = L.T("Artist"), ["album"] = L.T("Album"), ["lyrics"] = L.T("Lyrics"), ["plugin"] = L.T("Server plugin"), ["wikipedia"] = "Wikipedia", ["lastfm"] = "Last.fm", ["tags"] = L.T("File's own tags"), ["lrclib"] = "LRCLIB" };
     static readonly Brush quietBrush = new SolidColorBrush(Color.FromRgb(0x88, 0x88, 0x88)), okBrush = new SolidColorBrush(Color.FromRgb(0x1F, 0x7A, 0x3A)), lineBrush = new SolidColorBrush(Color.FromRgb(0xEC, 0xEE, 0xF1)), lockedBrush = new SolidColorBrush(Color.FromRgb(0xF6, 0xF7, 0xF9));
     bool? infoPluginInstalled;
 
@@ -61,8 +61,8 @@ public partial class SettingsWindow : Window
     void DrawInfoTabs()
     {
         infoTabsList.Children.Clear();
-        infoTabsList.Children.Add(InfoRow(null, new InfoChoice { Key = "upnext" }, "Up next", "", null, DrawInfoTabs, arrows: true)); // always there, always first
-        foreach (var tab in Settings.TrackInfo.Tabs) infoTabsList.Children.Add(InfoRow(Settings.TrackInfo.Tabs, tab, infoNames[tab.Key], tab.Key == "artist" ? "biography and photo" : tab.Key == "album" ? "review and background" : "", null, DrawInfoTabs, arrows: true));
+        infoTabsList.Children.Add(InfoRow(null, new InfoChoice { Key = "upnext" }, L.T("Up next"), "", null, DrawInfoTabs, arrows: true)); // always there, always first
+        foreach (var tab in Settings.TrackInfo.Tabs) infoTabsList.Children.Add(InfoRow(Settings.TrackInfo.Tabs, tab, infoNames[tab.Key], tab.Key == "artist" ? L.T("biography and photo") : tab.Key == "album" ? L.T("review and background") : "", null, DrawInfoTabs, arrows: true));
     }
 
     void DrawInfoSources()
@@ -76,7 +76,7 @@ public partial class SettingsWindow : Window
             var sources = Settings.TrackInfo.Sources[tabKey];
             foreach (var source in sources)
             {
-                var (note, noteBrush) = source.Key switch { "plugin" => (infoPluginInstalled == true ? "✓ installed" : infoPluginInstalled == false ? "not installed" : "", infoPluginInstalled == true ? okBrush : quietBrush), "wikipedia" => ("via MusicBrainz", quietBrush), "lrclib" => ("online", quietBrush), "lastfm" => (hasLastFmKey ? "" : "needs a key", quietBrush), _ => ("", quietBrush) };
+                var (note, noteBrush) = source.Key switch { "plugin" => (infoPluginInstalled == true ? "✓ " + L.T("installed") : infoPluginInstalled == false ? L.T("not installed") : "", infoPluginInstalled == true ? okBrush : quietBrush), "wikipedia" => (L.T("via MusicBrainz"), quietBrush), "lrclib" => (L.T("online"), quietBrush), "lastfm" => (hasLastFmKey ? "" : L.T("needs a key"), quietBrush), _ => ("", quietBrush) };
                 column.Children.Add(InfoRow(sources, source, infoNames[source.Key], note, noteBrush, DrawInfoSources, arrows: false, usable: source.Key != "lastfm" || hasLastFmKey));
             }
             infoSourcesGrid.Children.Add(new Border { BorderBrush = new SolidColorBrush(Color.FromRgb(0xE3, 0xE5, 0xE8)), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(6), ClipToBounds = true, Margin = new Thickness(tabKey == "artist" ? 0 : 4, 0, tabKey == "lyrics" ? 0 : 4, 0), Background = Brushes.White, Child = column });
@@ -89,7 +89,7 @@ public partial class SettingsWindow : Window
         save ??= SaveTrackInfo;
         var locked = list == null; var position = list?.IndexOf(choice) ?? -1;
         var row = new DockPanel { LastChildFill = true };
-        var grip = new TextBlock { Text = locked ? "\uE72E" : "\uE76F", FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = locked ? 12 : 14, Foreground = quietBrush, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0), Width = 14, Cursor = locked ? null : System.Windows.Input.Cursors.SizeAll, ToolTip = locked ? null : "Drag to reorder" };
+        var grip = new TextBlock { Text = locked ? "\uE72E" : "\uE76F", FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = locked ? 12 : 14, Foreground = quietBrush, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0), Width = 14, Cursor = locked ? null : System.Windows.Input.Cursors.SizeAll, ToolTip = locked ? null : L.T("Drag to reorder") };
         if (!locked) { grip.LayoutTransform = new RotateTransform(90); grip.MouseLeftButtonDown += (sender, args) => DragDrop.DoDragDrop(grip, new DataObject(typeof(InfoChoice), choice), DragDropEffects.Move); }
         DockPanel.SetDock(grip, Dock.Left); row.Children.Add(grip);
         var box = new CheckBox { Margin = new Thickness(0), VerticalAlignment = VerticalAlignment.Center, IsChecked = locked || (usable && choice.On), IsEnabled = !locked && usable };
@@ -102,7 +102,7 @@ public partial class SettingsWindow : Window
             var arrowPanel = new StackPanel { Orientation = Orientation.Horizontal }; DockPanel.SetDock(arrowPanel, Dock.Right);
             foreach (var (glyph, step) in new[] { ("\uE70E", -1), ("\uE70D", 1) })
             {
-                var arrow = new Button { Content = glyph, FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 10, Padding = new Thickness(6, 3, 6, 3), Margin = new Thickness(4, 0, 0, 0), IsEnabled = !locked && position + step >= 0 && position + step < list!.Count, ToolTip = step < 0 ? "Move up" : "Move down" };
+                var arrow = new Button { Content = glyph, FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 10, Padding = new Thickness(6, 3, 6, 3), Margin = new Thickness(4, 0, 0, 0), IsEnabled = !locked && position + step >= 0 && position + step < list!.Count, ToolTip = step < 0 ? L.T("Move up") : L.T("Move down") };
                 arrow.Click += (sender, args) => { list!.RemoveAt(position); list.Insert(position + step, choice); save(); redraw(); };
                 arrowPanel.Children.Add(arrow);
             }
@@ -117,6 +117,21 @@ public partial class SettingsWindow : Window
             rowBorder.Drop += (sender, args) => { if (args.Data.GetData(typeof(InfoChoice)) is not InfoChoice dragged || !list!.Contains(dragged) || dragged == choice) return; list.Remove(dragged); list.Insert(Math.Min(position, list.Count), dragged); save(); redraw(); }; // dropped on a row: takes that row's place
         }
         return rowBorder;
+    }
+
+    // Language (SPEC.md › Languages): Windows' display language unless chosen here; the new one shows after a restart
+    void WireLanguage()
+    {
+        var windowsLanguage = L.Languages.First(language => language.code == L.Resolve("")).name;
+        languageCombo.ItemsSource = new[] { new ComboBoxItem { Content = L.T("Same as Windows ({language})", ("language", windowsLanguage)), Tag = "" } }.Concat(L.Languages.Select(language => new ComboBoxItem { Content = language.name, Tag = language.code })).ToList();
+        languageCombo.SelectedItem = ((List<ComboBoxItem>)languageCombo.ItemsSource).FirstOrDefault(item => (string)item.Tag == Settings.General.Language) ?? ((List<ComboBoxItem>)languageCombo.ItemsSource)[0];
+        languageCombo.SelectionChanged += (sender, args) =>
+        {
+            if (languageCombo.SelectedItem is not ComboBoxItem { Tag: string code }) return;
+            Settings.General.Language = code; Settings.Save();
+            languageRestartButton.Visibility = L.Resolve(code) == L.Code ? Visibility.Collapsed : Visibility.Visible;
+        };
+        languageRestartButton.Click += async (sender, args) => await App.RestartAsync();
     }
 
     void WireGeneralTab()
@@ -139,17 +154,17 @@ public partial class SettingsWindow : Window
         closeHidesBox.Click += (sender, args) => { Settings.General.CloseToTray = closeHidesBox.IsChecked == true; Settings.Save(); };
         exportSettingsButton.Click += (sender, args) =>
         {
-            var saveDialog = new Microsoft.Win32.SaveFileDialog { FileName = $"WinSqueeze-settings-{DateTime.Now:yyyy-MM-dd}.json", Filter = "WinSqueeze settings (*.json)|*.json" };
+            var saveDialog = new Microsoft.Win32.SaveFileDialog { FileName = $"WinSqueeze-settings-{DateTime.Now:yyyy-MM-dd}.json", Filter = L.T("WinSqueeze settings") + " (*.json)|*.json" };
             if (saveDialog.ShowDialog(this) != true) return;
             System.IO.File.WriteAllText(saveDialog.FileName, Settings.ExportJson());
-            settingsFileText.Text = $"Exported to {saveDialog.FileName} (passwords left out).";
+            settingsFileText.Text = L.T("Exported to {file} (passwords left out).", ("file", saveDialog.FileName));
         };
         importSettingsButton.Click += async (sender, args) =>
         {
-            var openDialog = new Microsoft.Win32.OpenFileDialog { Filter = "WinSqueeze settings (*.json)|*.json" };
+            var openDialog = new Microsoft.Win32.OpenFileDialog { Filter = L.T("WinSqueeze settings") + " (*.json)|*.json" };
             if (openDialog.ShowDialog(this) != true) return;
             try { await App.ReplaceSettingsAsync(AppSettings.Import(System.IO.File.ReadAllText(openDialog.FileName), Settings)); Close(); App.OpenSettings("General"); }
-            catch (Exception importError) { settingsFileText.Text = $"Could not import: {importError.Message}"; }
+            catch (Exception importError) { settingsFileText.Text = L.T("Could not import: {error}", ("error", importError.Message)); }
         };
         otherSqueezeliteCombo.SelectedItem = otherSqueezeliteCombo.Items.Cast<ComboBoxItem>().First(item => (string)item.Tag == Settings.General.OtherSqueezelite.ToString());
         otherSqueezeliteCombo.SelectionChanged += (sender, args) => { if (otherSqueezeliteCombo.SelectedItem is ComboBoxItem chosen) { Settings.General.OtherSqueezelite = Enum.Parse<OtherSqueezeliteAction>((string)chosen.Tag); Settings.Save(); } };
@@ -172,17 +187,17 @@ public partial class SettingsWindow : Window
     async Task LoadPlaybackAsync()
     {
         playbackPlayerId = App.Session.PlayerId;
-        var playerName = playbackPlayerId == Settings.PlayerMac ? $"{Settings.Audio.PlayerName} (this PC)" : playbackPlayerId;
+        var playerName = playbackPlayerId == Settings.PlayerMac ? L.T("{name} (this PC)", ("name", Settings.Audio.PlayerName)) : playbackPlayerId;
         try
         {
             using var playersDocument = System.Text.Json.JsonDocument.Parse(App.Session.LastPlayersJson);
             foreach (var player in playersDocument.RootElement.EnumerateArray()) if (LyrionClient.ReadString(player, "playerid") == playbackPlayerId && playbackPlayerId != Settings.PlayerMac) playerName = LyrionClient.ReadString(player, "name");
         }
         catch (System.Text.Json.JsonException) { }
-        playbackPlayerText.Text = $"Settings for {playerName}";
+        playbackPlayerText.Text = L.T("Settings for {player}", ("player", playerName));
         var available = !App.IsOffline;
         foreach (var control in new Control[] { transitionTypeCombo, transitionDurationSlider, transitionSmartBox, replayGainCombo }) control.IsEnabled = available;
-        playbackStatusText.Text = available ? "" : "Not available while playing offline.";
+        playbackStatusText.Text = available ? "" : L.T("Not available while playing offline.");
         if (!available) return;
         try
         {
@@ -197,7 +212,7 @@ public partial class SettingsWindow : Window
             loadingControls = false;
             ShowTransitionControls();
         }
-        catch (Exception readError) { loadingControls = false; playbackStatusText.Text = $"Could not read the player's settings: {readError.Message}"; }
+        catch (Exception readError) { loadingControls = false; playbackStatusText.Text = L.T("Could not read the player's settings: {error}", ("error", readError.Message)); }
     }
 
     void ShowTransitionControls() { var transitionOn = transitionTypeCombo.SelectedItem is ComboBoxItem { Tag: string tag } && tag != "0"; transitionDurationSlider.IsEnabled = transitionOn && !App.IsOffline; transitionSmartBox.IsEnabled = transitionOn && !App.IsOffline; }
@@ -206,7 +221,7 @@ public partial class SettingsWindow : Window
     {
         if (loadingControls || playbackPlayerId == "" || App.IsOffline) return;
         try { await App.ServerRequestAsync(playbackPlayerId, "playerpref", prefName, value); playbackStatusText.Text = ""; if (playbackPlayerId == Settings.PlayerMac) await App.LoadOwnPlayerPrefsAsync(); }
-        catch (Exception writeError) { playbackStatusText.Text = $"Could not change it: {writeError.Message}"; }
+        catch (Exception writeError) { playbackStatusText.Text = L.T("Could not change it: {error}", ("error", writeError.Message)); }
     }
 
     // ---- Server › Library: start Lyrion scans and follow them (SPEC.md › Server library) ----
@@ -216,7 +231,7 @@ public partial class SettingsWindow : Window
     static long scanBaseline; // the server's last scan time before the current scan: albums added after it are new
     bool scanWasRunning, scanStepsSeen, scanPollBusy; DateTime? scanStartedAt; // when this page started the scan, or worked out from the server's own clock
     // Lyrion's internal step names (rescanprogress), in plain words; unknown ones are tidied up
-    static readonly (string prefix, string label)[] scanStepLabels = { ("discovering_playlist", "Finding playlists"), ("discovering", "Finding files"), ("directory_deleted", "Removing deleted files"), ("directory_new", "Reading new files"), ("directory_changed", "Reading changed files"), ("directory", "Reading files"), ("playlist_deleted", "Removing deleted playlists"), ("playlist", "Reading playlists"), ("cleanup", "Tidying up"), ("mergeva", "Merging Various Artists albums"), ("dboptimize", "Optimising the database"), ("precacheartwork", "Preparing cover art"), ("updatestandaloneartwork", "Cover art"), ("artwork", "Cover art"), ("fulltext", "Building the search index"), ("contributor_picture", "Artist pictures"), ("wipedb", "Clearing the library"), ("onlinelibrary", "Online library"), ("persistent", "Ratings and play counts") };
+    static readonly (string prefix, string label)[] scanStepLabels = { ("discovering_playlist", L.T("Finding playlists")), ("discovering", L.T("Finding files")), ("directory_deleted", L.T("Removing deleted files")), ("directory_new", L.T("Reading new files")), ("directory_changed", L.T("Reading changed files")), ("directory", L.T("Reading files")), ("playlist_deleted", L.T("Removing deleted playlists")), ("playlist", L.T("Reading playlists")), ("cleanup", L.T("Tidying up")), ("mergeva", L.T("Merging Various Artists albums")), ("dboptimize", L.T("Optimising the database")), ("precacheartwork", L.T("Preparing cover art")), ("updatestandaloneartwork", L.T("Cover art")), ("artwork", L.T("Cover art")), ("fulltext", L.T("Building the search index")), ("contributor_picture", L.T("Artist pictures")), ("wipedb", L.T("Clearing the library")), ("onlinelibrary", L.T("Online library")), ("persistent", L.T("Ratings and play counts")) };
 
     void WireServerLibraryTab()
     {
@@ -227,7 +242,7 @@ public partial class SettingsWindow : Window
         rescanPlaylistsButton.Click += async (sender, args) => await SendScanCommandAsync("rescan", "playlists");
         wipeCacheButton.Click += async (sender, args) =>
         {
-            if (MessageBox.Show(this, "The server empties its library and reads every file again. Until it finishes, every player sees only part of the library.\n\nClear and rescan everything?", "Clear and rescan", MessageBoxButton.OKCancel, MessageBoxImage.Warning, MessageBoxResult.Cancel) == MessageBoxResult.OK) await SendScanCommandAsync("wipecache");
+            if (MessageBox.Show(this, L.T("The server empties its library and reads every file again. Until it finishes, every player sees only part of the library.") + "\n\n" + L.T("Clear and rescan everything?"), L.T("Clear and rescan"), MessageBoxButton.OKCancel, MessageBoxImage.Warning, MessageBoxResult.Cancel) == MessageBoxResult.OK) await SendScanCommandAsync("wipecache");
         };
         stopScanButton.Click += async (sender, args) => await SendScanCommandAsync("abortscan");
         showNewMusicButton.Click += (sender, args) => App.OpenSection("new");
@@ -241,7 +256,7 @@ public partial class SettingsWindow : Window
         var queries = App.Library.Queries;
         var newAlbums = await Task.Run(() => queries.AlbumsAddedAfter(addedAfter));
         string Describe(Dictionary<string, object?> album) => $"{album["title"]}" + (album["artist"] is string artist && artist != "" ? $" · {artist}" : "");
-        lastScanReport = (lastScan, newAlbums.Count == 0 ? "No new albums" : $"This scan added {newAlbums.Count} {(newAlbums.Count == 1 ? "album" : "albums")}", string.Join("\n", newAlbums.Take(6).Select(Describe)) + (newAlbums.Count > 6 ? $"\nand {newAlbums.Count - 6} more" : ""), newAlbums.Count > 0);
+        lastScanReport = (lastScan, newAlbums.Count == 0 ? L.T("No new albums") : L.N(newAlbums.Count, "This scan added {count} album", "This scan added {count} albums"), string.Join("\n", newAlbums.Take(6).Select(Describe)) + (newAlbums.Count > 6 ? "\n" + L.T("and {count} more", ("count", newAlbums.Count - 6)) : ""), newAlbums.Count > 0);
         ShowScanReport(lastScan);
     }
 
@@ -257,7 +272,7 @@ public partial class SettingsWindow : Window
     async Task SendScanCommandAsync(params object[] command)
     {
         try { await App.ServerRequestAsync("", command); scanActionText.Text = ""; if ((string)command[0] != "abortscan") scanStartedAt = DateTime.Now; }
-        catch (Exception commandError) { scanActionText.Text = $"The server didn't take it: {commandError.Message}"; }
+        catch (Exception commandError) { scanActionText.Text = L.T("The server didn't take it: {error}", ("error", commandError.Message)); }
         await PollScanAsync();
     }
 
@@ -267,7 +282,7 @@ public partial class SettingsWindow : Window
         scanPollBusy = true;
         try
         {
-            if (App.IsOffline) { ShowScanIdle("Not available while playing offline", "", false); return; }
+            if (App.IsOffline) { ShowScanIdle(L.T("Not available while playing offline"), "", false); return; }
             var status = await App.ServerRequestAsync("", "serverstatus", 0, 0);
             if (LyrionClient.ReadString(status, "rescan") != "1")
             {
@@ -280,11 +295,11 @@ public partial class SettingsWindow : Window
                 }
                 scanBaseline = lastScan;
                 if (scanStartedAt is { } sentAt && DateTime.Now - sentAt > TimeSpan.FromSeconds(30)) scanStartedAt = null; // a scan asked for that never showed up
-                var totals = $"{LyrionClient.ReadInt(status, "info total songs"):N0} tracks · {LyrionClient.ReadInt(status, "info total albums"):N0} albums · {LyrionClient.ReadInt(status, "info total artists"):N0} artists";
-                var lastScanText = lastScan > 0 ? $"Last library scan finished {DescribeWhen(DateTimeOffset.FromUnixTimeSeconds(lastScan).LocalDateTime)}" : "No scan recorded yet";
+                var totals = L.T("{tracks} tracks · {albums} albums · {artists} artists", ("tracks", LyrionClient.ReadInt(status, "info total songs").ToString("N0")), ("albums", LyrionClient.ReadInt(status, "info total albums").ToString("N0")), ("artists", LyrionClient.ReadInt(status, "info total artists").ToString("N0")));
+                var lastScanText = lastScan > 0 ? L.T("Last library scan finished {when}", ("when", DescribeWhen(DateTimeOffset.FromUnixTimeSeconds(lastScan).LocalDateTime))) : L.T("No scan recorded yet");
                 ShowScanIdle(lastScanText, totals, true); ShowScanReport(lastScan);
                 var failure = LyrionClient.ReadString(status, "lastscanfailed");
-                scanFailedText.Text = $"The last scan didn't finish: {failure}"; scanFailedCallout.Visibility = failure == "" ? Visibility.Collapsed : Visibility.Visible;
+                scanFailedText.Text = L.T("The last scan didn't finish: {error}", ("error", failure)); scanFailedCallout.Visibility = failure == "" ? Visibility.Collapsed : Visibility.Visible;
                 return;
             }
             var progress = await App.ServerRequestAsync("", "rescanprogress");
@@ -298,9 +313,9 @@ public partial class SettingsWindow : Window
             var serverStepName = LyrionClient.ReadString(status, "progressname");
             var stepDone = LyrionClient.ReadLong(status, "progressdone"); var stepTotal = LyrionClient.ReadLong(status, "progresstotal");
             scanGlyph.Text = "\uE895"; scanGlyph.Foreground = new SolidColorBrush(Color.FromRgb(0x2F, 0x7F, 0xD8)); // sync arrows
-            scanHeadlineText.Text = starting ? "Starting the scan" : serverStepName.Any(char.IsLower) ? serverStepName : activeStep == "" ? "Scanning" : ScanStepLabel(activeStep); // the server's own wording, unless it only has a code for this step
+            scanHeadlineText.Text = starting ? L.T("Starting the scan") : serverStepName.Any(char.IsLower) ? serverStepName : activeStep == "" ? L.T("Scanning") : ScanStepLabel(activeStep); // the server's own wording, unless it only has a code for this step
             var showCount = stepTotal > 0 && !starting;
-            scanDetailText.Text = (showCount ? $"{stepDone:N0} of {stepTotal:N0}" : "") + (showCount && scanStartedAt != null ? "   ·   " : "") + (scanStartedAt is { } startedAt ? $"{FormatElapsed(DateTime.Now - startedAt)} so far" : "");
+            scanDetailText.Text = (showCount ? L.T("{done} of {total}", ("done", stepDone.ToString("N0")), ("total", stepTotal.ToString("N0"))) : "") + (showCount && scanStartedAt != null ? "   ·   " : "") + (scanStartedAt is { } startedAt ? L.T("{time} so far", ("time", FormatElapsed(DateTime.Now - startedAt))) : "");
             scanBar.IsIndeterminate = !showCount; if (showCount) scanBar.Value = Math.Min(100, 100.0 * stepDone / stepTotal);
             scanInfoText.Text = starting ? "" : LyrionClient.ReadString(progress, "info");
             scanStepsPanel.Children.Clear();
@@ -315,7 +330,7 @@ public partial class SettingsWindow : Window
             scanRunningPanel.Visibility = Visibility.Visible; scanFailedCallout.Visibility = Visibility.Collapsed; scanAddedCallout.Visibility = Visibility.Collapsed; stopScanButton.Visibility = Visibility.Visible;
             foreach (var scanButton in new[] { rescanButton, rescanPlaylistsButton, wipeCacheButton }) scanButton.IsEnabled = false;
         }
-        catch (Exception pollError) { ShowScanIdle("Can't reach the server", pollError.Message, false); }
+        catch (Exception pollError) { ShowScanIdle(L.T("Can't reach the server"), pollError.Message, false); }
         finally { scanPollBusy = false; }
     }
 
@@ -333,7 +348,7 @@ public partial class SettingsWindow : Window
         var compactName = plainName.Replace("_", "").Replace("-", "").ToLowerInvariant(); if (compactName.StartsWith("plugin")) compactName = compactName[6..];
         foreach (var (prefix, label) in scanStepLabels) if (compactName.StartsWith(prefix.Replace("_", ""))) return label;
         var spacedName = plainName.Replace('_', ' ').Trim();
-        return spacedName == "" ? "Scanning" : char.ToUpper(spacedName[0]) + spacedName[1..].ToLowerInvariant();
+        return spacedName == "" ? L.T("Scanning") : char.ToUpper(spacedName[0]) + spacedName[1..].ToLowerInvariant();
     }
 
     static TimeSpan ParseClock(string clockText) => TimeSpan.TryParseExact(clockText, @"hh\:mm\:ss", System.Globalization.CultureInfo.InvariantCulture, out var parsed) ? parsed : TimeSpan.Zero;
@@ -341,7 +356,7 @@ public partial class SettingsWindow : Window
     static string DescribeWhen(DateTime when)
     {
         var ago = DateTime.Now - when;
-        var agoText = ago.TotalMinutes < 1 ? "just now" : ago.TotalHours < 1 ? $"{(int)ago.TotalMinutes} min ago" : ago.TotalDays < 1 ? $"{(int)ago.TotalHours} h ago" : (int)ago.TotalDays == 1 ? "yesterday" : $"{(int)ago.TotalDays} days ago";
+        var agoText = ago.TotalMinutes < 1 ? L.T("just now") : ago.TotalHours < 1 ? L.T("{count} min ago", ("count", (int)ago.TotalMinutes)) : ago.TotalDays < 1 ? L.T("{count} h ago", ("count", (int)ago.TotalHours)) : (int)ago.TotalDays == 1 ? L.T("yesterday") : L.T("{count} days ago", ("count", (int)ago.TotalDays));
         return $"{when:ddd d MMM, HH:mm} ({agoText})";
     }
 
@@ -353,7 +368,7 @@ public partial class SettingsWindow : Window
         if (Settings.Profiles.Count == 0) { Settings.Profiles.Add(new ServerProfile()); Settings.DefaultProfileId = Settings.Profiles[0].Id; Settings.Save(); }
         RefreshProfilesList(Settings.ActiveProfile);
         profilesList.SelectionChanged += (sender, args) => LoadProfileFields();
-        addProfileButton.Click += (sender, args) => { var newProfile = new ServerProfile { Name = "New server" }; Settings.Profiles.Add(newProfile); Settings.Save(); RefreshProfilesList(newProfile); };
+        addProfileButton.Click += (sender, args) => { var newProfile = new ServerProfile { Name = L.T("New server") }; Settings.Profiles.Add(newProfile); Settings.Save(); RefreshProfilesList(newProfile); };
         removeProfileButton.Click += async (sender, args) =>
         {
             if (SelectedProfile == null || Settings.Profiles.Count == 1) return;
@@ -373,7 +388,7 @@ public partial class SettingsWindow : Window
         {
             if (discoveredList.SelectedItem is not DiscoveredServer server || SelectedProfile == null) return;
             profileHostBox.Text = server.Address; profilePortBox.Text = server.HttpPort.ToString();
-            if (SelectedProfile.Host == "" && (SelectedProfile.Name is "Home" or "New server")) profileNameBox.Text = server.Name;
+            if (SelectedProfile.Host == "" && (SelectedProfile.Name == "Home" || SelectedProfile.Name == "New server" || SelectedProfile.Name == L.T("New server"))) profileNameBox.Text = server.Name;
             await SaveProfileFieldsAsync();
         };
     }
@@ -394,7 +409,7 @@ public partial class SettingsWindow : Window
         profileNameBox.Text = profile?.Name ?? ""; profileHostBox.Text = profile?.Host ?? ""; profilePortBox.Text = profile?.Port.ToString() ?? "";
         profileUserBox.Text = profile?.Username ?? ""; profilePasswordBox.Password = profile?.Password ?? "";
         defaultProfileButton.IsEnabled = profile != null && profile != Settings.ActiveProfile;
-        testResultText.Text = profile == Settings.ActiveProfile ? "This is the active profile." : "";
+        testResultText.Text = profile == Settings.ActiveProfile ? L.T("This is the active profile.") : "";
         loadingControls = false;
     }
 
@@ -403,7 +418,7 @@ public partial class SettingsWindow : Window
         var profile = SelectedProfile;
         if (profile == null || loadingControls) return;
         var serverChanged = profile.Host != profileHostBox.Text.Trim() || profile.Port.ToString() != profilePortBox.Text.Trim();
-        profile.Name = profileNameBox.Text.Trim() == "" ? "Server" : profileNameBox.Text.Trim();
+        profile.Name = profileNameBox.Text.Trim() == "" ? L.T("Server") : profileNameBox.Text.Trim();
         profile.Host = profileHostBox.Text.Trim();
         profile.Port = int.TryParse(profilePortBox.Text, out var port) ? port : 9000;
         profile.Username = profileUserBox.Text.Trim();
@@ -416,27 +431,27 @@ public partial class SettingsWindow : Window
     async Task TestConnectionAsync()
     {
         await SaveProfileFieldsAsync();
-        if (SelectedProfile is not { Host.Length: > 0 } profile) { testResultText.Text = "Enter an address first."; return; }
-        testResultText.Text = "Connecting…";
+        if (SelectedProfile is not { Host.Length: > 0 } profile) { testResultText.Text = L.T("Enter an address first."); return; }
+        testResultText.Text = L.T("Connecting…");
         try
         {
             using var lyrionClient = new LyrionClient(profile);
             var status = await lyrionClient.GetServerStatusAsync();
-            testResultText.Text = $"Connected: Lyrion {status.Version}, {status.TotalSongs:N0} tracks, {status.TotalAlbums:N0} albums, {status.TotalArtists:N0} artists, {status.PlayerCount} players.";
+            testResultText.Text = L.T("Connected: Lyrion {version}, {tracks} tracks, {albums} albums, {artists} artists, {players} players.", ("version", status.Version), ("tracks", status.TotalSongs.ToString("N0")), ("albums", status.TotalAlbums.ToString("N0")), ("artists", status.TotalArtists.ToString("N0")), ("players", status.PlayerCount));
         }
-        catch (Exception connectError) { testResultText.Text = $"Could not connect: {connectError.Message}"; }
+        catch (Exception connectError) { testResultText.Text = L.T("Could not connect: {error}", ("error", connectError.Message)); }
     }
 
     async Task FindServersAsync()
     {
-        findServersButton.IsEnabled = false; findResultText.Text = "Searching…";
+        findServersButton.IsEnabled = false; findResultText.Text = L.T("Searching…");
         try
         {
             var servers = await ServerFinder.FindAsync(TimeSpan.FromSeconds(2));
             discoveredList.ItemsSource = servers;
-            findResultText.Text = servers.Count == 0 ? "No servers answered. For a VPN or another subnet, type the address above." : $"Found {servers.Count}. Select one and press Use selected.";
+            findResultText.Text = servers.Count == 0 ? L.T("No servers answered. For a VPN or another subnet, type the address above.") : L.T("Found {count}. Select one and press Use selected.", ("count", servers.Count));
         }
-        catch (Exception findError) { findResultText.Text = $"Search failed: {findError.Message}"; }
+        catch (Exception findError) { findResultText.Text = L.T("Search failed: {error}", ("error", findError.Message)); }
         findServersButton.IsEnabled = true;
     }
 
@@ -495,8 +510,8 @@ public partial class SettingsWindow : Window
     void ShowPlayerStatus()
     {
         var player = App.Player;
-        var detail = player.State == PlayerState.Running ? (player.ExclusiveActive ? " · WASAPI exclusive" : player.ExclusiveRefused ? $" · shared (exclusive refused: {player.ExclusiveRefusedReason})" : " · shared") + (player.OutputSampleRate > 0 ? $" · {player.OutputSampleRate / 1000.0:0.#} kHz" : "") : "";
-        playerStatusText.Text = player.StatusText + detail + (App.UsingFallbackDevice ? " (fallback)" : "");
+        var detail = player.State == PlayerState.Running ? (player.ExclusiveActive ? " · " + L.T("WASAPI exclusive") : player.ExclusiveRefused ? " · " + L.T("shared (exclusive refused: {reason})", ("reason", player.ExclusiveRefusedReason)) : " · " + L.T("shared")) + (player.OutputSampleRate > 0 ? $" · {player.OutputSampleRate / 1000.0:0.#} kHz" : "") : "";
+        playerStatusText.Text = player.StatusText + detail + (App.UsingFallbackDevice ? " " + L.T("(fallback)") : "");
     }
 
     void WireLibraryTab()
@@ -514,12 +529,12 @@ public partial class SettingsWindow : Window
         nameOrderBox.SelectionChanged += async (sender, args) => { library.NameOrder = (string)((ComboBoxItem)nameOrderBox.SelectedItem).Tag; Settings.Save(); await App.Library.RefreshAsync(true); };
         hideOwnComposersBox.IsChecked = library.HideOwnComposers;
         hideOwnComposersBox.Click += (sender, args) => { library.HideOwnComposers = hideOwnComposersBox.IsChecked == true; Settings.Save(); App.NotifyLibraryChanged(); };
-        var listCountChoices = new[] { ("group", "What the view groups by (e.g. album artists)"), ("tracks", "Tracks"), ("both", "Both") };
+        var listCountChoices = new[] { ("group", L.T("What the view groups by (e.g. album artists)")), ("tracks", L.T("Tracks")), ("both", L.T("Both")) };
         foreach (var (value, label) in listCountChoices) listCountsBox.Items.Add(new ComboBoxItem { Content = label, Tag = value });
         listCountsBox.SelectedIndex = Math.Max(0, Array.FindIndex(listCountChoices, choice => choice.Item1 == library.ListCounts));
         listCountsBox.SelectionChanged += (sender, args) => { library.ListCounts = (string)((ComboBoxItem)listCountsBox.SelectedItem).Tag; Settings.Save(); App.NotifyLibraryChanged(); };
         // Graphic for list sizes, with a live preview of three sample rows
-        var listGraphicChoices = new[] { ("none", "None"), ("dots", "Dots"), ("bar", "Continuous bar"), ("bold", "Bolder and brighter") };
+        var listGraphicChoices = new[] { ("none", L.T("None")), ("dots", L.T("Dots")), ("bar", L.T("Continuous bar")), ("bold", L.T("Bolder and brighter")) };
         foreach (var (value, label) in listGraphicChoices) listGraphicBox.Items.Add(new ComboBoxItem { Content = label, Tag = value });
         listGraphicBox.SelectedIndex = Math.Max(0, Array.FindIndex(listGraphicChoices, choice => choice.Item1 == library.ListSizeGraphic));
         void DrawGraphicPreview()
@@ -541,7 +556,7 @@ public partial class SettingsWindow : Window
                     Grid.SetColumn(dots, 1); row.Children.Add(dots);
                 }
                 if (library.ListSizeGraphic == "bar") { var bar = new Border { Height = 2, CornerRadius = new CornerRadius(1), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Bottom, Width = share * 280, Background = new LinearGradientBrush(Color.FromRgb(0x5A, 0xC8, 0xFF), Color.FromRgb(0xB4, 0x8C, 0xFF), 0), Opacity = 0.35 + share * 0.65, Margin = new Thickness(0, 0, 0, 2) }; Grid.SetColumnSpan(bar, 3); row.Children.Add(bar); }
-                var countText = new TextBlock { Text = $"{count} album{(count == 1 ? "" : "s")}", Foreground = new SolidColorBrush(Color.FromRgb(0x8B, 0x94, 0xAD)), FontSize = 11, VerticalAlignment = VerticalAlignment.Center };
+                var countText = new TextBlock { Text = L.N(count, "{count} album", "{count} albums"), Foreground = new SolidColorBrush(Color.FromRgb(0x8B, 0x94, 0xAD)), FontSize = 11, VerticalAlignment = VerticalAlignment.Center };
                 Grid.SetColumn(countText, 2); row.Children.Add(countText); listGraphicPreview.Children.Add(row);
             }
         }
@@ -549,14 +564,14 @@ public partial class SettingsWindow : Window
         listGraphicBox.SelectionChanged += (sender, args) => { library.ListSizeGraphic = (string)((ComboBoxItem)listGraphicBox.SelectedItem).Tag; Settings.Save(); App.NotifyLibraryChanged(); DrawGraphicPreview(); };
         separatorsBox.LostFocus += async (sender, args) => { if (separatorsBox.Text.Trim() == library.NameSeparators) return; library.NameSeparators = separatorsBox.Text.Trim(); Settings.Save(); await App.Library.RefreshAsync(true); };
         refreshMinutesBox.LostFocus += (sender, args) => { library.RefreshMinutes = int.TryParse(refreshMinutesBox.Text, out var minutes) ? Math.Clamp(minutes, 1, 1440) : library.RefreshMinutes; refreshMinutesBox.Text = library.RefreshMinutes.ToString(); Settings.Save(); };
-        refreshLibraryButton.Click += async (sender, args) => { libraryStatusText.Text = "Checking the server…"; await App.Library.RefreshAsync(false); ShowLibraryStatus(); };
-        rebuildLibraryButton.Click += async (sender, args) => { libraryStatusText.Text = "Rebuilding…"; await App.Library.RefreshAsync(true); ShowLibraryStatus(); };
+        refreshLibraryButton.Click += async (sender, args) => { libraryStatusText.Text = L.T("Checking the server…"); await App.Library.RefreshAsync(false); ShowLibraryStatus(); };
+        rebuildLibraryButton.Click += async (sender, args) => { libraryStatusText.Text = L.T("Rebuilding…"); await App.Library.RefreshAsync(true); ShowLibraryStatus(); };
         clearArtButton.Click += (sender, args) => { try { App.Library.ClearArtCache(); } catch { } ShowLibraryStatus(); };
         App.Library.Changed += ShowLibraryStatus;
         Closed += (sender, args) => App.Library.Changed -= ShowLibraryStatus;
         ShowLibraryStatus();
         // Library health lives in the main window (SPEC.md › Library health); this card says how many damaged files it lists
-        void ShowDamagedCount() => damagedCountText.Text = App.Damaged.Files.Count == 0 ? "No damaged files found while playing." : $"{App.Damaged.Files.Count} damaged {(App.Damaged.Files.Count == 1 ? "file" : "files")} found while playing.";
+        void ShowDamagedCount() => damagedCountText.Text = App.Damaged.Files.Count == 0 ? L.T("No damaged files found while playing.") : L.N(App.Damaged.Files.Count, "{count} damaged file found while playing.", "{count} damaged files found while playing.");
         void OnDamagedChanged() => Dispatcher.BeginInvoke(ShowDamagedCount);
         App.Damaged.Changed += OnDamagedChanged;
         Closed += (sender, args) => App.Damaged.Changed -= OnDamagedChanged;
@@ -566,12 +581,12 @@ public partial class SettingsWindow : Window
 
     void ShowLibraryStatus()
     {
-        if (App.Library.ProgressText != "") { libraryStatusText.Text = App.Library.ProgressTotal > 0 ? $"{App.Library.ProgressText}: {App.Library.ProgressDone:N0} of {App.Library.ProgressTotal:N0}" : App.Library.ProgressText; return; }
-        try { libraryStatusText.Text = $"Cache size {App.Library.CacheBytes() / 1048576.0:0.#} MB. Stored in {AppPaths.DataFolder}."; } catch { libraryStatusText.Text = ""; }
+        if (App.Library.ProgressText != "") { libraryStatusText.Text = App.Library.ProgressTotal > 0 ? App.Library.ProgressText + ": " + L.T("{done} of {total}", ("done", App.Library.ProgressDone.ToString("N0")), ("total", App.Library.ProgressTotal.ToString("N0"))) : App.Library.ProgressText; return; }
+        try { libraryStatusText.Text = L.T("Cache size {size} MB. Stored in {folder}.", ("size", (App.Library.CacheBytes() / 1048576.0).ToString("0.#")), ("folder", AppPaths.DataFolder)); } catch { libraryStatusText.Text = ""; }
     }
 
-    static readonly (string value, string label)[] groupingNames = { ("none", "None"), ("artist", "Album artist"), ("year", "Year"), ("decade", "Decade"), ("added", "Date added"), ("format", "Format"), ("initial", "First letter") };
-    static readonly (string area, string label)[] browseAreas = { ("genre", "Genres"), ("artist", "Artists"), ("composer", "Composers"), ("performer", "Performers"), ("albums", "Albums") };
+    static readonly (string value, string label)[] groupingNames = { ("none", L.T("None")), ("artist", L.T("Album artist")), ("year", L.T("Year")), ("decade", L.T("Decade")), ("added", L.T("Date added")), ("format", L.T("Format")), ("initial", L.T("First letter")) };
+    static readonly (string area, string label)[] browseAreas = { ("genre", L.T("Genres")), ("artist", L.T("Artists")), ("composer", L.T("Composers")), ("performer", L.T("Performers")), ("albums", L.T("Albums")) };
 
     void WireBrowsingTab()
     {
@@ -623,8 +638,8 @@ public partial class SettingsWindow : Window
             var alternatives = keys.Split(" / ");
             for (var altIndex = 0; altIndex < alternatives.Length; altIndex++)
             {
-                if (altIndex > 0) keyPanel.Children.Add(new TextBlock { Text = "or", Foreground = greyText, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(2, 0, 6, 0) });
-                foreach (var keyName in alternatives[altIndex].Split('+')) keyPanel.Children.Add(new Border { Style = keycapStyle, Child = new TextBlock { Text = keyName, FontFamily = new FontFamily("Segoe UI Semibold"), FontSize = 12 } });
+                if (altIndex > 0) keyPanel.Children.Add(new TextBlock { Text = L.T("or"), Foreground = greyText, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(2, 0, 6, 0) });
+                foreach (var keyName in alternatives[altIndex].Split('+')) keyPanel.Children.Add(new Border { Style = keycapStyle, Child = new TextBlock { Text = L.T(keyName), FontFamily = new FontFamily("Segoe UI Semibold"), FontSize = 12 } });
             }
             var actionText = new TextBlock { Text = action, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 3, 0, 3) };
             Grid.SetRow(keyPanel, rowIndex); Grid.SetRow(actionText, rowIndex); Grid.SetColumn(actionText, 1);
@@ -635,16 +650,16 @@ public partial class SettingsWindow : Window
 
     void WireShortcutsAndNotifications()
     {
-        FillShortcutTable(windowShortcutsTable, new[] { ("Space", "Play / pause"), ("Ctrl+Left / Ctrl+Right", "Previous / next track"), ("Ctrl+Up / Ctrl+Down", "Volume up / down"), ("Ctrl+F", "Search (then ↓ into the results, arrows to move, Enter to play or open)"), ("Ctrl+N", "New playlist"), ("Ctrl+Z", "Undo (press again to keep going back)"), ("Ctrl+Y / Ctrl+Shift+Z", "Redo"), ("Ctrl+1 / Ctrl+2 / Ctrl+3", "Window mode"), ("Ctrl+,", "Settings"), ("Ctrl+Q", "Quit"), ("Esc", "Close one thing at a time (menu, selection, search), then go back") });
-        FillShortcutTable(selectionShortcutsTable, new[] { ("Enter", "Play now"), ("N", "Play next"), ("E", "Add to end"), ("I", "Info"), ("Del", "Remove") });
-        FillShortcutTable(globalShortcutsTable, new[] { ("Ctrl+Alt+Space", "Play / pause"), ("Ctrl+Alt+Left / Ctrl+Alt+Right", "Previous / next track"), ("Ctrl+Alt+Up / Ctrl+Alt+Down", "Volume up / down") });
+        FillShortcutTable(windowShortcutsTable, new[] { ("Space", L.T("Play / pause")), ("Ctrl+Left / Ctrl+Right", L.T("Previous / next track")), ("Ctrl+Up / Ctrl+Down", L.T("Volume up / down")), ("Ctrl+F", L.T("Search (then ↓ into the results, arrows to move, Enter to play or open)")), ("Ctrl+N", L.T("New playlist")), ("Ctrl+Z", L.T("Undo (press again to keep going back)")), ("Ctrl+Y / Ctrl+Shift+Z", L.T("Redo")), ("Ctrl+1 / Ctrl+2 / Ctrl+3", L.T("Window mode")), ("Ctrl+,", L.T("Settings")), ("Ctrl+Q", L.T("Quit")), ("Esc", L.T("Close one thing at a time (menu, selection, search), then go back")) });
+        FillShortcutTable(selectionShortcutsTable, new[] { ("Enter", L.T("Play now")), ("N", L.T("Play next")), ("E", L.T("Add to end")), ("I", L.T("Info")), ("Del", L.T("Remove")) });
+        FillShortcutTable(globalShortcutsTable, new[] { ("Ctrl+Alt+Space", L.T("Play / pause")), ("Ctrl+Alt+Left / Ctrl+Alt+Right", L.T("Previous / next track")), ("Ctrl+Alt+Up / Ctrl+Alt+Down", L.T("Volume up / down")) });
         var general = Settings.General;
         globalHotkeysBox.IsChecked = general.GlobalHotkeys;
         globalHotkeysBox.Click += (sender, args) =>
         {
             general.GlobalHotkeys = globalHotkeysBox.IsChecked == true; Settings.Save();
             var taken = App.ApplyGlobalHotkeys();
-            hotkeyStatusText.Text = taken.Count == 0 ? "" : $"Another app already uses Ctrl+Alt+{string.Join(", Ctrl+Alt+", taken)}.";
+            hotkeyStatusText.Text = taken.Count == 0 ? "" : L.T("Another app already uses {keys}.", ("keys", string.Join(", ", taken.Select(key => $"{L.T("Ctrl")}+Alt+{L.T(key)}"))));
         };
         trackToastsBox.IsChecked = general.TrackToasts;
         trackToastsBox.Click += (sender, args) => { general.TrackToasts = trackToastsBox.IsChecked == true; Settings.Save(); };
@@ -653,7 +668,7 @@ public partial class SettingsWindow : Window
     void WireAppearanceTab()
     {
         var general = Settings.General;
-        var skinNames = new[] { ("auto", "Follow Windows (light or dark)"), ("dark", "Frosted dark"), ("light", "Frosted light"), ("classic", "Squeezebox classic"), ("amber", "Hi-fi amber") };
+        var skinNames = new[] { ("auto", L.T("Follow Windows (light or dark)")), ("dark", L.T("Frosted dark")), ("light", L.T("Frosted light")), ("classic", L.T("Squeezebox classic")), ("amber", L.T("Hi-fi amber")) };
         skinBox.ItemsSource = skinNames.Select(skin => new ComboBoxItem { Content = skin.Item2, Tag = skin.Item1 }).ToList();
         skinBox.SelectedItem = ((List<ComboBoxItem>)skinBox.ItemsSource).FirstOrDefault(item => (string)item.Tag == general.Skin) ?? ((List<ComboBoxItem>)skinBox.ItemsSource)[0];
         skinBox.SelectionChanged += (sender, args) => { if (skinBox.SelectedItem is ComboBoxItem { Tag: string skin }) { general.Skin = skin; Settings.Save(); App.ApplySkin(); } };
@@ -675,8 +690,8 @@ public partial class SettingsWindow : Window
         // Glass: how see-through the tint is, and its hue (0 = neutral); both preview live
         void ShowGlass()
         {
-            glassTransparencyText.Text = general.GlassTransparency < 0 ? $"{(int)glassTransparencySlider.Value}% (default)" : $"{general.GlassTransparency}%";
-            glassTintText.Text = general.GlassTintHue == 0 ? "Neutral" : $"{general.GlassTintHue}°";
+            glassTransparencyText.Text = general.GlassTransparency < 0 ? L.T("{percent}% (default)", ("percent", (int)glassTransparencySlider.Value)) : $"{general.GlassTransparency}%";
+            glassTintText.Text = general.GlassTintHue == 0 ? L.T("Neutral") : $"{general.GlassTintHue}°";
             glassTintSwatch.Background = new System.Windows.Media.SolidColorBrush(general.GlassTintHue == 0 ? System.Windows.Media.Color.FromRgb(30, 32, 38) : HueColour(general.GlassTintHue));
         }
         bool fillingGlass = true;
@@ -696,7 +711,7 @@ public partial class SettingsWindow : Window
     }
 
     // Meter styles a click cycles through: tick and reorder like the Now playing views; at least one stays ticked
-    static readonly Dictionary<string, string> meterStyleNames = new() { ["vu"] = "Beige VU", ["deck"] = "Tape deck", ["orange"] = "Round amber meters", ["monitor"] = "Power monitor", ["blue"] = "Blue power amp", ["green"] = "Green fluorescent", ["oledvu"] = "OLED VU", ["oled"] = "Spectrum analyser" };
+    static readonly Dictionary<string, string> meterStyleNames = new() { ["vu"] = L.T("Beige VU"), ["deck"] = L.T("Tape deck"), ["orange"] = L.T("Round amber meters"), ["monitor"] = L.T("Power monitor"), ["blue"] = L.T("Blue power amp"), ["green"] = L.T("Green fluorescent"), ["oledvu"] = "OLED VU", ["oled"] = L.T("Spectrum analyser") };
     void DrawMeterStyles()
     {
         meterStylesList.Children.Clear();
@@ -722,7 +737,7 @@ public partial class SettingsWindow : Window
         void Build()
         {
             metersPanel.Children.Clear();
-            var autoBox = new CheckBox { Content = "Follow each track's loudness: automatic 0 VU, and the spectrum lifts quiet recordings (so loud ones don't pin the meters and quiet ones still show)", IsChecked = Settings.Meters.AutoReference, Margin = new Thickness(0, 0, 0, 10) };
+            var autoBox = new CheckBox { Content = L.T("Follow each track's loudness: automatic 0 VU, and the spectrum lifts quiet recordings (so loud ones don't pin the meters and quiet ones still show)"), IsChecked = Settings.Meters.AutoReference, Margin = new Thickness(0, 0, 0, 10) };
             autoBox.Click += (sender, args) => { Settings.Meters.AutoReference = autoBox.IsChecked == true; Settings.Save(); App.ApplyMeters(); };
             metersPanel.Children.Add(autoBox);
             void AddCheck(string label, Func<MeterSettings, bool> read, Action<MeterSettings, bool> write)
@@ -731,11 +746,11 @@ public partial class SettingsWindow : Window
                 checkBox.Click += (sender, args) => { write(Settings.Meters, checkBox.IsChecked == true); Settings.Save(); App.ApplyMeters(); };
                 metersPanel.Children.Add(checkBox);
             }
-            AddCheck("Meters and analysers show the sound after the EQ", meters => meters.FollowEq, (meters, value) => meters.FollowEq = value);
-            AddCheck("Meters and analysers drop with WinSqueeze's volume (off: they show the music at full level)", meters => meters.FollowVolume, (meters, value) => meters.FollowVolume = value);
-            AddRow("0 VU reference", "When automatic is off: the RMS level that reads 0 on the VU meters. Higher (e.g. −14) makes the needles read lower; −18 is the usual digital alignment.", -24, -8, 1, meters => meters.ReferenceDbfs, (meters, value) => meters.ReferenceDbfs = value, "dBFS");
-            AddRow("VU ballistics", "How quickly the needles follow the music. 300 ms is a classic VU.", 50, 1000, 10, meters => meters.VuIntegrationMs, (meters, value) => meters.VuIntegrationMs = value, "ms");
-            AddRow("Spectrum fall", "How fast the spectrum columns fall back.", 50, 1000, 10, meters => meters.SpectrumFallMs, (meters, value) => meters.SpectrumFallMs = value, "ms");
+            AddCheck(L.T("Meters and analysers show the sound after the EQ"), meters => meters.FollowEq, (meters, value) => meters.FollowEq = value);
+            AddCheck(L.T("Meters and analysers drop with WinSqueeze's volume (off: they show the music at full level)"), meters => meters.FollowVolume, (meters, value) => meters.FollowVolume = value);
+            AddRow(L.T("0 VU reference"), L.T("When automatic is off: the RMS level that reads 0 on the VU meters. Higher (e.g. −14) makes the needles read lower; −18 is the usual digital alignment."), -24, -8, 1, meters => meters.ReferenceDbfs, (meters, value) => meters.ReferenceDbfs = value, "dBFS");
+            AddRow(L.T("VU ballistics"), L.T("How quickly the needles follow the music. 300 ms is a classic VU."), 50, 1000, 10, meters => meters.VuIntegrationMs, (meters, value) => meters.VuIntegrationMs = value, "ms");
+            AddRow(L.T("Spectrum fall"), L.T("How fast the spectrum columns fall back."), 50, 1000, 10, meters => meters.SpectrumFallMs, (meters, value) => meters.SpectrumFallMs = value, "ms");
         }
         Build(); DrawMeterStyles();
         metersResetButton.Click += (sender, args) => { Settings.Meters = new MeterSettings(); Settings.Meters.Normalise(); Settings.Save(); App.ApplyMeters(); Build(); DrawMeterStyles(); };
@@ -763,7 +778,7 @@ public partial class SettingsWindow : Window
         recordFolderPerRecordingRadio.Click += (sender, args) => { recording.FolderPerStation = false; Settings.Save(); };
         chooseRecordFolderButton.Click += (sender, args) =>
         {
-            var folderDialog = new Microsoft.Win32.OpenFolderDialog { Title = "Save recordings in", InitialDirectory = System.IO.Directory.Exists(App.Recorder.Folder) ? App.Recorder.Folder : "" };
+            var folderDialog = new Microsoft.Win32.OpenFolderDialog { Title = L.T("Save recordings in"), InitialDirectory = System.IO.Directory.Exists(App.Recorder.Folder) ? App.Recorder.Folder : "" };
             if (folderDialog.ShowDialog(this) != true) return;
             recording.Folder = folderDialog.FolderName == Recorder.DefaultFolder ? "" : folderDialog.FolderName; Settings.Save(); recordFolderBox.Text = App.Recorder.Folder;
         };
@@ -817,13 +832,13 @@ public partial class SettingsWindow : Window
         var body = Uri.EscapeDataString(bodyWithReport).Length < 6000 ? bodyWithReport : "**What happened?**\n\n\n\n**Diagnostics**\n\n(they're on your clipboard: press Ctrl+V here)\n"; // GitHub refuses very long links
         OpenUrl($"https://github.com/hazymat/winsqueeze/discussions/new?category=general&title={Uri.EscapeDataString($"Diagnostics from WinSqueeze {App.Updater.CurrentVersion}")}&body={Uri.EscapeDataString(body)}");
         sendDiagnosticsPanel.Visibility = Visibility.Collapsed;
-        copyDiagnosticsDone.Text = "Copied and opened GitHub. Nothing is sent until you post it.";
+        copyDiagnosticsDone.Text = L.T("Copied and opened GitHub. Nothing is sent until you post it.");
     }
 
     void WireAboutTab()
     {
         versionText.Text = $"WinSqueeze {App.Updater.CurrentVersion}";
-        dataFolderText.Text = (AppPaths.IsPortable ? "Portable mode. " : "") + $"Settings and logs: {AppPaths.DataFolder}";
+        dataFolderText.Text = (AppPaths.IsPortable ? L.T("Portable mode.") + " " : "") + L.T("Settings and logs: {folder}", ("folder", AppPaths.DataFolder));
         squeezeliteSourceLink.RequestNavigate += (sender, args) => OpenUrl(args.Uri.AbsoluteUri);
         discussionsLink.RequestNavigate += (sender, args) => OpenUrl(args.Uri.AbsoluteUri);
         openLogsButton.Click += (sender, args) => Process.Start(new ProcessStartInfo(AppPaths.LogsFolder) { UseShellExecute = true });
@@ -831,7 +846,7 @@ public partial class SettingsWindow : Window
         sendDiagnosticsGoButton.Click += (sender, args) => SendDiagnostics();
         sendDiagnosticsCancelButton.Click += (sender, args) => sendDiagnosticsPanel.Visibility = Visibility.Collapsed;
         privacyViewsLink.Click += (sender, args) => settingsTabs.SelectedItem = nowPlayingViewsTab;
-        copyDiagnosticsButton.Click += (sender, args) => { try { Clipboard.SetText(DiagnosticsReport()); copyDiagnosticsDone.Text = "Copied. Check it before posting anywhere public: it includes your server address."; } catch (Exception error) { copyDiagnosticsDone.Text = "Couldn't copy: " + error.Message; } };
+        copyDiagnosticsButton.Click += (sender, args) => { try { Clipboard.SetText(DiagnosticsReport()); copyDiagnosticsDone.Text = L.T("Copied. Check it before posting anywhere public: it includes your server address."); } catch (Exception error) { copyDiagnosticsDone.Text = L.T("Couldn't copy: {error}", ("error", error.Message)); } };
         channelCombo.SelectedItem = channelCombo.Items.Cast<ComboBoxItem>().First(item => (string)item.Tag == Settings.General.UpdateChannel);
         channelCombo.SelectionChanged += async (sender, args) =>
         {
@@ -858,7 +873,8 @@ public partial class SettingsWindow : Window
     {
         public string Label => $"{Release.Version}{(Release.IsDev ? "  dev" : "")}  ·  {Release.Published:d MMM yyyy HH:mm}";
         public Visibility CurrentVisibility => IsCurrent ? Visibility.Visible : Visibility.Collapsed;
-        public override string ToString() => Label + (IsCurrent ? "  ·  running now" : "");
+        public string RunningNow => "  ✔ " + L.T("running now");
+        public override string ToString() => Label + (IsCurrent ? "  ·  " + L.T("running now") : "");
     }
 
     async Task LoadVersionsAsync()
@@ -867,9 +883,9 @@ public partial class SettingsWindow : Window
         {
             var releases = await App.Updater.ListReleasesAsync(Settings.General.UpdateChannel == "dev");
             versionsList.ItemsSource = releases.Select(release => new VersionItem(release, release.Version == App.Updater.CurrentVersion)).ToList();
-            if (releases.Count == 0) versionNotesText.Text = "No versions published yet.";
+            if (releases.Count == 0) versionNotesText.Text = L.T("No versions published yet.");
         }
-        catch (Exception listError) { versionNotesText.Text = $"Could not load versions: {listError.Message}"; }
+        catch (Exception listError) { versionNotesText.Text = L.T("Could not load versions: {error}", ("error", listError.Message)); }
     }
 
     void ShowSelectedVersion()
@@ -883,7 +899,7 @@ public partial class SettingsWindow : Window
     {
         updateStatusText.Text = App.Updater.StatusText;
         restartToUpdateButton.Visibility = App.Updater.ReadyVersion == "" ? Visibility.Collapsed : Visibility.Visible;
-        restartToUpdateButton.Content = $"Restart to update to {App.Updater.ReadyVersion}";
+        restartToUpdateButton.Content = L.T("Restart to update to {version}", ("version", App.Updater.ReadyVersion));
     }
 
     static void OpenUrl(string url) => Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../lib/i18n'
   import { artUrl, sendToShell } from '../bridge'
   import { openView, playlist, addToPlaylist, albumItems } from '../state.svelte'
   import { downloads } from '../lib/downloads.svelte'
@@ -16,9 +17,9 @@
   <div class="card" class:compact role="button" tabindex="0" onclick={open} onkeydown={(event) => event.key === 'Enter' && open()}>
     <div class="art">
       {#if album.cover}<img src={artUrl(album.cover, 300)} alt="" loading="lazy" crossorigin="anonymous" />{:else}<div class="no-art">♪</div>{/if}
-      <button class="play" onclick={play} aria-label="Play">▶</button>
-      {#if playlist.open}<button class="add" onclick={add} aria-label="Add to playlist">＋</button>{/if}
-      {#if downloaded}<span class="downloaded" class:partial={downloaded === 'partial'} title={downloaded === 'full' ? 'Downloaded to this PC' : 'Partly downloaded to this PC'}><Icon name="download" size={12} /></span>{/if}
+      <button class="play" onclick={play} aria-label={t('Play')}>▶</button>
+      {#if playlist.open}<button class="add" onclick={add} aria-label={t('Add to playlist')}>＋</button>{/if}
+      {#if downloaded}<span class="downloaded" class:partial={downloaded === 'partial'} title={downloaded === 'full' ? t('Downloaded to this PC') : t('Partly downloaded to this PC')}><Icon name="download" size={12} /></span>{/if}
     </div>
     <div class="title">{shortTitle}</div>
     <div class="sub">{album.artist}{album.year ? ` · ${album.year}` : ''}</div>
@@ -26,9 +27,9 @@
 {:else}
   <div class="row" role="button" tabindex="0" onclick={open} onkeydown={(event) => event.key === 'Enter' && open()}>
     {#if album.cover}<img src={artUrl(album.cover, 80)} alt="" loading="lazy" />{:else}<div class="no-art small">♪</div>{/if}
-    <div class="text"><div class="title">{album.title}{#if downloaded}<span class="downloaded inline" class:partial={downloaded === 'partial'} title="Downloaded to this PC"><Icon name="download" size={11} /></span>{/if}</div><div class="sub">{album.artist}{album.year ? ` · ${album.year}` : ''}{album.format ? ` · ${album.format}` : ''}</div></div>
-    <button class="ghost" onclick={play}>Play</button>
-    {#if playlist.open}<button class="ghost" onclick={add}>＋ Add</button>{/if}
+    <div class="text"><div class="title">{album.title}{#if downloaded}<span class="downloaded inline" class:partial={downloaded === 'partial'} title={t('Downloaded to this PC')}><Icon name="download" size={11} /></span>{/if}</div><div class="sub">{album.artist}{album.year ? ` · ${album.year}` : ''}{album.format ? ` · ${album.format}` : ''}</div></div>
+    <button class="ghost" onclick={play}>{t('Play')}</button>
+    {#if playlist.open}<button class="ghost" onclick={add}>{t('＋ Add')}</button>{/if}
   </div>
 {/if}
 

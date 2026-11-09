@@ -10,12 +10,13 @@
   import Readout from './Readout.svelte'
   import QueueView from '../views/QueueView.svelte'
   import LyricsText from './LyricsText.svelte'
+  import { t, tn } from '../lib/i18n'
   // The one Now playing view: blurred-art backdrop, big art, track details, and the queue in its own scrolling glass panel
   const track = $derived(currentTrack())
   const cover = $derived(trackArt(track, 600))
   const goTo = (kind: string, name: string) => personView(kind, name).then(openView)
   // Artist, Album and Lyrics beside Up next (SPEC.md › Now playing views): about the playing track; Lyrics is looked up early so it can grey out when there are none
-  const infoNames: Record<string, string> = { artist: 'Artist', album: 'Album', lyrics: 'Lyrics' }
+  const infoNames: Record<string, string> = { artist: t('Artist'), album: t('Album'), lyrics: t('Lyrics') }
   const infoTabs = $derived(app.trackInfoTabs)
   const infoKey = $derived(infoTabs.includes(ui.infoTab) ? ui.infoTab : 'queue')
   const trackKey = $derived(track ? [track.id, track.artist, track.album, track.title].join('|') : '')
@@ -42,8 +43,8 @@
   })
   const timelineYears = (events: any[]) => { const years: { year: number, events: any[] }[] = []; for (const event of events ?? []) { const last = years[years.length - 1]; if (last && last.year === event.year) last.events.push(event); else years.push({ year: event.year, events: [event] }) } return years }
   const bornYear = $derived(info.timeline?.found && info.timeline.subheading === 'person' ? (info.timeline.events.find((event: any) => event.kind === 'start')?.year ?? 0) : 0)
-  const timelineTitle = (event: any) => ({ member: `Joined ${event.title}`, label: `Signed to ${event.title}`, award: `Won ${event.title}`, nominated: `Nominated: ${event.title}` } as Record<string, string>)[event.kind] ?? event.title
-  const timelineDetail = (event: any) => [event.detail, event.endYear && event.endYear !== event.year ? `until ${event.endYear}` : ''].filter(Boolean).join(' · ')
+  const timelineTitle = (event: any) => ({ member: t('Joined {name}', { name: event.title }), label: t('Signed to {name}', { name: event.title }), award: t('Won {name}', { name: event.title }), nominated: t('Nominated: {name}', { name: event.title }) } as Record<string, string>)[event.kind] ?? event.title
+  const timelineDetail = (event: any) => [event.detail, event.endYear && event.endYear !== event.year ? t('until {year}', { year: event.endYear }) : ''].filter(Boolean).join(' · ')
   const missing = (kind: string) => info[kind] && info[kind] !== 'loading' && !info[kind].found
   const chooseTab = (key: string) => { ui.infoTab = key; writeSetting('infoTab', key) }
   // The shell sends tidy blocks: paragraphs, "## " headings and "• " lists. Long text shows its opening, the rest behind Show more
@@ -81,13 +82,13 @@
       if (format.lossy && group.rates.length) parts.push(`${low === high ? low : `${low}–${high}`} kbps${format.mode ? ` ${format.mode}` : ''}`)
       if (!format.lossy && Number(format.size) > 0) parts.push(`${format.size}-bit`)
       if (Number(format.rate) > 0) parts.push(`${Number(format.rate) / 1000} kHz`)
-      return parts.join(' · ') + (groups.length > 1 ? ` (${group.count} ${group.count === 1 ? 'track' : 'tracks'})` : '')
+      return parts.join(' · ') + (groups.length > 1 ? ` (${tn(group.count, '{count} track', '{count} tracks')})` : '')
     })
   }
   const tagRows = (tags: any) => {
     const albumArtists = tags.albumArtists?.length ? tags.albumArtists : tags.artists ?? [], otherArtists = (tags.artists ?? []).filter((name: string) => !albumArtists.includes(name)), year = tags.yearFrom ? (tags.yearTo && tags.yearTo !== tags.yearFrom ? `${tags.yearFrom}–${tags.yearTo}` : String(tags.yearFrom)) : ''
-    const rows: [string, string][] = [['Album artist', albumArtists.join(', ')], ['Track artists', otherArtists.join(', ')], ['Composers', (tags.composers ?? []).join(', ')], ['Conductor', (tags.conductors ?? []).join(', ')], ['Orchestra', (tags.bands ?? []).join(', ')], ['Genre', (tags.genres ?? []).join(', ')], ['Year', year],
-      ['Length', [`${tags.tracks} ${Number(tags.tracks) === 1 ? 'track' : 'tracks'}`, formatTime(Number(tags.duration ?? 0)), Number(tags.discs) > 1 ? `${tags.discs} discs` : ''].filter(Boolean).join(' · ')], ['Format', formatLines(tags.formats).join('\n')]]
+    const rows: [string, string][] = [[t('Album artist'), albumArtists.join(', ')], [t('Track artists'), otherArtists.join(', ')], [t('Composers'), (tags.composers ?? []).join(', ')], [t('Conductor'), (tags.conductors ?? []).join(', ')], [t('Orchestra'), (tags.bands ?? []).join(', ')], [t('Genre'), (tags.genres ?? []).join(', ')], [t('Year'), year],
+      [t('Length'), [tn(Number(tags.tracks), '{count} track', '{count} tracks'), formatTime(Number(tags.duration ?? 0)), Number(tags.discs) > 1 ? t('{count} discs', { count: tags.discs }) : ''].filter(Boolean).join(' · ')], [t('Format'), formatLines(tags.formats).join('\n')]]
     return rows.filter(([, value]) => value)
   }
   // Artist is the bio; the Timeline opens from a button above it and closes back to the bio
@@ -97,7 +98,7 @@
   const artistName = $derived(track?.artist ?? '') // a string, so status polls (a new track object each time) don't count as a change
   $effect(() => { artistName; showTimeline = false }) // a new artist opens on their bio
   // Credits: who played, wrote and produced it. People are grouped by what they did, each with their roles and the tracks they're on; the playing track's people come first
-  const creditGroups = [['performer', 'Performers'], ['writer', 'Writers'], ['production', 'Production'], ['artwork', 'Artwork and notes']]
+  const creditGroups = [['performer', t('Performers')], ['writer', t('Writers')], ['production', t('Production')], ['artwork', t('Artwork and notes')]]
   const playingNumber = (credits: any) => credits?.tracks?.find((item: any) => titleKey(item.title) === titleKey(track?.title ?? ''))?.n ?? 0
   const trackRange = (numbers: number[], tracks: any[]) => {
     const label = (number: number) => tracks.find(item => item.n === number)?.label ?? String(number), runs: string[] = []
@@ -113,13 +114,13 @@
       if (!person) people.push(person = { name: credit.name, roles: [], tracks: new Set(), detail: [] })
       if (!person.roles.includes(credit.role)) person.roles.push(credit.role)
       for (const number of credit.all ? everyTrack : credit.tracks) person.tracks.add(number)
-      person.detail.push(credit.all ? `${credit.role}: every track` : credit.tracks.length ? `${credit.role}: ${trackRange(credit.tracks, credits.tracks)}` : `${credit.role}: the album`)
+      person.detail.push(credit.all ? t('{role}: every track', { role: credit.role }) : credit.tracks.length ? `${credit.role}: ${trackRange(credit.tracks, credits.tracks)}` : t('{role}: the album', { role: credit.role }))
     }
     return people
   }
   const infoImage = (image: string) => image.startsWith('http') ? image : serverArt(image, 300)
   // The album opens with this track marked (folder or tag album, whichever the library uses)
-  async function openAlbum() { const trackId = Number(track?.id); const place = trackId > 0 ? await query('trackPlace', { id: trackId }) : null; if (place?.album) openView({ kind: 'album', key: String(place.album), title: place.albumTitle, highlight: String(trackId) }); else toast('That album isn’t in the library') }
+  async function openAlbum() { const trackId = Number(track?.id); const place = trackId > 0 ? await query('trackPlace', { id: trackId }) : null; if (place?.album) openView({ kind: 'album', key: String(place.album), title: place.albumTitle, highlight: String(trackId) }); else toast(t('That album isn’t in the library')) }
 </script>
 
 <section class="now-playing">
@@ -127,106 +128,106 @@
   <div class="layout">
     <div class="art-column">{#if cover}<div class="art" class:stream={Number(app.nowPlaying?.remote) === 1}><img src={cover} alt="" /></div>{:else}<div class="art empty">♪</div>{/if}</div>
     <div class="meta">
-      <h1>{track?.title ?? 'Nothing playing'}</h1>
-      {#if track && isDamaged(track.id)}<div class="damaged">⚠ This file has damaged frames; playback continues past them. <button class="link" onclick={() => openSection('health')}>See damaged files</button></div>{/if}
+      <h1>{track?.title ?? t('Nothing playing')}</h1>
+      {#if track && isDamaged(track.id)}<div class="damaged">{t('⚠ This file has damaged frames; playback continues past them.')} <button class="link" onclick={() => openSection('health')}>{t('See damaged files')}</button></div>{/if}
       {#if track?.artist}<button class="link artist" onclick={() => goTo('artist', track.artist)}>{track.artist}</button>{/if}
-      {#if track?.album}<div class="album"><span class="link album-link" role="link" tabindex="0" onclick={openAlbum} onkeydown={event => { if (event.key === 'Enter') openAlbum() }} title="Open the album">{track.album}</span>{#if Number(track.year) > 0}<span class="album-year">({track.year})</span>{/if}</div>{/if}<!-- programme-notes style: the work in italics, its year in brackets -->
-      {#if track?.composer}<div class="quiet">Composer <button class="link" onclick={() => goTo('composer', track.composer)}>{track.composer}</button></div>{/if}
-      {#if track?.conductor}<div class="quiet">Conductor {track.conductor}</div>{/if}
-      {#if track?.band}<div class="quiet">Orchestra {track.band}</div>{/if}
+      {#if track?.album}<div class="album"><span class="link album-link" role="link" tabindex="0" onclick={openAlbum} onkeydown={event => { if (event.key === 'Enter') openAlbum() }} title={t('Open the album')}>{track.album}</span>{#if Number(track.year) > 0}<span class="album-year">({track.year})</span>{/if}</div>{/if}<!-- programme-notes style: the work in italics, its year in brackets -->
+      {#if track?.composer}<div class="quiet">{t('Composer')} <button class="link" onclick={() => goTo('composer', track.composer)}>{track.composer}</button></div>{/if}
+      {#if track?.conductor}<div class="quiet">{t('Conductor')} {track.conductor}</div>{/if}
+      {#if track?.band}<div class="quiet">{t('Orchestra')} {track.band}</div>{/if}
       <div class="readout"><Readout /></div>
       <!-- One-time tip, once music is playing: the right-click cycle (full-window meters, then hi-fi) has no other visible sign -->
-      <div class="meter-box"><Meters size="large" />{#if app.nowPlaying?.mode === 'play'}<Hint id="meters-hifi" bubble align="end" text="Right-click, then right-click again for hi-fi mode" />{/if}</div>
+      <div class="meter-box"><Meters size="large" />{#if app.nowPlaying?.mode === 'play'}<Hint id="meters-hifi" bubble align="end" text={t('Right-click, then right-click again for hi-fi mode')} />{/if}</div>
     </div>
     <div class="queue-panel" class:tabbed={infoTabs.length > 0}>
       {#if infoTabs.length}
         <div class="info-tabs" role="tablist">
-          <button role="tab" class="queue-tab" class:on={infoKey === 'queue'} aria-selected={infoKey === 'queue'} onclick={() => chooseTab('queue')}><Icon name="queue" size={15} />Up next</button>
-          <div class="track-group" title="About the track that's playing">{#if cover}<span class="this-track"><img src={cover} alt="" /></span>{/if}{#each infoTabs as kind (kind)}<button role="tab" class:on={infoKey === kind} class:none={kind === 'lyrics' && missing('lyrics')} aria-selected={infoKey === kind} title={kind === 'lyrics' && missing('lyrics') ? 'No lyrics found for this track' : ''} onclick={() => chooseTab(kind)}>{infoNames[kind]}</button>{/each}</div>
+          <button role="tab" class="queue-tab" class:on={infoKey === 'queue'} aria-selected={infoKey === 'queue'} onclick={() => chooseTab('queue')}><Icon name="queue" size={15} />{t('Up next')}</button>
+          <div class="track-group" title={t('About the track that\'s playing')}>{#if cover}<span class="this-track"><img src={cover} alt="" /></span>{/if}{#each infoTabs as kind (kind)}<button role="tab" class:on={infoKey === kind} class:none={kind === 'lyrics' && missing('lyrics')} aria-selected={infoKey === kind} title={kind === 'lyrics' && missing('lyrics') ? t('No lyrics found for this track') : ''} onclick={() => chooseTab(kind)}>{infoNames[kind]}</button>{/each}</div>
         </div>
       {/if}
       {#if infoKey === 'queue'}<div class="queue-body"><QueueView /></div>
       {:else}
         {@const result = info[infoKey]}
         <div class="info" class:lyrics={infoKey === 'lyrics'}>
-          {#if !track}<p class="quiet">Nothing playing</p>
+          {#if !track}<p class="quiet">{t('Nothing playing')}</p>
           {:else if infoKey === 'lyrics'}
-            {#if pending(result)}<p class="quiet">Looking…</p>{:else if !result.found}<p class="quiet">No lyrics found for this track</p>
-            {:else}<button class="lyrics-full" onclick={() => sendToShell({ type: 'openLyrics', fullScreen: true })} title="Full screen lyrics" aria-label="Full screen lyrics"><Icon name="full-screen" size={17} /></button><div class="info-head"><div><h2>{result.heading}</h2>{#if result.subheading}<div class="quiet">{result.subheading}</div>{/if}</div></div><LyricsText lyrics={result} />{@render source(result.source, result.link, 'Read more')}{/if}
+            {#if pending(result)}<p class="quiet">{t('Looking…')}</p>{:else if !result.found}<p class="quiet">{t('No lyrics found for this track')}</p>
+            {:else}<button class="lyrics-full" onclick={() => sendToShell({ type: 'openLyrics', fullScreen: true })} title={t('Full screen lyrics')} aria-label={t('Full screen lyrics')}><Icon name="full-screen" size={17} /></button><div class="info-head"><div><h2>{result.heading}</h2>{#if result.subheading}<div class="quiet">{result.subheading}</div>{/if}</div></div><LyricsText lyrics={result} />{@render source(result.source, result.link, t('Read more'))}{/if}
           {:else if infoKey === 'artist'}
             {#if showTimeline && info.timeline?.found}
-              <button class="back" onclick={() => showTimeline = false}>← Artist bio</button>
+              <button class="back" onclick={() => showTimeline = false}>{t('← Artist bio')}</button>
               {#if info.timeline?.found}
                 <ol class="timeline" use:centrePlaying>
                   {#each timelineYears(info.timeline.events) as group (group.year)}
-                    <li class="year-group"><div class="year">{group.year}{#if bornYear && group.year > bornYear && !group.events.some(event => event.kind === 'start')}<span class="age">age {group.year - bornYear}</span>{/if}</div>
+                    <li class="year-group"><div class="year">{group.year}{#if bornYear && group.year > bornYear && !group.events.some(event => event.kind === 'start')}<span class="age">{t('age {age}', { age: group.year - bornYear })}</span>{/if}</div>
                       {#each group.events as event}
                         {@const owned = event.kind === 'album' ? ownedAlbums[titleKey(event.title)] : null}
                         <div class="event {event.kind}" class:playing={event.kind === 'album' && titleKey(event.title) === titleKey(track?.album ?? '')}>
                           <span class="marker" aria-hidden="true">{event.kind === 'award' ? '★' : event.kind === 'nominated' ? '☆' : ''}</span>
                           {#if event.kind === 'album'}<span class="sleeve"><img src={`https://coverartarchive.org/release-group/${event.id}/front-250`} alt="" loading="lazy" onerror={(failed) => (failed.currentTarget as HTMLImageElement).remove()} /></span>{/if}
                           <div class="event-text"><div class="event-title">{timelineTitle(event)}</div>{#if timelineDetail(event)}<div class="event-detail">{timelineDetail(event)}</div>{/if}</div>
-                          {#if event.kind === 'album' && titleKey(event.title) === titleKey(track?.album ?? '')}<span class="now">Playing</span>{:else if owned}<button class="owned" title="Open the album" onclick={() => openView({ kind: 'album', key: owned.key, title: owned.title })}>In your library</button>{/if}
+                          {#if event.kind === 'album' && titleKey(event.title) === titleKey(track?.album ?? '')}<span class="now">{t('Playing')}</span>{:else if owned}<button class="owned" title={t('Open the album')} onclick={() => openView({ kind: 'album', key: owned.key, title: owned.title })}>{t('In your library')}</button>{/if}
                         </div>
                       {/each}
                     </li>
                   {/each}
                 </ol>
-                {@render source(info.timeline.source, info.timeline.link, 'MusicBrainz page')}
+                {@render source(info.timeline.source, info.timeline.link, t('MusicBrainz page'))}
               {/if}
             {:else}
-              {#if info.timeline?.found}<button class="callout-button" onclick={() => showTimeline = true}><svg class="drawing" viewBox="0 0 64 24" aria-hidden="true"><path d="M2 19h60" /><path d="M10 19v-7M24 19v-11M38 19v-6M52 19v-10" /><rect x="6.5" y="5" width="7" height="7" rx="1.2" /><rect x="20.5" y="1" width="7" height="7" rx="1.2" /><rect x="34.5" y="6" width="7" height="7" rx="1.2" /><rect x="48.5" y="2" width="7" height="7" rx="1.2" /><circle cx="10" cy="19" r="2.2" /><circle cx="24" cy="19" r="2.2" /><circle cx="38" cy="19" r="2.2" /><circle cx="52" cy="19" r="2.2" /></svg><span class="callout-text">View artist timeline<small>Bands, labels and albums, year by year</small></span><span class="chevron" aria-hidden="true">›</span></button>{/if}
-              {#if pending(result)}<p class="quiet">Looking…</p>
-              {:else if !result.found}<p class="quiet">Nothing found about this artist</p>
+              {#if info.timeline?.found}<button class="callout-button" onclick={() => showTimeline = true}><svg class="drawing" viewBox="0 0 64 24" aria-hidden="true"><path d="M2 19h60" /><path d="M10 19v-7M24 19v-11M38 19v-6M52 19v-10" /><rect x="6.5" y="5" width="7" height="7" rx="1.2" /><rect x="20.5" y="1" width="7" height="7" rx="1.2" /><rect x="34.5" y="6" width="7" height="7" rx="1.2" /><rect x="48.5" y="2" width="7" height="7" rx="1.2" /><circle cx="10" cy="19" r="2.2" /><circle cx="24" cy="19" r="2.2" /><circle cx="38" cy="19" r="2.2" /><circle cx="52" cy="19" r="2.2" /></svg><span class="callout-text">{t('View artist timeline')}<small>{t('Bands, labels and albums, year by year')}</small></span><span class="chevron" aria-hidden="true">›</span></button>{/if}
+              {#if pending(result)}<p class="quiet">{t('Looking…')}</p>
+              {:else if !result.found}<p class="quiet">{t('Nothing found about this artist')}</p>
               {:else}
                 {@const blocks = blocksOf(result.text)}{@const shown = expanded ? blocks.length : shortCount(blocks)}
                 <div class="info-head">{#if result.image}<img class="info-pic round" src={infoImage(result.image)} alt="" />{/if}<div><h2>{result.heading}</h2>{#if result.subheading}<div class="quiet">{result.subheading}</div>{/if}</div></div>
                 {#each blocks.slice(0, shown) as block}{#if block.startsWith('## ')}<h3>{block.slice(3)}</h3>{:else if block.startsWith('• ')}<ul>{#each block.split('\n') as item}<li>{item.replace(/^• /, '')}</li>{/each}</ul>{:else}<p>{block}</p>{/if}{/each}
-                {#if shown < blocks.length}<button class="more" onclick={() => expanded = true}>Show more</button>{/if}
-                {@render source(result.source, result.link, 'Read more')}
+                {#if shown < blocks.length}<button class="more" onclick={() => expanded = true}>{t('Show more')}</button>{/if}
+                {@render source(result.source, result.link, t('Read more'))}
               {/if}
             {/if}
           {:else}
             {#if showCredits && info.credits?.found}
-              <button class="back" onclick={() => showCredits = false}>← Album</button>
+              <button class="back" onclick={() => showCredits = false}>{t('← Album')}</button>
                 {@const credits = info.credits.events}{@const number = playingNumber(credits)}{@const playingIndex = credits.tracks.findIndex((item: any) => item.n === number)}{@const everyone = creditGroups.flatMap(([group]) => peopleIn(credits, group).map(person => ({ key: group + '|' + person.name, tracks: person.tracks })))}{@const stripHintFor = everyone.find(person => person.tracks.size)?.key}<!-- the first-run hint sits on the first row with a strip -->
                 <div class="credits-view">
-                {#if playingIndex >= 0}<div class="credit-list credit-key"><div class="credit-row here"><div class="key-text"><span class="key-label">Credits for track {credits.tracks[playingIndex].label}</span><span class="credit-name">{credits.tracks[playingIndex].title}{@render notes()}</span></div><div class="key-axis" style:width={`${credits.tracks.length * 6 - 2}px`}><div class="track-map">{#each credits.tracks as item}<i class:on={item.n === number} class:current={item.n === number}></i>{/each}</div></div></div></div>{/if}<!-- key: a highlighted row for the playing track, with only its cell lit; a small arrow above each group's strips marks the same column -->
+                {#if playingIndex >= 0}<div class="credit-list credit-key"><div class="credit-row here"><div class="key-text"><span class="key-label">{t('Credits for track {track}', { track: credits.tracks[playingIndex].label })}</span><span class="credit-name">{credits.tracks[playingIndex].title}{@render notes()}</span></div><div class="key-axis" style:width={`${credits.tracks.length * 6 - 2}px`}><div class="track-map">{#each credits.tracks as item}<i class:on={item.n === number} class:current={item.n === number}></i>{/each}</div></div></div></div>{/if}<!-- key: a highlighted row for the playing track, with only its cell lit; a small arrow above each group's strips marks the same column -->
                 {#each creditGroups as [group, title]}{@const people = peopleIn(credits, group)}
                   {#if people.length}
-                    <h3 class="credit-group">{title}{#if playingIndex >= 0}<span class="track-pointer" style:width={`${credits.tracks.length * 6 - 2}px`} title={`Playing: ${credits.tracks[playingIndex].label}. ${credits.tracks[playingIndex].title}`}><i style:left={`${playingIndex * 6 - 2}px`}></i></span>{/if}</h3>
+                    <h3 class="credit-group">{title}{#if playingIndex >= 0}<span class="track-pointer" style:width={`${credits.tracks.length * 6 - 2}px`} title={t('Playing: {track}', { track: `${credits.tracks[playingIndex].label}. ${credits.tracks[playingIndex].title}` })}><i style:left={`${playingIndex * 6 - 2}px`}></i></span>{/if}</h3>
                     <div class="credit-list">
                       {#each people as person}
                         <div class="credit-row" class:here={person.tracks.has(number)} title={person.detail.join('\n')}>
                           <div class="credit-name">{person.name}{#if person.tracks.has(number)}{@render notes()}{/if}</div><div class="credit-roles">{person.roles.join(', ')}</div>
-                          <div class="track-map" style:width={`${credits.tracks.length * 6 - 2}px`} >{#if group + '|' + person.name === stripHintFor}<Hint id="credits-strip" bubble align="end" text="Each bar is a track in the album" />{/if}{#if person.tracks.size}{#each credits.tracks as item}<i class:on={person.tracks.has(item.n)} class:current={item.n === number} title={`${item.label}. ${item.title}`}></i>{/each}{/if}</div>
+                          <div class="track-map" style:width={`${credits.tracks.length * 6 - 2}px`} >{#if group + '|' + person.name === stripHintFor}<Hint id="credits-strip" bubble align="end" text={t('Each bar is a track in the album')} />{/if}{#if person.tracks.size}{#each credits.tracks as item}<i class:on={person.tracks.has(item.n)} class:current={item.n === number} title={`${item.label}. ${item.title}`}></i>{/each}{/if}</div>
                         </div>
                       {/each}
                     </div>
                   {/if}
                 {/each}
                 </div>
-                {@render source(`${info.credits.source}${info.credits.subheading ? ` (the ${info.credits.subheading} release)` : ''}`, info.credits.link, 'MusicBrainz page')}
+                {@render source(info.credits.source + (info.credits.subheading ? ' ' + t('(the {release} release)', { release: info.credits.subheading }) : ''), info.credits.link, t('MusicBrainz page'))}
             {:else}
-              {#if info.credits?.found}<button class="callout-button" onclick={() => showCredits = true}><svg class="drawing" viewBox="0 0 64 24" aria-hidden="true"><path d="M2 4h14M2 12h11M2 20h16" /><rect x="26" y="1.5" width="4" height="5" rx="0.8" class="on" /><rect x="33" y="1.5" width="4" height="5" rx="0.8" class="on" /><rect x="40" y="1.5" width="4" height="5" rx="0.8" class="on" /><rect x="47" y="1.5" width="4" height="5" rx="0.8" class="on" /><rect x="54" y="1.5" width="4" height="5" rx="0.8" class="on" /><rect x="26" y="9.5" width="4" height="5" rx="0.8" /><rect x="33" y="9.5" width="4" height="5" rx="0.8" class="on" /><rect x="40" y="9.5" width="4" height="5" rx="0.8" /><rect x="47" y="9.5" width="4" height="5" rx="0.8" class="on" /><rect x="54" y="9.5" width="4" height="5" rx="0.8" /><rect x="26" y="17.5" width="4" height="5" rx="0.8" class="on" /><rect x="33" y="17.5" width="4" height="5" rx="0.8" /><rect x="40" y="17.5" width="4" height="5" rx="0.8" /><rect x="47" y="17.5" width="4" height="5" rx="0.8" /><rect x="54" y="17.5" width="4" height="5" rx="0.8" class="on" /></svg><span class="callout-text">View album credits<small>Who plays on each track</small></span><span class="chevron" aria-hidden="true">›</span></button>{/if}
+              {#if info.credits?.found}<button class="callout-button" onclick={() => showCredits = true}><svg class="drawing" viewBox="0 0 64 24" aria-hidden="true"><path d="M2 4h14M2 12h11M2 20h16" /><rect x="26" y="1.5" width="4" height="5" rx="0.8" class="on" /><rect x="33" y="1.5" width="4" height="5" rx="0.8" class="on" /><rect x="40" y="1.5" width="4" height="5" rx="0.8" class="on" /><rect x="47" y="1.5" width="4" height="5" rx="0.8" class="on" /><rect x="54" y="1.5" width="4" height="5" rx="0.8" class="on" /><rect x="26" y="9.5" width="4" height="5" rx="0.8" /><rect x="33" y="9.5" width="4" height="5" rx="0.8" class="on" /><rect x="40" y="9.5" width="4" height="5" rx="0.8" /><rect x="47" y="9.5" width="4" height="5" rx="0.8" class="on" /><rect x="54" y="9.5" width="4" height="5" rx="0.8" /><rect x="26" y="17.5" width="4" height="5" rx="0.8" class="on" /><rect x="33" y="17.5" width="4" height="5" rx="0.8" /><rect x="40" y="17.5" width="4" height="5" rx="0.8" /><rect x="47" y="17.5" width="4" height="5" rx="0.8" /><rect x="54" y="17.5" width="4" height="5" rx="0.8" class="on" /></svg><span class="callout-text">{t('View album credits')}<small>{t('Who plays on each track')}</small></span><span class="chevron" aria-hidden="true">›</span></button>{/if}
               {#if albumTags}
                 <h2 class="album-title">{albumTags.title}</h2>
-                <div class="section-head">From your music files</div>
+                <div class="section-head">{t('From your music files')}</div>
                 <dl class="tag-table">{#each tagRows(albumTags) as [label, value] (label)}<dt>{label}</dt><dd>{value}</dd>{/each}</dl>
               {/if}
-              {#if pending(result)}<p class="quiet">{albumTags ? 'Looking online…' : 'Looking…'}</p>
-              {:else if !result.found}{#if !albumTags && !info.credits?.found}<p class="quiet">Nothing found about this album</p>{/if}
+              {#if pending(result)}<p class="quiet">{albumTags ? t('Looking online…') : t('Looking…')}</p>
+              {:else if !result.found}{#if !albumTags && !info.credits?.found}<p class="quiet">{t('Nothing found about this album')}</p>{/if}
               {:else if albumTags}
               {@const blocks = blocksOf(result.text)}{@const shown = expanded ? blocks.length : shortCount(blocks)}
-                <div class="section-head">From {result.source}{#if result.link}<button class="link" onclick={() => sendToShell({ type: 'openUrl', url: result.link })}>Read more</button>{/if}</div>
+                <div class="section-head">{t('From {source}', { source: result.source })}{#if result.link}<button class="link" onclick={() => sendToShell({ type: 'openUrl', url: result.link })}>{t('Read more')}</button>{/if}</div>
               {#each blocks.slice(0, shown) as block}{#if block.startsWith('## ')}<h3>{block.slice(3)}</h3>{:else if block.startsWith('• ')}<ul>{#each block.split('\n') as item}<li>{item.replace(/^• /, '')}</li>{/each}</ul>{:else}<p>{block}</p>{/if}{/each}
-              {#if shown < blocks.length}<button class="more" onclick={() => expanded = true}>Show more</button>{/if}
+              {#if shown < blocks.length}<button class="more" onclick={() => expanded = true}>{t('Show more')}</button>{/if}
               {:else}
               {@const blocks = blocksOf(result.text)}{@const shown = expanded ? blocks.length : shortCount(blocks)}
               <div class="info-head">{#if result.image}<img class="info-pic" src={infoImage(result.image)} alt="" />{/if}<div><h2>{result.heading}</h2>{#if result.subheading}<div class="quiet">{result.subheading}</div>{/if}</div></div>
               {#each blocks.slice(0, shown) as block}{#if block.startsWith('## ')}<h3>{block.slice(3)}</h3>{:else if block.startsWith('• ')}<ul>{#each block.split('\n') as item}<li>{item.replace(/^• /, '')}</li>{/each}</ul>{:else}<p>{block}</p>{/if}{/each}
-              {#if shown < blocks.length}<button class="more" onclick={() => expanded = true}>Show more</button>{/if}
-              {@render source(result.source, result.link, 'Read more')}
+              {#if shown < blocks.length}<button class="more" onclick={() => expanded = true}>{t('Show more')}</button>{/if}
+              {@render source(result.source, result.link, t('Read more'))}
               {/if}
             {/if}
           {/if}
@@ -237,7 +238,7 @@
 </section>
 
 {#snippet notes()}<svg class="notes" viewBox="0 0 16 16" aria-hidden="true"><ellipse cx="4.2" cy="12.6" rx="2.5" ry="1.8" transform="rotate(-20 4.2 12.6)" /><ellipse cx="12" cy="11.1" rx="2.5" ry="1.8" transform="rotate(-20 12 11.1)" /><path d="M5.9 3.3l7.9-1.6v2.4l-7.9 1.6z" /><path class="stem" d="M6.3 12.2V3.4M14.1 10.7V2" /></svg>{/snippet}<!-- two beamed notes: on the playing track -->
-{#snippet source(from: string, link: string, label: string)}<div class="source">From {from}{#if link}&nbsp;· <button class="link" onclick={() => sendToShell({ type: 'openUrl', url: link })}>{label}</button>{/if}</div>{/snippet}
+{#snippet source(from: string, link: string, label: string)}<div class="source">{t('From {source}', { source: from })}{#if link}&nbsp;· <button class="link" onclick={() => sendToShell({ type: 'openUrl', url: link })}>{label}</button>{/if}</div>{/snippet}
 
 <style>
   .now-playing { position: relative; height: 100%; overflow: hidden; container: now-playing / size; } /* art sizes to the space actually left (cqh/cqw) */

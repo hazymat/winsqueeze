@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../lib/i18n'
   import { untrack } from 'svelte'
   import { selectable } from '../lib/selectable.svelte'
   import type { SelectionAction } from '../lib/selection.svelte'
@@ -30,7 +31,7 @@
   const plain = (text: string) => (text ?? '').toLowerCase()
   const shown = $derived(ui.search.length >= 2 ? items.filter(item => plain(item.name).includes(plain(ui.search))) : items)
   const top = $derived(kind === 'radio' || kind === 'apps')
-  const heading = $derived(kind === 'radio' ? 'Radio' : kind === 'apps' ? 'Apps' : title)
+  const heading = $derived(kind === 'radio' ? t('Radio') : kind === 'apps' ? t('Apps') : title)
   function activate(item: any) {
     if (top) openView({ kind: item.type === 'xmlbrowser_search' ? 'app-search' : 'app', key: `${item.cmd}|`, title: item.name })
     else if (item.type === 'search') openView({ kind: 'app-search', key: `${cmd}|${item.id}`, title: splitName(item)[0] })
@@ -42,19 +43,19 @@
   async function queueItems(keys: string[], mode: 'play' | 'insert' | 'add') {
     const chosen = byId(keys)
     for (const [position, item] of chosen.entries()) await live([cmd, 'playlist', mode === 'play' && position > 0 ? 'add' : mode, `item_id:${item.id}`], true)
-    toast(mode === 'play' ? `Playing ${chosen.length === 1 ? splitName(chosen[0])[0] : chosen.length + ' items'}` : mode === 'insert' ? 'Playing next' : 'Added to Now playing')
+    toast(mode === 'play' ? t('Playing {items}', { items: chosen.length === 1 ? splitName(chosen[0])[0] : t('{count} items', { count: chosen.length }) }) : mode === 'insert' ? t('Playing next') : t('Added to Now playing'))
   }
   async function favourite(keys: string[]) {
     const chosen = byId(keys).filter(item => item.url)
     for (const item of chosen) await live(['favorites', 'add', `url:${item.url}`, `title:${item.name}`].concat(item.image ? [`icon:${item.image}`] : []))
-    toast(chosen.length ? `Added ${chosen.length === 1 ? splitName(chosen[0])[0] : chosen.length + ' items'} to favourites` : 'This app doesn’t let that be a favourite')
+    toast(chosen.length ? t('Added {items} to favourites', { items: chosen.length === 1 ? splitName(chosen[0])[0] : t('{count} items', { count: chosen.length }) }) : t('This app doesn’t let that be a favourite'))
   }
   const itemActions: SelectionAction[] = [
-    { label: 'Play now', key: 'Enter', run: keys => queueItems(keys, 'play') },
-    { label: 'Play next', run: keys => queueItems(keys, 'insert') },
-    { label: 'Add to end', run: keys => queueItems(keys, 'add') },
-    { label: 'Add to favourites', run: favourite },
-    { label: 'Info', run: keys => { ui.itemInfo = byId(keys).map(infoFor) } }
+    { label: t('Play now'), key: 'Enter', run: keys => queueItems(keys, 'play') },
+    { label: t('Play next'), run: keys => queueItems(keys, 'insert') },
+    { label: t('Add to end'), run: keys => queueItems(keys, 'add') },
+    { label: t('Add to favourites'), run: favourite },
+    { label: t('Info'), run: keys => { ui.itemInfo = byId(keys).map(infoFor) } }
   ]
   const playable = (item: any) => item.isaudio || item.type === 'audio' || item.type === 'playlist'
 </script>
@@ -63,12 +64,12 @@
 {#if kind === 'app-search'}
   <form class="search" onsubmit={(event) => { event.preventDefault(); searched = searchWords.trim(); if (searched) load() }}>
     <!-- svelte-ignore a11y_autofocus -->
-    <input bind:value={searchWords} placeholder={`Search ${title}`} autofocus /><button type="submit" disabled={!searchWords.trim()}>Search</button>
+    <input bind:value={searchWords} placeholder={t('Search {name}', { name: title })} autofocus /><button type="submit" disabled={!searchWords.trim()}>{t('Search')}</button>
   </form>
 {/if}
-{#if loading}<p class="quiet">Loading…</p>
-{:else if failed}<p class="quiet">The server didn’t answer for this one. Some apps only work once they’re signed in on the server.</p>
-{:else if !items.length && (kind !== 'app-search' || searched)}<p class="quiet">{top ? (kind === 'radio' ? 'The server has no radio plugins turned on.' : 'The server has no apps turned on. Add them in Lyrion’s settings, under Plugins.') : searched ? 'Nothing found.' : 'Nothing here.'}</p>{/if}
+{#if loading}<p class="quiet">{t('Loading…')}</p>
+{:else if failed}<p class="quiet">{t('The server didn’t answer for this one. Some apps only work once they’re signed in on the server.')}</p>
+{:else if !items.length && (kind !== 'app-search' || searched)}<p class="quiet">{top ? (kind === 'radio' ? t('The server has no radio plugins turned on.') : t('The server has no apps turned on. Add them in Lyrion’s settings, under Plugins.')) : searched ? t('Nothing found.') : t('Nothing here.')}</p>{/if}
 {#if top}
   <div class="tiles">
     {#each shown as item (item.cmd + item.name)}
@@ -85,7 +86,7 @@
         <button class="main" onclick={() => activate(item)} disabled={!isFolder(item) && !playable(item) && item.type !== 'search'}>
           {#if itemImage(item)}<img src={itemImage(item)} alt="" loading="lazy" />{:else}<span class="glyph">{item.type === 'search' ? '🔍' : isFolder(item) ? '📁' : playable(item) ? '♪' : 'ℹ'}</span>{/if}
           <span class="text" title={item.name}><span class="name">{splitName(item)[0]}</span>{#if detail(item)}<span class="detail">{detail(item)}</span>{/if}</span>
-          {#if isFolder(item) || playable(item)}<span class="kind" title={isFolder(item) ? 'Open' : 'Play'}><Icon name={isFolder(item) ? 'folders' : 'play'} size={16} /></span>{/if}
+          {#if isFolder(item) || playable(item)}<span class="kind" title={isFolder(item) ? t('Open') : t('Play')}><Icon name={isFolder(item) ? 'folders' : 'play'} size={16} /></span>{/if}
         </button>
       </div>
     {/each}

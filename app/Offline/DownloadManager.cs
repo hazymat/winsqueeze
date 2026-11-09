@@ -120,7 +120,7 @@ public sealed class DownloadManager : IDisposable
             if (already > 0) request.Headers.Range = new RangeHeaderValue(already, null);
             using var connectTimeout = CancellationTokenSource.CreateLinkedTokenSource(cancelToken); connectTimeout.CancelAfter(TimeSpan.FromSeconds(20));
             using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, connectTimeout.Token);
-            if (!response.IsSuccessStatusCode) { outcome = "failed"; error = $"The server answered {(int)response.StatusCode} {response.ReasonPhrase}"; return; }
+            if (!response.IsSuccessStatusCode) { outcome = "failed"; error = L.T("The server answered {status}", ("status", $"{(int)response.StatusCode} {response.ReasonPhrase}")); return; }
             var resuming = response.StatusCode == System.Net.HttpStatusCode.PartialContent;
             if (!resuming) already = 0; // the server sent the whole file again
             var totalSize = already + (response.Content.Headers.ContentLength ?? 0);
@@ -139,7 +139,7 @@ public sealed class DownloadManager : IDisposable
                     lock (stateLock) if (active.ContainsKey(trackId)) active[trackId] = (active[trackId].cancel, received, totalSize);
                     NotifyChanged();
                 }
-                if (totalSize > already && received < totalSize) throw new IOException("The download stopped early");
+                if (totalSize > already && received < totalSize) throw new IOException(L.T("The download stopped early"));
             }
             File.Move(partPath, finalPath, true);
             Run("UPDATE downloads SET size=$size, received=$size WHERE track_id=$id", ("$size", new FileInfo(finalPath).Length), ("$id", trackId));
@@ -149,7 +149,7 @@ public sealed class DownloadManager : IDisposable
         catch (Exception downloadError) when (downloadError is HttpRequestException or OperationCanceledException or IOException)
         {
             // Network trouble: back in the queue, keep the partial file, try again in a minute
-            outcome = "queued"; error = downloadError is OperationCanceledException ? "The server stopped responding" : downloadError.Message;
+            outcome = "queued"; error = downloadError is OperationCanceledException ? L.T("The server stopped responding") : downloadError.Message;
             pausedUntil = DateTime.Now.AddMinutes(1); LastProblem = error;
         }
         catch (Exception otherError) { outcome = "failed"; error = otherError.Message; }

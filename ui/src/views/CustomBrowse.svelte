@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t, tn } from '../lib/i18n'
   import { app, openView, openSection, readSetting, writeSetting, type CustomStep } from '../state.svelte'
   import PeopleList from './PeopleList.svelte'
   import AlbumsOf from './AlbumsOf.svelte'
@@ -23,10 +24,10 @@
 </script>
 
 {#if group}
-  <PageHead title={group} detail={`${groupViews.length} ${groupViews.length === 1 ? 'view' : 'views'} · hold and drag to reorder`}><ViewModes mode={groupLayout} onchange={setGroupLayout} /><button class="ghost" onclick={() => openSection('customViews')}>Edit views</button></PageHead>
+  <PageHead title={group} detail={tn(groupViews.length, '{count} view', '{count} views') + ' · ' + t('hold and drag to reorder')}><ViewModes mode={groupLayout} onchange={setGroupLayout} /><button class="ghost" onclick={() => openSection('customViews')}>{t('Edit views')}</button></PageHead>
   <div class="cards layout-{groupLayout}" use:gridSortable={{ onMove: (from, to) => moveCustomView(groupViews.map(each => each.Id), from, to) }}>{#each groupViews as each (each.Id)}<div data-sort-row><CustomViewCard view={each} layout={groupLayout} /></div>{/each}</div>
 {:else if !definition}
-  <p class="quiet">This custom view has been deleted. <button class="ghost" onclick={() => openSection('customViews')}>Custom views</button></p>
+  <p class="quiet">{t('This custom view has been deleted.')} <button class="ghost" onclick={() => openSection('customViews')}>{t('Custom views')}</button></p>
 {:else if level}
   <PeopleList kind="custom" title={heading} detail={(filters.length ? trail + ' › ' : '') + (levelNames[level] ?? level)} custom={{ viewId, genres: scope.genres, filters, level }} />
 {:else}

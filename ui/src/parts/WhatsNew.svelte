@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../lib/i18n'
   import { onShellMessage, sendToShell } from '../bridge'
   // In the mini player the card can't fit: a pulsing dot instead, which slides down a one-line notice; Details opens the full window and the card
   let { mini = false, offset = false }: { mini?: boolean; offset?: boolean } = $props()
@@ -18,19 +19,19 @@
 <svelte:window onkeydown={(event) => { if (event.key === 'Escape' && noticeOpen) { event.preventDefault(); noticeOpen = false } }} />
 
 {#if whatsNew && mini}
-  <button class="whats-dot" class:offset onclick={() => noticeOpen = !noticeOpen} aria-label="What's new" title="Updated to {whatsNew.toVersion}: what's new"></button>
-  <div class="mini-notice" class:open={noticeOpen}><span>Updated to {whatsNew.toVersion}</span><button class="primary" onclick={() => { noticeOpen = false; sendToShell({ type: 'windowMode', mode: 'desktop' }) }}>Details</button><button class="ghost" onclick={() => whatsNew = null} aria-label="Dismiss">×</button></div>
+  <button class="whats-dot" class:offset onclick={() => noticeOpen = !noticeOpen} aria-label={t('What\'s new')} title={t('Updated to {version}', { version: whatsNew.toVersion }) + ': ' + t('What\'s new')}></button>
+  <div class="mini-notice" class:open={noticeOpen}><span>{t('Updated to {version}', { version: whatsNew.toVersion })}</span><button class="primary" onclick={() => { noticeOpen = false; sendToShell({ type: 'windowMode', mode: 'desktop' }) }}>{t('Details')}</button><button class="ghost" onclick={() => whatsNew = null} aria-label={t('Dismiss')}>×</button></div>
 {:else if whatsNew}
-  <div class="whats-new" role="dialog" aria-label="What's new">
-    <header><div><h3>What's new</h3><span class="versions">{whatsNew.fromVersion} → {whatsNew.toVersion}</span></div><button class="dismiss" onclick={() => whatsNew = null} aria-label="Dismiss">×</button></header>
+  <div class="whats-new" role="dialog" aria-label={t('What\'s new')}>
+    <header><div><h3>{t('What\'s new')}</h3><span class="versions">{whatsNew.fromVersion} → {whatsNew.toVersion}</span></div><button class="dismiss" onclick={() => whatsNew = null} aria-label={t('Dismiss')}>×</button></header>
     <div class="releases">
-      <ul>{#each items as item}<li class="rank-{item.rank}">{#if item.rank < 2}<span class="tag">{item.rank === 0 ? 'New' : 'Better'}</span>{/if}{#each item.text.split('**') as part, index}{#if index % 2}<strong>{part}</strong>{:else}{part}{/if}{/each} <span class="version">{item.version}</span></li>{:else}<li class="quiet">Notes are on the <a href="https://github.com/hazymat/winsqueeze/releases" target="_blank" rel="noreferrer">releases page</a>.</li>{/each}</ul>
+      <ul>{#each items as item}<li class="rank-{item.rank}">{#if item.rank < 2}<span class="tag">{item.rank === 0 ? t('New') : t('Better')}</span>{/if}{#each item.text.split('**') as part, index}{#if index % 2}<strong>{part}</strong>{:else}{part}{/if}{/each} <span class="version">{item.version}</span></li>{:else}<li class="quiet">{t('Notes are on the')} <a href="https://github.com/hazymat/winsqueeze/releases" target="_blank" rel="noreferrer">{t('releases page')}</a>.</li>{/each}</ul>
       {#if allChanges.length}
-        <button class="all-toggle" aria-expanded={showAll} onclick={() => showAll = !showAll}><span class="chevron" class:open={showAll}>›</span>Every change ({allChanges.length})</button>
+        <button class="all-toggle" aria-expanded={showAll} onclick={() => showAll = !showAll}><span class="chevron" class:open={showAll}>›</span>{t('Every change ({count})', { count: allChanges.length })}</button>
         {#if showAll}<ul class="all">{#each allChanges as item}<li>{#each item.text.split('**') as part, index}{#if index % 2}<strong>{part}</strong>{:else}{part}{/if}{/each} <span class="version">{item.version}</span></li>{/each}</ul>{/if}
       {/if}
     </div>
-    <button class="ok" onclick={() => whatsNew = null}>Got it</button>
+    <button class="ok" onclick={() => whatsNew = null}>{t('Got it')}</button>
   </div>
 {/if}
 

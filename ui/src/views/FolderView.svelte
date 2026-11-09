@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t, tn } from '../lib/i18n'
   import PinButton from '../parts/PinButton.svelte'
   import PageHead from '../parts/PageHead.svelte'
   import { selectable } from '../lib/selectable.svelte'
@@ -16,7 +17,7 @@
 {#if folder.albumKey && !(folder.children ?? []).some((child: any) => child.subfolders > 0 || !child.albumKey)}
   <AlbumView albumKey={folder.albumKey} />
 {:else}
-  <PageHead title={folder.name ?? 'Folders'} detail={(folder.children ?? []).length ? `${(folder.children ?? []).length} items` : ''}>{#snippet titleExtra()}{#if folderKey}<PinButton view={{ kind: 'folder', key: folderKey, title: folder.name ?? 'Folder' }} />{/if}{/snippet}</PageHead>
+  <PageHead title={folder.name ?? t('Folders')} detail={(folder.children ?? []).length ? tn((folder.children ?? []).length, '{count} item', '{count} items') : ''}>{#snippet titleExtra()}{#if folderKey}<PinButton view={{ kind: 'folder', key: folderKey, title: folder.name ?? 'Folder' }} />{/if}{/snippet}</PageHead>
   <div class="folders" use:selectable={{ scope: 'folder:' + folderKey, noun: 'folder', actions: browseActions('folder') }}>
     {#each shown as child (child.key)}
       <button class="folder" data-select-key={String(child.key)} onclick={() => openView({ kind: 'folder', key: String(child.key), title: child.name })}>

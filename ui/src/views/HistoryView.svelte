@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t, tn } from '../lib/i18n'
   import { query, artUrl, sendToShell, command } from '../bridge'
   import { toast, ui, openView } from '../state.svelte'
   import { selectable } from '../lib/selectable.svelte'
@@ -38,32 +39,32 @@
   function dayLabel(seconds: number) {
     const date = new Date(seconds * 1000), today = new Date(); today.setHours(0, 0, 0, 0)
     const daysAgo = Math.round((today.getTime() - new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()) / 86400000)
-    return daysAgo === 0 ? 'Today' : daysAgo === 1 ? 'Yesterday' : date.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: date.getFullYear() === today.getFullYear() ? undefined : 'numeric' })
+    return daysAgo === 0 ? t('Today') : daysAgo === 1 ? t('Yesterday') : date.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: date.getFullYear() === today.getFullYear() ? undefined : 'numeric' })
   }
   const clock = (seconds: number) => new Date(seconds * 1000).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
   const hourLabel = (seconds: number) => { const hour = new Date(seconds * 1000); hour.setMinutes(0, 0, 0); const next = new Date(hour.getTime() + 3600000); return `${clock(hour.getTime() / 1000)}–${clock(next.getTime() / 1000)}` }
   const playOf = (key: string) => plays.find(play => String(play.id) === key)
   const trackIdsOf = (keys: string[]) => keys.map(playOf).filter(play => play?.track_id).map(play => String(play!.track_id))
-  const playStream = (play: Play) => { if (play.url) command('playlist', 'play', play.url); else toast('That stream can’t be played again') }
+  const playStream = (play: Play) => { if (play.url) command('playlist', 'play', play.url); else toast(t('That stream can’t be played again')) }
   const playTracks = async (keys: string[], mode: 'load' | 'insert' | 'add') => { const streams = keys.map(playOf).filter(play => play?.remote); if (!trackIdsOf(keys).length && streams.length) { playStream(streams[0]!); return } queueTracks(await resolveTracks('track', trackIdsOf(keys)), mode) }
   const actions: SelectionAction[] = [
-    { label: 'Play now', key: 'Enter', run: keys => playTracks(keys, 'load') },
-    { label: 'Play next', run: keys => playTracks(keys, 'insert') },
-    { label: 'Add to end', run: keys => playTracks(keys, 'add') },
-    { label: 'Track info', run: keys => { ui.trackInfo = trackIdsOf(keys).map(Number) } },
-    { label: 'Remove from history', danger: true, run: keys => sendToShell({ type: 'historyDelete', ids: keys.map(Number) }) }
+    { label: t('Play now'), key: 'Enter', run: keys => playTracks(keys, 'load') },
+    { label: t('Play next'), run: keys => playTracks(keys, 'insert') },
+    { label: t('Add to end'), run: keys => playTracks(keys, 'add') },
+    { label: t('Track info'), run: keys => { ui.trackInfo = trackIdsOf(keys).map(Number) } },
+    { label: t('Remove from history'), danger: true, run: keys => sendToShell({ type: 'historyDelete', ids: keys.map(Number) }) }
   ]
   // Click through: the track opens its album (or folder album) with the track marked; the artist opens the album artist's page
-  async function openAlbum(play: Play) { if (!play.track_id) { playStream(play); return } const place = await query('trackPlace', { id: play.track_id }); if (place?.album) openView({ kind: 'album', key: String(place.album), title: place.albumTitle, highlight: String(play.track_id) }); else toast('That track isn’t in the library any more') }
-  async function openArtist(play: Play) { const place = play.track_id ? await query('trackPlace', { id: play.track_id }) : null; if (place?.artist) openView({ kind: 'artist', key: String(place.artist), title: place.artistName || play.artist }); else toast('No artist page for that one') }
+  async function openAlbum(play: Play) { if (!play.track_id) { playStream(play); return } const place = await query('trackPlace', { id: play.track_id }); if (place?.album) openView({ kind: 'album', key: String(place.album), title: place.albumTitle, highlight: String(play.track_id) }); else toast(t('That track isn’t in the library any more')) }
+  async function openArtist(play: Play) { const place = play.track_id ? await query('trackPlace', { id: play.track_id }) : null; if (place?.artist) openView({ kind: 'artist', key: String(place.artist), title: place.artistName || play.artist }); else toast(t('No artist page for that one')) }
   const art = (play: Play) => { const source = play.artwork_url ?? ''; if (play.remote && source) return source.startsWith('http') ? source : `https://art.winsqueeze/server/${encodeURIComponent(source.replace(/^\//, ''))}`; return Number(play.cover_id) > 0 || (play.cover_id && !/^-/.test(play.cover_id)) ? artUrl(play.cover_id, 120) : '' }
 </script>
 <svelte:window onkeydown={(event) => { if (event.key === 'Escape' && confirmClear) { event.preventDefault(); confirmClear = false } }} />
 
-<PageHead title="History">
-  {#if plays.length}{#if confirmClear}<span class="quiet">Clear all play history? This can’t be undone.</span><button class="ghost danger" onclick={() => { sendToShell({ type: 'historyClear' }); confirmClear = false }}>Clear</button><button class="ghost" onclick={() => confirmClear = false}>Keep</button>{:else}<button class="ghost" onclick={() => confirmClear = true}>Clear history…</button>{/if}{/if}
+<PageHead title={t('History')}>
+  {#if plays.length}{#if confirmClear}<span class="quiet">{t('Clear all play history? This can’t be undone.')}</span><button class="ghost danger" onclick={() => { sendToShell({ type: 'historyClear' }); confirmClear = false }}>{t('Clear')}</button><button class="ghost" onclick={() => confirmClear = false}>{t('Keep')}</button>{:else}<button class="ghost" onclick={() => confirmClear = true}>{t('Clear history…')}</button>{/if}{/if}
 </PageHead>
-{#if !loading && !plays.length}<p class="quiet">Nothing yet. Everything you play here (albums, tracks, radio programmes) is listed by day once it has played for 20 seconds.</p>{/if}
+{#if !loading && !plays.length}<p class="quiet">{t('Nothing yet. Everything you play here (albums, tracks, radio programmes) is listed by day once it has played for 20 seconds.')}</p>{/if}
 <div use:selectable={{ scope: 'history', noun: 'play', actions }}>
   {#each days as day (day.key)}
     <h2 class="day">{day.label}</h2>
@@ -71,10 +72,10 @@
       {#if block.kind === 'album'}
         {@const first = block.plays[block.plays.length - 1]}
         <section class="block album-block">
-          <button class="album-head" onclick={() => openAlbum(first)} title="Open the album">
+          <button class="album-head" onclick={() => openAlbum(first)} title={t('Open the album')}>
             {#if art(first)}<img src={art(first)} alt="" />{:else}<span class="no-art">♪</span>{/if}
-            <span class="text"><span class="title">{first.album}</span><span class="quiet"><span class="link" role="link" tabindex="-1" onclick={(event) => { event.stopPropagation(); openArtist(first) }} onkeydown={() => {}}>{first.artist}</span> · {block.plays.length} tracks · {clock(block.start)}–{clock(block.end)}</span></span>
-            <span class="replay" role="button" tabindex="-1" title="Play these again" onclick={(event) => { event.stopPropagation(); playTracks(block.plays.slice().reverse().map(play => String(play.id)), 'load') }} onkeydown={() => {}}><Icon name="play" size={14} /></span>
+            <span class="text"><span class="title">{first.album}</span><span class="quiet"><span class="link" role="link" tabindex="-1" onclick={(event) => { event.stopPropagation(); openArtist(first) }} onkeydown={() => {}}>{first.artist}</span> · {tn(block.plays.length, '{count} track', '{count} tracks')} · {clock(block.start)}–{clock(block.end)}</span></span>
+            <span class="replay" role="button" tabindex="-1" title={t('Play these again')} onclick={(event) => { event.stopPropagation(); playTracks(block.plays.slice().reverse().map(play => String(play.id)), 'load') }} onkeydown={() => {}}><Icon name="play" size={14} /></span>
           </button>
           {#each block.plays as play (play.id)}<button class="play-row" data-select-key={String(play.id)} ondblclick={() => playTracks([String(play.id)], 'load')}><span class="time">{clock(play.played_at)}</span><span class="name link" role="link" tabindex="-1" onclick={(event) => { event.stopPropagation(); openAlbum(play) }} onkeydown={() => {}}>{play.title}</span><span class="quiet artist link" role="link" tabindex="-1" onclick={(event) => { event.stopPropagation(); openArtist(play) }} onkeydown={() => {}}>{play.artist}</span></button>{/each}
         </section>
@@ -85,7 +86,7 @@
             <span class="time">{clock(play.played_at)}</span>
             {#if art(play)}<img src={art(play)} alt="" />{:else}<span class="no-art small">📻</span>{/if}
             <span class="text"><span class="name">{play.station || play.title}</span><span class="quiet">{play.station && play.title !== play.station ? play.title : play.artist}</span></span>
-            <span class="replay" role="button" tabindex="-1" title="Play again" onclick={(event) => { event.stopPropagation(); playStream(play) }} onkeydown={() => {}}><Icon name="play" size={14} /></span>
+            <span class="replay" role="button" tabindex="-1" title={t('Play again')} onclick={(event) => { event.stopPropagation(); playStream(play) }} onkeydown={() => {}}><Icon name="play" size={14} /></span>
           </button>
         </section>
       {:else}
@@ -96,7 +97,7 @@
       {/if}
     {/each}
   {/each}
-  {#if more}<button class="ghost load-more" onclick={loadMore}>Show older</button>{/if}
+  {#if more}<button class="ghost load-more" onclick={loadMore}>{t('Show older')}</button>{/if}
 </div>
 
 <style>

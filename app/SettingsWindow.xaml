@@ -493,6 +493,15 @@
       <StackPanel Margin="20,8,20,16">
         <Border Style="{StaticResource Card}">
           <StackPanel>
+            <TextBlock Text="Language" Style="{StaticResource CardTitle}" />
+            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+              <ComboBox x:Name="languageCombo" Width="260" />
+              <Button x:Name="languageRestartButton" Content="Restart now" Margin="8,0,0,0" Visibility="Collapsed" FontWeight="SemiBold" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
             <TextBlock Text="Starting and closing" Style="{StaticResource CardTitle}" />
             <!-- Start with Windows + Resume playing together mean music can start on boot: an amber bracket joins the pair and a warning sits under it -->
             <Grid HorizontalAlignment="Left"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
@@ -634,7 +643,7 @@
                   <Button x:Name="switchVersionButton" Content="Switch to this" IsEnabled="False" />
                 </StackPanel>
                 <ListBox x:Name="versionsList" Height="130">
-                  <ListBox.ItemTemplate><DataTemplate><StackPanel Orientation="Horizontal"><TextBlock Text="{Binding Label}" /><TextBlock Text="  ✔ running now" Foreground="#2E9E44" FontWeight="SemiBold" Visibility="{Binding CurrentVisibility}" /></StackPanel></DataTemplate></ListBox.ItemTemplate>
+                  <ListBox.ItemTemplate><DataTemplate><StackPanel Orientation="Horizontal"><TextBlock Text="{Binding Label}" /><TextBlock Text="{Binding RunningNow}" Foreground="#2E9E44" FontWeight="SemiBold" Visibility="{Binding CurrentVisibility}" /></StackPanel></DataTemplate></ListBox.ItemTemplate>
                 </ListBox>
               </DockPanel>
               <TextBlock x:Name="versionNotesText" Style="{StaticResource Quiet}" />

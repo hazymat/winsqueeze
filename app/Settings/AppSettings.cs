@@ -172,6 +172,7 @@ public class GeneralSettings
     public Dictionary<string, double[]> ModeSizes { get; set; } = new();
     public double[] LyricsBounds { get; set; } = Array.Empty<double>(); // the popped-out lyrics window: left, top, width, height
     public string UpdateChannel { get; set; } = "stable"; // stable | dev
+    public string Language { get; set; } = ""; // "" follows Windows' display language, else a code from L.Languages
     public bool Glass { get; set; } = true; // Windows 11 acrylic backdrop behind a see-through UI
     // No title bar or standard border by default; the UI draws its own drag strip and buttons (stored as ShowTitleBar so older "Frameless": false files get the new default)
     public bool ShowTitleBar { get; set; }
@@ -246,7 +247,7 @@ public class AppSettings
     // Import keeps this PC's player identity and any saved password for a matching profile
     public static AppSettings Import(string importJson, AppSettings current)
     {
-        var imported = JsonSerializer.Deserialize<AppSettings>(importJson, jsonOptions) ?? throw new InvalidDataException("Not a WinSqueeze settings file.");
+        var imported = JsonSerializer.Deserialize<AppSettings>(importJson, jsonOptions) ?? throw new InvalidDataException(L.T("Not a WinSqueeze settings file."));
         imported.PlayerMac = current.PlayerMac;
         foreach (var profile in imported.Profiles) profile.ProtectedPassword = current.Profiles.FirstOrDefault(existing => existing.Id == profile.Id)?.ProtectedPassword ?? "";
         imported.General.CloseToTrayTipShown = current.General.CloseToTrayTipShown;

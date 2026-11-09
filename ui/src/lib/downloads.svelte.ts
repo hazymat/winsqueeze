@@ -1,6 +1,7 @@
 // Offline downloads (SPEC.md › Offline downloads): the shell downloads and keeps the list; this mirrors it for the Downloaded section and the cover badges
 import { request, sendToShell, onShellMessage } from '../bridge'
 import { toast } from '../state.svelte'
+import { t, tn } from './i18n'
 import { resolveTracks } from './browseActions'
 
 export type DownloadTrack = { id: number; title: string; state: string; error: string; received: number; size: number }
@@ -13,14 +14,14 @@ const itemsFor = async (kind: string, keys: string[]) => kind === 'playlist' ? (
 
 export async function downloadItems(kind: string, keys: string[]) {
   const result = await request({ type: 'download', items: await itemsFor(kind, keys) })
-  if (result?.error) { toast(`Couldn't download: ${result.error}`); return }
+  if (result?.error) { toast(t('Couldn’t download: {error}', { error: result.error })); return }
   const added = Number(result?.added ?? 0)
-  toast(added ? `Downloading ${added} ${added === 1 ? 'track' : 'tracks'} (see Downloaded)` : 'Already downloaded')
+  toast(added ? tn(added, 'Downloading {count} track (see Downloaded)', 'Downloading {count} tracks (see Downloaded)') : t('Already downloaded'))
 }
 export async function removeDownloads(kind: string, keys: string[]) {
   const result = await request({ type: 'downloadRemove', items: keys.map(key => ({ kind, key })) })
   const removed = Number(result?.removed ?? 0)
-  toast(`Removed ${removed} downloaded ${removed === 1 ? 'track' : 'tracks'} from this PC`)
+  toast(tn(removed, 'Removed {count} downloaded track from this PC', 'Removed {count} downloaded tracks from this PC'))
 }
 export const cancelDownloads = (albums: string[], tracks: number[] = []) => sendToShell({ type: 'downloadCancel', albums, tracks })
 export const formatBytes = (bytes: number) => bytes >= 1e9 ? `${(bytes / 1e9).toFixed(1)} GB` : bytes >= 1e6 ? `${Math.round(bytes / 1e6)} MB` : `${Math.max(0, Math.round(bytes / 1e3))} KB`

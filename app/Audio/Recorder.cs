@@ -39,11 +39,11 @@ public sealed class Recorder : IDisposable
     // A stream (internet radio, or a plugin's station) rather than a file from the library. Not "no duration": BBC-style plugins give live programmes a length
     public static bool IsStream(JsonElement status) => status.ValueKind == JsonValueKind.Object && LyrionClient.ReadString(status, "remote") == "1";
 
-    public void Toggle(JsonElement status) { if (Recording) Stop("Recording saved"); else Begin(status); }
+    public void Toggle(JsonElement status) { if (Recording) Stop(L.T("Recording saved")); else Begin(status); }
 
     void Begin(JsonElement status)
     {
-        if (!IsStream(status)) { Note = "Recording works on radio stations and other streams"; Changed?.Invoke(); return; }
+        if (!IsStream(status)) { Note = L.T("Recording works on radio stations and other streams"); Changed?.Invoke(); return; }
         station = ""; // read once per recording: plugins later swap in the programme name, which would scatter files across folders
         ReadSong(status);
         lock (writeLock) { Recording = true; FilesThisRecording = 0; StartedAt = DateTime.Now; Note = ""; SessionFolder = Path.Combine(Folder, Tuning.FolderPerStation ? Safe(station) : $"{Safe(station)} - {StartedAt:yyyy-MM-dd, HH.mm.ss}"); }
@@ -55,7 +55,7 @@ public sealed class Recorder : IDisposable
         lock (writeLock)
         {
             if (!Recording) return;
-            Recording = false; Note = FilesThisRecording > 1 ? $"{message}: {FilesThisRecording} files in {SessionFolder}" : $"{message} in {SessionFolder}";
+            Recording = false; Note = FilesThisRecording > 1 ? L.T("{message}: {count} files in {folder}", ("message", message), ("count", FilesThisRecording), ("folder", SessionFolder)) : L.T("{message} in {folder}", ("message", message), ("folder", SessionFolder));
             WriteRequest(false, "", "");
         }
         Changed?.Invoke();
@@ -77,7 +77,7 @@ public sealed class Recorder : IDisposable
     public void OnStatus(JsonElement status, bool ownPlayerSelected)
     {
         if (!Recording || !ownPlayerSelected || status.ValueKind != JsonValueKind.Object) return;
-        if (!IsStream(status) || LyrionClient.ReadString(status, "mode") == "stop") { Stop("Recording saved"); return; }
+        if (!IsStream(status) || LyrionClient.ReadString(status, "mode") == "stop") { Stop(L.T("Recording saved")); return; }
         var previousKey = songKey;
         ReadSong(status);
         if (Tuning.SplitOnSongChange && songKey != previousKey) NextFile();
@@ -102,7 +102,7 @@ public sealed class Recorder : IDisposable
             if (!Recording) return;
             var folder = SessionFolder;
             try { Directory.CreateDirectory(folder); }
-            catch (Exception error) { Recording = false; Note = $"Can't create the recordings folder: {error.Message}"; WriteRequest(false, "", ""); Changed?.Invoke(); return; }
+            catch (Exception error) { Recording = false; Note = L.T("Can't create the recordings folder: {error}", ("error", error.Message)); WriteRequest(false, "", ""); Changed?.Invoke(); return; }
             var song = songArtist != "" && songTitle != "" ? $"{songArtist} - {songTitle}" : FirstOf(songTitle, station);
             var stem = Path.Combine(folder, $"{(Tuning.FolderPerStation ? DateTime.Now.ToString("yyyy-MM-dd HH.mm") : (FilesThisRecording + 1).ToString("00"))} {Safe(song, 80)}"); // numbered in recording order, or dated in a shared station folder; programme blurbs can run to paragraphs
             if (stem.Length > 230) stem = stem[..230];
@@ -159,7 +159,7 @@ public sealed class Recorder : IDisposable
                 var error = view.ReadInt32(ErrorOffset);
                 if (view.ReadInt32(AppliedOffset) == request && error > 0)
                 {
-                    Recording = false; Note = error == 1 ? $"Can't write to {Path.GetDirectoryName(CurrentFile)}" : "Recording stopped: the FLAC encoder failed"; WriteRequest(false, "", ""); changed = true;
+                    Recording = false; Note = error == 1 ? L.T("Can't write to {folder}", ("folder", Path.GetDirectoryName(CurrentFile))) : L.T("Recording stopped: the FLAC encoder failed"); WriteRequest(false, "", ""); changed = true;
                 }
             }
             catch (Exception error) { CrashReporter.Write("Recorder update failed", error, false); view?.Dispose(); sharedFile?.Dispose(); view = null; sharedFile = null; }

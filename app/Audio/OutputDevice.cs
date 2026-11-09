@@ -8,11 +8,11 @@ public record OutputDevice(int Index, string Name, string HostApi)
     // Squeezelite matches -o by prefix on "name [host API]", so this survives index changes
     public string SqueezeliteId => $"{Name} [{HostApi}]";
     // The "Windows default" choice: stored as an empty device name, played through whatever App.DefaultDevice() finds
-    public static OutputDevice WindowsDefault(string currentName) => new(-1, currentName == "" ? "Windows default" : $"Windows default ({currentName})", DefaultHostApi);
+    public static OutputDevice WindowsDefault(string currentName) => new(-1, currentName == "" ? L.T("Windows default") : L.T("Windows default ({device})", ("device", currentName)), DefaultHostApi);
     public const string DefaultHostApi = "default";
     public bool IsWindowsDefault => HostApi == DefaultHostApi;
     public bool SupportsExclusive => HostApi == "Windows WASAPI";
-    public string Driver => HostApi switch { "Windows WASAPI" => "WASAPI", "ASIO" => "ASIO", "Windows DirectSound" => "DirectSound", "MME" => "MME", "Windows WDM-KS" => "WDM-KS", DefaultHostApi => "Default", _ => HostApi };
+    public string Driver => HostApi switch { "Windows WASAPI" => "WASAPI", "ASIO" => "ASIO", "Windows DirectSound" => "DirectSound", "MME" => "MME", "Windows WDM-KS" => "WDM-KS", DefaultHostApi => L.T("Default"), _ => HostApi };
     public int DriverOrder => Driver switch { "WASAPI" => 0, "ASIO" => 1, "DirectSound" => 2, "MME" => 3, _ => 4 };
     public string DisplayName => Name; // the list is grouped by driver; whether exclusive is in use shows in the player status
     public bool Matches(string deviceName, string hostApi) => Name == deviceName && HostApi == hostApi;

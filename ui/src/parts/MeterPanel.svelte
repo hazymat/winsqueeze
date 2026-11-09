@@ -1,4 +1,5 @@
 <script lang="ts" module>
+  import { t } from '../lib/i18n'
   let panelCount = 0
   // Whole meter panels after classic decks and amps (style only, no makers' names), each with its own shape, light and mechanics
   export const panelThemes: Record<string, { aspect: number }> = { deck: { aspect: 300 / 96 }, orange: { aspect: 236 / 130 }, monitor: { aspect: 440 / 110 }, blue: { aspect: 360 / 110 }, green: { aspect: 360 / 120 } }
@@ -93,7 +94,7 @@
         <g class="front"><ellipse cx={centreX} cy="82" rx="13" ry="5.5" fill="url(#{id}-brass)" /><rect x={deck.x + 4} y="14" width="110" height="68" fill="none" stroke="#000" stroke-width="3" opacity="0.18" filter="url(#{id}-soft)" /></g>
       </g>
     {/each}
-    <text x="150" y="20" class="panel-label">PEAK</text><text x="150" y="26" class="panel-label">CHECK</text>
+    <text x="150" y="20" class="panel-label">{t('PEAK')}</text><text x="150" y="26" class="panel-label">{t('CHECK')}</text>
     <circle cx="150" cy="40" r="9" fill="url(#{id}-chrome)" stroke="#55595f" stroke-width="0.6" /><circle cx="150" cy="40" r="4" fill="none" stroke="#fff" stroke-width="0.4" opacity="0.5" />
     <circle cx="150" cy="70" r="2.4" class="led" /><circle cx="150" cy="70" r="5" class="led-glow" filter="url(#{id}-bloom)" />
     
@@ -156,7 +157,7 @@
         <path d={arc(meter.centre, pivotY, -34, 34, 100)} class="ink-line thin" /><path d={arc(meter.centre, pivotY, powerAngle(0, 34), 34, 101.2)} class="red-band thin" />
         {#each monitorLabels as [wattage, text]}{@const markAngle = powerAngle(wattsAt(wattage), 34)}{@const [tipX, tipY] = point(meter.centre, pivotY, markAngle, 100.5)}{@const [leftX, leftY] = point(meter.centre, pivotY, markAngle - 1, 104.5)}{@const [rightX, rightY] = point(meter.centre, pivotY, markAngle + 1, 104.5)}{@const [labelX, labelY] = point(meter.centre, pivotY, markAngle, 108.5)}
           <path d="M{tipX} {tipY} L{leftX} {leftY} L{rightX} {rightY} Z" class="marker" /><text x={labelX} y={labelY} class="monitor-number">{text}</text>{/each}
-        {@const [clipX, clipY] = point(meter.centre, pivotY, 33, 95)}<text x={clipX} y={clipY} class="monitor-number red">CLIP</text>
+        {@const [clipX, clipY] = point(meter.centre, pivotY, 33, 95)}<text x={clipX} y={clipY} class="monitor-number red">{t('CLIP')}</text>
         {#each range(-40, 3, 2.5) as decibels}{@const markAngle = powerAngle(decibels, 34)}{@const [innerX, innerY] = point(meter.centre, pivotY, markAngle, 100)}{@const [outerX, outerY] = point(meter.centre, pivotY, markAngle, 98.4)}<line x1={innerX} y1={innerY} x2={outerX} y2={outerY} class="ink-tick fine" />{/each}
         <text x={meter.centre} y="48" class="monitor-title">{meter.title}</text>{#if meter.channel}<text x={meter.centre} y="56" class="monitor-channel">{meter.channel}</text>{/if}
         <line x1={meter.centre + shadowShift(angle, 1.8)} y1={pivotY} x2={meter.centre + shadowShift(angle, 1.8)} y2={pivotY - 106} class="needle-shadow" filter="url(#{id}-soft)" transform="rotate({angle} {meter.centre} {pivotY - 2})" />
@@ -192,7 +193,7 @@
         <line x1={centreX} y1={pivotY} x2={centreX} y2={pivotY - 74} class="needle red-needle" transform="rotate({angle} {centreX} {pivotY})" filter="url(#{id}-glow)" />
       </g>
     {/each}
-    <rect x="165" y="44" width="30" height="12" rx="1.5" fill="#05070c" stroke="#1e2430" stroke-width="0.5" /><text x="180" y="51.5" class="display-text">STANDBY</text>
+    <rect x="165" y="44" width="30" height="12" rx="1.5" fill="#05070c" stroke="#1e2430" stroke-width="0.5" /><text x="180" y="51.5" class="display-text">{t('STANDBY')}</text>
     <rect x="6" y="6" width={width - 12} height={height - 12} rx="2" fill="url(#{id}-sheen)" class="front" />
 
   {:else if theme === 'green'}
@@ -207,12 +208,12 @@
       <rect x={green.x} y="8" width="150" height="100" rx="2" fill="url(#{id}-green)" class="face" />
       <g clip-path="url(#{id}-green-{green.channel})">
         <g filter="url(#{id}-glow)" class="green-ink">
-          <text x={centreX} y="22" class="green-title">WATTS 8Ω</text>
+          <text x={centreX} y="22" class="green-title">{t('WATTS 8Ω')}</text>
           {#each range(-40, 7, 1) as decibels}{@const markAngle = powerAngle(decibels, 55, 7)}{@const tall = Math.abs(decibels % 10) === 0}{@const [innerX, innerY] = point(centreX, pivotY, markAngle, 64)}{@const [outerX, outerY] = point(centreX, pivotY, markAngle, tall ? 76 : 72)}<line x1={innerX} y1={innerY} x2={outerX} y2={outerY} class="bar" class:tall class:hot={decibels > 0} />{/each}
           <path d={arc(centreX, pivotY, -55, 55, 62)} class="green-line" />
           {#each greenLabels as wattage}{@const markAngle = powerAngle(wattsAt(wattage), 55, 7)}{@const [labelX, labelY] = point(centreX, pivotY, markAngle, 82)}<text x={labelX} y={labelY} class="green-number">{shortWatts(wattage)}</text>{/each}
           {#each [-40, -30, -20, -10, -5, 0, 3, 6] as decibels}{@const markAngle = powerAngle(decibels, 55, 7)}{@const [textX, textY] = point(centreX, pivotY, markAngle, 55)}<text x={textX} y={textY} class="green-small">{decibels > 0 ? '+' + decibels : decibels}</text>{/each}
-          <text x={centreX} y="84" class="green-title">POWER</text><text x={centreX} y="92" class="green-small dim">dB · {green.channel}</text>
+          <text x={centreX} y="84" class="green-title">{t('POWER')}</text><text x={centreX} y="92" class="green-small dim">dB · {green.channel}</text>
         </g>
         <line x1={centreX} y1={pivotY} x2={centreX} y2={pivotY - 84} class="needle green-needle" transform="rotate({angle} {centreX} {pivotY})" filter="url(#{id}-glow)" />
         <rect x={green.x} y="8" width="150" height="100" filter="url(#{id}-grain)" class="grain dark-grain front" />

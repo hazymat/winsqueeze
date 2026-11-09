@@ -39,7 +39,7 @@ public sealed class LibraryService
         {
             if (await librarySync.SyncIfChangedAsync(profile, App.Settings.Library, forceRebuild)) IndexUpdated?.Invoke();
         }
-        catch (Exception syncError) { ProgressText = $"Library sync failed: {syncError.Message}"; Changed?.Invoke(); }
+        catch (Exception syncError) { ProgressText = L.T("Library sync failed: {error}", ("error", syncError.Message)); Changed?.Invoke(); }
     }
 
     // Library health (SPEC.md › Library health): built from the local index and kept until the index changes. Rescan asks the server for changes first and checks covers known to be missing again

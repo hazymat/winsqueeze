@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t, tn } from '../lib/i18n'
   import PinButton from '../parts/PinButton.svelte'
   import { selectable } from '../lib/selectable.svelte'
   import { browseActions } from '../lib/browseActions'
@@ -24,7 +25,7 @@
     if (!data.folderPath) return
     const folderUrl = 'file://' + encodeURI(data.folderPath.startsWith('/') ? data.folderPath : '/' + data.folderPath.replace(/\\/g, '/')) + '/'
     await live(['favorites', 'add', `url:${folderUrl}`, `title:${album.title}`])
-    toast(`Added ${album.title} to favourites`)
+    toast(t('Added {items} to favourites', { items: album.title }))
   }
   const goTo = (kind: string, name: string) => { if (name) personView(kind, name).then(openView) }
 </script>
@@ -33,43 +34,43 @@
   <div class="hero">
     {#if album.cover}<img class="cover" src={artUrl(album.cover, 600)} alt="" />{:else}<div class="cover none">♪</div>{/if}
     <div class="info">
-      <div class="kicker">{album.key.startsWith('f:') ? 'Folder album' : 'Album'}</div>
+      <div class="kicker">{album.key.startsWith('f:') ? t('Folder album') : t('Album')}</div>
       <h1>{album.title}</h1><PinButton view={{ kind: 'album', key: albumKey, title: album.title }} />
       <button class="link" onclick={() => goTo('artist', album.artist)}>{album.artist}</button>
-      <div class="meta">{album.year || ''}{album.year ? ' · ' : ''}{album.tracks} tracks · {formatTime(album.duration)}{album.format ? ` · ${album.format}` : ''}</div>
+      <div class="meta">{album.year || ''}{album.year ? ' · ' : ''}{tn(album.tracks, '{count} track', '{count} tracks')} · {formatTime(album.duration)}{album.format ? ` · ${album.format}` : ''}</div>
       <div class="actions">
-        <button class="primary" onclick={() => playAlbum('load')}>▶ Play</button>
-        <button class="ghost" onclick={() => { playAlbum('insert'); toast('Playing next') }}>Play next</button>
-        <button class="ghost" onclick={() => { playAlbum('add'); toast('Added to queue') }}>Add to queue</button>
-        <button class="ghost" onclick={favourite} title="Add to Lyrion favourites">☆ Favourite</button>
-        {#if downloads.albums[albumKey] === 'full'}<button class="ghost" onclick={() => toast('This album is on this PC, so it plays without the server', undefined, 8000, { action: { label: 'Remove from this PC', key: 'R', run: () => removeDownloads('album', [albumKey]) } })} title="On this PC">✓ Downloaded</button>
-        {:else}<button class="ghost" onclick={() => downloadItems('album', [albumKey])} title="Keep a copy on this PC to play without the server">{downloads.albums[albumKey] ? 'Download the rest' : 'Download'}</button>{/if}
-        {#if playlist.open}<button class="ghost" onclick={() => addToPlaylist((data.tracks ?? []).map(item), album.title)}>{allAdded ? '✓ Added' : `＋ Add to ${playlist.name}`}</button>{/if}
+        <button class="primary" onclick={() => playAlbum('load')}>{t('▶ Play')}</button>
+        <button class="ghost" onclick={() => { playAlbum('insert'); toast(t('Playing next')) }}>{t('Play next')}</button>
+        <button class="ghost" onclick={() => { playAlbum('add'); toast(t('Added to queue')) }}>{t('Add to queue')}</button>
+        <button class="ghost" onclick={favourite} title={t('Add to Lyrion favourites')}>{t('☆ Favourite')}</button>
+        {#if downloads.albums[albumKey] === 'full'}<button class="ghost" onclick={() => toast(t('This album is on this PC, so it plays without the server'), undefined, 8000, { action: { label: t('Remove from this PC'), key: 'R', run: () => removeDownloads('album', [albumKey]) } })} title={t('On this PC')}>{t('✓ Downloaded')}</button>
+        {:else}<button class="ghost" onclick={() => downloadItems('album', [albumKey])} title={t('Keep a copy on this PC to play without the server')}>{downloads.albums[albumKey] ? t('Download the rest') : t('Download')}</button>{/if}
+        {#if playlist.open}<button class="ghost" onclick={() => addToPlaylist((data.tracks ?? []).map(item), album.title)}>{allAdded ? t('✓ Added') : t('＋ Add to {playlist}', { playlist: playlist.name })}</button>{/if}
       </div>
     </div>
   </div>
   <div use:selectable={{ scope: 'album:' + albumKey, noun: 'track', actions: browseActions('track') }}>
   {#each discs as [discNo, tracks] (discNo)}
-    {#if discs.length > 1}<h4>Disc {discNo}</h4>{/if}
+    {#if discs.length > 1}<h4>{t('Disc {number}', { number: discNo })}</h4>{/if}
     <div class="tracks">
       {#each tracks as track (track.id)}
         <div class="track" role="button" tabindex="0" ondblclick={() => playAlbum('load', trackIndex(track))} onkeydown={(event) => event.key === 'Enter' && playAlbum('load', trackIndex(track))} data-select-key={String(track.id)}>
-          <button class="number" onclick={() => playAlbum('load', trackIndex(track))} aria-label="Play from here"><span class="digit">{track.number || ''}</span><span class="arrow">▶</span></button>
+          <button class="number" onclick={() => playAlbum('load', trackIndex(track))} aria-label={t('Play from here')}><span class="digit">{track.number || ''}</span><span class="arrow">▶</span></button>
           <div class="text">
-            <div class="title">{track.title}{#if isDamaged(track.id)}<span class="damaged-mark" title="Damaged file: playback may skip">⚠</span>{/if}{#if playlist.open && inPlaylist(track.id)}<span class="added"> ✓</span>{/if}</div>
+            <div class="title">{track.title}{#if isDamaged(track.id)}<span class="damaged-mark" title={t('Damaged file: playback may skip')}>⚠</span>{/if}{#if playlist.open && inPlaylist(track.id)}<span class="added"> ✓</span>{/if}</div>
             {#if (album.key.startsWith('f:') && multiComposer && track.composer) || (track.artist && track.artist !== album.artist)}<div class="quiet-line">{[multiComposer ? track.composer : '', track.artist !== album.artist ? track.artist : ''].filter(Boolean).join(' · ')}</div>{/if}
           </div>
           <span class="duration">{formatTime(track.duration)}</span>
-          {#if playlist.open}<button class="icon" onclick={() => addToPlaylist([item(track)], track.title)} aria-label="Add to playlist">＋</button>{/if}
-          <button class="icon no-hold" onclick={() => menuFor = menuFor === track.id ? null : track.id} aria-label="More">⋯</button>
+          {#if playlist.open}<button class="icon" onclick={() => addToPlaylist([item(track)], track.title)} aria-label={t('Add to playlist')}>＋</button>{/if}
+          <button class="icon no-hold" onclick={() => menuFor = menuFor === track.id ? null : track.id} aria-label={t('More')}>⋯</button>
           {#if menuFor === track.id}
             <div class="menu no-hold" role="menu">
-              <button onclick={() => { sendToShell({ type: 'playTracks', ids: [track.id], mode: 'insert' }); menuFor = null; toast('Playing next') }}>Play next</button>
-              <button onclick={() => { sendToShell({ type: 'playTracks', ids: [track.id], mode: 'add' }); menuFor = null; toast('Added to queue') }}>Add to queue</button>
-              <button onclick={() => goTo('artist', track.artist || album.artist)}>Go to artist</button>
-              {#if track.composer}<button onclick={() => goTo('composer', track.composer)}>Go to composer</button>{/if}
-              {#if album.folder}<button onclick={() => openView({ kind: 'folder', key: String(album.folder), title: album.title })}>Open folder</button>{/if}
-              <button onclick={() => { if (!playlist.open) { menuFor = null; return } addToPlaylist([item(track)], track.title); menuFor = null }} disabled={!playlist.open}>Add to playlist</button>
+              <button onclick={() => { sendToShell({ type: 'playTracks', ids: [track.id], mode: 'insert' }); menuFor = null; toast(t('Playing next')) }}>{t('Play next')}</button>
+              <button onclick={() => { sendToShell({ type: 'playTracks', ids: [track.id], mode: 'add' }); menuFor = null; toast(t('Added to queue')) }}>{t('Add to queue')}</button>
+              <button onclick={() => goTo('artist', track.artist || album.artist)}>{t('Go to artist')}</button>
+              {#if track.composer}<button onclick={() => goTo('composer', track.composer)}>{t('Go to composer')}</button>{/if}
+              {#if album.folder}<button onclick={() => openView({ kind: 'folder', key: String(album.folder), title: album.title })}>{t('Open folder')}</button>{/if}
+              <button onclick={() => { if (!playlist.open) { menuFor = null; return } addToPlaylist([item(track)], track.title); menuFor = null }} disabled={!playlist.open}>{t('Add to playlist')}</button>
             </div>
           {/if}
         </div>

@@ -21,7 +21,7 @@ public sealed class LyricsWindow : Window
 
     public LyricsWindow()
     {
-        Title = "WinSqueeze lyrics"; Icon = System.Windows.Media.Imaging.BitmapFrame.Create(new Uri("pack://application:,,,/Assets/WinSqueeze.ico"));
+        Title = L.T("WinSqueeze lyrics"); Icon = System.Windows.Media.Imaging.BitmapFrame.Create(new Uri("pack://application:,,,/Assets/WinSqueeze.ico"));
         Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(14, 16, 21)); MinWidth = 320; MinHeight = 240; Content = webView;
         var saved = App.Settings.General.LyricsBounds;
         if (saved.Length == 4 && saved[2] >= 320 && saved[3] >= 240) { WindowStartupLocation = WindowStartupLocation.Manual; Left = saved[0]; Top = saved[1]; Width = saved[2]; Height = saved[3]; }
@@ -48,7 +48,7 @@ public sealed class LyricsWindow : Window
         webView.CoreWebView2.Settings.IsZoomControlEnabled = false;
         webView.ZoomFactor = Math.Clamp(App.Settings.General.UiScale, 0.75, 1.5);
         webView.CoreWebView2.WebMessageReceived += async (sender, args) => await OnUiMessageAsync(args.WebMessageAsJson);
-        webView.CoreWebView2.Navigate("https://app.winsqueeze/index.html#lyrics");
+        webView.CoreWebView2.Navigate($"https://app.winsqueeze/index.html?lang={L.Code}#lyrics");
     }
 
     void Push(string messageJson) { if (webViewReady) Dispatcher.BeginInvoke(() => webView.CoreWebView2?.PostWebMessageAsJson(messageJson)); }

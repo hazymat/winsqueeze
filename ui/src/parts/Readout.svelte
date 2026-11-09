@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../lib/i18n'
   import { app, currentTrack, formatRate } from '../state.svelte'
   import { fidelity } from '../lib/fidelity.svelte'
   // Signal path: source format -> decoder -> output mode -> device rate (the bit-perfect badge sits above the volume)
@@ -12,7 +13,7 @@
 </script>
 
 {#if track}
-  <div class="readout" title={ownPlayer ? (check.state === 'perfect' ? 'Bit-perfect' : check.reasons.length ? 'Not bit-perfect:\n• ' + check.reasons.join('\n• ') : 'Signal path') : 'Another player'}>
+  <div class="readout" title={ownPlayer ? (check.state === 'perfect' ? t('Bit-perfect') : check.reasons.length ? t('Not bit-perfect:') + '\n• ' + check.reasons.join('\n• ') : t('Signal path')) : t('Another player')}>
     <span>{codec}{bits ? ` ${bits}` : ''}{sourceRate ? `/${formatRate(sourceRate).replace(' kHz', '')}` : ''}</span>
     {#if ownPlayer && app.status?.state === 'Running'}<span class="arrow">→</span><span>{app.status.exclusive ? 'WASAPI EXCL' : 'SHARED'}</span>{#if outputRate}<span class="arrow">→</span><span>{formatRate(outputRate)}</span>{/if}{/if}
   </div>

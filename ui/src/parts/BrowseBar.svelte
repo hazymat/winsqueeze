@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../lib/i18n'
   import Dropdown from './Dropdown.svelte'
   import Icon from './Icon.svelte'
   import { sortOptions, sizeOptions, offeredGroups } from '../lib/browse.svelte'
@@ -7,9 +8,9 @@
 </script>
 
 <div class="browse-bar">
-  {#if showSort}<Dropdown label="Sort" value={view.sort} options={sortOptions} onchange={(value) => view.sort = value} />{/if}
-  <Dropdown label="Group" value={view.group} options={offeredGroups()} onchange={(value) => view.group = value} />
-  <div class="view-toggle" role="radiogroup" aria-label="View">
+  {#if showSort}<Dropdown label={t('Sort')} value={view.sort} options={sortOptions} onchange={(value) => view.sort = value} />{/if}
+  <Dropdown label={t('Group')} value={view.group} options={offeredGroups()} onchange={(value) => view.group = value} />
+  <div class="view-toggle" role="radiogroup" aria-label={t('View')}>
     {#each sizeOptions as [sizeValue, sizeLabel]}<button role="radio" aria-checked={view.size === sizeValue} class:on={view.size === sizeValue} title={sizeLabel} aria-label={sizeLabel} onclick={() => view.size = sizeValue}><Icon name={sizeValue === 'large' ? 'grid-large' : sizeValue === 'compact' ? 'grid-small' : 'list'} size={15} /></button>{/each}
   </div>
 </div>

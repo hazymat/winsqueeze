@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../lib/i18n'
   import { app, openView } from '../state.svelte'
   import { query, artUrl } from '../bridge'
   import { levelNames } from '../lib/browse.svelte'
@@ -17,7 +18,7 @@
   // Covers spread across the view rather than only the newest few
   const covers = $derived.by(() => { const withArt = albums.filter(album => album.cover), step = Math.max(1, Math.floor(withArt.length / 6)); return withArt.filter((album, position) => position % step === 0).slice(0, 6) })
   const topRows = $derived(rows.slice().sort((first, second) => Number(second.albums) - Number(first.albums)).slice(0, 8))
-  const steps = $derived((view.Levels ?? []).map((name: string) => levelNames[name] ?? name).concat(['Albums']).join(' › '))
+  const steps = $derived((view.Levels ?? []).map((name: string) => levelNames[name] ?? name).concat([t('Albums')]).join(' › '))
   const openWhole = () => openView({ kind: 'custom', key: view.Id, title: view.Name, filters: [] })
   const openRow = (row: any) => openView({ kind: 'custom', key: view.Id, title: row.name, filters: [{ kind: firstLevel, key: String(row.key), name: row.name }] })
 </script>
@@ -28,7 +29,7 @@
 <button class="tile" onclick={openWhole} title={steps}><CoverMosaic covers={covers.slice(0, 4).map(album => album.cover)} name={view.Name} /><span class="tile-name">{view.Name}</span><span class="meta"><b>{albums.length}</b> {albums.length === 1 ? 'album' : 'albums'}</span></button>
 {:else}
 <article class="card">
-  <button class="cover-button" onclick={openWhole} aria-label="Open {view.Name}">
+  <button class="cover-button" onclick={openWhole} aria-label={t('Open {name}', { name: view.Name })}>
     <div class="mosaic">{#each covers as album (album.key)}<img src={artUrl(album.cover, 300)} alt="" loading="lazy" />{/each}{#each Array(Math.max(0, 6 - covers.length)) as _}<span class="blank"></span>{/each}</div>
   </button>
   <div class="text">
@@ -36,7 +37,7 @@
     <div class="total"><b>{albums.length}</b> {albums.length === 1 ? 'album' : 'albums'}{#if firstLevel && rows.length} · {rows.length} {(levelNames[firstLevel] ?? firstLevel).toLowerCase()}{/if}</div>
     <div class="meta">{steps}</div>
     {#if topRows.length}
-      <div class="chips">{#each topRows as row (row.key)}<button class="chip" onclick={() => openRow(row)}>{row.name}<span class="count">{row.albums}</span></button>{/each}{#if rows.length > topRows.length}<button class="chip more" onclick={openWhole}>+{rows.length - topRows.length} more</button>{/if}</div>
+      <div class="chips">{#each topRows as row (row.key)}<button class="chip" onclick={() => openRow(row)}>{row.name}<span class="count">{row.albums}</span></button>{/each}{#if rows.length > topRows.length}<button class="chip more" onclick={openWhole}>{t('+{count} more', { count: rows.length - topRows.length })}</button>{/if}</div>
     {/if}
   </div>
 </article>

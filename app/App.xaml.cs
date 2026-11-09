@@ -112,7 +112,7 @@ public partial class App : Application
             if (Settings.ActiveProfile is not { Host.Length: > 0 } profile) return;
             using var lyrionClient = new LyrionClient(profile);
             var limit = LyrionClient.ReadString(await lyrionClient.RequestAsync(Settings.PlayerMac, "playerpref", "maxBitrate", "?"), "_p2");
-            if (limit is not ("" or "0")) trayIcon.ShowTip("The server is transcoding", $"Lyrion limits {Settings.Audio.PlayerName} to {limit} kbps, so music isn't lossless. In Lyrion: Settings › Player › Audio › Bitrate limiting › No limit.");
+            if (limit is not ("" or "0")) trayIcon.ShowTip(L.T("The server is transcoding"), L.T("Lyrion limits {player} to {limit} kbps, so music isn't lossless. In Lyrion: Settings › Player › Audio › Bitrate limiting › No limit.", ("player", Settings.Audio.PlayerName), ("limit", limit)));
         }
         catch { }
     }
@@ -131,10 +131,11 @@ public partial class App : Application
         if (AppPaths.IsPortable) AppUpdater.CleanUpAfterPortableUpdate();
         CrashReporter.Install(this);
         Settings = AppSettings.Load();
+        L.Load(Settings.General.Language);
         mainWindow = new MainWindow();
         trayIcon = new TrayIcon();
         Player.StatusChanged += () => Dispatcher.BeginInvoke(OnPlayerStatusChanged);
-        Player.ExclusiveFailed += (deviceName, reason) => Dispatcher.BeginInvoke(async () => { trayIcon.ShowTip("Playing in shared mode", $"{deviceName} refused exclusive mode: {reason}. WinSqueeze is playing it shared."); await StartPlayerAsync(true); });
+        Player.ExclusiveFailed += (deviceName, reason) => Dispatcher.BeginInvoke(async () => { trayIcon.ShowTip(L.T("Playing in shared mode"), L.T("{device} refused exclusive mode: {reason}. WinSqueeze is playing it shared.", ("device", deviceName), ("reason", reason))); await StartPlayerAsync(true); });
         Damaged.Load(); Damaged.PlayerRequest = command => ServerRequestAsync(Settings.PlayerMac, command);
         Player.DecodeLine += decodeLine => Dispatcher.BeginInvoke(() => Damaged.OnLogLine(decodeLine));
         Damaged.Found += OnDamagedFound;
@@ -150,7 +151,7 @@ public partial class App : Application
         Updater.Changed += () => Dispatcher.BeginInvoke(() => StatusChanged?.Invoke());
         Updater.Start();
         RefreshIconsAfterUpdate();
-        if (CrashReporter.TakeUnseenReport()) ShowTip("WinSqueeze had a problem last time", "It crashed or stopped responding. Details are in Settings › About › Open logs (crash.log).");
+        if (CrashReporter.TakeUnseenReport()) ShowTip(L.T("WinSqueeze had a problem last time"), L.T("It crashed or stopped responding. Details are in Settings › About › Open logs (crash.log)."));
         try { Media = new MediaControls(); } catch { } // SMTC needs Windows 10 1903+
         Session.StatusUpdated += () => { if (Settings.ActiveProfile is { } profile) Media?.Update(Session.LastStatus, $"http://{profile.Host}:{profile.Port}"); trayIcon.RefreshNowPlaying(Session.LastStatus); NotifyTrackChange(Session.LastStatus); History.OnStatus(Session.LastStatus); Recorder.OnStatus(Session.LastStatus, Session.SelectedPlayerId == ""); };
         Recorder.Changed += () => Dispatcher.BeginInvoke(() => { UpdatePolling(); StatusChanged?.Invoke(); });
@@ -252,6 +253,17 @@ public partial class App : Application
         singleInstance.Release();
     }
 
+    // Starts a fresh copy of this version (a new language), carrying on playback as an update restart does
+    public async Task RestartAsync()
+    {
+        var restartArguments = await ResumeArgumentsAsync();
+        PrepareForRestart();
+        var restartInfo = new System.Diagnostics.ProcessStartInfo(AppPaths.ExePath) { UseShellExecute = false, WorkingDirectory = AppPaths.ExeFolder };
+        foreach (var argument in restartArguments) restartInfo.ArgumentList.Add(argument);
+        System.Diagnostics.Process.Start(restartInfo);
+        Shutdown();
+    }
+
     // Another Squeezelite (even renamed) can hold the output device and shows up as a second player
     async Task CheckOtherPlayersAsync()
     {
@@ -261,10 +273,10 @@ public partial class App : Application
         var problems = new List<string>();
         foreach (var otherPlayer in otherPlayers)
         {
-            var startupText = otherPlayer.StartupEntries.Count == 0 ? "" : $"\n\nIt starts at login via: {string.Join(", ", otherPlayer.StartupEntries.Select(entry => entry.Description))}.";
+            var startupText = otherPlayer.StartupEntries.Count == 0 ? "" : "\n\n" + L.T("It starts at login via: {entries}.", ("entries", string.Join(", ", otherPlayer.StartupEntries.Select(entry => entry.Description))));
             var choice = otherAction == OtherSqueezeliteAction.Stop ? MessageBoxResult.Yes : MessageBox.Show(
-                $"Another Squeezelite is running:\n{otherPlayer.ExePath} (process {otherPlayer.ProcessId})\n\nIt can hold your output device and shows up as a second player on the server.{startupText}\n\n" +
-                (otherPlayer.StartupEntries.Count == 0 ? "Stop it now?" : "Yes: stop it and switch off its startup entry (moved aside, not deleted).\nNo: stop it this time only.\nCancel: leave it running."),
+                L.T("Another Squeezelite is running:") + $"\n{otherPlayer.ExePath} ({L.T("process {id}", ("id", otherPlayer.ProcessId))})\n\n" + L.T("It can hold your output device and shows up as a second player on the server.") + startupText + "\n\n" +
+                (otherPlayer.StartupEntries.Count == 0 ? L.T("Stop it now?") : L.T("Yes: stop it and switch off its startup entry (moved aside, not deleted).") + "\n" + L.T("No: stop it this time only.") + "\n" + L.T("Cancel: leave it running.")),
                 "WinSqueeze", otherPlayer.StartupEntries.Count == 0 ? MessageBoxButton.YesNo : MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
             if (choice == MessageBoxResult.Yes) problems.AddRange(OtherPlayerDetector.Stop(otherPlayer, otherAction == OtherSqueezeliteAction.Ask));
             else if (choice == MessageBoxResult.No && otherPlayer.StartupEntries.Count > 0) problems.AddRange(OtherPlayerDetector.Stop(otherPlayer, false));
@@ -283,7 +295,7 @@ public partial class App : Application
 
     public async Task RefreshDevicesAsync()
     {
-        try { Devices = await OutputDeviceList.ListAsync(); } catch (Exception listError) { Devices = new(); Player.SetWaiting($"Could not list output devices: {listError.Message}"); }
+        try { Devices = await OutputDeviceList.ListAsync(); } catch (Exception listError) { Devices = new(); Player.SetWaiting(L.T("Could not list output devices: {error}", ("error", listError.Message))); }
         DevicesChanged?.Invoke();
     }
 
@@ -316,17 +328,17 @@ public partial class App : Application
         if (!IsOffline) _ = Library.RefreshAsync(false);
         var profile = Settings.ActiveProfile;
         Downloads.Open(profile); History.Open(profile);
-        if (profile is not { Host.Length: > 0 }) { Player.SetWaiting("No server set. Open Settings › Servers."); return; }
+        if (profile is not { Host.Length: > 0 }) { Player.SetWaiting(L.T("No server set. Open Settings › Servers.")); return; }
         // No device chosen: play to the Windows default
         var outputDevice = profile.DeviceName == "" ? DefaultDevice() : FindDevice(profile.DeviceName, profile.DeviceHostApi);
-        if (outputDevice == null && profile.DeviceName == "") { Player.SetWaiting("No output device found. Waiting for one."); return; }
+        if (outputDevice == null && profile.DeviceName == "") { Player.SetWaiting(L.T("No output device found. Waiting for one.")); return; }
         UsingFallbackDevice = false;
         if (outputDevice == null)
         {
             outputDevice = FindDevice(Settings.Audio.FallbackDeviceName, Settings.Audio.FallbackDeviceHostApi);
-            if (outputDevice == null) { Player.SetWaiting($"{profile.DeviceName} is not connected. Waiting for it to return."); trayIcon.ShowTip("Output device missing", $"{profile.DeviceName} is not connected. WinSqueeze will start playing to it when it returns."); return; }
+            if (outputDevice == null) { Player.SetWaiting(L.T("{device} is not connected. Waiting for it to return.", ("device", profile.DeviceName))); trayIcon.ShowTip(L.T("Output device missing"), L.T("{device} is not connected. WinSqueeze will start playing to it when it returns.", ("device", profile.DeviceName))); return; }
             UsingFallbackDevice = true;
-            trayIcon.ShowTip("Using fallback output", $"{profile.DeviceName} is not connected, so WinSqueeze is using {outputDevice.Name}.");
+            trayIcon.ShowTip(L.T("Using fallback output"), L.T("{device} is not connected, so WinSqueeze is using {fallback}.", ("device", profile.DeviceName), ("fallback", outputDevice.Name)));
         }
         (string mode, double seconds) resumeState = ("", 0);
         if (resumePosition && Player.State == PlayerState.Running) resumeState = await ReadPlaybackStateAsync();
@@ -416,7 +428,7 @@ public partial class App : Application
     public async Task GoOfflineAsync(bool automatic)
     {
         if (IsOffline || Settings.ActiveProfile is not { } profile) return;
-        if (!Downloads.HasDownloads) { if (!automatic) ShowTip("Nothing downloaded yet", "Download albums from any selection (Download) to play them without the server."); return; }
+        if (!Downloads.HasDownloads) { if (!automatic) ShowTip(L.T("Nothing downloaded yet"), L.T("Download albums from any selection (Download) to play them without the server.")); return; }
         // Carry on with the downloaded part of the current queue, at the same spot
         (List<long> ids, int index, double seconds, bool playing) carried = (new(), 0, 0, false);
         if (!automatic) try
@@ -431,7 +443,7 @@ public partial class App : Application
         Session.SelectedPlayerId = ""; ServerBack = false;
         await StartPlayerAsync(false);
         serverBackTimer.Start();
-        if (automatic) ShowTip("Playing offline", "The server can't be reached, so WinSqueeze is playing your downloads. It goes back online by itself when the server returns and nothing is playing.");
+        if (automatic) ShowTip(L.T("Playing offline"), L.T("The server can't be reached, so WinSqueeze is playing your downloads. It goes back online by itself when the server returns and nothing is playing."));
         if (carried.ids.Count > 0)
         {
             var downloadedIds = Downloads.DownloadedIds().ToHashSet();
@@ -465,7 +477,7 @@ public partial class App : Application
         if (Offline is not { } offlineServer || Settings.ActiveProfile is not { Host.Length: > 0 } profile) return;
         try { using var lyrionClient = new LyrionClient(profile); await lyrionClient.GetServerStatusAsync(); }
         catch { if (ServerBack) { ServerBack = false; StatusChanged?.Invoke(); } return; }
-        if (!offlineServer.IsPlaying) { await GoOnlineAsync(); ShowTip("Back online", "The server is reachable again."); }
+        if (!offlineServer.IsPlaying) { await GoOnlineAsync(); ShowTip(L.T("Back online"), L.T("The server is reachable again.")); }
         else if (!ServerBack) { ServerBack = true; StatusChanged?.Invoke(); }
     }
 
@@ -473,7 +485,7 @@ public partial class App : Application
     {
         if (Settings.ActiveProfile is not { Host.Length: > 0 }) return;
         try { await ServerRequestAsync(Settings.PlayerMac, command); }
-        catch (Exception commandError) { trayIcon.ShowTip("Server not reachable", commandError.Message); }
+        catch (Exception commandError) { trayIcon.ShowTip(L.T("Server not reachable"), commandError.Message); }
     }
 
     public async Task SelectDeviceAsync(OutputDevice device)
@@ -492,8 +504,8 @@ public partial class App : Application
     {
         DamagedFound?.Invoke(damagedFile, what);
         if (mainWindow.IsVisible && mainWindow.WindowState != WindowState.Minimized) return;
-        var heading = what switch { "skipped" => "Skipped a damaged file", "unplayable" => "Can't play a damaged file", _ => "This file is damaged" };
-        trayIcon.ShowTip(heading, $"{damagedFile.Title} · {damagedFile.Artist}. Library health lists damaged files.");
+        var heading = what switch { "skipped" => L.T("Skipped a damaged file"), "unplayable" => L.T("Can't play a damaged file"), _ => L.T("This file is damaged") };
+        trayIcon.ShowTip(heading, $"{damagedFile.Title} · {damagedFile.Artist}. " + L.T("Library health lists damaged files."));
     }
 
     public string StatusJson() => JsonSerializer.Serialize(new

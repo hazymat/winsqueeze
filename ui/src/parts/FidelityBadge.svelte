@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../lib/i18n'
   import { fidelity } from '../lib/fidelity.svelte'
   import Icon from './Icon.svelte'
   import { app, currentTrack, formatRate } from '../state.svelte'
@@ -11,8 +12,8 @@
     if (!track) return [] as [string, string][]
     const status = app.status ?? {}, sourceRate = Number(track.samplerate ?? 0), outputRate = Number(status.sampleRate ?? 0)
     const bitrate = String(track.bitrate ?? '').replace(/kbps/i, ' kbps').trim(), sizeBytes = Number(track.filesize ?? 0)
-    const rows: [string, string][] = [['Format', check.format + (check.lossy ? ' (lossy)' : ' (lossless)')], ['Bitrate', bitrate], ['Sample rate', sourceRate ? formatRate(sourceRate) : ''], ['Bit depth', track.samplesize ? `${track.samplesize}-bit` : ''], ['File size', sizeBytes ? `${(sizeBytes / 1048576).toFixed(1)} MB` : ''], ['ReplayGain', track.replay_gain ? `${track.replay_gain} dB` : ''],
-      ['Signal path', `${check.format}${sourceRate ? ' ' + formatRate(sourceRate) : ''} → ${status.exclusive ? 'WASAPI exclusive' : 'Windows mixer'}${outputRate ? ' → ' + formatRate(outputRate) : ''}`], ['Output', status.exclusive ? 'WASAPI exclusive' : 'Shared (Windows mixer)'], ['Device', status.device ?? ''], ['Device rate', outputRate ? formatRate(outputRate) + (sourceRate && outputRate !== sourceRate ? ' (resampled)' : '') : ''], ['Equaliser', status.eqActive ? 'On' : 'Off (bypassed)'], ['Volume', String(Math.abs(Number(app.nowPlaying?.['mixer volume'] ?? 0)))]]
+    const rows: [string, string][] = [[t('Format'), check.format + ' (' + (check.lossy ? t('lossy') : t('lossless')) + ')'], [t('Bitrate'), bitrate], [t('Sample rate'), sourceRate ? formatRate(sourceRate) : ''], [t('Bit depth'), track.samplesize ? `${track.samplesize}-bit` : ''], [t('File size'), sizeBytes ? `${(sizeBytes / 1048576).toFixed(1)} MB` : ''], [t('ReplayGain'), track.replay_gain ? `${track.replay_gain} dB` : ''],
+      [t('Signal path'), `${check.format}${sourceRate ? ' ' + formatRate(sourceRate) : ''} → ${status.exclusive ? t('WASAPI exclusive') : t('Windows mixer')}${outputRate ? ' → ' + formatRate(outputRate) : ''}`], [t('Output'), status.exclusive ? t('WASAPI exclusive') : t('Shared (Windows mixer)')], [t('Device'), status.device ?? ''], [t('Device rate'), outputRate ? formatRate(outputRate) + (sourceRate && outputRate !== sourceRate ? ' (' + t('resampled') + ')' : '') : ''], [t('Equaliser'), status.eqActive ? t('On') : t('Off (bypassed)')], [t('Volume'), String(Math.abs(Number(app.nowPlaying?.['mixer volume'] ?? 0)))]]
     return rows.filter(row => row[1])
   })
   let shownState = ''
@@ -22,25 +23,25 @@
 
 {#if check.state}
   <div class="fidelity">
-  {#if check.format}<button class="format" class:open={infoOpen} onclick={() => { infoOpen = !infoOpen; noteOpen = false }} title="File and playback details">{check.format}</button>{/if}
+  {#if check.format}<button class="format" class:open={infoOpen} onclick={() => { infoOpen = !infoOpen; noteOpen = false }} title={t('File and playback details')}>{check.format}</button>{/if}
   {#if infoOpen}
     <div class="note info" role="dialog">
-      <strong>{track?.title ?? 'Now playing'}</strong>
+      <strong>{track?.title ?? t('Now playing')}</strong>
       <dl>{#each fileRows as [label, value]}<dt>{label}</dt><dd>{value}</dd>{/each}</dl>
-      <button class="close" onclick={() => infoOpen = false}>OK</button>
+      <button class="close" onclick={() => infoOpen = false}>{t('OK')}</button>
     </div>
   {/if}
-  <button class="badge" class:perfect={check.state === 'perfect'} class:scaled={check.state !== 'perfect'} class:open={noteOpen} onclick={() => { noteOpen = !noteOpen; infoOpen = false }} title="Click for details">{#if check.state === 'perfect'}<Icon name="verified" size={15} />Bit-perfect{:else}{check.state === 'scaled' ? 'Scaled' : 'Not bit-perfect'}{/if}</button>
+  <button class="badge" class:perfect={check.state === 'perfect'} class:scaled={check.state !== 'perfect'} class:open={noteOpen} onclick={() => { noteOpen = !noteOpen; infoOpen = false }} title={t('Click for details')}>{#if check.state === 'perfect'}<Icon name="verified" size={15} />{t('Bit-perfect')}{:else}{check.state === 'scaled' ? t('Scaled') : t('Not bit-perfect')}{/if}</button>
   {#if noteOpen}
     <div class="note" role="dialog">
-      {#if check.state === 'perfect'}<strong>Bit-perfect</strong>
-        <p>The decoded audio reaches your DAC untouched: native sample rate, exclusive output, volume at 100 and the EQ off.</p>
-        {#if check.lossy}<p class="quiet">The source file is lossy (e.g. MP3), so it's a perfect copy of the decoded file, not of the original recording.</p>{/if}
-      {:else if check.state === 'scaled'}<strong>Volume scaled</strong>
-        <p>WinSqueeze is turning the audio down digitally, so it isn't bit-perfect. For bit-perfect playback, set this volume to 100 and use Windows' volume (or your DAC's own knob) to control the level.</p>
-        {#if check.reasons.length}<p class="quiet">Also:</p><ul class="quiet">{#each check.reasons as reason}<li>{reason}</li>{/each}</ul>{/if}
-      {:else}<strong>Not bit-perfect</strong><ul>{#each check.reasons as reason}<li>{reason}</li>{/each}</ul>{/if}
-      <button class="close" onclick={() => noteOpen = false}>OK</button>
+      {#if check.state === 'perfect'}<strong>{t('Bit-perfect')}</strong>
+        <p>{t('The decoded audio reaches your DAC untouched: native sample rate, exclusive output, volume at 100 and the EQ off.')}</p>
+        {#if check.lossy}<p class="quiet">{t('The source file is lossy (e.g. MP3), so it\'s a perfect copy of the decoded file, not of the original recording.')}</p>{/if}
+      {:else if check.state === 'scaled'}<strong>{t('Volume scaled')}</strong>
+        <p>{t('WinSqueeze is turning the audio down digitally, so it isn\'t bit-perfect. For bit-perfect playback, set this volume to 100 and use Windows\' volume (or your DAC\'s own knob) to control the level.')}</p>
+        {#if check.reasons.length}<p class="quiet">{t('Also:')}</p><ul class="quiet">{#each check.reasons as reason}<li>{reason}</li>{/each}</ul>{/if}
+      {:else}<strong>{t('Not bit-perfect')}</strong><ul>{#each check.reasons as reason}<li>{reason}</li>{/each}</ul>{/if}
+      <button class="close" onclick={() => noteOpen = false}>{t('OK')}</button>
     </div>
   {/if}
   </div>

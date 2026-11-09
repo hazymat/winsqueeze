@@ -1,5 +1,6 @@
 import { command, live, request, sendToShell } from '../bridge'
 import { app, toast } from '../state.svelte'
+import { t } from './i18n'
 // When the queue ends: stop, repeat all (Lyrion's own repeat), or keep playing (we top the queue up from the library just before the last track ends)
 export type QueueEnd = 'stop' | 'repeat' | 'continue'
 export const queueEndMode = (): QueueEnd => Number(app.nowPlaying?.['playlist repeat']) === 2 ? 'repeat' : app.playback.QueueEnd === 'continue' ? 'continue' : 'stop'
@@ -22,5 +23,5 @@ export async function checkKeepPlaying(status: any) {
   const pick = await request<{ ids: number[]; label: string }>({ type: 'continuePick', track: track.id, queued })
   if (!pick?.ids?.length) return
   await live(['playlistcontrol', 'cmd:add', `track_id:${pick.ids.join(',')}`], true)
-  toast(`Keep playing added ${pick.label}`, async () => { for (let position = total + pick.ids.length - 1; position >= total; position--) await live(['playlist', 'delete', position], true); toast('Removed what Keep playing added') }, 10000)
+  toast(t('Keep playing added {items}', { items: pick.label }), async () => { for (let position = total + pick.ids.length - 1; position >= total; position--) await live(['playlist', 'delete', position], true); toast(t('Removed what Keep playing added')) }, 10000)
 }

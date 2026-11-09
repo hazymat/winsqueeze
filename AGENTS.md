@@ -27,6 +27,11 @@ Work one build phase at a time (SPEC.md › Build phases). Stop at the end of ea
 - Compact code, descriptive variable names (no single-letter names), concise useful comments only.
 - No spread operator. Never use CSS `!important`.
 
+## Translations
+
+- UI text goes through `t('…')` / `tn(count, '…', '…')` (Svelte) or `L.T("…")` / `L.N(count, "…", "…")` (C#); fixed XAML text is translated by `L.Translate`. Keep the English literal inside the call so `tools/locales.mjs` can find it.
+- Every new or changed string needs its German entry in `locales/de.json` (informal "du"). Run `node tools/locales.mjs` to list what's missing.
+
 ## Layout
 
 - `/app`: C# .NET 8 WPF shell hosting WebView2.

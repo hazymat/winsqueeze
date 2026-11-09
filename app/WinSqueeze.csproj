@@ -44,5 +44,7 @@
     <Resource Include="Assets\WinSqueeze.ico" />
     <!-- Built web UI (npm run build in /ui) -->
     <None Include="wwwroot\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Translations (English text -> language), shared with the web UI -->
+    <EmbeddedResource Include="..\locales\*.json" LogicalName="locales.%(Filename).json" />
   </ItemGroup>
 </Project>

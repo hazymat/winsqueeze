@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../lib/i18n'
   import Hint from './Hint.svelte'
   import { command, sendToShell, trackArt } from '../bridge'
   import { app, ui, meters, nav, openSection, currentTrack, formatTime } from '../state.svelte'
@@ -63,37 +64,37 @@
 <div class="transport-host" class:mini-host={mini}>
 <footer class="transport" class:mini onwheel={wheelVolume}>
   <div class="left">
-  <button class="now" onclick={showNowPlaying} title="Now playing">
+  <button class="now" onclick={showNowPlaying} title={t('Now playing')}>
     {#if trackArt(track)}<img src={trackArt(track, 120)} alt="" />{:else}<span class="no-art">♪</span>{/if}
-    <span class="text"><span class="title">{track?.title ?? 'Nothing playing'}</span><span class="artist" title={track?.artist ?? (ownSelected ? app.status?.message ?? '' : '')}>{track?.artist ?? (ownSelected ? app.status?.message ?? '' : '')}</span></span>
+    <span class="text"><span class="title">{track?.title ?? t('Nothing playing')}</span><span class="artist" title={track?.artist ?? (ownSelected ? app.status?.message ?? '' : '')}>{track?.artist ?? (ownSelected ? app.status?.message ?? '' : '')}</span></span>
   </button>
-  {#if showRecord}<button class="record" class:on={recording.on} onclick={() => sendToShell({ type: 'toggleRecording' })} title={recording.on ? `Recording ${recordedFor}${recording.files > 1 ? ` · file ${recording.files}` : ''}. Click to stop` : 'Record this station'} aria-label={recording.on ? 'Stop recording' : 'Record'}><span class="dot"></span>{#if recording.on && !mini}<span class="rec-time">{recordedFor}</span>{/if}</button>{#if !mini && !recording.on}<span class="record-anchor"><Hint id="transport-record" text="Click to record this station" bubble /></span>{/if}{/if}
+  {#if showRecord}<button class="record" class:on={recording.on} onclick={() => sendToShell({ type: 'toggleRecording' })} title={recording.on ? t('Recording {time}', { time: recordedFor }) + (recording.files > 1 ? ' · ' + t('file {count}', { count: recording.files }) : '') + '. ' + t('Click to stop') : t('Record this station')} aria-label={recording.on ? t('Stop recording') : t('Record')}><span class="dot"></span>{#if recording.on && !mini}<span class="rec-time">{recordedFor}</span>{/if}</button>{#if !mini && !recording.on}<span class="record-anchor"><Hint id="transport-record" text={t('Click to record this station')} bubble /></span>{/if}{/if}
   </div>
   <div class="centre">
     <div class="buttons">
-      <button class:scanning={scanDirection < 0} use:holdToScan={-1} onclick={() => { if (!scanUsed) command('playlist', 'index', '-1'); scanUsed = false }} aria-label="Previous" title="Previous (hold to rewind)"><Icon name="previous" /></button>
-      <button class="play" onclick={() => command('pause', playing ? '1' : '0')} aria-label={playing ? 'Pause' : 'Play'}><Icon name={playing ? 'pause' : 'play'} size={20} /></button>
-      <button class:scanning={scanDirection > 0} use:holdToScan={1} onclick={() => { if (!scanUsed) command('playlist', 'index', '+1'); scanUsed = false }} aria-label="Next" title="Next (hold to fast-forward)"><Icon name="next" /></button>
+      <button class:scanning={scanDirection < 0} use:holdToScan={-1} onclick={() => { if (!scanUsed) command('playlist', 'index', '-1'); scanUsed = false }} aria-label={t('Previous')} title={t('Previous (hold to rewind)')}><Icon name="previous" /></button>
+      <button class="play" onclick={() => command('pause', playing ? '1' : '0')} aria-label={playing ? t('Pause') : t('Play')}><Icon name={playing ? 'pause' : 'play'} size={20} /></button>
+      <button class:scanning={scanDirection > 0} use:holdToScan={1} onclick={() => { if (!scanUsed) command('playlist', 'index', '+1'); scanUsed = false }} aria-label={t('Next')} title={t('Next (hold to fast-forward)')}><Icon name="next" /></button>
     </div>
-    {#if mini && miniVolume}<div class="seek-row mini-volume"><input type="range" min="0" max="100" value={volume} oninput={dragVolume} onchange={releaseVolume} aria-label="Volume" /><span class="time">{volume}</span></div>
+    {#if mini && miniVolume}<div class="seek-row mini-volume"><input type="range" min="0" max="100" value={volume} oninput={dragVolume} onchange={releaseVolume} aria-label={t('Volume')} /><span class="time">{volume}</span></div>
     {:else}<div class="seek-row">
       <span class="time">{formatTime(position)}</span>
-      <div class="seek" role="slider" tabindex="0" aria-label="Seek" aria-valuenow={Math.round(position)} onclick={seek} onkeydown={(event) => { if (event.key === 'ArrowRight') command('time', Math.round(position + 10)); if (event.key === 'ArrowLeft') command('time', Math.max(0, Math.round(position - 10))) }}>
+      <div class="seek" role="slider" tabindex="0" aria-label={t('Seek')} aria-valuenow={Math.round(position)} onclick={seek} onkeydown={(event) => { if (event.key === 'ArrowRight') command('time', Math.round(position + 10)); if (event.key === 'ArrowLeft') command('time', Math.max(0, Math.round(position - 10))) }}>
         <div class="fill" style:width={duration ? `${(position / duration) * 100}%` : '0'}></div>
       </div>
       <span class="time">{formatTime(duration)}</span>
     </div>{/if}
   </div>
   <div class="right">
-    <div class="meter-anchor"><button class="pixel-meter" title="Equaliser (click to open or close)" onclick={() => sendToShell({ type: 'toggleEq' })}><Analyser levels={meters.bands} compact={true} segments={14} /></button><Hint id="transport-eq" text="Click for EQ" bubble /></div>
+    <div class="meter-anchor"><button class="pixel-meter" title={t('Equaliser (click to open or close)')} onclick={() => sendToShell({ type: 'toggleEq' })}><Analyser levels={meters.bands} compact={true} segments={14} /></button><Hint id="transport-eq" text={t('Click for EQ')} bubble /></div>
     <div class="volume">
       <FidelityBadge />
-      <input type="range" min="0" max="100" value={volume} oninput={dragVolume} onchange={releaseVolume} aria-label="Volume" />
+      <input type="range" min="0" max="100" value={volume} oninput={dragVolume} onchange={releaseVolume} aria-label={t('Volume')} />
       <span class="volume-number" class:show={draggingVolume !== null}>{volume}</span>
-      <button class="volume-icon" onclick={() => volumeOpen = !volumeOpen} aria-label="Volume"><Icon name="volume" /></button>
-      {#if volumeOpen}<div class="volume-pop"><input type="range" min="0" max="100" value={volume} oninput={dragVolume} onchange={releaseVolume} aria-label="Volume" /></div>{/if}
+      <button class="volume-icon" onclick={() => volumeOpen = !volumeOpen} aria-label={t('Volume')}><Icon name="volume" /></button>
+      {#if volumeOpen}<div class="volume-pop"><input type="range" min="0" max="100" value={volume} oninput={dragVolume} onchange={releaseVolume} aria-label={t('Volume')} /></div>{/if}
     </div>
-    {#if mini}<div class="mini-meters"><Meters size="large" /></div>{#if hasLyrics}<button class="mini-speaker" onclick={() => sendToShell({ type: 'openLyrics' })} title="Lyrics in a window of their own"><Icon name="lyrics" size={16} /></button>{/if}<button class="mini-speaker" class:on={miniVolume} onclick={() => miniVolume ? miniVolume = false : showMiniVolume()} title="Volume (or scroll)"><Icon name="volume" size={16} /></button><button class="pin" class:on={ui.pinned} onclick={() => { ui.pinned = !ui.pinned; sendToShell({ type: 'setTopmost', on: ui.pinned }) }} title="Always on top"><Icon name="pin" size={16} /></button>{/if}
+    {#if mini}<div class="mini-meters"><Meters size="large" /></div>{#if hasLyrics}<button class="mini-speaker" onclick={() => sendToShell({ type: 'openLyrics' })} title={t('Lyrics in a window of their own')}><Icon name="lyrics" size={16} /></button>{/if}<button class="mini-speaker" class:on={miniVolume} onclick={() => miniVolume ? miniVolume = false : showMiniVolume()} title={t('Volume (or scroll)')}><Icon name="volume" size={16} /></button><button class="pin" class:on={ui.pinned} onclick={() => { ui.pinned = !ui.pinned; sendToShell({ type: 'setTopmost', on: ui.pinned }) }} title={t('Always on top')}><Icon name="pin" size={16} /></button>{/if}
   </div>
 </footer>
 </div>
