@@ -48,6 +48,17 @@
   const shortCount = (blocks: string[]) => { let length = 0, count = 0; for (const block of blocks) { if (count > 0 && length + block.length > 700) break; length += block.length; count++ } return count }
   let expanded = $state(false)
   $effect(() => { trackKey; infoKey; expanded = false })
+  // Artist splits into Summary, Timeline and Full bio; a view shows while it's still loading so the row doesn't jump, and goes once it has nothing
+  const pending = (value: any) => value === undefined || value === 'loading'
+  const artistViews = $derived.by(() => {
+    const bio = info.artist, timeline = info.timeline, views: { key: string, label: string }[] = []
+    if (pending(bio) || bio.found) views.push({ key: 'summary', label: 'Summary' })
+    if (pending(timeline) || timeline.found) views.push({ key: 'timeline', label: 'Timeline' })
+    if (bio?.found && shortCount(blocksOf(bio.text)) < blocksOf(bio.text).length) views.push({ key: 'bio', label: 'Full bio' })
+    return views
+  })
+  const artistView = $derived(artistViews.some(view => view.key === ui.artistView) ? ui.artistView : (artistViews[0]?.key ?? 'summary'))
+  const chooseArtistView = (key: string) => { ui.artistView = key; writeSetting('artistView', key) }
   const infoImage = (image: string) => image.startsWith('http') ? image : serverArt(image, 300)
   // The album opens with this track marked (folder or tag album, whichever the library uses)
   async function openAlbum() { const trackId = Number(track?.id); const place = trackId > 0 ? await query('trackPlace', { id: trackId }) : null; if (place?.album) openView({ kind: 'album', key: String(place.album), title: place.albumTitle, highlight: String(trackId) }); else toast('That album isn’t in the library') }
@@ -80,35 +91,46 @@
         {@const result = info[infoKey]}
         <div class="info" class:lyrics={infoKey === 'lyrics'}>
           {#if !track}<p class="quiet">Nothing playing</p>
-          {:else if !result || result === 'loading'}<p class="quiet">Looking…</p>
-          {:else if !result.found}{#if !(infoKey === 'artist' && info.timeline?.found)}<p class="quiet">{infoKey === 'lyrics' ? 'No lyrics found for this track' : infoKey === 'album' ? 'Nothing found about this album' : 'Nothing found about this artist'}</p>{/if}
+          {:else if infoKey === 'artist'}
+            {#if artistViews.length > 1}<div class="sub-tabs" role="tablist">{#each artistViews as view (view.key)}<button role="tab" class:on={artistView === view.key} aria-selected={artistView === view.key} onclick={() => chooseArtistView(view.key)}>{view.label}</button>{/each}</div>{/if}
+            {#if !artistViews.length}<p class="quiet">Nothing found about this artist</p>
+            {:else if artistView === 'timeline'}
+              {#if pending(info.timeline)}<p class="quiet">Looking…</p>{:else}
+                <ol class="timeline">
+                  {#each timelineYears(info.timeline.events) as group (group.year)}
+                    <li class="year-group"><div class="year">{group.year}{#if bornYear && group.year > bornYear && !group.events.some(event => event.kind === 'start')}<span class="age">age {group.year - bornYear}</span>{/if}</div>
+                      {#each group.events as event}
+                        {@const owned = event.kind === 'album' ? ownedAlbums[titleKey(event.title)] : null}
+                        <div class="event {event.kind}" class:playing={event.kind === 'album' && titleKey(event.title) === titleKey(track?.album ?? '')}>
+                          <span class="marker" aria-hidden="true">{event.kind === 'award' ? '★' : event.kind === 'nominated' ? '☆' : ''}</span>
+                          {#if event.kind === 'album'}<span class="sleeve"><img src={`https://coverartarchive.org/release-group/${event.id}/front-250`} alt="" loading="lazy" onerror={(failed) => (failed.currentTarget as HTMLImageElement).remove()} /></span>{/if}
+                          <div class="event-text"><div class="event-title">{timelineTitle(event)}</div>{#if timelineDetail(event)}<div class="event-detail">{timelineDetail(event)}</div>{/if}</div>
+                          {#if event.kind === 'album' && titleKey(event.title) === titleKey(track?.album ?? '')}<span class="now">Playing</span>{:else if owned}<button class="owned" title="Open the album" onclick={() => openView({ kind: 'album', key: owned.key, title: owned.title })}>In your library</button>{/if}
+                        </div>
+                      {/each}
+                    </li>
+                  {/each}
+                </ol>
+                <div class="source">From {info.timeline.source}&nbsp;· <button class="link" onclick={() => sendToShell({ type: 'openUrl', url: info.timeline.link })}>MusicBrainz page</button></div>
+              {/if}
+            {:else if pending(result)}<p class="quiet">Looking…</p>
+            {:else}
+              {@const blocks = blocksOf(result.text)}{@const shown = artistView === 'bio' ? blocks.length : shortCount(blocks)}
+              <div class="info-head">{#if result.image}<img class="info-pic round" src={infoImage(result.image)} alt="" />{/if}<div><h2>{result.heading}</h2>{#if result.subheading}<div class="quiet">{result.subheading}</div>{/if}</div></div>
+              {#each blocks.slice(0, shown) as block}{#if block.startsWith('## ')}<h3>{block.slice(3)}</h3>{:else if block.startsWith('• ')}<ul>{#each block.split('\n') as item}<li>{item.replace(/^• /, '')}</li>{/each}</ul>{:else}<p>{block}</p>{/if}{/each}
+              {#if shown < blocks.length}<button class="more" onclick={() => chooseArtistView('bio')}>Full bio</button>{/if}
+              <div class="source">From {result.source}{#if result.link}&nbsp;· <button class="link" onclick={() => sendToShell({ type: 'openUrl', url: result.link })}>Read more</button>{/if}</div>
+            {/if}
+          {:else if pending(result)}<p class="quiet">Looking…</p>
+          {:else if !result.found}<p class="quiet">{infoKey === 'lyrics' ? 'No lyrics found for this track' : 'Nothing found about this album'}</p>
           {:else}
-            <div class="info-head">{#if result.image}<img class="info-pic" class:round={infoKey === 'artist'} src={infoImage(result.image)} alt="" />{/if}<div><h2>{result.heading}</h2>{#if result.subheading}<div class="quiet">{result.subheading}</div>{/if}</div></div>
+            <div class="info-head">{#if result.image}<img class="info-pic" src={infoImage(result.image)} alt="" />{/if}<div><h2>{result.heading}</h2>{#if result.subheading}<div class="quiet">{result.subheading}</div>{/if}</div></div>
             {#if infoKey === 'lyrics'}<pre>{result.text}</pre>{:else}
               {@const blocks = blocksOf(result.text)}{@const shown = expanded ? blocks.length : shortCount(blocks)}
               {#each blocks.slice(0, shown) as block}{#if block.startsWith('## ')}<h3>{block.slice(3)}</h3>{:else if block.startsWith('• ')}<ul>{#each block.split('\n') as item}<li>{item.replace(/^• /, '')}</li>{/each}</ul>{:else}<p>{block}</p>{/if}{/each}
               {#if shown < blocks.length}<button class="more" onclick={() => expanded = true}>Show more</button>{/if}
             {/if}
             <div class="source">From {result.source}{#if result.link}&nbsp;· <button class="link" onclick={() => sendToShell({ type: 'openUrl', url: result.link })}>Read more</button>{/if}</div>
-          {/if}
-          {#if infoKey === 'artist' && info.timeline?.found}
-            <h3 class="timeline-head">Timeline</h3>
-            <ol class="timeline">
-              {#each timelineYears(info.timeline.events) as group (group.year)}
-                <li class="year-group"><div class="year">{group.year}{#if bornYear && group.year > bornYear && !group.events.some(event => event.kind === 'start')}<span class="age">age {group.year - bornYear}</span>{/if}</div>
-                  {#each group.events as event}
-                    {@const owned = event.kind === 'album' ? ownedAlbums[titleKey(event.title)] : null}
-                    <div class="event {event.kind}" class:playing={event.kind === 'album' && titleKey(event.title) === titleKey(track?.album ?? '')}>
-                      <span class="marker" aria-hidden="true">{event.kind === 'award' ? '★' : event.kind === 'nominated' ? '☆' : ''}</span>
-                      {#if event.kind === 'album'}<span class="sleeve"><img src={`https://coverartarchive.org/release-group/${event.id}/front-250`} alt="" loading="lazy" onerror={(failed) => (failed.currentTarget as HTMLImageElement).remove()} /></span>{/if}
-                      <div class="event-text"><div class="event-title">{timelineTitle(event)}</div>{#if timelineDetail(event)}<div class="event-detail">{timelineDetail(event)}</div>{/if}</div>
-                      {#if event.kind === 'album' && titleKey(event.title) === titleKey(track?.album ?? '')}<span class="now">Playing</span>{:else if owned}<button class="owned" title="Open the album" onclick={() => openView({ kind: 'album', key: owned.key, title: owned.title })}>In your library</button>{/if}
-                    </div>
-                  {/each}
-                </li>
-              {/each}
-            </ol>
-            <div class="source">From {info.timeline.source}&nbsp;· <button class="link" onclick={() => sendToShell({ type: 'openUrl', url: info.timeline.link })}>MusicBrainz page</button></div>
           {/if}
         </div>
       {/if}
@@ -156,7 +178,10 @@
   .info .more { margin-top: 10px; background: none; border: 0; padding: 0; color: var(--accent); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; } .info .more:hover { text-decoration: underline; }
   .info-head { display: flex; gap: 12px; align-items: center; } .info-pic { flex: none; width: 64px; height: 64px; object-fit: cover; border-radius: 8px; box-shadow: 0 6px 18px var(--shadow); } .info-pic.round { border-radius: 50%; }
   /* Timeline: a line down the left, years in the display face, albums with their sleeves; your own albums open from it */
-  .timeline-head { margin-top: 26px; } .timeline { list-style: none; margin: 10px 0 0; padding: 0 0 0 18px; position: relative; }
+  /* Summary · Timeline · Full bio: a small segmented row that stays at the top while the view scrolls */
+  .sub-tabs { position: sticky; top: -2px; z-index: 1; display: flex; gap: 2px; width: fit-content; margin: 0 0 14px; padding: 3px; border-radius: 8px; background: var(--panel-strong); border: 1px solid var(--line); backdrop-filter: blur(var(--blur)); }
+  .sub-tabs button { background: none; border: 0; border-radius: 6px; padding: 4px 11px; color: var(--fg-quiet); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; } .sub-tabs button:hover { color: var(--fg); } .sub-tabs button.on { background: var(--accent-soft); color: var(--accent); }
+  .timeline { list-style: none; margin: 4px 0 0; padding: 0 0 0 18px; position: relative; }
   .timeline::before { content: ""; position: absolute; left: 5px; top: 8px; bottom: 8px; width: 2px; border-radius: 1px; background: linear-gradient(var(--accent), color-mix(in srgb, var(--accent) 15%, transparent)); }
   .year-group { margin: 0 0 12px; } .year { position: relative; font-family: var(--font-display); font-size: 13px; color: var(--accent); letter-spacing: 0.04em; margin-bottom: 4px; }
   .year::before { content: ""; position: absolute; left: -17px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
