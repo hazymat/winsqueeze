@@ -24,17 +24,18 @@ public sealed partial class SqueezeliteHost : IDisposable
     public bool ExclusiveRefused => Device != null && exclusiveRefused.Contains(Device.SqueezeliteId);
     public event Action<string>? ExclusiveFailed; // device name, on Squeezelite's reader thread; the app restarts it shared
     public int OutputSampleRate { get; private set; }
+    public int OutputLatencyMs { get; private set; } // what PortAudio reports once the device is open (shared mode adds to the requested latency)
     public event Action? StatusChanged;
     public event Action<string>? DecodeLine; // lines DamagedFiles cares about, on Squeezelite's reader thread
 
-    [GeneratedRegex(@"opened device \d+ - (.+) at (\d+) latency")] private static partial Regex OpenedDeviceRegex();
+    [GeneratedRegex(@"opened device \d+ - (.+) at (\d+) latency(?: (\d+) ms)?")] private static partial Regex OpenedDeviceRegex();
 
     // serverAddress: the Lyrion host, or 127.0.0.1:<port> for the offline server
     // startHeld: Squeezelite plays silence until ReleaseHold, so whatever the server restarts on connect isn't heard yet
     public void Start(string serverAddress, OutputDevice device, AudioSettings audio, string playerMac, bool startHeld = false)
     {
         Stop();
-        Device = device; ExclusiveActive = false; OutputSampleRate = 0;
+        Device = device; ExclusiveActive = false; OutputSampleRate = 0; OutputLatencyMs = 0;
         var useExclusive = audio.Exclusive && device.SupportsExclusive && !exclusiveRefused.Contains(device.SqueezeliteId);
         var startInfo = new ProcessStartInfo(AppPaths.SqueezeliteExe) { CreateNoWindow = true, UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, WorkingDirectory = AppPaths.SqueezeliteFolder };
         // -s takes the slimproto host (port 3483), not the web port
@@ -112,7 +113,7 @@ public sealed partial class SqueezeliteHost : IDisposable
         if (DamagedFiles.Matters(logLine)) DecodeLine?.Invoke(logLine);
         var openedMatch = OpenedDeviceRegex().Match(logLine);
         if (logLine.Contains("opening WASAPI device in exclusive mode")) ExclusiveActive = true;
-        else if (openedMatch.Success) { OutputSampleRate = int.Parse(openedMatch.Groups[2].Value); if (State == PlayerState.Failed) SetStatus(PlayerState.Running, $"Playing to {openedMatch.Groups[1].Value}"); else StatusChanged?.Invoke(); }
+        else if (openedMatch.Success) { OutputSampleRate = int.Parse(openedMatch.Groups[2].Value); if (openedMatch.Groups[3].Success) OutputLatencyMs = int.Parse(openedMatch.Groups[3].Value); if (State == PlayerState.Failed) SetStatus(PlayerState.Running, $"Playing to {openedMatch.Groups[1].Value}"); else StatusChanged?.Invoke(); }
         else if (ExclusiveActive && Device != null && (logLine.Contains("error opening device") || logLine.Contains("AUDCLNT_E_EXCLUSIVE_MODE_NOT_ALLOWED")) && exclusiveRefused.Add(Device.SqueezeliteId)) ExclusiveFailed?.Invoke(Device.Name);
         else if (logLine.Contains("Invalid sample rate")) SetStatus(PlayerState.Failed, "The device rejected this track's sample rate. Remove any -R override from Extra arguments so WinSqueeze can resample it.");
     }
