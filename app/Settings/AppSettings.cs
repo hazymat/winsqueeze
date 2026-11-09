@@ -91,6 +91,7 @@ public class TrackInfoSettings
     public List<InfoChoice> Tabs { get; set; } = new(); // order shown; unticked ones keep their place
     public Dictionary<string, List<InfoChoice>> Sources { get; set; } = new(); // per tab, tried from the top
     public bool Timeline { get; set; } = true; // the artist's music year by year, under the Artist text
+    public bool Credits { get; set; } = true; // who played, wrote and produced the album, under the Album text
     public string ProtectedLastFmKey { get; set; } = ""; // DPAPI, current user only; never exported
     [JsonIgnore] public string LastFmKey
     {

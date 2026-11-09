@@ -46,6 +46,7 @@ public sealed class TrackInfo
     async Task<Result> RunAsync(Request request)
     {
         if (request.Kind == "timeline") return App.Settings.TrackInfo.Timeline ? await TimelineAsync(request) : new(false);
+        if (request.Kind == "credits") return App.Settings.TrackInfo.Credits ? await CreditsAsync(request) : new(false);
         if (!App.Settings.TrackInfo.Sources.TryGetValue(request.Kind, out var sources) || (request.Artist == "" && request.Title == "")) return new(false);
         foreach (var source in sources.Where(source => source.On))
         {
@@ -226,6 +227,81 @@ public sealed class TrackInfo
         var kindOrder = new[] { "start", "member", "label", "album", "award", "nominated", "end" };
         var ordered = events.OrderBy(item => (int)item["year"]).ThenBy(item => Array.IndexOf(kindOrder, (string)item["kind"])).ThenBy(item => (string)item["title"]).ToList();
         return new(true, request.Artist, isPerson ? "person" : "group", Source: "MusicBrainz and Wikidata (sourced facts only)", Link: $"https://musicbrainz.org/artist/{LyrionClient.ReadString(artist, "id")}", Events: ordered);
+    }
+
+    // ---- Credits: who played, sang, wrote, produced and engineered the album, track by track (SPEC.md › Now playing views) ----
+    // MusicBrainz relationships on the release (production, artwork), its recordings (performers, production) and their works (writers)
+    static readonly string[] roleModifiers = { "co", "executive", "assistant", "associate", "additional", "guest", "solo", "lead" };
+    static readonly string[] performerTypes = { "instrument", "vocal", "performer", "performing orchestra", "conductor", "chorus master", "concertmaster" };
+    static readonly string[] writerTypes = { "composer", "lyricist", "writer", "librettist", "arranger", "orchestrator", "instrument arranger", "vocal arranger", "translator", "revised by" };
+    static readonly string[] artworkTypes = { "design/illustration", "design", "illustration", "photography", "art direction", "graphic design", "artwork", "creative direction", "liner notes" };
+    static readonly string[] skippedCreditTypes = { "misc", "tribute", "dedicated to", "samples from", "phonographic copyright", "copyright", "legal representation", "booking", "publishing", "rights society", "licensor" };
+    static readonly Dictionary<string, string> roleNames = new() { ["mix"] = "mixing", ["audio"] = "audio engineer", ["sound"] = "sound engineer", ["performing orchestra"] = "orchestra", ["design/illustration"] = "design and illustration", ["editor"] = "editing", ["instrument arranger"] = "arranger", ["recording"] = "recording engineer", ["vocal"] = "vocals", ["instrument"] = "instruments" };
+    async Task<Result> CreditsAsync(Request request)
+    {
+        if (request.Artist == "" || request.Album == "" || await MusicBrainzEntityAsync("album", request.Artist, request.Album) is not { } releaseGroup) return new(false);
+        if (await MusicBrainzAsync($"https://musicbrainz.org/ws/2/release?release-group={LyrionClient.ReadString(releaseGroup, "id")}&status=official&limit=100&fmt=json") is not { } browse || !browse.TryGetProperty("releases", out var releases)) return new(false);
+        // Credits usually sit on one or two of an album's many pressings: try the three earliest and keep the best-credited
+        var candidates = releases.EnumerateArray().OrderBy(release => LyrionClient.ReadString(release, "date") is { Length: > 0 } date ? date : "9999").Select(release => LyrionClient.ReadString(release, "id")).Take(3).ToList();
+        (List<Dictionary<string, object>> Tracks, List<Dictionary<string, object>> Credits, string Id, string Subheading)? best = null;
+        foreach (var releaseId in candidates)
+        {
+            try
+            {
+                if (await MusicBrainzAsync($"https://musicbrainz.org/ws/2/release/{releaseId}?inc=artist-rels+recordings+recording-level-rels+work-rels+work-level-rels&fmt=json") is not { } release) continue;
+                var read = ReadCredits(release);
+                if (best == null || read.Credits.Count > best.Value.Credits.Count) best = (read.Tracks, read.Credits, releaseId, string.Join(" · ", new[] { LyrionClient.ReadString(release, "date"), LyrionClient.ReadString(release, "country") }.Where(part => part != "")));
+                if (read.Credits.Count >= 15) break;
+            }
+            catch (Exception error) { CrashReporter.Note("Credits: " + error.Message); }
+        }
+        if (best is not { } chosen || chosen.Credits.Count == 0) return new(false);
+        return new(true, request.Album, chosen.Subheading, Source: "MusicBrainz", Link: $"https://musicbrainz.org/release/{chosen.Id}", Events: new { tracks = chosen.Tracks, credits = chosen.Credits });
+    }
+
+    static (List<Dictionary<string, object>> Tracks, List<Dictionary<string, object>> Credits) ReadCredits(JsonElement release)
+    {
+        var tracks = new List<Dictionary<string, object>>(); var credits = new List<Dictionary<string, object>>();
+        void Read(JsonElement owner, int trackNumber)
+        {
+            if (!owner.TryGetProperty("relations", out var relations)) return;
+            foreach (var relation in relations.EnumerateArray())
+            {
+                var type = LyrionClient.ReadString(relation, "type");
+                if (LyrionClient.ReadString(relation, "target-type") == "work" && relation.TryGetProperty("work", out var work)) { Read(work, trackNumber); continue; } // the song's writers
+                if (LyrionClient.ReadString(relation, "target-type") != "artist" || !relation.TryGetProperty("artist", out var artist) || skippedCreditTypes.Contains(type)) continue;
+                var name = LyrionClient.ReadString(relation, "target-credit") is { Length: > 0 } credited ? credited : LyrionClient.ReadString(artist, "name");
+                var attributes = relation.TryGetProperty("attributes", out var list) ? list.EnumerateArray().Select(item => item.GetString() ?? "").Where(item => item != "").ToList() : new();
+                var group = performerTypes.Contains(type) ? "performer" : writerTypes.Contains(type) ? "writer" : artworkTypes.Contains(type) ? "artwork" : "production";
+                var roles = new List<string>();
+                if (type is "instrument" or "vocal") roles.AddRange(attributes.Where(item => !roleModifiers.Contains(item)).Select(item => type == "vocal" && !item.Contains("vocal") ? item + " vocals" : item));
+                if (roles.Count == 0) roles.Add(string.Concat(attributes.Where(item => roleModifiers.Contains(item)).Select(item => item == "co" ? "co-" : item + " ")) + (roleNames.TryGetValue(type, out var named) ? named : type)); // "co-producer", "additional engineer"
+                foreach (var role in roles)
+                {
+                    var existing = credits.FirstOrDefault(credit => (string)credit["name"] == name && (string)credit["role"] == role);
+                    if (existing == null) credits.Add(existing = new() { ["name"] = name, ["role"] = role, ["group"] = group, ["tracks"] = new List<int>() });
+                    if (trackNumber > 0 && existing["tracks"] is List<int> numbers && !numbers.Contains(trackNumber)) numbers.Add(trackNumber);
+                }
+            }
+        }
+        Read(release, 0); // the whole album
+        if (release.TryGetProperty("media", out var media))
+        {
+            var discs = media.GetArrayLength(); var running = 0;
+            foreach (var medium in media.EnumerateArray())
+            {
+                if (!medium.TryGetProperty("tracks", out var discTracks)) continue;
+                foreach (var track in discTracks.EnumerateArray())
+                {
+                    running++;
+                    var number = LyrionClient.ReadString(track, "number") is { Length: > 0 } printed ? printed : LyrionClient.ReadString(track, "position");
+                    tracks.Add(new() { ["n"] = running, ["label"] = discs > 1 ? $"{LyrionClient.ReadString(medium, "position")}.{number}" : number, ["title"] = LyrionClient.ReadString(track, "title") });
+                    if (track.TryGetProperty("recording", out var recording)) Read(recording, running);
+                }
+            }
+        }
+        foreach (var credit in credits) if (credit["tracks"] is List<int> numbers) { numbers.Sort(); credit["all"] = numbers.Count == tracks.Count; if (numbers.Count == tracks.Count) numbers.Clear(); } // on every track: shown without numbers, and on each track
+        return (tracks, credits);
     }
 
     async Task<Result?> FromLastFmAsync(Request request)
