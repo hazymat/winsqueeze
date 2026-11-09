@@ -25,9 +25,11 @@
     if (!playing) return
     for (const kind of infoKinds(kinds)) if (untrack(() => info[kind]) === undefined) { // every tab's lookups at once (the shell already has them if they were prefetched), so switching tabs is instant
       info = Object.assign({}, untrack(() => info), { [kind]: 'loading' })
-      infoQuery(kind, playing).then(result => { if (infoFor === key) info = Object.assign({}, info, { [kind]: result ?? { found: false } }) })
+      fetchInfo(kind, playing, key, 1)
     }
   })
+  // A lookup that failed (network, MusicBrainz busy) is asked again twice before the tab gives up on this track
+  function fetchInfo(kind: string, playing: any, key: string, attempt: number) { infoQuery(kind, playing).then(result => { if (infoFor !== key) return; if (result?.error && attempt < 3) { setTimeout(() => { if (infoFor === key) fetchInfo(kind, playing, key, attempt + 1) }, attempt * 5000); return } info = Object.assign({}, info, { [kind]: result?.error ? { found: false } : result ?? { found: false } }) }) }
   // Timeline albums you have: matched on the album title among this artist's own albums in the library, so they open from the timeline
   let ownedAlbums = $state<Record<string, { key: string, title: string }>>({}), ownedFor = ''
   const titleKey = (title: string) => String(title ?? '').toLowerCase().replace(/\s*[([][^)\]]*(remaster|edition|deluxe|expanded|anniversary|bonus)[^)\]]*[)\]]/g, '').replace(/&/g, 'and').replace(/[^\p{L}\p{N}]+/gu, '')
@@ -89,6 +91,8 @@
   }
   // Artist is the bio; the Timeline opens from a button above it and closes back to the bio
   let showTimeline = $state(false)
+  // On opening the timeline, the album playing now sits mid-view in whichever box scrolls (the panel, or the whole page when narrow)
+  function centrePlaying(list: HTMLElement) { requestAnimationFrame(() => { const row = list.querySelector('.event.playing'); let box = list.parentElement; while (box && !(box.scrollHeight > box.clientHeight && /auto|scroll/.test(getComputedStyle(box).overflowY))) box = box.parentElement; if (!row || !box) return; const rowRect = row.getBoundingClientRect(), boxRect = box.getBoundingClientRect(); box.scrollTop += rowRect.top - boxRect.top - (box.clientHeight - rowRect.height) / 2 }) }
   const artistName = $derived(track?.artist ?? '') // a string, so status polls (a new track object each time) don't count as a change
   $effect(() => { artistName; showTimeline = false }) // a new artist opens on their bio
   // Credits: who played, wrote and produced it. People are grouped by what they did, each with their roles and the tracks they're on; the playing track's people come first
@@ -151,7 +155,7 @@
             {#if showTimeline && info.timeline?.found}
               <button class="back" onclick={() => showTimeline = false}>← Artist bio</button>
               {#if info.timeline?.found}
-                <ol class="timeline">
+                <ol class="timeline" use:centrePlaying>
                   {#each timelineYears(info.timeline.events) as group (group.year)}
                     <li class="year-group"><div class="year">{group.year}{#if bornYear && group.year > bornYear && !group.events.some(event => event.kind === 'start')}<span class="age">age {group.year - bornYear}</span>{/if}</div>
                       {#each group.events as event}
