@@ -25,9 +25,9 @@ public static partial class LibraryHealth
     public static Dictionary<string, object?> Build(string databasePath, string cacheKey, ICollection<string> coversWithoutArt)
     {
         using var connection = Open(databasePath, true);
-        var rootPath = Meta(connection, "root_path") ?? "";
+        var rootPaths = (Meta(connection, "root_path") ?? "").Split('\n', StringSplitOptions.RemoveEmptyEntries); // one per music folder
         var unitSource = UnitSource(connection);
-        string Relative(object? path) { var folderPath = path as string ?? ""; return rootPath != "" && folderPath.StartsWith(rootPath) ? folderPath[rootPath.Length..].TrimStart('/') : folderPath; }
+        string Relative(object? path) { var folderPath = path as string ?? ""; var rootPath = rootPaths.FirstOrDefault(root => folderPath.StartsWith(root)); return rootPath != null ? folderPath[rootPath.Length..].TrimStart('/') : folderPath; }
         var units = Query(connection, "SELECT a.key, a.title, a.artist, a.cover_id, a.format, f.path FROM albums a LEFT JOIN folders f ON f.id=a.folder_id WHERE a.source=$source", ("$source", unitSource))
             .ToDictionary(row => (string)row["key"]!, row => new Unit { Key = (string)row["key"]!, Title = row["title"] as string ?? "", Artist = row["artist"] as string ?? "", Cover = row["cover_id"] as string ?? "", Format = row["format"] as string ?? "", Folder = Relative(row["path"]) });
         // Raw artist and album artist tags per track, names sorted so the order on the track doesn't matter

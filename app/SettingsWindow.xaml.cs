@@ -754,7 +754,10 @@ public partial class SettingsWindow : Window
         var recording = Settings.Recording;
         recordButtonBox.IsChecked = recording.ShowButton; recordSplitBox.IsChecked = recording.SplitOnSongChange; recordFolderBox.Text = App.Recorder.Folder;
         recordButtonBox.Click += (sender, args) => { recording.ShowButton = recordButtonBox.IsChecked == true; Settings.Save(); App.RaiseStatusChanged(); };
-        recordSplitBox.Click += (sender, args) => { recording.SplitOnSongChange = recordSplitBox.IsChecked == true; Settings.Save(); };
+        recordSplitBox.Click += (sender, args) => { recording.SplitOnSongChange = recordSplitBox.IsChecked == true; recordCutEarlierBox.IsEnabled = recording.SplitOnSongChange; Settings.Save(); };
+        recordCutEarlierBox.ItemsSource = Enumerable.Range(0, 7).Select(seconds => new ComboBoxItem { Content = $"{seconds} s", Tag = (double)seconds }).ToList();
+        recordCutEarlierBox.SelectedIndex = (int)Math.Clamp(Math.Round(recording.CutEarlierSeconds), 0, 6); recordCutEarlierBox.IsEnabled = recording.SplitOnSongChange;
+        recordCutEarlierBox.SelectionChanged += (sender, args) => { if (recordCutEarlierBox.SelectedItem is ComboBoxItem { Tag: double seconds }) { recording.CutEarlierSeconds = seconds; Settings.Save(); } };
         recordFolderPerStationRadio.IsChecked = recording.FolderPerStation; recordFolderPerRecordingRadio.IsChecked = !recording.FolderPerStation;
         recordFolderPerStationRadio.Click += (sender, args) => { recording.FolderPerStation = true; Settings.Save(); };
         recordFolderPerRecordingRadio.Click += (sender, args) => { recording.FolderPerStation = false; Settings.Save(); };

@@ -11,7 +11,7 @@ namespace WinSqueeze.Audio;
 // "Local\squeezelite-rec-<mac>" (see vendor/squeezelite/src/output_rec_win.c), and starts a new file when the song changes.
 public sealed class Recorder : IDisposable
 {
-    const int RequestOffset = 4, ActiveOffset = 8, AppliedOffset = 12, ErrorOffset = 16, PathOffset = 40, PathChars = 1024, TagsOffset = PathOffset + PathChars * 2, TagBytes = 4096, MapBytes = TagsOffset + TagBytes;
+    const int RequestOffset = 4, ActiveOffset = 8, AppliedOffset = 12, ErrorOffset = 16, PathOffset = 40, PathChars = 1024, TagsOffset = PathOffset + PathChars * 2, TagBytes = 4096, CutEarlierOffset = TagsOffset + TagBytes, MapBytes = CutEarlierOffset + 4;
     MemoryMappedFile? sharedFile; MemoryMappedViewAccessor? view;
     string mapName = "";
     int request;
@@ -127,6 +127,7 @@ public sealed class Recorder : IDisposable
         var tagBytes = new byte[TagBytes]; var encodedTags = Encoding.UTF8.GetBytes(tags); Array.Copy(encodedTags, tagBytes, Math.Min(encodedTags.Length, TagBytes - 1));
         view.WriteArray(TagsOffset, tagBytes, 0, tagBytes.Length);
         view.Write(ActiveOffset, active ? 1 : 0);
+        if (view.Capacity >= MapBytes) view.Write(CutEarlierOffset, (int)(Math.Clamp(Tuning.CutEarlierSeconds, 0, 8) * 1000)); // song changes show late: Squeezelite holds this much back and cuts that far earlier
         request = Math.Max(request, view.ReadInt32(RequestOffset)) + 1; view.Write(RequestOffset, request);
         view.Write(0, sequence + 2);
     }
@@ -135,7 +136,13 @@ public sealed class Recorder : IDisposable
     {
         if (view != null) return true;
         if (mapName == "") return false;
-        try { sharedFile = MemoryMappedFile.OpenExisting(mapName, MemoryMappedFileRights.ReadWrite); view = sharedFile.CreateViewAccessor(0, MapBytes, MemoryMappedFileAccess.ReadWrite); return true; }
+        try
+        {
+            sharedFile = MemoryMappedFile.OpenExisting(mapName, MemoryMappedFileRights.ReadWrite);
+            try { view = sharedFile.CreateViewAccessor(0, MapBytes, MemoryMappedFileAccess.ReadWrite); }
+            catch (Exception) { view = sharedFile.CreateViewAccessor(0, CutEarlierOffset, MemoryMappedFileAccess.ReadWrite); } // an older Squeezelite without the cut-earlier field
+            return true;
+        }
         catch (FileNotFoundException) { return false; }
     }
 

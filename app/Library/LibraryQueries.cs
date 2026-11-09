@@ -18,10 +18,20 @@ public sealed class LibraryQueries
     public LibraryQueries(ServerProfile profile, LibrarySettings librarySettings)
     {
         databasePath = DatabasePath(profile);
-        albumSource = librarySettings.AlbumSource == "tags" ? "t" : "f";
+        albumSource = EffectiveSource(profile, librarySettings);
         anyCredit = librarySettings.ContributorGrouping != "albumartist";
         hideOwnComposers = librarySettings.HideOwnComposers;
         nameSeparators = librarySettings.NameSeparators; readSurnameFirst = librarySettings.ReadSurnameFirst;
+    }
+
+    // "f" folders or "t" tags as chosen, but tags when the index has no folder albums (no file paths), so the lists never come up empty
+    public static string EffectiveSource(ServerProfile profile, LibrarySettings librarySettings)
+    {
+        if (librarySettings.AlbumSource == "tags") return "t";
+        var indexPath = DatabasePath(profile);
+        if (!File.Exists(indexPath)) return "f";
+        try { using var connection = Open(indexPath, true); return Query(connection, "SELECT source FROM albums ORDER BY source='f' DESC LIMIT 1").FirstOrDefault()?["source"] as string == "t" ? "t" : "f"; }
+        catch (SqliteException) { return "f"; } // index being swapped in by a sync
     }
 
     public bool HasIndex => File.Exists(databasePath);
@@ -214,7 +224,7 @@ public sealed class LibraryQueries
                 case "composer": foreach (var albumKey in AlbumKeys(AlbumsByCredit(connection, key, new[] { "composer" }, ""))) tracks.AddRange(AlbumTracks(connection, albumKey, "AND EXISTS (SELECT 1 FROM track_contributors tc JOIN contributor_parts cp ON cp.contributor_id=tc.contributor_id WHERE tc.track_id=t.id AND tc.role='composer' AND cp.part_norm=$part)", ("$part", key))); break;
                 case "performer": foreach (var albumKey in AlbumKeys(AlbumsByCredit(connection, key, new[] { "conductor", "band", "track" }, ""))) tracks.AddRange(AlbumTracks(connection, albumKey)); break;
                 case "genre": tracks.AddRange(Query(connection, $"SELECT {trackColumns} FROM track_genres tg JOIN tracks t ON t.id=tg.track_id JOIN album_tracks at ON at.track_id=t.id JOIN albums a ON a.key=at.album_key AND a.source=$source WHERE tg.genre_id=$key ORDER BY a.artist_norm, a.year, a.title_norm, at.disc_no, at.track_no", ("$source", albumSource), ("$key", key))); break;
-                case "folder": tracks.AddRange(Query(connection, $"SELECT {trackColumns} FROM tracks t JOIN folders f ON f.id=t.folder_id WHERE f.id=$id OR f.path LIKE (SELECT path FROM folders WHERE id=$id) || '/%' ORDER BY f.path, t.disc_no, t.track_no", ("$id", key))); break;
+                case "folder": tracks.AddRange(Query(connection, $"SELECT {trackColumns} FROM tracks t JOIN folders f ON f.id=t.folder_id WHERE f.id=$id OR (SELECT path FROM folders WHERE id=$id)='' OR f.path LIKE (SELECT path FROM folders WHERE id=$id) || '/%' ORDER BY f.path, t.disc_no, t.track_no", ("$id", key))); break;
                 // A custom view row: key is the view's scope as JSON ({genres, filters}); its matching tracks album by album
                 case "custom": using (var scopeDocument = JsonDocument.Parse(key == "" ? "{}" : key)) { tracks.AddRange(Query(connection, $"WITH matched AS ({CustomTracks(scopeDocument.RootElement, out var scopeParameters)}) SELECT {trackColumns} FROM matched m JOIN tracks t ON t.id=m.id JOIN album_tracks at ON at.track_id=t.id JOIN albums a ON a.key=at.album_key AND a.source=$source ORDER BY a.artist_norm, a.year, a.title_norm, at.disc_no, at.track_no", scopeParameters.Append(("$source", (object?)albumSource)).ToArray())); } break;
                 case "track": tracks.AddRange(Query(connection, $"SELECT {trackColumns} FROM tracks t WHERE t.id=$id", ("$id", key))); break;
