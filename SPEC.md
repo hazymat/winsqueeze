@@ -105,7 +105,7 @@ Back and Forward (buttons, Alt+Left/Right, mouse side buttons, Esc for Back) wor
 | Performers | Merged conductors, bands/orchestras/ensembles and soloists, with a role filter chip | Albums they appear on |
 | Folders | The music folder tree as stored on disk. A server with several music folders (e.g. on two drives) shows each under one "Music" root. If the server gives no file paths at all, browsing uses tag albums instead so no list is empty | Subfolders; a folder of tracks opens as an album |
 | Compilations | Off by default (Customise sidebar adds it). Albums Lyrion marks as compilations, plus any album whose album artist is Various Artists (in Folder albums mode, a folder counts when most of its tracks are on a compilation) | The album |
-| New music | Off by default (Customise sidebar adds it). The newest 100 albums by when the server first saw them (Lyrion's added time, kept through a clear and rescan; an album counts from its newest track), grouped by month added, newest first; no Sort menu | The album |
+| New music | Off by default (Customise sidebar adds it). The newest 100 albums by when the server first saw them (Lyrion's added time, kept through a clear and rescan; an album counts from its newest track), grouped by month added, newest first; no Sort menu. Chips at the top switch to **Updated** (the newest 100 by their newest file change, as Lyrion's Recently Updated, grouped by that month) or **Random** (100 random albums, with Shuffle again); the choice is remembered | The album |
 | Queue | Current player's queue | — |
 
 **Search-as-you-type:**
@@ -344,7 +344,7 @@ A sidebar section (and a button in Settings › Library & cache) listing what in
 - **Missing cover art:** no cover in the files or folder, or the server only has its placeholder (each cover is fetched once at list size, which also warms the art cache).
 - **Missing composer:** albums with tracks that have no composer tag, with how many. Shows classical albums (a conductor or orchestra credit, or a classical genre) by default, or all albums.
 - **Duplicate albums:** folders with identical track lists, or the same artist and title with at least half the tracks in common.
-- **Tag problems:** no artist at all; album artist missing on some tracks, differing between tracks, or missing on a multi-artist album; a folder the server reads as several albums; missing, repeated or skipped track numbers (per disc); no year, an odd year (before 1900 or in the future) or mixed years.
+- **Tag problems:** no artist at all; album artist missing on some tracks, differing between tracks, or missing on a multi-artist album (not on compilations, which are meant to have different artists and often no album artist); a folder the server reads as several albums; missing, repeated or skipped track numbers (per disc); no year, an odd year (before 1900 or in the future) or mixed years.
 - **Name problems:** two names (same role) that only ever appear together where one is a single word or together they make a name already in the library ("Earth" + "Wind & Fire"); one person spelled two ways (same words in another order or punctuation).
 - **Damaged files** (see Damaged files).
 
