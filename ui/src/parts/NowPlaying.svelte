@@ -89,6 +89,8 @@
   }
   // Artist is the bio; the Timeline opens from a button above it and closes back to the bio
   let showTimeline = $state(false)
+  // On opening the timeline, the album playing now sits mid-view in whichever box scrolls (the panel, or the whole page when narrow)
+  function centrePlaying(list: HTMLElement) { requestAnimationFrame(() => { const row = list.querySelector('.event.playing'); let box = list.parentElement; while (box && !(box.scrollHeight > box.clientHeight && /auto|scroll/.test(getComputedStyle(box).overflowY))) box = box.parentElement; if (!row || !box) return; const rowRect = row.getBoundingClientRect(), boxRect = box.getBoundingClientRect(); box.scrollTop += rowRect.top - boxRect.top - (box.clientHeight - rowRect.height) / 2 }) }
   const artistName = $derived(track?.artist ?? '') // a string, so status polls (a new track object each time) don't count as a change
   $effect(() => { artistName; showTimeline = false }) // a new artist opens on their bio
   // Credits: who played, wrote and produced it. People are grouped by what they did, each with their roles and the tracks they're on; the playing track's people come first
@@ -151,7 +153,7 @@
             {#if showTimeline && info.timeline?.found}
               <button class="back" onclick={() => showTimeline = false}>← Artist bio</button>
               {#if info.timeline?.found}
-                <ol class="timeline">
+                <ol class="timeline" use:centrePlaying>
                   {#each timelineYears(info.timeline.events) as group (group.year)}
                     <li class="year-group"><div class="year">{group.year}{#if bornYear && group.year > bornYear && !group.events.some(event => event.kind === 'start')}<span class="age">age {group.year - bornYear}</span>{/if}</div>
                       {#each group.events as event}
