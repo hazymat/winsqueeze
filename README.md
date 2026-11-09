@@ -1,5 +1,7 @@
 # WinSqueeze
 
+**WinSqueeze is a free, open-source Windows app.** Read more about it, and download it, on its website: [hazymat.github.io/winsqueeze](https://hazymat.github.io/winsqueeze/)
+
 WinSqueeze is a standalone Windows app that browses, controls and plays music from any Lyrion Music Server without touching the server. You launch it, browse your library, and it plays bit-perfect through your chosen output. You never open the server's web UI.
 
 **Introduction:** the [Introducing WinSqueeze](https://forums.lyrion.org/forum/user-forums/3rd-party-software/1841197-introducing-winsqueeze) post on the Lyrion forums introduces the software, with screenshots and discussion.
