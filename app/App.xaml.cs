@@ -166,12 +166,14 @@ public partial class App : Application
         Library.Start();
         await CheckOtherPlayersAsync();
         await RefreshDevicesAsync();
-        // After an update or version switch, carry on from where playback was (no startup check: it was playing a moment ago)
+        // After an update or version switch, carry on from where playback was (no startup check: it was playing a moment ago).
+        // With "Resume playing after an update" unticked, the held startup check runs instead and pauses whatever the server restarts
         var resumeArgument = startupArgs.Args.FirstOrDefault(argument => argument.StartsWith("--resume="));
-        startupPlaybackChecked = startupArgs.Args.Any(argument => argument.StartsWith("--window="));
+        restartedForUpdate = startupArgs.Args.Any(argument => argument.StartsWith("--window="));
+        startupPlaybackChecked = restartedForUpdate && Settings.General.ResumeAfterUpdate;
         await StartPlayerAsync(false);
         _ = CheckServerTranscodingAsync();
-        if (resumeArgument != null && Player.State == PlayerState.Running && double.TryParse(resumeArgument["--resume=".Length..], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var resumeSeconds)) await ResumeAtAsync(resumeSeconds);
+        if (resumeArgument != null && Settings.General.ResumeAfterUpdate && Player.State == PlayerState.Running && double.TryParse(resumeArgument["--resume=".Length..], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var resumeSeconds)) await ResumeAtAsync(resumeSeconds);
     }
 
     // Windows caches shortcut and taskbar icons; after a version change, ask the shell to refresh them so a new icon shows up
@@ -345,13 +347,13 @@ public partial class App : Application
 
     // Lyrion restarts whatever a reconnecting player was playing (SPEC.md › Windows integration). Squeezelite starts held, so nothing is heard
     // until this decides: carry on only if "Resume playing on startup" is ticked and the server was playing to this player
-    bool startupPlaybackChecked;
+    bool startupPlaybackChecked, restartedForUpdate;
     async Task SettleStartupPlaybackAsync(bool serverWasPlaying, double seconds)
     {
         try
         {
             if (!await WaitForPlayerConnectedAsync()) return;
-            if (Settings.General.ResumeOnStartup && serverWasPlaying)
+            if (!restartedForUpdate && Settings.General.ResumeOnStartup && serverWasPlaying)
             {
                 SqueezeliteHost.ReleaseHold(Settings.PlayerMac);
                 if ((await ReadPlaybackStateAsync()).mode != "play") await ResumeAtAsync(seconds);
