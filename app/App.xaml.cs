@@ -153,7 +153,7 @@ public partial class App : Application
         if (CrashReporter.TakeUnseenReport()) ShowTip("WinSqueeze had a problem last time", "It crashed or stopped responding. Details are in Settings › About › Open logs (crash.log).");
         try { Media = new MediaControls(); } catch { } // SMTC needs Windows 10 1903+
         Session.StatusUpdated += () => { if (Settings.ActiveProfile is { } profile) Media?.Update(Session.LastStatus, $"http://{profile.Host}:{profile.Port}"); trayIcon.RefreshNowPlaying(Session.LastStatus); NotifyTrackChange(Session.LastStatus); History.OnStatus(Session.LastStatus); Recorder.OnStatus(Session.LastStatus, Session.SelectedPlayerId == ""); };
-        Recorder.Changed += () => Dispatcher.BeginInvoke(() => StatusChanged?.Invoke());
+        Recorder.Changed += () => Dispatcher.BeginInvoke(() => { UpdatePolling(); StatusChanged?.Invoke(); });
         ApplyGlobalHotkeys();
         Downloads.CacheArt = Library.CacheArtAsync;
         Downloads.Open(Settings.ActiveProfile);
@@ -230,7 +230,7 @@ public partial class App : Application
         lyricsWindow?.Activate();
     }
     // Lyrion is polled every second while either window is on screen
-    public void UpdatePolling() => Session.SetVisible(mainWindow.IsVisible || lyricsWindow is { IsVisible: true });
+    public void UpdatePolling() => Session.SetVisible(mainWindow.IsVisible || lyricsWindow is { IsVisible: true } || Recorder.Recording); // a recording splits on song changes, so keep polling every second
     public void ApplyMeters() { Visualiser.Tuning = Settings.Meters; mainWindow.PushMeterSettings(); }
 
     public async Task<string[]> ResumeArgumentsAsync()

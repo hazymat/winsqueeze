@@ -85,6 +85,7 @@ public class RecordingSettings
     public string Folder { get; set; } = ""; // empty = Music\WinSqueeze recordings
     public bool SplitOnSongChange { get; set; } = true; // a new file for each song the station announces
     public bool FolderPerStation { get; set; } // false (default): a folder per recording; true: one folder per station, files dated
+    public double CutEarlierSeconds { get; set; } = 2; // stations and Lyrion announce a new song late; each split moves this far back
 }
 
 public class PlaybackSettings

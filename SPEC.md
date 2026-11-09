@@ -103,7 +103,7 @@ Back and Forward (buttons, Alt+Left/Right, mouse side buttons, Esc for Back) wor
 | Genres | All genres | Albums in that genre, grouped under album artist headings, with contributing albums folded under the main artist as above |
 | Composers | Everyone credited as composer | Albums (CDs) containing at least one work by them, not a list of works |
 | Performers | Merged conductors, bands/orchestras/ensembles and soloists, with a role filter chip | Albums they appear on |
-| Folders | The music folder tree as stored on disk | Subfolders; a folder of tracks opens as an album |
+| Folders | The music folder tree as stored on disk. A server with several music folders (e.g. on two drives) shows each under one "Music" root. If the server gives no file paths at all, browsing uses tag albums instead so no list is empty | Subfolders; a folder of tracks opens as an album |
 | Compilations | Off by default (Customise sidebar adds it). Albums Lyrion marks as compilations, plus any album whose album artist is Various Artists (in Folder albums mode, a folder counts when most of its tracks are on a compilation) | The album |
 | New music | Off by default (Customise sidebar adds it). The newest 100 albums by when the server first saw them (Lyrion's added time, kept through a clear and rescan; an album counts from its newest track), grouped by month added, newest first; no Sort menu | The album |
 | Queue | Current player's queue | — |
@@ -234,7 +234,7 @@ Record a radio station (or any other stream) to FLAC, for personal listening.
 
 - **Button:** a small red ring beside the title in the transport bar, shown only while this PC's player plays a stream (Lyrion's `remote`). Never for library files, never for other players. Click to record: it turns solid red, pulses and shows the elapsed time; click again to stop. Settings › Recording can hide it completely.
 - **Capture:** inside our Squeezelite (`vendor/squeezelite/src/output_rec_win.c`, shared memory `Local\squeezelite-rec-<mac>`). The decoded audio about to play, before EQ and volume, goes through a ring to a writer thread that encodes 24-bit FLAC at the stream's own sample rate, so the audio thread never touches the disk. A rate change mid-recording continues in "(part 2)".
-- **Files:** by default one folder per recording, `<folder>\<station> - yyyy-MM-dd, HH.mm.ss\NN <artist> - <title>.flac` (numbered in order; ALBUM = station and start time, plus TRACKNUMBER, so each recording is one album). Settings › Recording can instead use one folder per station, `<folder>\<station>\<yyyy-MM-dd HH.mm> <artist> - <title>.flac` (ALBUM = station). Also tagged TITLE, ARTIST, DATE and COMMENT. Default folder `Music\WinSqueeze recordings`. With "new file per song" (default on), each song change the station announces starts a new file (timing follows Lyrion's delayed title change, so cuts are approximate).
+- **Files:** by default one folder per recording, `<folder>\<station> - yyyy-MM-dd, HH.mm.ss\NN <artist> - <title>.flac` (numbered in order; ALBUM = station and start time, plus TRACKNUMBER, so each recording is one album). Settings › Recording can instead use one folder per station, `<folder>\<station>\<yyyy-MM-dd HH.mm> <artist> - <title>.flac` (ALBUM = station). Also tagged TITLE, ARTIST, DATE and COMMENT. Default folder `Music\WinSqueeze recordings`. With "new file per song" (default on), each song change the station announces starts a new file. Song changes show late (the station and Lyrion announce them late, and the app polls once a second, kept at once a second while recording even when the window is hidden), so Squeezelite holds a few seconds back and each split lands earlier by Settings › Recording › "Split N s before the song change shows" (0-6 s, default 2 s).
 - **Ends** when you click stop, the player leaves the stream for a library file or stops, or WinSqueeze quits (the file is finished cleanly). A Squeezelite restart (device change) finishes the file and carries on in a new one.
 - A toast says where the files went. The UI and Settings say recordings are for personal use only.
 
@@ -386,7 +386,7 @@ A separate Settings window with tabs, in standard Windows style, listed in a sid
 | Appearance | Skin; auto-switch rule (follow Windows / schedule / fixed); light and dark skin pair; meter style (VU needle / OLED VU / OLED bars); album list default (grid / list); accent from cover art on/off; reduce transparency |
 | Shortcuts | Rebind in-app shortcuts; enable global hotkeys; media keys on/off |
 | Notifications | Track-change toasts; device missing alerts |
-| Recording | Show the record button; new file per song; save folder (choose / open) |
+| Recording | Show the record button; new file per song, and how far before the song change shows to split (default 2 s); save folder (choose / open) |
 | About | Version; update channel (stable / dev); version switcher with per-version comments; check now; auto-update on/off; licences (Squeezelite GPL notice and source link); logs folder |
 
 **Server finder:** uses Lyrion's UDP discovery on port 3483 to list servers on the local network, showing name, address and version. Manual address entry for VPN or other subnets.
