@@ -265,7 +265,6 @@
   "Click or drag to move through the track": "Clique ou fais glisser pour te déplacer dans le morceau",
   "Volume {volume} (drag up or down, or scroll)": "Volume {volume} (glisser vers le haut ou le bas, ou molette)",
   "VOLUME": "VOLUME",
-  "Back to the library (Esc or right-click)": "Retour à la bibliothèque (Échap ou clic droit)",
   "Back to the library": "Retour à la bibliothèque",
   "LIBRARY": "LIBRARY",
   "Dismiss hint": "Fermer l'astuce",
@@ -278,7 +277,6 @@
   "POWER": "PUISSANCE",
   "Click to tap the meter": "Clique pour tapoter le vu-mètre",
   "Click to switch meter style": "Clique pour changer de style de vu-mètre",
-  "drag to move the window · right-click to close": "fais glisser pour déplacer la fenêtre · clic droit pour fermer",
   "drag to move the window · right-click for hi-fi": "fais glisser pour déplacer la fenêtre · clic droit pour le mode hi-fi",
   "right-click for full window": "clic droit pour la fenêtre complète",
   "0 VU": "0 VU",
@@ -1133,5 +1131,9 @@
   "on {title}": "sur {title}",
   "Unplayable": "Illisible",
   "{count} error": "{count} erreur",
-  "{count} errors": "{count} erreurs"
+  "{count} errors": "{count} erreurs",
+  "Browse": "Parcourir",
+  "Turn to move through lists or change the volume, click to choose": "Tourne pour parcourir les listes ou régler le volume ; clique pour choisir",
+  "Back to the library (Esc)": "Retour à la bibliothèque (Échap)",
+  "drag to move the window · right-click for the Transporter": "fais glisser pour déplacer la fenêtre · clic droit pour le Transporter"
 }

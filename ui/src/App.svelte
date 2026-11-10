@@ -4,7 +4,7 @@
   import { noteLongTrack } from './lib/resume'
   import { prefetchInfo } from './lib/nowPlayingInfo'
   import { sendToShell, onShellMessage, request, command, trackArt } from './bridge'
-  import { app, nav, ui, playlist, openSection, back, forward, forwardHistory, currentView, newPlaylist, pins, togglePin, undoToast, undoLast, redoLast, history, toast, noteTrackChange, receiveLevels, windowMoved, cycleMeterView, setHifi, writeSetting, readSetting, currentTrack } from './state.svelte'
+  import { app, nav, ui, playlist, openSection, back, forward, forwardHistory, currentView, newPlaylist, pins, togglePin, undoToast, undoLast, redoLast, history, toast, noteTrackChange, receiveLevels, windowMoved, cycleMeterView, setHifi, setTransporter, writeSetting, readSetting, currentTrack } from './state.svelte'
   import TransportBar from './parts/TransportBar.svelte'
   import WhatsNew from './parts/WhatsNew.svelte'
   import TrackInfo from './parts/TrackInfo.svelte'
@@ -23,6 +23,7 @@
   import ActionStrip from './parts/ActionStrip.svelte'
   import Meters from './parts/Meters.svelte'
   import HiFi from './parts/HiFi.svelte'
+  import Transporter from './parts/Transporter.svelte'
   import { sortable } from './lib/sortable'
   import Icon from './parts/Icon.svelte'
   import { selection, clearSelection } from './lib/selection.svelte'
@@ -38,7 +39,7 @@
   let searchView = $state<SearchView>()
   let width = $state(window.innerWidth)
   let height = $state(window.innerHeight)
-  const mini = $derived(!ui.hifi && (height < 400 || width < 460)) // short or narrow windows snap to the mini player, with big meters
+  const mini = $derived(!ui.hifi && !ui.transporter && (height < 400 || width < 460)) // short or narrow windows snap to the mini player, with big meters
   const vertical = $derived(!mini && width <= 900)
   const folderMode = $derived(app.librarySettings.AlbumSource !== 'tags')
   // Switched-on custom views (SPEC.md › Custom views): one entry each, or one per group for views that share a group
@@ -89,7 +90,7 @@
   onShellMessage('indexUpdated', () => app.indexVersion++)
   onShellMessage('openSection', message => openSection(message.section))
   onShellMessage('newPlaylist', () => { if (!playlist.open) newPlaylist(); else playlist.collapsed = false })
-  onShellMessage('levels', message => receiveLevels(message.vu, message.peak, message.bands))
+  onShellMessage('levels', message => receiveLevels(message.vu, message.peak, message.bands, message.wide))
   onShellMessage('meterSettings', message => { app.meterSettings = { referenceDbfs: message.referenceDbfs, autoReference: message.autoReference, styles: Array.isArray(message.styles) && message.styles.length ? message.styles : ['vu'] }; if (!app.meterSettings.styles.includes(ui.meterStyle)) { ui.meterStyle = app.meterSettings.styles[0]; writeSetting('meterStyle', ui.meterStyle) } })
   // The skin is chosen in Settings › Appearance and applied live; cached locally so the next start paints in it straight away
   onShellMessage('skin', message => {
@@ -164,6 +165,7 @@
     if (copyMenu) copyMenu = null
     else if (customising) { customising = false; heldIntoCustomise = false }
     else if (ui.trackInfo || ui.itemInfo) { ui.trackInfo = null; ui.itemInfo = null }
+    else if (ui.transporter) setTransporter(false)
     else if (ui.hifi) setHifi(false)
     else if (ui.metersFull) ui.metersFull = false
     else if (selection.keys.length) clearSelection()
@@ -201,6 +203,7 @@
 {#if ui.metersFull && !mini}<!-- svelte-ignore a11y_no_noninteractive_element_interactions --><!-- blank frosted areas drag the window, like the meters themselves -->
 <div class="meters-full" role="dialog" aria-label={t('Meters')} tabindex="-1" oncontextmenu={(event) => { event.preventDefault(); cycleMeterView() }} onmousedown={(event) => { if (event.button === 0 && !(event.target as HTMLElement).closest("button")) sendToShell({ type: "dragWindow" }) }} bind:clientWidth={fullWidth} bind:clientHeight={fullHeight}><div class="meters-zoom" bind:this={fullMeters} style:zoom={fullZoom}><Meters size="large" zoom={fullZoom} moveWindow={true} /></div><button class="meters-full-close" onclick={() => ui.metersFull = false} title={t('Back to the player (Esc)')} aria-label={t('Back to the player')}><Icon name="return" /></button></div>{/if}
 {#if ui.hifi}<HiFi />{/if}
+{#if ui.transporter}<Transporter />{/if}
 {#if app.window.frameless && !app.window.maximised}<ResizeEdges />{/if}
 {#if copyMenu}<div class="copy-menu" style:left="{copyMenu.left}px" style:top="{copyMenu.top}px"><button onclick={copySelection}>{t('Copy')}</button></div>{/if}
 

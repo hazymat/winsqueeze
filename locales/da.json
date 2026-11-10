@@ -281,7 +281,6 @@
   "Click or drag to move through the track": "Klik eller træk for at flytte i nummeret",
   "Volume {volume} (drag up or down, or scroll)": "Lydstyrke {volume} (træk op eller ned, eller scroll)",
   "VOLUME": "VOLUME",
-  "Back to the library (Esc or right-click)": "Tilbage til biblioteket (Esc eller højreklik)",
   "Back to the library": "Tilbage til biblioteket",
   "LIBRARY": "LIBRARY",
   "Dismiss hint": "Skjul tip",
@@ -294,7 +293,6 @@
   "POWER": "POWER",
   "Click to tap the meter": "Klik for at banke på måleren",
   "Click to switch meter style": "Klik for at skifte målerstil",
-  "drag to move the window · right-click to close": "træk for at flytte vinduet · højreklik for at lukke",
   "drag to move the window · right-click for hi-fi": "træk for at flytte vinduet · højreklik for hi-fi",
   "right-click for full window": "højreklik for fuldt vindue",
   "0 VU": "0 VU",
@@ -1133,5 +1131,9 @@
   "Right": "Højre",
   "Up": "Op",
   "Down": "Ned",
-  "Alt": "Alt"
+  "Alt": "Alt",
+  "Browse": "Gennemse",
+  "Turn to move through lists or change the volume, click to choose": "Drej for at bladre i lister eller ændre lydstyrken; klik for at vælge",
+  "Back to the library (Esc)": "Tilbage til biblioteket (Esc)",
+  "drag to move the window · right-click for the Transporter": "træk for at flytte vinduet · højreklik for Transporter"
 }

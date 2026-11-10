@@ -10,7 +10,7 @@ export const app = $state({
   status: null as any, nowPlaying: null as any, players: [] as any[], syncGroups: [] as string[][], groupVolumes: {} as Record<string, number>, selectedPlayer: '', ownPlayer: '',
   library: { text: '', done: 0, total: 0 }, librarySettings: { AlbumSource: 'folders', ContributorGrouping: 'any' } as any, playback: { QueueEnd: 'stop', ContinueAdds: 'album', ContinueFrom: 'artist' } as Record<string, string>, hints: { hidden: false, dismissed: [] as string[] }, trackInfoTabs: [] as string[], indexVersion: 0, receivedAt: 0,
   // Meter data from Squeezelite (~30 a second while playing): VU in dBFS, peak amplitude 0..1, spectrum bands 0..1
-  levels: { vu: [-90, -90], peak: [0, 0], bands: Array(10).fill(0), at: 0 },
+  levels: { vu: [-90, -90], peak: [0, 0], bands: Array(10).fill(0), wide: [] as number[], at: 0 }, // wide: Transporter's spectrum, 53 bands a channel (left then right), sent only while it's up
   meterSettings: { referenceDbfs: -18, autoReference: true, styles: ['vu', 'green', 'oled'] as string[] }, // Settings › Meters (styles: the ones a click cycles through, in order)
   window: { glass: false, frameless: false, maximised: false }
 })
@@ -18,7 +18,7 @@ export const app = $state({
 const savedNav = (() => { try { return JSON.parse(readSetting('nav', '')) } catch { return null } })()
 export const nav = $state({ section: (savedNav?.section ?? 'artists') as string, stack: (savedNav?.stack ?? []) as View[] })
 $effect.root(() => { $effect(() => { writeSetting('nav', JSON.stringify({ section: nav.section, stack: nav.stack })) }) })
-export const ui = $state({ search: '', scope: 'list' as 'list' | 'everything', expanded: false, meterStyle: readSetting('meterStyle', 'vu').replace(/^ledbar$/, 'vu'), skin: readSetting('skin', 'auto'), coverAccent: readSetting('coverAccent', '') === '1', coverBackdrop: readSetting('coverBackdrop', '1') !== '0', accent: readSetting('accent', ''), glassTransparency: Number(readSetting('glassTransparency', '-1')), glassTintHue: Number(readSetting('glassTintHue', '0')), lookVersion: 0, infoTab: readSetting('infoTab', 'queue'), pinned: false, metersFull: false, hifi: false, trackInfo: null as null | number[], itemInfo: null as null | { name: string, fields: [string, string][] }[], toast: null as null | { text: string; undo?: () => unknown; redo?: () => unknown; action?: { label: string; key: string; run: () => unknown }; ms: number; id: number } })
+export const ui = $state({ search: '', scope: 'list' as 'list' | 'everything', expanded: false, meterStyle: readSetting('meterStyle', 'vu').replace(/^ledbar$/, 'vu'), skin: readSetting('skin', 'auto'), coverAccent: readSetting('coverAccent', '') === '1', coverBackdrop: readSetting('coverBackdrop', '1') !== '0', accent: readSetting('accent', ''), glassTransparency: Number(readSetting('glassTransparency', '-1')), glassTintHue: Number(readSetting('glassTintHue', '0')), lookVersion: 0, infoTab: readSetting('infoTab', 'queue'), pinned: false, metersFull: false, hifi: false, transporter: false, trackInfo: null as null | number[], itemInfo: null as null | { name: string, fields: [string, string][] }[], toast: null as null | { text: string; undo?: () => unknown; redo?: () => unknown; action?: { label: string; key: string; run: () => unknown }; ms: number; id: number } })
 export const playlist = $state({ open: false, collapsed: false, name: t('Untitled playlist'), items: [] as PlaylistItem[], history: [] as number[] })
 
 export function readSetting(name: string, fallback: string) { try { return localStorage.getItem('ws.' + name) ?? fallback } catch { return fallback } }
@@ -119,9 +119,10 @@ export function noteTrackChange(previous: any, next: any) {
   }, 10000, { keep: false })
 }
 
-// Right-click on the meters cycles: Now playing -> full-window meters -> hi-fi separate -> back; the shell reshapes the window for hi-fi
-export function setHifi(on: boolean) { ui.hifi = on; if (on) ui.metersFull = false; sendToShell({ type: 'hifiWindow', on }) }
-export function cycleMeterView() { if (ui.hifi) setHifi(false); else if (ui.metersFull) setHifi(true); else ui.metersFull = true }
+// Right-click on the meters cycles: Now playing -> full-window meters -> hi-fi separate -> Transporter -> back; the shell reshapes the window for the two units
+export function setHifi(on: boolean) { ui.hifi = on; if (on) { ui.metersFull = false; ui.transporter = false } sendToShell({ type: 'hifiWindow', on }) }
+export function setTransporter(on: boolean) { ui.transporter = on; if (on) { ui.metersFull = false; ui.hifi = false } sendToShell({ type: 'hifiWindow', on, shape: 'transporter' }); sendToShell({ type: 'wideSpectrum', on }) }
+export function cycleMeterView() { if (ui.transporter) setTransporter(false); else if (ui.hifi) setTransporter(true); else if (ui.metersFull) setHifi(true); else ui.metersFull = true }
 
 // The current track of the selected player, from its queue
 export function currentTrack() {
@@ -158,7 +159,7 @@ export const formatTime = (seconds: number) => { if (!seconds || seconds < 0) re
 export const formatRate = (rate: number) => rate ? `${(rate / 1000).toFixed(rate % 1000 ? 1 : 0)} kHz` : ''
 
 // What the meters draw: eased towards the latest levels on every display frame, so needles and bars glide between the shell's ~60 updates a second
-export const meters = $state({ vu: [-90, -90], peak: [0, 0], bands: Array(10).fill(0) as number[], reference: -18, jog: [0, 0], lamp: [0, 0] })
+export const meters = $state({ vu: [-90, -90], peak: [0, 0], bands: Array(10).fill(0) as number[], wide: [] as number[], reference: -18, jog: [0, 0], lamp: [0, 0] })
 let meterFrame = 0, meterLastTime = 0
 // Jog: dragging the window shakes the VU needles (degrees added to their angle). Each movement is a lightly damped spring, the two a little out of tune so they drift apart
 const jogSpeed = [0, 0], jogTuning = [13.5, 15.5], jogDamping = 0.22
@@ -195,7 +196,7 @@ function heatPeakLamps(elapsed: number) {
 function startMeterFrames() { if (!meterFrame) { meterLastTime = performance.now(); meterFrame = requestAnimationFrame(easeMeters) } }
 // Auto 0 VU: follows the music's loudness (power average over ~8 s) so loud masters don't pin the needles; average loudness reads about -4 VU
 let loudnessPower = 0, loudnessAt = 0
-export function receiveLevels(vu: number[], peak: number[], bands: number[]) {
+export function receiveLevels(vu: number[], peak: number[], bands: number[], wide: number[] | null = null) {
   const receivedAt = Date.now(), loudestDb = Math.max(vu[0] ?? -90, vu[1] ?? -90)
   if (loudestDb > -50) {
     const follow = loudnessPower > 0 ? 1 - Math.exp(-Math.max(0, Math.min(1000, receivedAt - loudnessAt)) / 8000) : 1 // clamped: the clock can jump back after sleep
@@ -205,7 +206,7 @@ export function receiveLevels(vu: number[], peak: number[], bands: number[]) {
   loudnessAt = receivedAt
   // in half-dB steps: the VU face's percent scale follows it, and redrawing that face on every update stalled the needles
   meters.reference = app.meterSettings.autoReference && loudnessPower ? Math.round(2 * Math.max(-24, Math.min(-6, 10 * Math.log10(loudnessPower) + 4))) / 2 : app.meterSettings.referenceDbfs
-  app.levels = { vu, peak, bands, at: receivedAt }
+  app.levels = { vu, peak, bands, wide: wide ?? [], at: receivedAt }
   startMeterFrames()
 }
 function easeMeters(time: number) {
@@ -216,9 +217,10 @@ function easeMeters(time: number) {
   meters.vu = vuTarget.map((value, index) => from(meters.vu, index, value) + (value - from(meters.vu, index, value)) * needleFollow)
   meters.peak = ease(meters.peak, Date.now() - app.levels.at > 1000 ? [0, 0] : app.levels.peak)
   meters.bands = ease(meters.bands, Date.now() - app.levels.at > 1000 ? meters.bands.map(() => 0) : app.levels.bands)
+  meters.wide = ease(meters.wide, Date.now() - app.levels.at > 1000 ? meters.wide.map(() => 0) : app.levels.wide)
   heatPeakLamps(elapsed)
   if (windowSpeed || meters.jog[0] || meters.jog[1] || jogSpeed[0] || jogSpeed[1]) swingNeedles(elapsed)
-  const resting = !meters.jog[0] && !meters.jog[1] && !windowSpeed && Date.now() - app.levels.at > 1000 && meters.vu.every(value => value < -80) && meters.peak.every(value => value < 0.001) && meters.bands.every(value => value < 0.005) && meters.lamp.every(heat => !heat)
+  const resting = !meters.jog[0] && !meters.jog[1] && !windowSpeed && Date.now() - app.levels.at > 1000 && meters.vu.every(value => value < -80) && meters.peak.every(value => value < 0.001) && meters.bands.every(value => value < 0.005) && meters.wide.every(value => value < 0.005) && meters.lamp.every(heat => !heat)
   meterFrame = resting ? 0 : requestAnimationFrame(easeMeters)
 }
 // Back from the tray or a minimised window: restart the frame loop and redraw the meters from scratch (meterEpoch remounts them)

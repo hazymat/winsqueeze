@@ -12,6 +12,7 @@ public sealed class VisualiserReader : IDisposable
     public event Action<string>? LevelsReady;
     public event Action<string>? AnalyserReady; // raw octave dBFS per channel for the EQ window, while it's open
     public volatile bool AnalyserWanted;
+    public volatile bool WideWanted; // Transporter mode: 53 bands per channel for its wide stereo spectrum
     public int SampleRate { get; private set; }
     int analyserFrame;
     Thread? worker;
@@ -22,6 +23,8 @@ public sealed class VisualiserReader : IDisposable
     double loudnessPower; // the music's power averaged over ~8 s, so the spectrum can be shown relative to the track's loudness (Automatic 0 VU)
     double LoudnessOffsetDb => Tuning.AutoReference && loudnessPower > 0 ? Math.Clamp(-18 - 10 * Math.Log10(loudnessPower), -6, 24) : 0; // lifts quiet recordings to where -18 dBFS music sits
     readonly double[] bandLevels = new double[10];
+    const int WideBands = 53;
+    readonly double[] wideLevels = new double[WideBands * 2]; // left 53 then right 53, low to high
     bool sentSilence;
     double peakHeldLeft, peakHeldRight; // seconds each bar has held its peak
     public MeterSettings Tuning { get; set; } = new(); // Settings › Meters, read every frame so changes show live
@@ -75,8 +78,9 @@ public sealed class VisualiserReader : IDisposable
                 if (!live) Array.Clear(samples);
                 else if (volumeGain < 1) for (var index = 0; index < samples.Length; index++) samples[index] = (short)(samples[index] * volumeGain);
                 if (rate > 0) SampleRate = rate;
-                var octaves = AnalyseOctaves(samples, rate > 0 ? rate : 44100);
-                Analyse(samples, rate > 0 ? rate : 44100, octaves, elapsedSeconds, live);
+                var spectra = PowerSpectra(samples);
+                var octaves = spectra.Select(power => octaveCentres.Select(centre => BandDecibels(power, centre / Math.Sqrt(2), centre * Math.Sqrt(2), rate > 0 ? rate : 44100)).ToArray()).ToArray();
+                Analyse(samples, rate > 0 ? rate : 44100, octaves, spectra, elapsedSeconds, live);
                 if (AnalyserWanted && ++analyserFrame % 2 == 0) { var offset = LoudnessOffsetDb; AnalyserReady?.Invoke(JsonSerializer.Serialize(new { type = "eqLevels", left = octaves[0].Select(level => Math.Round(level + offset, 1)), right = octaves[1].Select(level => Math.Round(level + offset, 1)) })); } // ~30 a second is plenty
             }
             catch (Exception) { view?.Dispose(); sharedFile?.Dispose(); view = null; sharedFile = null; Thread.Sleep(1000); }
@@ -84,7 +88,7 @@ public sealed class VisualiserReader : IDisposable
         view?.Dispose(); sharedFile?.Dispose();
     }
 
-    void Analyse(short[] samples, int rate, double[][] octaves, double elapsedSeconds, bool live)
+    void Analyse(short[] samples, int rate, double[][] octaves, double[][] spectra, double elapsedSeconds, bool live)
     {
         // VU: RMS over the newest ~20 ms, integrated to VU ballistics (99% of a step in 300 ms)
         const int newest = AnalyserSize - FftSize; // frame where the newest FftSize frames start
@@ -114,33 +118,47 @@ public sealed class VisualiserReader : IDisposable
             var level = Math.Clamp((decibels + LoudnessOffsetDb + 3 * Math.Log2(octaveCentres[band] / 1000) + 36) / 30, 0, 1);
             bandLevels[band] = level > bandLevels[band] ? level : bandLevels[band] + (level - bandLevels[band]) * bandFollow;
         }
-        var silent = !live && vuLeft < 1e-4 && vuRight < 1e-4 && peakLeft < 1e-3 && peakRight < 1e-3 && bandLevels.All(level => level < 0.01);
+        // Wide spectrum (Transporter): each channel on its own in 1/6-octave bands, 35 Hz to 18 kHz, same scale and fall; narrower bands hold less energy, so each is lifted by its share of an octave
+        var wide = WideWanted;
+        if (wide) for (var channel = 0; channel < 2; channel++)
+            for (var band = 0; band < WideBands; band++)
+            {
+                double low = WideLow * Math.Pow(WideHigh / WideLow, (double)band / WideBands), high = WideLow * Math.Pow(WideHigh / WideLow, (band + 1.0) / WideBands), centre = Math.Sqrt(low * high);
+                var decibels = BandDecibels(spectra[channel], low, high, rate) + 10 * Math.Log10(WideBands / Math.Log2(WideHigh / WideLow));
+                var level = Math.Clamp((decibels + LoudnessOffsetDb + 3 * Math.Log2(centre / 1000) + 36) / 30, 0, 1);
+                ref var shown = ref wideLevels[channel * WideBands + band];
+                shown = level > shown ? level : shown + (level - shown) * bandFollow;
+            }
+        var silent = !live && vuLeft < 1e-4 && vuRight < 1e-4 && peakLeft < 1e-3 && peakRight < 1e-3 && bandLevels.All(level => level < 0.01) && (!wide || wideLevels.All(level => level < 0.01));
         if (silent && sentSilence) return;
         sentSilence = silent;
-        LevelsReady?.Invoke(JsonSerializer.Serialize(new { type = "levels", vu = new[] { Decibels(vuLeft), Decibels(vuRight) }, peak = new[] { Math.Round(peakLeft, 3), Math.Round(peakRight, 3) }, bands = bandLevels.Select(level => Math.Round(level, 3)) }));
+        LevelsReady?.Invoke(JsonSerializer.Serialize(new { type = "levels", vu = new[] { Decibels(vuLeft), Decibels(vuRight) }, peak = new[] { Math.Round(peakLeft, 3), Math.Round(peakRight, 3) }, bands = bandLevels.Select(level => Math.Round(level, 3)), wide = wide ? wideLevels.Select(level => Math.Round(level, 3)) : null }));
     }
 
-    // Per channel, the energy in each octave band 31.5 Hz–16 kHz as dBFS (raw; the EQ window applies its own decay)
+    // Per channel, the power in each FFT bin, scaled so a full-scale sine sums to 1 (0 dBFS) across its bins: (N/4)² × 1.5 for Hann
     static readonly double[] octaveCentres = { 31.5, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000 };
+    const double WideLow = 35, WideHigh = 18000;
     static readonly double[] analyserWindow = Enumerable.Range(0, AnalyserSize).Select(frame => 0.5 - 0.5 * Math.Cos(2 * Math.PI * frame / (AnalyserSize - 1))).ToArray(); // Hann, computed once
-    static double[][] AnalyseOctaves(short[] samples, int rate)
+    static double[][] PowerSpectra(short[] samples)
     {
-        var levels = new double[2][];
+        var spectra = new double[2][];
         for (var channel = 0; channel < 2; channel++)
         {
             var real = new double[AnalyserSize]; var imaginary = new double[AnalyserSize];
             for (var frame = 0; frame < AnalyserSize; frame++) real[frame] = samples[frame * 2 + channel] / 32768.0 * analyserWindow[frame];
             Fft(real, imaginary);
-            levels[channel] = octaveCentres.Select(centre =>
-            {
-                int firstBin = Math.Max(1, (int)Math.Round(centre / Math.Sqrt(2) * AnalyserSize / rate)), lastBin = Math.Min(AnalyserSize / 2 - 1, Math.Max(firstBin, (int)Math.Round(centre * Math.Sqrt(2) * AnalyserSize / rate)));
-                double energy = 0;
-                for (var bin = firstBin; bin <= lastBin; bin++) energy += real[bin] * real[bin] + imaginary[bin] * imaginary[bin];
-                // A full-scale sine sums to (N/4)² × 1.5 (Hann) across its bins
-                return Math.Round(10 * Math.Log10(energy * 16.0 / (1.5 * AnalyserSize * AnalyserSize) + 1e-12), 1);
-            }).ToArray();
+            spectra[channel] = new double[AnalyserSize / 2];
+            for (var bin = 0; bin < AnalyserSize / 2; bin++) spectra[channel][bin] = (real[bin] * real[bin] + imaginary[bin] * imaginary[bin]) * 16.0 / (1.5 * AnalyserSize * AnalyserSize);
         }
-        return levels;
+        return spectra;
+    }
+    // dBFS between two frequencies (raw; the EQ window applies its own decay). A band narrower than a bin takes the nearest bin
+    static double BandDecibels(double[] power, double lowHz, double highHz, int rate)
+    {
+        int firstBin = Math.Min(AnalyserSize / 2 - 1, Math.Max(1, (int)Math.Round(lowHz * AnalyserSize / rate))), lastBin = Math.Min(AnalyserSize / 2 - 1, Math.Max(firstBin, (int)Math.Round(highHz * AnalyserSize / rate)));
+        double energy = 0;
+        for (var bin = firstBin; bin <= lastBin; bin++) energy += power[bin];
+        return Math.Round(10 * Math.Log10(energy + 1e-12), 1);
     }
 
     static (double level, double held) FollowPeak(double current, double level, double held, double fall, double elapsedSeconds, double holdSeconds)

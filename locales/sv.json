@@ -281,7 +281,6 @@
   "Click or drag to move through the track": "Klicka eller dra för att flytta i spåret",
   "Volume {volume} (drag up or down, or scroll)": "Volym {volume} (dra uppåt eller nedåt, eller scrolla)",
   "VOLUME": "VOLUME",
-  "Back to the library (Esc or right-click)": "Tillbaka till biblioteket (Esc eller högerklick)",
   "Back to the library": "Tillbaka till biblioteket",
   "LIBRARY": "LIBRARY",
   "Dismiss hint": "Stäng tipset",
@@ -294,7 +293,6 @@
   "POWER": "POWER",
   "Click to tap the meter": "Klicka för att knacka på mätaren",
   "Click to switch meter style": "Klicka för att byta mätarstil",
-  "drag to move the window · right-click to close": "dra för att flytta fönstret · högerklicka för att stänga",
   "drag to move the window · right-click for hi-fi": "dra för att flytta fönstret · högerklicka för hi-fi",
   "right-click for full window": "högerklicka för helt fönster",
   "0 VU": "0 VU",
@@ -1133,5 +1131,9 @@
   "Right": "Högerpil",
   "Up": "Uppil",
   "Down": "Nedpil",
-  "Alt": "Alt"
+  "Alt": "Alt",
+  "Browse": "Bläddra",
+  "Turn to move through lists or change the volume, click to choose": "Vrid för att bläddra i listor eller ändra volymen; klicka för att välja",
+  "Back to the library (Esc)": "Tillbaka till biblioteket (Esc)",
+  "drag to move the window · right-click for the Transporter": "dra för att flytta fönstret · högerklicka för Transporter"
 }

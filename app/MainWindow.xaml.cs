@@ -212,7 +212,8 @@ public partial class MainWindow : Window
                 case "theme": darkTheme = message.TryGetProperty("dark", out var darkValue) && darkValue.GetBoolean(); ApplyWindowStyle(); break;
                 case "setTopmost": Topmost = message.GetProperty("on").GetBoolean(); break;
                 case "windowMode": SetWindowMode(Text(message, "mode")); break;
-                case "hifiWindow": SetHifiWindow(message.TryGetProperty("on", out var hifiOn) && hifiOn.GetBoolean()); break;
+                case "hifiWindow": SetHifiWindow(message.TryGetProperty("on", out var hifiOn) && hifiOn.GetBoolean(), Text(message, "shape") == "transporter"); break;
+                case "wideSpectrum": App.Visualiser.WideWanted = message.TryGetProperty("on", out var wideOn) && wideOn.GetBoolean(); break;
                 case "refreshLibrary": await App.Library.RefreshAsync(message.TryGetProperty("rebuild", out var rebuild) && rebuild.GetBoolean()); break;
             }
         }
@@ -241,19 +242,19 @@ public partial class MainWindow : Window
         if (parts[0] == "maximised") WindowState = WindowState.Maximized; else if (parts[0] == "minimised") WindowState = WindowState.Minimized;
     }
 
-    // Hi-fi mode: the window becomes a slim hi-fi separate (about 3.9:1, centred on where it was); its normal size and state come back after
+    // Hi-fi and Transporter modes: the window becomes the unit (hi-fi about 3.9:1, Transporter about 7.1:1, centred on the normal window); its normal size and state come back after.
+    // Going from one unit to the other reshapes from the same normal window
     Rect? boundsBeforeHifi; bool maximisedBeforeHifi;
-    void SetHifiWindow(bool on)
+    void SetHifiWindow(bool on, bool transporter)
     {
-        if (on && boundsBeforeHifi == null)
+        if (on)
         {
-            maximisedBeforeHifi = WindowState == WindowState.Maximized;
-            var before = WindowState == WindowState.Normal ? new Rect(Left, Top, Width, Height) : RestoreBounds;
-            boundsBeforeHifi = before;
+            if (boundsBeforeHifi == null) { maximisedBeforeHifi = WindowState == WindowState.Maximized; boundsBeforeHifi = WindowState == WindowState.Normal ? new Rect(Left, Top, Width, Height) : RestoreBounds; }
+            var before = boundsBeforeHifi.Value;
             var chromeHeight = Math.Max(0, ActualHeight - webView.ActualHeight); // title bar and borders when not frameless
             WindowState = WindowState.Normal;
-            double hifiWidth = Math.Max(960, Math.Min(1400, before.Width)), hifiHeight = Math.Round(hifiWidth / 3.88) + chromeHeight;
-            Left = before.Left + (before.Width - hifiWidth) / 2; Top = before.Top + (before.Height - hifiHeight) / 2; Width = hifiWidth; Height = hifiHeight;
+            double unitWidth = transporter ? Math.Max(1200, Math.Min(1600, before.Width)) : Math.Max(960, Math.Min(1400, before.Width)), unitHeight = Math.Round(unitWidth / (transporter ? 1400 / 196.0 : 3.88)) + chromeHeight;
+            Left = before.Left + (before.Width - unitWidth) / 2; Top = before.Top + (before.Height - unitHeight) / 2; Width = unitWidth; Height = unitHeight;
         }
         else if (!on && boundsBeforeHifi is Rect saved)
         {

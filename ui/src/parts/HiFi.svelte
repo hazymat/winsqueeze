@@ -1,7 +1,7 @@
 <script lang="ts">
   import { t } from '../lib/i18n'
   // Hi-fi mode (SPEC.md › Hi-fi mode): the whole window becomes a champagne-aluminium hi-fi separate, with meters, a VFD, transport keys and a volume knob
-  import { app, ui, currentTrack, setHifi, readSetting, writeSetting } from '../state.svelte'
+  import { app, ui, currentTrack, setHifi, cycleMeterView, readSetting, writeSetting } from '../state.svelte'
   import { command, sendToShell } from '../bridge'
   import Meters from './Meters.svelte'
   const stageWidth = 1280, stageHeight = 330
@@ -44,7 +44,7 @@
   // Fit from layout size (offsetWidth/Height): no zoom, transform or screen scaling can skew it, so the fit is the same on every monitor
   function fitMeters() { if (!meterBox) return; const naturalWidth = meterBox.offsetWidth, naturalHeight = meterBox.offsetHeight; if (naturalWidth && naturalHeight) meterZoom = Math.min(490 / naturalWidth, 190 / naturalHeight) }
   $effect(() => { meterBox; stageZoom; ui.meterStyle; requestAnimationFrame(fitMeters) })
-  // Bare metal moves the window; right-click anywhere goes back to the normal player
+  // Bare metal moves the window; right-click anywhere moves on to the Transporter
   function pressPlate(event: MouseEvent) { if (event.button === 0 && !(event.target as HTMLElement).closest('button, .knob, .seek-zone, .clickable')) sendToShell({ type: 'dragWindow' }) }
   // Firmware-style update (SPEC.md › Hi-fi mode): the standby lamp pulses blue when an update is ready; hovering it shows the update on the display with an Update key;
   // pressing it plays a short "upgrading firmware" sequence before the updater takes over, and the unit comes back after the restart saying what it was updated to
@@ -146,7 +146,7 @@
 
 <svelte:window bind:innerWidth={windowWidth} bind:innerHeight={windowHeight} />
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-<div class="hifi" role="dialog" aria-label={t('Hi-fi')} tabindex="-1" onmousedown={pressPlate} oncontextmenu={(event) => { event.preventDefault(); setHifi(false) }}>
+<div class="hifi" role="dialog" aria-label={t('Hi-fi')} tabindex="-1" onmousedown={pressPlate} oncontextmenu={(event) => { event.preventDefault(); cycleMeterView() }}>
   <div class="plate"></div>
   <div class="stage" style:transform="translate(-50%, -50%) scale({stageZoom})">
     <div class="update-zone" role="presentation" onpointerenter={enterUpdate} onpointerleave={leaveUpdate}>
@@ -167,7 +167,7 @@
     </div>
     <div class="volume-label">{t('VOLUME')}</div>
     <!-- Mode toggle: chrome bat-handle switch, flicked down (animated throw) goes back to the library -->
-    <button class="mode-switch" class:thrown={switchThrown} onclick={throwSwitch} title={t('Back to the library (Esc or right-click)')} aria-label={t('Back to the library')}><span class="engraving">HI-FI</span><span class="switch-body"><span class="nut"></span><span class="collar"></span><span class="lever"><span class="lever-shaft"></span><span class="lever-tip"></span></span></span><span class="engraving">{t('LIBRARY')}</span></button>
+    <button class="mode-switch" class:thrown={switchThrown} onclick={throwSwitch} title={t('Back to the library (Esc)')} aria-label={t('Back to the library')}><span class="engraving">HI-FI</span><span class="switch-body"><span class="nut"></span><span class="collar"></span><span class="lever"><span class="lever-shaft"></span><span class="lever-tip"></span></span></span><span class="engraving">{t('LIBRARY')}</span></button>
   </div>
   </div>
 
