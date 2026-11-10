@@ -729,7 +729,7 @@ public partial class SettingsWindow : Window
             void Show() => valueText.Text = $"{slider.Value:0.#} {unit}";
             Show();
             slider.ValueChanged += (sender, args) => { write(Settings.Meters, slider.Value); Show(); Settings.Save(); App.ApplyMeters(); };
-            var row = new StackPanel { Orientation = Orientation.Horizontal };
+            var row = new WrapPanel(); // wraps the slider under its label when a translation or a narrow window needs it
             row.Children.Add(new TextBlock { Text = label, Width = 170, VerticalAlignment = VerticalAlignment.Center }); row.Children.Add(slider); row.Children.Add(valueText);
             metersPanel.Children.Add(row);
             metersPanel.Children.Add(new TextBlock { Text = help, Style = (Style)FindResource("Quiet"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 10) });

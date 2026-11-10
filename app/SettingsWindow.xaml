@@ -14,7 +14,7 @@
     <Style TargetType="Expander" x:Key="More"><Setter Property="Margin" Value="0,10,0,0" /><Setter Property="Foreground" Value="#2F6FB8" /></Style>
     <!-- Keycaps for the shortcut tables -->
     <Style TargetType="Border" x:Key="Keycap"><Setter Property="Background" Value="#F3F4F6" /><Setter Property="BorderBrush" Value="#CDD1D7" /><Setter Property="BorderThickness" Value="1,1,1,2" /><Setter Property="CornerRadius" Value="4" /><Setter Property="Padding" Value="6,1" /><Setter Property="Margin" Value="0,2,4,2" /></Style>
-    <Style TargetType="Button"><Setter Property="Padding" Value="12,4" /><Setter Property="Margin" Value="0,0,8,0" /></Style>
+    <Style TargetType="Button"><Setter Property="Padding" Value="12,4" /><Setter Property="Margin" Value="0,0,8,4" /></Style>
     <!-- Tickbox text wraps, so longer translations stay inside the page instead of running past its edge -->
     <Style TargetType="CheckBox"><Setter Property="Margin" Value="0,8,0,0" /><Setter Property="ContentTemplate"><Setter.Value><DataTemplate><TextBlock Text="{Binding}" TextWrapping="Wrap" /></DataTemplate></Setter.Value></Setter></Style>
     <!-- Settings pages in a left sidebar, grouped under small section headings; the page's name heads its content -->
@@ -55,11 +55,11 @@
             <Grid.ColumnDefinitions><ColumnDefinition Width="210" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
             <DockPanel Margin="0,0,16,0">
               <TextBlock DockPanel.Dock="Top" Text="Profiles" Style="{StaticResource CardTitle}" />
-              <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
+              <WrapPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
                 <Button x:Name="addProfileButton" Content="Add" />
                 <Button x:Name="removeProfileButton" Content="Remove" />
                 <Button x:Name="defaultProfileButton" Content="Use" ToolTip="Make this the active profile" />
-              </StackPanel>
+              </WrapPanel>
               <ListBox x:Name="profilesList" MinHeight="150" />
             </DockPanel>
             <StackPanel Grid.Column="1">
@@ -75,7 +75,7 @@
                 <StackPanel><TextBlock Style="{StaticResource Label}" Text="Username (optional)" /><TextBox x:Name="profileUserBox" Margin="0,0,8,0" /></StackPanel>
                 <StackPanel Grid.Column="1"><TextBlock Style="{StaticResource Label}" Text="Password (optional)" /><PasswordBox x:Name="profilePasswordBox" /></StackPanel>
               </Grid>
-              <StackPanel Orientation="Horizontal" Margin="0,12,0,0"><Button x:Name="testConnectionButton" Content="Test connection" /></StackPanel>
+              <WrapPanel Margin="0,12,0,0"><Button x:Name="testConnectionButton" Content="Test connection" /></WrapPanel>
               <TextBlock x:Name="testResultText" Style="{StaticResource Quiet}" />
             </StackPanel>
           </Grid>
@@ -83,10 +83,10 @@
         <Border Style="{StaticResource Card}">
           <StackPanel>
             <TextBlock Text="Find a server" Style="{StaticResource CardTitle}" />
-            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+            <WrapPanel Margin="0,4,0,0">
               <Button x:Name="findServersButton" Content="Find servers on this network" />
               <Button x:Name="useServerButton" Content="Use selected" IsEnabled="False" />
-            </StackPanel>
+            </WrapPanel>
             <ListBox x:Name="discoveredList" Height="80" Margin="0,8,0,0" />
             <TextBlock x:Name="findResultText" Style="{StaticResource Quiet}" Text="For a VPN or another subnet, type the address above." />
           </StackPanel>
@@ -204,11 +204,11 @@
               <ComboBoxItem Content="Fade out" Tag="3" />
               <ComboBoxItem Content="Fade out and in" Tag="4" />
             </ComboBox>
-            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+            <WrapPanel Margin="0,10,0,0">
               <TextBlock Text="Length" Margin="0,0,8,0" MinWidth="60" VerticalAlignment="Center" />
               <Slider x:Name="transitionDurationSlider" Minimum="0" Maximum="10" Width="200" IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center" />
               <TextBlock x:Name="transitionDurationText" Width="60" Margin="8,0,0,0" VerticalAlignment="Center" />
-            </StackPanel>
+            </WrapPanel>
             <CheckBox x:Name="transitionSmartBox" Content="Smart: no crossfade between tracks of the same album" />
           </StackPanel>
         </Border>
@@ -351,12 +351,12 @@
         <Border Style="{StaticResource Card}">
           <StackPanel>
             <TextBlock Text="Cache" Style="{StaticResource CardTitle}" />
-            <StackPanel Orientation="Horizontal" Margin="0,4,0,0"><TextBlock Text="Check the server for changes every" VerticalAlignment="Center" Margin="0,0,8,0" /><TextBox x:Name="refreshMinutesBox" Width="50" /><TextBlock Text="minutes" VerticalAlignment="Center" Margin="8,0,0,0" /></StackPanel>
-            <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+            <WrapPanel Margin="0,4,0,0"><TextBlock Text="Check the server for changes every" VerticalAlignment="Center" Margin="0,0,8,0" /><TextBox x:Name="refreshMinutesBox" Width="50" /><TextBlock Text="minutes" VerticalAlignment="Center" Margin="8,0,0,0" /></WrapPanel>
+            <WrapPanel Margin="0,12,0,0">
               <Button x:Name="refreshLibraryButton" Content="Refresh now" />
               <Button x:Name="rebuildLibraryButton" Content="Rebuild cache" />
               <Button x:Name="clearArtButton" Content="Clear art cache" />
-            </StackPanel>
+            </WrapPanel>
             <TextBlock x:Name="libraryStatusText" Style="{StaticResource Quiet}" />
           </StackPanel>
         </Border>
@@ -365,7 +365,7 @@
             <TextBlock Text="Library health" Style="{StaticResource CardTitle}" />
             <Border Style="{StaticResource Callout}" Margin="0,4,0,0"><DockPanel><TextBlock Style="{StaticResource CalloutIcon}" /><TextBlock Style="{StaticResource CalloutText}" Text="A report of albums missing cover art or composers, duplicate albums, inconsistent tags and names, and files with damaged frames found while playing. Each entry opens the album, so you can see what to fix in your tagger. WinSqueeze never changes your files." /></DockPanel></Border>
             <TextBlock x:Name="damagedCountText" Style="{StaticResource Quiet}" />
-            <StackPanel Orientation="Horizontal" Margin="0,8,0,0"><Button x:Name="openHealthButton" Content="Open library health" /></StackPanel>
+            <WrapPanel Margin="0,8,0,0"><Button x:Name="openHealthButton" Content="Open library health" /></WrapPanel>
           </StackPanel>
         </Border>
       </StackPanel>
@@ -418,11 +418,11 @@
         <Border Style="{StaticResource Card}">
           <StackPanel>
             <TextBlock Text="Colour" Style="{StaticResource CardTitle}" />
-            <StackPanel Orientation="Horizontal" Margin="0,4,0,6">
+            <WrapPanel Margin="0,4,0,6">
               <Border x:Name="accentSwatch" Width="28" Height="22" CornerRadius="4" BorderBrush="#40FFFFFF" BorderThickness="1" Margin="0,0,8,0" />
               <Button x:Name="accentChooseButton" Content="Choose…" Margin="0,0,6,0" />
               <Button x:Name="accentResetButton" Content="Reset to default blue" />
-            </StackPanel>
+            </WrapPanel>
             <CheckBox x:Name="coverAccentBox" Content="Or take the accent from the playing album's cover (frosted skins)" />
             <CheckBox x:Name="coverBackdropBox" Content="Tint Now playing with the album cover's colours" />
           </StackPanel>
@@ -430,29 +430,29 @@
         <Border Style="{StaticResource Card}">
           <StackPanel>
             <TextBlock Text="Size" Style="{StaticResource CardTitle}" />
-            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+            <WrapPanel Margin="0,4,0,0">
               <TextBlock Text="Scale" Margin="0,0,8,0" MinWidth="100" VerticalAlignment="Center" />
               <Slider x:Name="uiScaleSlider" Minimum="75" Maximum="150" Width="220" IsSnapToTickEnabled="True" TickFrequency="5" VerticalAlignment="Center" />
               <TextBlock x:Name="uiScaleText" Width="50" Margin="8,0,0,0" VerticalAlignment="Center" />
               <Button x:Name="uiScaleResetButton" Content="Reset to 100%" />
-            </StackPanel>
+            </WrapPanel>
           </StackPanel>
         </Border>
         <Border Style="{StaticResource Card}">
           <StackPanel>
             <TextBlock Text="Glass" Style="{StaticResource CardTitle}" />
             <CheckBox x:Name="glassBox" Content="Let the desktop show through the window, frosted (Windows 11)" Margin="0,4,0,8" />
-            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+            <WrapPanel Margin="0,0,0,4">
               <TextBlock Text="Transparency" Margin="0,0,8,0" MinWidth="100" VerticalAlignment="Center" />
               <Slider x:Name="glassTransparencySlider" Minimum="0" Maximum="100" Width="220" IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center" />
               <TextBlock x:Name="glassTransparencyText" Width="70" Margin="8,0,0,0" VerticalAlignment="Center" />
-            </StackPanel>
-            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+            </WrapPanel>
+            <WrapPanel Margin="0,0,0,4">
               <TextBlock Text="Tint" Margin="0,0,8,0" MinWidth="100" VerticalAlignment="Center" />
               <Slider x:Name="glassTintSlider" Minimum="0" Maximum="360" Width="220" IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center" />
               <Border x:Name="glassTintSwatch" Width="22" Height="16" CornerRadius="3" Margin="8,0,0,0" BorderBrush="#40FFFFFF" BorderThickness="1" />
               <TextBlock x:Name="glassTintText" Width="60" Margin="6,0,0,0" VerticalAlignment="Center" />
-            </StackPanel>
+            </WrapPanel>
             <Button x:Name="glassResetButton" Content="Reset glass to default" HorizontalAlignment="Left" Margin="100,2,0,0" />
             <CheckBox x:Name="glassInactiveBox" Content="Keep the glass when WinSqueeze isn't the active window" />
           </StackPanel>
@@ -495,10 +495,10 @@
         <Border Style="{StaticResource Card}">
           <StackPanel>
             <TextBlock Text="Language" Style="{StaticResource CardTitle}" />
-            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+            <WrapPanel Margin="0,4,0,0">
               <ComboBox x:Name="languageCombo" Width="260" />
               <Button x:Name="languageRestartButton" Content="Restart now" Margin="8,0,0,0" Visibility="Collapsed" FontWeight="SemiBold" />
-            </StackPanel>
+            </WrapPanel>
           </StackPanel>
         </Border>
         <Border Style="{StaticResource Card}">
@@ -525,16 +525,16 @@
         <Border Style="{StaticResource Card}">
           <StackPanel>
             <TextBlock Text="Hints" Style="{StaticResource CardTitle}" />
-            <StackPanel Orientation="Horizontal" Margin="0,4,0,0"><CheckBox x:Name="showHintsBox" Content="Show hints around the app" VerticalAlignment="Center" Margin="0" /><Button x:Name="resetHintsButton" Content="Show all hints again" Margin="12,0,0,0" /></StackPanel>
+            <WrapPanel Margin="0,4,0,0"><CheckBox x:Name="showHintsBox" Content="Show hints around the app" VerticalAlignment="Center" Margin="0" /><Button x:Name="resetHintsButton" Content="Show all hints again" Margin="12,0,0,0" /></WrapPanel>
           </StackPanel>
         </Border>
         <Border Style="{StaticResource Card}">
           <StackPanel>
             <TextBlock Text="Settings file" Style="{StaticResource CardTitle}" />
-            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+            <WrapPanel Margin="0,4,0,0">
               <Button x:Name="exportSettingsButton" Content="Export settings…" />
               <Button x:Name="importSettingsButton" Content="Import settings…" />
-            </StackPanel>
+            </WrapPanel>
             <TextBlock x:Name="settingsFileText" Style="{StaticResource Quiet}" Text="Exports everything except passwords, as a JSON file you can keep or copy to another PC." />
           </StackPanel>
         </Border>
@@ -588,12 +588,12 @@
             <StackPanel>
               <TextBlock x:Name="versionText" FontSize="16" FontWeight="SemiBold" />
               <TextBlock x:Name="dataFolderText" Style="{StaticResource Quiet}" />
-              <StackPanel Orientation="Horizontal" Margin="0,10,0,0"><Button x:Name="openLogsButton" Content="Open logs folder" /><Button x:Name="copyDiagnosticsButton" Content="Copy diagnostics" Margin="8,0,0,0" ToolTip="Copies version, Windows, server, player and audio details plus the end of the logs, ready to paste into a bug report" /><Button x:Name="sendDiagnosticsButton" Content="Send diagnostics…" Margin="8,0,0,0" ToolTip="Shows the report with your server, PC and folder names taken out, then opens a new GitHub Discussion for it" /><TextBlock x:Name="copyDiagnosticsDone" Style="{StaticResource Quiet}" VerticalAlignment="Center" Margin="10,0,0,0" /></StackPanel>
+              <WrapPanel Margin="0,10,0,0"><Button x:Name="openLogsButton" Content="Open logs folder" /><Button x:Name="copyDiagnosticsButton" Content="Copy diagnostics" Margin="8,0,0,0" ToolTip="Copies version, Windows, server, player and audio details plus the end of the logs, ready to paste into a bug report" /><Button x:Name="sendDiagnosticsButton" Content="Send diagnostics…" Margin="8,0,0,0" ToolTip="Shows the report with your server, PC and folder names taken out, then opens a new GitHub Discussion for it" /><TextBlock x:Name="copyDiagnosticsDone" Style="{StaticResource Quiet}" VerticalAlignment="Center" Margin="10,0,0,0" /></WrapPanel>
               <Border x:Name="sendDiagnosticsPanel" Style="{StaticResource Callout}" Visibility="Collapsed">
                 <StackPanel>
                   <DockPanel><TextBlock Style="{StaticResource CalloutIcon}" Text="&#xE72E;" /><TextBlock Style="{StaticResource CalloutText}" Text="Nothing is sent until you post it on GitHub. Server, PC and user names, IP and MAC addresses and folder paths are taken out. You can edit it here." /></DockPanel>
                   <TextBox x:Name="sendDiagnosticsText" Margin="0,8,0,0" Padding="4,3" FontFamily="Consolas" FontSize="11" Height="200" AcceptsReturn="True" TextWrapping="NoWrap" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" />
-                  <StackPanel Orientation="Horizontal" Margin="0,8,0,0"><Button x:Name="sendDiagnosticsGoButton" Content="Copy and open GitHub Discussions" FontWeight="SemiBold" /><Button x:Name="sendDiagnosticsCancelButton" Content="Cancel" /></StackPanel>
+                  <WrapPanel Margin="0,8,0,0"><Button x:Name="sendDiagnosticsGoButton" Content="Copy and open GitHub Discussions" FontWeight="SemiBold" /><Button x:Name="sendDiagnosticsCancelButton" Content="Cancel" /></WrapPanel>
                 </StackPanel>
               </Border>
               <Border Style="{StaticResource Callout}"><DockPanel><TextBlock Style="{StaticResource CalloutIcon}" Text="&#xE72E;" /><TextBlock Style="{StaticResource CalloutText}">The developer takes privacy seriously. Apart from update checks and the Artist, Album and Lyrics lookups (which you can turn off in <Hyperlink x:Name="privacyViewsLink">Now playing views</Hyperlink>), WinSqueeze sends nothing outside your network.</TextBlock></DockPanel></Border>
@@ -620,18 +620,18 @@
           <Border Style="{StaticResource Card}">
             <StackPanel>
               <TextBlock Text="Updates" Style="{StaticResource CardTitle}" />
-              <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+              <WrapPanel Margin="0,4,0,0">
                 <TextBlock Text="Channel" VerticalAlignment="Center" Margin="0,0,8,0" />
                 <ComboBox x:Name="channelCombo" MinWidth="200" Margin="0,0,12,0">
                   <ComboBoxItem Content="Stable releases" Tag="stable" />
                   <ComboBoxItem Content="Dev builds (every change)" Tag="dev" />
                 </ComboBox>
                 <CheckBox x:Name="autoUpdateBox" Content="Download updates automatically" VerticalAlignment="Center" Margin="0" />
-              </StackPanel>
-              <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+              </WrapPanel>
+              <WrapPanel Margin="0,10,0,0">
                 <Button x:Name="checkNowButton" Content="Check now" />
                 <Button x:Name="restartToUpdateButton" Content="Restart to update" Visibility="Collapsed" FontWeight="SemiBold" />
-              </StackPanel>
+              </WrapPanel>
               <TextBlock x:Name="updateStatusText" Style="{StaticResource Quiet}" />
             </StackPanel>
           </Border>

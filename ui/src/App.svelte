@@ -1,5 +1,6 @@
 <script lang="ts">
   import { t } from './lib/i18n'
+  import { fit } from './lib/fit'
   import { checkKeepPlaying } from './lib/queueEnd.svelte'
   import { noteLongTrack } from './lib/resume'
   import { prefetchInfo } from './lib/nowPlayingInfo'
@@ -313,9 +314,9 @@
       <ActionStrip />
       <TransportBar />
       {#if vertical}
-        <nav class="tabbar">
+        <nav class="tabbar" use:fit>
           {#each visibleSections as [key, label, glyph] (key)}
-            <button class:on={nav.section === key} onclick={() => openSection(key)}><span class="glyph"><Icon name={glyph} size={20} /></span><span class="tab-label">{label}</span></button>
+            <button class:on={nav.section === key} onclick={() => openSection(key)} title={label}><span class="glyph"><Icon name={glyph} size={20} /></span><span class="tab-label">{label}</span></button>
           {/each}
         </nav>
       {/if}
@@ -373,7 +374,8 @@
   .tabbar { display: flex; justify-content: space-around; background: var(--glass); backdrop-filter: blur(var(--blur)); border-top: 1px solid var(--line); }
   .tabbar button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; background: none; border: 0; color: var(--fg-quiet); font: inherit; font-size: 10px; padding: 6px 0; cursor: pointer; min-width: 0; }
   .tabbar button.on { color: var(--accent); }
-  .tab-label { max-width: 100%; text-align: center; line-height: 1.15; overflow-wrap: break-word; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; } /* two short lines rather than cutting a longer translation off */
+  .tab-label { max-width: 100%; text-align: center; line-height: 1.15; overflow-wrap: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; } /* two lines at most, broken between words, never inside one */
+  /* a word too long for its tab: smaller labels, then icons only (names stay as tooltips) */ .tabbar:global(.fit-1) .tab-label { font-size: 9px; } .tabbar:global(.fit-2) .tab-label { display: none; }
   @media (max-width: 480px) { .tab-label { display: none; } .tabbar .glyph { font-size: 18px; } }
   .pin-top { display: grid; place-items: center; width: 34px; height: 30px; margin-left: auto; background: none; border: 0; border-radius: 6px; color: var(--fg); opacity: 0.45; cursor: pointer; transform: rotate(45deg); transition: opacity 120ms, transform 120ms, background 120ms; }
   .pin-top:hover { opacity: 0.8; background: var(--hover); }

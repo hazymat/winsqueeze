@@ -4,6 +4,7 @@
   import { app, ui, currentTrack, setHifi, cycleMeterView, readSetting, writeSetting } from '../state.svelte'
   import { command, sendToShell } from '../bridge'
   import Meters from './Meters.svelte'
+  import { squeeze } from '../lib/fit'
   const stageWidth = 1280, stageHeight = 330
   let windowWidth = $state(stageWidth), windowHeight = $state(stageHeight)
   const stageZoom = $derived(Math.min(windowWidth / stageWidth, windowHeight / stageHeight))
@@ -165,9 +166,9 @@
       <svg class="scale" viewBox="0 0 260 260">{#each Array.from({ length: 31 }, (unused, index) => -135 + index * 9) as angle, index}<line x1="130" y1={index % 5 ? 14 : 10} x2="130" y2="22" transform="rotate({angle} 130 130)" class:major={!(index % 5)} />{/each}</svg>
       <div class="knob" role="slider" tabindex="-1" aria-label={t('Volume')} aria-valuenow={volume} title={t('Volume {volume} (drag up or down, or scroll)', { volume })} style:--angle="{knobAngle}deg" onpointerdown={grabKnob} onpointermove={turnKnob} onpointerup={letGoKnob} onwheel={wheelKnob}><div class="teeth"></div><div class="knurl"></div><div class="cap"></div><div class="pointer"><div class="mark"></div></div></div>
     </div>
-    <div class="volume-label">{t('VOLUME')}</div>
+    <div class="volume-label"><span use:squeeze>{t('VOLUME')}</span></div>
     <!-- Mode toggle: chrome bat-handle switch, flicked down (animated throw) goes back to the library -->
-    <button class="mode-switch" class:thrown={switchThrown} onclick={throwSwitch} title={t('Back to the library (Esc)')} aria-label={t('Back to the library')}><span class="engraving">HI-FI</span><span class="switch-body"><span class="nut"></span><span class="collar"></span><span class="lever"><span class="lever-shaft"></span><span class="lever-tip"></span></span></span><span class="engraving">{t('LIBRARY')}</span></button>
+    <button class="mode-switch" class:thrown={switchThrown} onclick={throwSwitch} title={t('Back to the library (Esc)')} aria-label={t('Back to the library')}><span class="engraving">HI-FI</span><span class="switch-body"><span class="nut"></span><span class="collar"></span><span class="lever"><span class="lever-shaft"></span><span class="lever-tip"></span></span></span><span class="engraving" use:squeeze>{t('LIBRARY')}</span></button>
   </div>
   </div>
 
@@ -227,9 +228,9 @@
   .cap::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: repeating-radial-gradient(circle at 50% 50%, rgba(0,0,0,0.06) 0 0.6px, rgba(255,255,255,0.07) 0.6px 1.4px); }
   .pointer { position: absolute; inset: 0; rotate: var(--angle); pointer-events: none; }
   .mark { position: absolute; left: 50%; top: 18px; width: 9px; height: 9px; margin-left: -4.5px; border-radius: 50%; rotate: calc(-1 * var(--angle)); background: radial-gradient(circle at 50% 70%, #7a6548, #31271a); box-shadow: inset 0 1px 2px rgba(0,0,0,0.7), 0 1px 0 rgba(255,255,255,0.7); }
-  .volume-label { position: absolute; right: 48px; width: 260px; text-align: center; bottom: 26px; font: 600 9.5px/1 "Segoe UI", Inter, sans-serif; letter-spacing: 3px; color: #5a4934; text-shadow: 0 1px 0 rgba(255,245,225,0.7); pointer-events: none; }
+  .volume-label span { display: inline-block; } .volume-label { position: absolute; right: 48px; width: 260px; text-align: center; white-space: nowrap; bottom: 26px; font: 600 9.5px/1 "Segoe UI", Inter, sans-serif; letter-spacing: 3px; color: #5a4934; text-shadow: 0 1px 0 rgba(255,245,225,0.7); pointer-events: none; }
   .mode-switch { position: absolute; top: 9px; right: 3px; width: 54px; height: 84px; border: 0; padding: 0; background: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: space-between; }
-  .engraving { font: 700 7.5px/1 "Segoe UI", Inter, sans-serif; letter-spacing: 1.4px; margin-right: -1.4px; color: #4a3b28; text-shadow: 0 1px 0 rgba(255,245,225,0.75); }
+  .engraving { font: 700 7.5px/1 "Segoe UI", Inter, sans-serif; letter-spacing: 1.4px; margin-right: -1.4px; white-space: nowrap; transform-origin: center; color: #4a3b28; text-shadow: 0 1px 0 rgba(255,245,225,0.75); }
   .switch-body { position: relative; width: 26px; height: 26px; }
   .nut { position: absolute; inset: 0; clip-path: polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0 50%); background: linear-gradient(160deg, #fbfbf8 0%, #c9c6bf 38%, #8e8a82 62%, #dcd9d2 100%); filter: drop-shadow(0 2px 2px rgba(0,0,0,0.45)); }
   .collar { position: absolute; inset: 6px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #ffffff 0%, #bdb9b1 45%, #5f5b54 100%); box-shadow: 0 0 0 1px rgba(40,34,26,0.55), inset 0 -1px 2px rgba(0,0,0,0.4); }

@@ -14,3 +14,13 @@ export function fit(node: HTMLElement, steps = 2) {
   watch(); changes.observe(node, { subtree: true, childList: true, characterData: true }); document.fonts?.ready.then(schedule); schedule()
   return { destroy() { resize.disconnect(); changes.disconnect(); cancelAnimationFrame(frame) } }
 }
+
+// Engraved legends (hi-fi faceplate, meters): too long a translation is drawn narrower, like a condensed typeface, to fit the space it has (its parent, less any `room` given)
+export function squeeze(node: HTMLElement, room = 0) {
+  let frame = 0
+  const check = () => { node.style.transform = ''; const space = (node.parentElement?.clientWidth ?? 0) - room, need = Math.max(node.offsetWidth, node.scrollWidth); node.style.transform = space > 0 && need > space ? `scaleX(${(space / need).toFixed(3)})` : '' }
+  const schedule = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(check) }
+  const resize = new ResizeObserver(schedule), changes = new MutationObserver(schedule)
+  resize.observe(node); if (node.parentElement) resize.observe(node.parentElement); changes.observe(node, { subtree: true, characterData: true, childList: true }); document.fonts?.ready.then(schedule); schedule()
+  return { destroy() { resize.disconnect(); changes.disconnect(); cancelAnimationFrame(frame) } }
+}
