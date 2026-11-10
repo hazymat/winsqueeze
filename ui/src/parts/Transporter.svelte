@@ -299,7 +299,7 @@
     <div class="keys left">{#each leftKeys as label}{@render key(label)}{/each}</div>
     <div class="keys right">{#each rightKeys as label}{@render key(label)}{/each}</div>
     <div class="knob" role="slider" tabindex="-1" aria-label={t('Volume')} aria-valuenow={volume} title={t('Turn to move through lists or change the volume, click to choose')} onpointerdown={grabKnob} onpointermove={turnKnob} onpointerup={letGoKnob} onwheel={wheelKnob}><div class="face"></div></div>
-    {#each ['left', 'right'] as side}<svg class="handle {side}" viewBox="0 0 60 196"><defs><linearGradient id="chrome-{side}" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#3a3d42" /><stop offset="0.3" stop-color="#f4f6f8" /><stop offset="0.45" stop-color="#ffffff" /><stop offset="0.7" stop-color="#8d939a" /><stop offset="1" stop-color="#2b2d31" /></linearGradient></defs><path d="M40 22 H22 Q11 22 11 34 V162 Q11 174 22 174 H40" fill="none" stroke="#000" stroke-opacity="0.5" stroke-width="11" transform="translate(2 3)" /><path d="M40 22 H22 Q11 22 11 34 V162 Q11 174 22 174 H40" fill="none" stroke="url(#chrome-{side})" stroke-width="10" /><circle cx="42" cy="22" r="6.5" class="boss" fill="url(#chrome-{side})" /><circle cx="42" cy="174" r="6.5" class="boss" fill="url(#chrome-{side})" /></svg>{/each}
+    {#each ['left', 'right'] as side}<div class="handle {side}"></div>{/each}
   </div>
 </div>
 
@@ -337,7 +337,9 @@
   .knob:active { cursor: grabbing; }
   .face { position: absolute; inset: 5px; border-radius: 50%; background: conic-gradient(from 10deg, #eef0f2, #9aa0a6 12%, #fbfcfd 25%, #a3a9af 38%, #e6e9ec 50%, #959ba1 62%, #f8f9fa 75%, #a6acb2 88%, #eef0f2); box-shadow: inset 0 2px 1px rgba(255,255,255,0.9), inset 0 -2px 3px rgba(0,0,0,0.35); }
   .face::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: repeating-radial-gradient(circle at 50% 50%, rgba(0,0,0,0.05) 0 0.6px, rgba(255,255,255,0.06) 0.6px 1.4px); }
-  /* Chrome handles either end, bolted through round bosses */
-  .handle { position: absolute; top: 0; width: 60px; height: 196px; pointer-events: none; overflow: visible; } .handle.left { left: -4px; } .handle.right { right: -4px; scale: -1 1; }
-  .boss { stroke: rgba(0,0,0,0.6); stroke-width: 1; }
+  /* Chrome handles either end: seen head-on they come straight out towards you, so only the front bar shows; its ends darken where the tube bends back into the case */
+  .handle { position: absolute; top: 12px; bottom: 12px; width: 13px; border-radius: 6.5px; pointer-events: none;
+    background: linear-gradient(180deg, rgba(0,0,0,0.55) 0, rgba(0,0,0,0) 9px, rgba(0,0,0,0) calc(100% - 9px), rgba(0,0,0,0.6) 100%), linear-gradient(90deg, #3a3d42 0%, #c9cdd2 22%, #ffffff 40%, #eef0f2 52%, #8d939a 78%, #2b2d31 100%);
+    box-shadow: 3px 4px 6px rgba(0,0,0,0.55), 0 0 0 0.5px rgba(0,0,0,0.5); }
+  .handle.left { left: 9px; } .handle.right { right: 9px; }
 </style>
