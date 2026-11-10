@@ -760,6 +760,7 @@
   "Clear and rescan everything?": "Очистити й пересканувати все?",
   "Clear and rescan": "Очистити й пересканувати",
   "No new albums": "Нових альбомів немає",
+  "Getting the results of the latest scan…": "Отримую результати останнього сканування…",
   "The server didn't take it: {error}": "Сервер цього не прийняв: {error}",
   "Not available while playing offline": "Недоступно під час відтворення офлайн",
   "{tracks} tracks · {albums} albums · {artists} artists": "Треків: {tracks} · альбомів: {albums} · виконавців: {artists}",

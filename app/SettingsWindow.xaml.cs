@@ -228,6 +228,7 @@ public partial class SettingsWindow : Window
     readonly System.Windows.Threading.DispatcherTimer scanTimer = new() { Interval = TimeSpan.FromSeconds(2) };
     // What the last scan this window watched added, kept for the session and shown while the server's last scan time still matches
     static (long lastScan, string title, string albums, bool any)? lastScanReport;
+    static long? scanReportPendingFor; // the last scan time whose results are still being fetched (WinSqueeze reloads its library first)
     static long scanBaseline; // the server's last scan time before the current scan: albums added after it are new
     bool scanWasRunning, scanStepsSeen, scanPollBusy; DateTime? scanStartedAt; // when this page started the scan, or worked out from the server's own clock
     // Lyrion's internal step names (rescanprogress), in plain words; unknown ones are tidied up
@@ -237,7 +238,9 @@ public partial class SettingsWindow : Window
     {
         scanTimer.Tick += async (sender, args) => await PollScanAsync();
         settingsTabs.SelectionChanged += async (sender, args) => { if (args.Source != settingsTabs) return; if (settingsTabs.SelectedItem == serverLibraryTab) { scanTimer.Start(); await PollScanAsync(); } else scanTimer.Stop(); };
-        Closed += (sender, args) => scanTimer.Stop();
+        void LibraryProgress() { if (scanReportPendingFor is { } pendingScan) ShowScanReport(pendingScan); }
+        App.Library.Changed += LibraryProgress;
+        Closed += (sender, args) => { scanTimer.Stop(); App.Library.Changed -= LibraryProgress; };
         rescanButton.Click += async (sender, args) => await SendScanCommandAsync("rescan");
         rescanPlaylistsButton.Click += async (sender, args) => await SendScanCommandAsync("rescan", "playlists");
         wipeCacheButton.Click += async (sender, args) =>
@@ -251,10 +254,11 @@ public partial class SettingsWindow : Window
     // After a scan: bring the new library into WinSqueeze, then list the albums the server first saw during it
     async Task ReportNewAlbumsAsync(long addedAfter, long lastScan)
     {
-        await App.Library.RefreshAsync(false);
-        if (addedAfter <= 0) return;
-        var queries = App.Library.Queries;
-        var newAlbums = await Task.Run(() => queries.AlbumsAddedAfter(addedAfter));
+        if (addedAfter <= 0) { await App.Library.RefreshAsync(false); return; }
+        scanReportPendingFor = lastScan; ShowScanReport(lastScan);
+        List<Dictionary<string, object?>> newAlbums;
+        try { await App.Library.RefreshAsync(false); var queries = App.Library.Queries; newAlbums = await Task.Run(() => queries.AlbumsAddedAfter(addedAfter)); }
+        finally { scanReportPendingFor = null; }
         string Describe(Dictionary<string, object?> album) => $"{album["title"]}" + (album["artist"] is string artist && artist != "" ? $" · {artist}" : "");
         lastScanReport = (lastScan, newAlbums.Count == 0 ? L.T("No new albums") : L.N(newAlbums.Count, "This scan added {count} album", "This scan added {count} albums"), string.Join("\n", newAlbums.Take(6).Select(Describe)) + (newAlbums.Count > 6 ? "\n" + L.T("and {count} more", ("count", newAlbums.Count - 6)) : ""), newAlbums.Count > 0);
         ShowScanReport(lastScan);
@@ -262,9 +266,18 @@ public partial class SettingsWindow : Window
 
     void ShowScanReport(long lastScan)
     {
-        var showing = lastScanReport is { } report && report.lastScan == lastScan;
-        scanAddedCallout.Visibility = showing ? Visibility.Visible : Visibility.Collapsed;
+        var waiting = scanReportPendingFor == lastScan; // the scan finished but its results aren't in yet: say so instead of showing nothing
+        var showing = waiting || lastScanReport is { } report && report.lastScan == lastScan;
+        scanAddedCallout.Visibility = showing ? Visibility.Visible : Visibility.Collapsed; scanAddedBar.Visibility = waiting ? Visibility.Visible : Visibility.Collapsed;
         if (!showing) return;
+        if (waiting)
+        {
+            var library = App.Library;
+            scanAddedTitle.Text = L.T("Getting the results of the latest scan…");
+            scanAddedList.Text = library.ProgressText == "" ? "" : library.ProgressText + (library.ProgressTotal > 1 ? "   ·   " + L.T("{done} of {total}", ("done", library.ProgressDone.ToString("N0")), ("total", library.ProgressTotal.ToString("N0"))) : "");
+            scanAddedList.Visibility = scanAddedList.Text == "" ? Visibility.Collapsed : Visibility.Visible; showNewMusicButton.Visibility = Visibility.Collapsed;
+            return;
+        }
         var current = lastScanReport!.Value;
         scanAddedTitle.Text = current.title; scanAddedList.Text = current.albums; scanAddedList.Visibility = current.any ? Visibility.Visible : Visibility.Collapsed; showNewMusicButton.Visibility = current.any ? Visibility.Visible : Visibility.Collapsed;
     }

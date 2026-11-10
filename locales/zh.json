@@ -760,6 +760,7 @@
   "Clear and rescan everything?": "清空并重新扫描全部内容？",
   "Clear and rescan": "清空并重新扫描",
   "No new albums": "没有新专辑",
+  "Getting the results of the latest scan…": "正在获取最近一次扫描的结果…",
   "The server didn't take it: {error}": "服务器没有接受：{error}",
   "Not available while playing offline": "离线播放时不可用",
   "{tracks} tracks · {albums} albums · {artists} artists": "{tracks} 首曲目 · {albums} 张专辑 · {artists} 位艺人",

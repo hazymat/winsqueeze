@@ -760,6 +760,7 @@
   "Clear and rescan everything?": "Alles leegmaken en opnieuw scannen?",
   "Clear and rescan": "Leegmaken en opnieuw scannen",
   "No new albums": "Geen nieuwe albums",
+  "Getting the results of the latest scan…": "Resultaten van de laatste scan ophalen…",
   "The server didn't take it: {error}": "De server nam het niet aan: {error}",
   "Not available while playing offline": "Niet beschikbaar tijdens offline afspelen",
   "{tracks} tracks · {albums} albums · {artists} artists": "{tracks} nummers · {albums} albums · {artists} artiesten",

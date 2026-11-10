@@ -785,6 +785,7 @@
   "Clear and rescan everything?": "Tyhjennetäänkö ja skannataanko kaikki uudelleen?",
   "Clear and rescan": "Tyhjennä ja skannaa uudelleen",
   "No new albums": "Ei uusia albumeja",
+  "Getting the results of the latest scan…": "Haetaan viimeisimmän skannauksen tuloksia…",
   "The server didn't take it: {error}": "Palvelin ei hyväksynyt sitä: {error}",
   "Not available while playing offline": "Ei käytettävissä offline-toiston aikana",
   "{tracks} tracks · {albums} albums · {artists} artists": "{tracks} kappaletta · {albums} albumia · {artists} artistia",

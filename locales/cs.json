@@ -785,6 +785,7 @@
   "Clear and rescan everything?": "Vymazat a znovu prohledat vše?",
   "Clear and rescan": "Vymazat a znovu prohledat",
   "No new albums": "Žádná nová alba",
+  "Getting the results of the latest scan…": "Načítají se výsledky posledního prohledání…",
   "The server didn't take it: {error}": "Server to nepřijal: {error}",
   "Not available while playing offline": "Při přehrávání offline není k dispozici",
   "{tracks} tracks · {albums} albums · {artists} artists": "{tracks} skladeb · {albums} alb · {artists} interpretů",

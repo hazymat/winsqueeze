@@ -760,6 +760,7 @@
   "Clear and rescan everything?": "Svuotare e riscansionare tutto?",
   "Clear and rescan": "Svuota e riscansiona",
   "No new albums": "Nessun album nuovo",
+  "Getting the results of the latest scan…": "Recupero dei risultati dell'ultima scansione…",
   "The server didn't take it: {error}": "Il server non l'ha accettato: {error}",
   "Not available while playing offline": "Non disponibile durante la riproduzione offline",
   "{tracks} tracks · {albums} albums · {artists} artists": "{tracks} brani · {albums} album · {artists} artisti",
