@@ -5,6 +5,7 @@
   import type { SelectionAction } from '../lib/selection.svelte'
   import { live, query, sendToShell, serverArt } from '../bridge'
   import { app, ui, openView, toast } from '../state.svelte'
+  import { pluginMenus, menuText, openMenuItem } from '../lib/jiveMenu'
   import { infoFor, splitName, detail, itemImage, isFolder } from '../lib/xmlBrowse'
   import Icon from '../parts/Icon.svelte'
   import PinButton from '../parts/PinButton.svelte'
@@ -13,24 +14,32 @@
   // Top level: kind 'radio' or 'apps' lists the server's own list. Inside: kind 'app' (key "cmd|itemId") browses; kind 'app-search' (same key) asks for words first.
   let { kind, key = '', title = '' }: { kind: string, key?: string, title?: string } = $props()
   const cmd = $derived(key.split('|')[0]), itemId = $derived(key.split('|').slice(1).join('|'))
-  let items = $state<any[]>([]), extras = $state<{ key: string, title: string, url: string, icon: string }[]>([])
+  type Extra = { key: string, title: string, icon: string, url?: string, menuItem?: any }
+  let items = $state<any[]>([]), extras = $state<Extra[]>([])
   let loading = $state(true), failed = $state(false)
   let searchWords = $state(''), searched = $state('')
   async function load() {
     loading = true; failed = false
     try {
-      if (kind === 'radio' || kind === 'apps') { const result = await live([kind === 'radio' ? 'radios' : 'apps', 0, 500], true); items = (result?.[kind === 'radio' ? 'radioss_loop' : 'appss_loop'] ?? []).filter((entry: any) => entry.cmd); if (kind === 'apps') extras = (await query('extras')) ?? [] }
+      if (kind === 'radio' || kind === 'apps') { const result = await live([kind === 'radio' ? 'radios' : 'apps', 0, 500], true); items = (result?.[kind === 'radio' ? 'radioss_loop' : 'appss_loop'] ?? []).filter((entry: any) => entry.cmd); if (kind === 'apps') loadExtras() }
       else if (kind === 'app-search' && !searched) items = []
       else { const result = await live([cmd, 'items', 0, 500, 'want_url:1'].concat(itemId ? [`item_id:${itemId}`] : [], searched ? [`search:${searched}`] : []), true); items = result?.loop_loop ?? []; failed = !result }
     }
     catch { failed = true }
     loading = false
   }
+  // Lyrion's Extras: plugins that publish a player menu (Dynamic Playlists…) open natively; ones with only a web page (Virtual Library Creator…) open it in a window
+  async function loadExtras() {
+    const [menus, pages] = await Promise.all([pluginMenus(items.map(item => String(item.cmd))).catch(() => []), query<Extra[]>('extras').catch(() => [])])
+    const native: Extra[] = menus.map(item => ({ key: 'menu:' + (item.id ?? menuText(item)[0]), title: menuText(item)[0], icon: String(item.menuIcon ?? item.icon ?? item.window?.['icon-id'] ?? ''), menuItem: item }))
+    const titles = native.map(extra => plain(extra.title))
+    extras = native.concat((pages ?? []).filter(page => !titles.includes(plain(page.title)))).sort((first, second) => first.title.localeCompare(second.title))
+  }
+  const openExtra = (extra: Extra) => extra.menuItem ? openMenuItem(extra.menuItem, null) : sendToShell({ type: 'openExtra', title: extra.title, url: extra.url })
   const serverName = $derived(String(app.status?.server ?? ''))
   $effect(() => { kind; key; serverName; untrack(load) })
   const plain = (text: string) => (text ?? '').toLowerCase()
   const shown = $derived(ui.search.length >= 2 ? items.filter(item => plain(item.name).includes(plain(ui.search))) : items)
-  // Lyrion's Extras: plugins with their own web pages (Dynamic Playlists, Virtual Library Creator…), each opened in its own window
   const shownExtras = $derived(ui.search.length >= 2 ? extras.filter(extra => plain(extra.title).includes(plain(ui.search))) : extras)
   const top = $derived(kind === 'radio' || kind === 'apps')
   const heading = $derived(kind === 'radio' ? t('Radio') : kind === 'apps' ? t('Apps') : title)
@@ -85,7 +94,7 @@
     <h2 class="row-head">{t('Extras')}</h2>
     <div class="tiles">
       {#each shownExtras as extra (extra.key)}
-        <button class="tile" onclick={() => sendToShell({ type: 'openExtra', title: extra.title, url: extra.url })} title={extra.title}>
+        <button class="tile" onclick={() => openExtra(extra)} title={extra.title}>
           {#if extra.icon}<img src={serverArt(extra.icon, 200)} alt="" loading="lazy" />{:else}<span class="glyph">✦</span>{/if}
           <span class="tile-name">{extra.title}</span>
         </button>
