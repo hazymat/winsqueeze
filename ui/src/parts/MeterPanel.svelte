@@ -6,7 +6,8 @@
 </script>
 <script lang="ts">
   import { meters } from '../state.svelte'
-  let { theme, levels, reference, size, idle, textureScale = 1 }: { theme: string, levels: number[], reference: number, size: string, idle: boolean, textureScale?: number } = $props()
+  // plate: set into the hi-fi faceplate: no panel front of its own, each window in its own cut-out in the metal, legends engraved on the plate
+  let { theme, levels, reference, size, idle, textureScale = 1, plate = false }: { theme: string, levels: number[], reference: number, size: string, idle: boolean, textureScale?: number, plate?: boolean } = $props()
   const id = `panel-${panelCount++}`
   const height = $derived(theme === 'monitor' || theme === 'blue' ? 110 : theme === 'deck' ? 96 : theme === 'orange' ? 130 : 120)
   const width = $derived(Math.round(panelThemes[theme].aspect * height))
@@ -55,6 +56,12 @@
 
 <!-- Three stacked copies: the textured face, the needles alone on their own compositor layer, and the glass and caps in front.
      A moving needle then repaints only its own thin layer, never the filtered face (repainting that every frame stalled the needles) -->
+<!-- Machined cut-out in the hi-fi faceplate: the top wall in shadow, the bottom wall catching the light -->
+{#snippet chamfer(x: number, y: number, boxWidth: number, boxHeight: number, depth: number)}
+  <polygon points="{x},{y} {x + boxWidth},{y} {x + boxWidth - depth},{y + depth} {x + depth},{y + depth}" class="chamfer top" /><polygon points="{x},{y + boxHeight} {x + boxWidth},{y + boxHeight} {x + boxWidth - depth},{y + boxHeight - depth} {x + depth},{y + boxHeight - depth}" class="chamfer bottom" />
+  <polygon points="{x},{y} {x + depth},{y + depth} {x + depth},{y + boxHeight - depth} {x},{y + boxHeight}" class="chamfer left" /><polygon points="{x + boxWidth},{y} {x + boxWidth - depth},{y + depth} {x + boxWidth - depth},{y + boxHeight - depth} {x + boxWidth},{y + boxHeight}" class="chamfer right" />
+  <rect x={x + depth} y={y + depth} width={boxWidth - depth * 2} height={boxHeight - depth * 2} fill="#030806" />
+{/snippet}
 {#snippet layerSvg(layer: string)}
 <svg viewBox="0 0 {width} {height}" class="panel {theme} layer-{layer}" class:idle aria-hidden="true" style:--aspect={panelThemes[theme].aspect} class:warm-filament={layer === 'face' && filament} class:warm-strike={layer === 'face' && !filament}>
   <defs>
@@ -66,6 +73,7 @@
     <linearGradient id={id + '-sheen'} x1="0" y1="0" x2="1" y2="0.7"><stop offset="0%" stop-color="#fff" stop-opacity="0" /><stop offset="28%" stop-color="#fff" stop-opacity="0.12" /><stop offset="40%" stop-color="#fff" stop-opacity="0.03" /><stop offset="55%" stop-color="#fff" stop-opacity="0" /></linearGradient>
     <linearGradient id={id + '-silver'} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#d9dcdf" /><stop offset="50%" stop-color="#c2c5c9" /><stop offset="100%" stop-color="#a9adb2" /></linearGradient>
     <radialGradient id={id + '-chrome'} cx="40%" cy="35%" r="70%"><stop offset="0%" stop-color="#ffffff" /><stop offset="45%" stop-color="#b8bcc2" /><stop offset="100%" stop-color="#4b4f55" /></radialGradient>
+    <linearGradient id={id + '-bevel'} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#7a6d58" /><stop offset="50%" stop-color="#b3a68f" /><stop offset="100%" stop-color="#f4ede2" /></linearGradient>
     <radialGradient id={id + '-brass'} cx="45%" cy="25%" r="80%"><stop offset="0%" stop-color="#ffe7a8" /><stop offset="55%" stop-color="#a5782c" /><stop offset="100%" stop-color="#3b2a0c" /></radialGradient>
   </defs>
 
@@ -75,10 +83,10 @@
       <linearGradient id={id + '-deckface'} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fff4da" /><stop offset="35%" stop-color="#f2e8d2" /><stop offset="100%" stop-color="#cfc4ab" /></linearGradient>
       {#each deckWindows as deck}<clipPath id="{id}-deck-{deck.channel}"><rect x={deck.x + 4} y="14" width="110" height="68" rx="1.5" /></clipPath>{/each}
     </defs>
-    <rect width={width} height={height} rx="4" fill="url(#{id}-silver)" /><rect width={width} height={height} rx="4" filter="url(#{id}-brushed)" opacity="0.5" />
+    {#if !plate}<rect width={width} height={height} rx="4" fill="url(#{id}-silver)" /><rect width={width} height={height} rx="4" filter="url(#{id}-brushed)" opacity="0.5" />{/if}
     {#each deckWindows as deck, channelIndex}
       {@const centreX = deck.x + 59}{@const pivotY = 118}{@const angle = jogged(vuAngle(relative(channelIndex), 34), vuAngle(-90, 34), channelIndex)}
-      <rect x={deck.x} y="10" width="118" height="76" rx="3" fill="#6d7075" /><rect x={deck.x + 0.5} y="10.5" width="117" height="75" rx="3" fill="none" stroke="#f4f6f8" stroke-width="0.8" opacity="0.7" />
+      {#if plate}{@render chamfer(deck.x, 10, 118, 76, 4)}{:else}<rect x={deck.x} y="10" width="118" height="76" rx="3" fill="#6d7075" /><rect x={deck.x + 0.5} y="10.5" width="117" height="75" rx="3" fill="none" stroke="#f4f6f8" stroke-width="0.8" opacity="0.7" />{/if}
       <rect x={deck.x + 4} y="14" width="110" height="68" rx="1.5" fill="url(#{id}-deckface)" class="face" />
       <g clip-path="url(#{id}-deck-{deck.channel})">
         <rect x={deck.x + 8} y="13" width="102" height="5" fill="#fff3cf" filter="url(#{id}-bloom)" class="lamp" /><rect x={deck.x + 10} y="14.6" width="98" height="1.4" fill="#fffaf0" class="lamp" />
@@ -94,7 +102,7 @@
         <g class="front"><ellipse cx={centreX} cy="82" rx="13" ry="5.5" fill="url(#{id}-brass)" /><rect x={deck.x + 4} y="14" width="110" height="68" fill="none" stroke="#000" stroke-width="3" opacity="0.18" filter="url(#{id}-soft)" /></g>
       </g>
     {/each}
-    <text x="150" y="20" class="panel-label">{t('PEAK')}</text><text x="150" y="26" class="panel-label">{t('CHECK')}</text>
+    <text x="150" y="20" class="panel-label" class:engraved={plate}>{t('PEAK')}</text><text x="150" y="26" class="panel-label" class:engraved={plate}>{t('CHECK')}</text>
     <circle cx="150" cy="40" r="9" fill="url(#{id}-chrome)" stroke="#55595f" stroke-width="0.6" /><circle cx="150" cy="40" r="4" fill="none" stroke="#fff" stroke-width="0.4" opacity="0.5" />
     <circle cx="150" cy="70" r="2.4" class="led" /><circle cx="150" cy="70" r="5" class="led-glow" filter="url(#{id}-bloom)" />
     
@@ -111,8 +119,9 @@
     {#each orangeMeters as meter, channelIndex}
       {@const centreX = meter.x + 58}{@const pivotY = 89}{@const angle = jogged(roundAngle(relative(channelIndex)), roundAngle(-90), channelIndex)}{@const facePath = `M${centreX - 26.5} 96 A48 48 0 1 1 ${centreX + 26.5} 96 Z`}
       <path d={facePath} fill="#ffb24a" filter="url(#{id}-bloom)" class="spill" />
-      <rect x={meter.x + 2} y="2" width="112" height="126" rx="16" fill="#121212" stroke="#2c2c2c" stroke-width="1" />
-      <circle cx={centreX} cy="56" r="51" fill="#050505" stroke="#2a2a2a" stroke-width="0.8" />
+      {#if plate}<circle cx={centreX} cy="56" r="54" fill="url(#{id}-bevel)" /><circle cx={centreX} cy="56" r="51" fill="#050505" />
+      {:else}<rect x={meter.x + 2} y="2" width="112" height="126" rx="16" fill="#121212" stroke="#2c2c2c" stroke-width="1" />
+      <circle cx={centreX} cy="56" r="51" fill="#050505" stroke="#2a2a2a" stroke-width="0.8" />{/if}
       <path d={facePath} fill="url(#{id}-amber)" class="face" />
       <g clip-path="url(#{id}-orange-{meter.channel})">
         <path d={arc(centreX, pivotY, -58, roundAngle(0), 44)} class="ink-line" /><path d={arc(centreX, pivotY, roundAngle(0), 57, 44)} class="red-line" /><path d={arc(centreX, pivotY, roundAngle(0), 57, 46)} class="red-band thin" />
@@ -146,8 +155,8 @@
       <linearGradient id={id + '-monitorface'} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#c9cec3" /><stop offset="55%" stop-color="#e3e7dc" /><stop offset="88%" stop-color="#f6f8f0" /><stop offset="100%" stop-color="#ffffff" /></linearGradient>
       <clipPath id={id + '-monitor'}><rect x="12" y="12" width="416" height="70" /></clipPath>
     </defs>
-    <rect width={width} height={height} rx="8" fill="url(#{id}-silver)" /><rect width={width} height={height} rx="8" filter="url(#{id}-brushed)" opacity="0.45" />
-    <rect x="8" y="8" width="424" height="78" rx="2" fill="#101112" />
+    {#if plate}{@render chamfer(8, 8, 424, 78, 4)}{:else}<rect width={width} height={height} rx="8" fill="url(#{id}-silver)" /><rect width={width} height={height} rx="8" filter="url(#{id}-brushed)" opacity="0.45" />
+    <rect x="8" y="8" width="424" height="78" rx="2" fill="#101112" />{/if}
     <rect x="12" y="12" width="416" height="70" fill="url(#{id}-monitorface)" class="face" />
     <g clip-path="url(#{id}-monitor)">
       <rect x="20" y="74" width="400" height="10" fill="#ffffff" filter="url(#{id}-bloom)" class="lamp" />
@@ -168,7 +177,7 @@
       <rect x="12" y="12" width="416" height="70" fill="none" stroke="#000" stroke-width="4" opacity="0.28" filter="url(#{id}-soft)" />
       <rect x="12" y="12" width="416" height="70" fill="url(#{id}-sheen)" /></g>
     </g>
-    <rect x="8" y="90" width="424" height="12" rx="1" fill="#d5d8db" /><rect x="8" y="90" width="424" height="0.8" fill="#fff" opacity="0.8" />
+    {#if !plate}<rect x="8" y="90" width="424" height="12" rx="1" fill="#d5d8db" /><rect x="8" y="90" width="424" height="0.8" fill="#fff" opacity="0.8" />{/if}
 
   {:else if theme === 'blue'}
     <!-- Big power amp: one black glass window, two deep blue faces glowing from the middle, white scales, red needles, a dim display between -->
@@ -176,9 +185,10 @@
       <radialGradient id={id + '-blue'} cx="50%" cy="78%" r="72%"><stop offset="0%" stop-color="#6aa2ff" /><stop offset="25%" stop-color="#2f5fe0" /><stop offset="60%" stop-color="#10246e" /><stop offset="100%" stop-color="#03061a" /></radialGradient>
       {#each blueWindows as blue}<clipPath id="{id}-blue-{blue.channel}"><rect x={blue.x} y="12" width="140" height="78" rx="2" /></clipPath>{/each}
     </defs>
-    <rect width={width} height={height} rx="4" fill="#06070a" /><rect x="6" y="6" width={width - 12} height={height - 12} rx="2" fill="#020305" stroke="#1c1f26" stroke-width="0.8" />
+    {#if !plate}<rect width={width} height={height} rx="4" fill="#06070a" /><rect x="6" y="6" width={width - 12} height={height - 12} rx="2" fill="#020305" stroke="#1c1f26" stroke-width="0.8" />{/if}
     {#each blueWindows as blue, channelIndex}
       {@const centreX = blue.x + 70}{@const pivotY = 96}{@const angle = jogged(powerAngle(relative(channelIndex), 52), powerAngle(-90, 52), channelIndex)}
+      {#if plate}{@render chamfer(blue.x - 4, 8, 148, 86, 4)}{/if}
       <rect x={blue.x} y="12" width="140" height="78" rx="2" fill="url(#{id}-blue)" class="face" />
       <g clip-path="url(#{id}-blue-{blue.channel})">
         <ellipse cx={centreX} cy="74" rx="44" ry="22" fill="#7fb0ff" opacity="0.35" filter="url(#{id}-bloom)" class="lamp" />
@@ -191,10 +201,11 @@
         </g>
         <rect x={blue.x} y="12" width="140" height="78" filter="url(#{id}-grain)" class="grain dark-grain" />
         <line x1={centreX} y1={pivotY} x2={centreX} y2={pivotY - 74} class="needle red-needle" transform="rotate({angle} {centreX} {pivotY})" filter="url(#{id}-glow)" />
+        {#if plate}<g class="front"><rect x={blue.x} y="12" width="140" height="78" fill="url(#{id}-sheen)" /><path d="M{blue.x + 1} 12.7 H{blue.x + 139}" class="glass-catch" /></g>{/if}
       </g>
     {/each}
     <rect x="165" y="44" width="30" height="12" rx="1.5" fill="#05070c" stroke="#1e2430" stroke-width="0.5" /><text x="180" y="51.5" class="display-text">{t('STANDBY')}</text>
-    <rect x="6" y="6" width={width - 12} height={height - 12} rx="2" fill="url(#{id}-sheen)" class="front" />
+    {#if !plate}<rect x="6" y="6" width={width - 12} height={height - 12} rx="2" fill="url(#{id}-sheen)" class="front" />{/if}
 
   {:else if theme === 'green'}
     <!-- Smoked glass front, two wide fluorescent meters: a fan of green bars, watts above and dB below, a black centre panel with little lit legends -->
@@ -202,9 +213,10 @@
       <radialGradient id={id + '-green'} cx="50%" cy="80%" r="75%"><stop offset="0%" stop-color="#1e4a2c" /><stop offset="45%" stop-color="#0d2416" /><stop offset="100%" stop-color="#030806" /></radialGradient>
       {#each greenWindows as green}<clipPath id="{id}-green-{green.channel}"><rect x={green.x} y="8" width="150" height="100" rx="2" /></clipPath>{/each}
     </defs>
-    <rect width={width} height={height} rx="4" fill="#0b0d0c" />
+    {#if !plate}<rect width={width} height={height} rx="4" fill="#0b0d0c" />{/if}
     {#each greenWindows as green, channelIndex}
       {@const centreX = green.x + 75}{@const pivotY = 112}{@const angle = jogged(powerAngle(relative(channelIndex), 55, 7), powerAngle(-90, 55, 7), channelIndex)}
+      {#if plate}{@render chamfer(green.x - 5, 3, 160, 110, 5)}{/if}
       <rect x={green.x} y="8" width="150" height="100" rx="2" fill="url(#{id}-green)" class="face" />
       <g clip-path="url(#{id}-green-{green.channel})">
         <g filter="url(#{id}-glow)" class="green-ink">
@@ -217,12 +229,18 @@
         </g>
         <line x1={centreX} y1={pivotY} x2={centreX} y2={pivotY - 84} class="needle green-needle" transform="rotate({angle} {centreX} {pivotY})" filter="url(#{id}-glow)" />
         <rect x={green.x} y="8" width="150" height="100" filter="url(#{id}-grain)" class="grain dark-grain front" />
+        {#if plate}<g class="front"><path d="M{green.x} 8 L{green.x + 70} 8 L{green.x + 34} 108 L{green.x} 108 Z" fill="#fff" opacity="0.05" /><rect x={green.x} y="8" width="150" height="100" fill="url(#{id}-sheen)" /><path d="M{green.x + 1} 8.7 H{green.x + 149}" class="glass-catch" /></g>{/if}
       </g>
       <rect x={green.x} y="8" width="150" height="100" rx="2" fill="none" stroke="#2c3a31" stroke-width="0.8" class="front" />
     {/each}
+    {#if plate}
+      <!-- On the faceplate: the legends engraved on the metal, each lamp behind a small slot -->
+      {#each [[30, 'PHASE'], [56, 'CAPACITOR'], [82, 'DUAL MONO']] as [lineY, text]}<text x="180" y={Number(lineY) - 4} class="legend engraved">{text}</text><rect x="171" y={Number(lineY) - 0.6} width="18" height="2.6" rx="0.5" class="lamp-slot" /><rect x="172" y={lineY} width="16" height="1.4" class="legend-bar" filter="url(#{id}-glow)" />{/each}
+    {:else}
     <rect x="162" y="8" width="36" height="100" fill="#060707" />
     <g filter="url(#{id}-glow)">{#each [[30, 'PHASE'], [56, 'CAPACITOR'], [82, 'DUAL MONO']] as [lineY, text]}<text x="166" y={Number(lineY) - 3} class="legend">{text}</text><rect x="178" y={lineY} width="16" height="1.4" class="legend-bar" />{/each}</g>
     <g class="front"><path d="M0 0 L{width * 0.42} 0 L{width * 0.2} {height} L0 {height} Z" fill="#fff" opacity="0.05" /><rect width={width} height={height} rx="4" fill="url(#{id}-sheen)" /></g>
+    {/if}
   {/if}
 </svg>
 {/snippet}
@@ -253,7 +271,7 @@
   .deck-number { font-size: 6.5px; font-weight: 600; fill: #1e1b16; } .deck-number.red { fill: #c4291c; }
   .deck-small { font-size: 4.2px; fill: #1e1b16; } .deck-sign { font-size: 8px; font-weight: 700; fill: #1e1b16; } .deck-sign.red { fill: #c4291c; }
   .deck-vu { font-size: 9px; font-weight: 700; fill: #1e1b16; letter-spacing: 0.5px; } .deck-channel { font-size: 4.5px; fill: rgba(30, 27, 22, 0.55); letter-spacing: 1px; }
-  .panel-label { font-size: 4.6px; font-weight: 700; fill: #2a2c30; letter-spacing: 0.4px; }
+  .panel-label { font-size: 4.6px; font-weight: 700; fill: #2a2c30; letter-spacing: 0.4px; } .panel-label.engraved { fill: #4a3b28; }
   .led { fill: #45ff6a; } .led-glow { fill: #45ff6a; opacity: 0.6; } .idle .led-glow { opacity: 0.25; }
   .orange-number { font-size: 7px; font-weight: 600; fill: #1c0f03; } .orange-number.red { fill: #9e1208; }
   .orange-small { font-size: 4.6px; fill: #1c0f03; } .orange-sign { font-size: 8px; font-weight: 700; fill: #9e1208; } .orange-vu { font-size: 10px; font-weight: 700; fill: #1c0f03; }
@@ -278,4 +296,7 @@
   .green-title { font-size: 5px; fill: #6dff9a; letter-spacing: 1px; font-weight: 600; }
   .green-needle { stroke: #cfffdc; stroke-width: 0.8; }
   .legend { font-size: 3px; fill: #b6c2b9; text-anchor: start; letter-spacing: 0.3px; } .legend-bar { fill: #d7ff4a; }
+  .chamfer.top { fill: #7a6d58; } .chamfer.bottom { fill: #f4ede2; } .chamfer.left { fill: #a5977f; } .chamfer.right { fill: #c6baa5; }
+  .legend.engraved { fill: #4a3b28; text-anchor: middle; font-size: 3.6px; font-weight: 700; letter-spacing: 0.5px; } .lamp-slot { fill: #0d0f0c; stroke: #f4ede2; stroke-width: 0.35; }
+  .glass-catch { stroke: #e8fff0; stroke-width: 0.5; opacity: 0.35; }
 </style>

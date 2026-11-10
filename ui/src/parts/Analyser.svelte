@@ -134,7 +134,7 @@
   /* FREQUENCY (Hz) sits in a bracket that spans the bands, its rule running out of both sides */
   .bracket { flex: 1; display: flex; align-items: center; gap: 5px; padding: 0 3%; white-space: nowrap; }
   .bracket::before, .bracket::after { content: ""; flex: 1; height: 4px; margin-top: -4px; border-bottom: 1px solid var(--legend); opacity: 0.6; } .bracket::before { border-left: 1px solid var(--legend); } .bracket::after { border-right: 1px solid var(--legend); }
-  .full-caption { display: flex; justify-content: flex-end; white-space: nowrap; }
+  .full-caption { display: flex; justify-content: flex-end; white-space: nowrap; letter-spacing: 0.5px; } /* tighter than the bracket caption, so long translations (ПОВНИЙ ДІАПАЗОН) stay clear of its rule */
   .labelled:not(.compact) .full-caption span { margin-right: -26px; } /* right-aligned with the scale on the right */
   .compact .frame { padding: 2px; border-radius: 3px; } .compact .window { padding: 2px 1px; gap: 0; }
   .compact .bar { max-width: 70%; }
