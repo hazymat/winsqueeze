@@ -3,8 +3,7 @@
   // Hi-fi spectrum analyser, after the classic EQ front panels: a framed smoked-glass window with a title strip, narrow columns of
   // thin segments (faint grey when off, soft teal when lit), a dotted scale each side and an optional FULL RANGE column.
   // levels: 0..1 per column; with levelsRight each column splits into a left and a right bar (L/R display)
-  // plate: built into the hi-fi faceplate: only the bars sit behind tinted glass (like the VFD beside it); title, scales and legends are engraved on the metal
-  let { levels, levelsRight = null, labels = [], segments = 30, scale = [], compact = false, title = '', fullRange = null, plate = false }: { levels: number[]; levelsRight?: number[] | null; labels?: string[]; segments?: number; scale?: string[]; compact?: boolean; title?: string; fullRange?: number | null; plate?: boolean } = $props()
+  let { levels, levelsRight = null, labels = [], segments = 30, scale = [], compact = false, title = '', fullRange = null }: { levels: number[]; levelsRight?: number[] | null; labels?: string[]; segments?: number; scale?: string[]; compact?: boolean; title?: string; fullRange?: number | null } = $props()
   const litCount = (level: number) => Math.max(0, Math.min(segments, Math.ceil(level * segments - 0.3)))
   // fullRange: 0..1 broadband level for the separate FULL RANGE column (null = no column)
   // Segments are drawn on a canvas sized in whole device pixels, at whole-pixel positions, so every segment and gap is
@@ -87,7 +86,7 @@
   <div class="scale {side}">{#each scale as mark}<span><b>{mark}</b><em></em></span>{/each}</div>
 {/snippet}
 
-<div class="analyser" class:compact class:plate class:labelled={labels.length > 0}>
+<div class="analyser" class:compact class:labelled={labels.length > 0}>
   <div class="frame">
     {#if title}<div class="title-strip">{title}</div>{/if}
     <div class="window">
@@ -135,22 +134,8 @@
   /* FREQUENCY (Hz) sits in a bracket that spans the bands, its rule running out of both sides */
   .bracket { flex: 1; display: flex; align-items: center; gap: 5px; padding: 0 3%; white-space: nowrap; }
   .bracket::before, .bracket::after { content: ""; flex: 1; height: 4px; margin-top: -4px; border-bottom: 1px solid var(--legend); opacity: 0.6; } .bracket::before { border-left: 1px solid var(--legend); } .bracket::after { border-right: 1px solid var(--legend); }
-  .full-caption { display: flex; justify-content: flex-end; white-space: nowrap; }
+  .full-caption { display: flex; justify-content: flex-end; white-space: nowrap; letter-spacing: 0.5px; } /* tighter than the bracket caption, so long translations (ПОВНИЙ ДІАПАЗОН) stay clear of its rule */
   .labelled:not(.compact) .full-caption span { margin-right: -26px; } /* right-aligned with the scale on the right */
-  /* Faceplate: no frame or title strip; a flush tinted window (with the VFD's mesh) behind the bars, everything else engraved in the champagne metal */
-  .plate { --legend: #4a3b28; --strip: #4a3b28; }
-  .plate .frame { padding: 8px 0 0; background: none; box-shadow: none; border-radius: 0; }
-  .plate .frame { position: relative; } .plate .title-strip { position: absolute; left: 0; right: 0; bottom: calc(100% + 6px); white-space: nowrap; height: auto; margin: 0; background: none; box-shadow: none; color: #4a3b28; font-size: 8px; font-weight: 700; letter-spacing: 2.4px; text-shadow: 0 1px 0 rgba(255, 245, 225, 0.75); }
-  .plate .window { padding: 0; gap: 14px; overflow: visible; background: none; box-shadow: none; } .plate .window::after { display: none; }
-  .plate .columns { isolation: isolate; padding: 0 2px; }
-  .plate .columns::before { content: ""; position: absolute; inset: -8px -9px -7px; z-index: -1; border-radius: 5px;
-    background: repeating-linear-gradient(0deg, rgba(0,0,0,0.22) 0 1px, transparent 1px 3px), repeating-linear-gradient(90deg, rgba(0,0,0,0.12) 0 1px, transparent 1px 3px), linear-gradient(160deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0.02) 30%, transparent 31%), radial-gradient(120% 90% at 50% 40%, #071513 0%, #030807 70%);
-    box-shadow: 0 -1px 0 rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.85), inset 0 3px 10px rgba(0,0,0,0.95); }
-  .plate .plot { gap: 12px; } .plate.labelled .scale { padding-bottom: 34px; }
-  .plate :is(.scale, .legend, .legend-captions) { font-weight: 600; text-shadow: 0 1px 0 rgba(255, 245, 225, 0.7); }
-  /* Long translations break onto a second line below rather than run into the bracket; taken out of the layout so the bars keep their height */
-  .plate .full-caption { position: relative; } .plate .full-caption span { position: absolute; right: 0; top: 0; width: 74px; white-space: normal; text-align: right; line-height: 1.2; }
-  .plate .scale em { opacity: 0.8; } .plate .bracket::before, .plate .bracket::after { opacity: 0.8; }
   .compact .frame { padding: 2px; border-radius: 3px; } .compact .window { padding: 2px 1px; gap: 0; }
   .compact .bar { max-width: 70%; }
 </style>

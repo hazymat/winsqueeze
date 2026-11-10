@@ -192,7 +192,7 @@
     {/each}
   {:else}
     <!-- Spectrum analyser (the third style; stored as 'oled' so earlier choices carry over) -->
-    <div class="spectrum">{#if size !== 'small'}<Analyser plate={hifi} levels={meters.bands} labels={bandLabels} scale={spectrumScale} segments={24} title={t('SPECTRUM ANALYZER')} fullRange={Math.max(0, Math.min(1, (Math.max(meters.vu[0] ?? -90, meters.vu[1] ?? -90) + 40) / 40))} />{:else}<Analyser levels={meters.bands} compact={true} segments={12} />{/if}</div>
+    <div class="spectrum">{#if size !== 'small'}<Analyser levels={meters.bands} labels={bandLabels} scale={spectrumScale} segments={24} title={t('SPECTRUM ANALYZER')} fullRange={Math.max(0, Math.min(1, (Math.max(meters.vu[0] ?? -90, meters.vu[1] ?? -90) + 40) / 40))} />{:else}<Analyser levels={meters.bands} compact={true} segments={12} />{/if}</div>
   {/if}
   {/key}
 </button>
@@ -209,7 +209,7 @@
   .small .oledvu { height: 27px; } .large .oledvu { height: 85.5px; }
   .bezel { fill: #15161a; stroke: #2c2e34; stroke-width: 1; }
   .chamfer.top { fill: #7a6d58; } .chamfer.bottom { fill: #f4ede2; } .chamfer.left { fill: #a5977f; } .chamfer.right { fill: #c6baa5; }
-  .hifi { gap: 24px; } .large.hifi .spectrum { width: 400px; height: 158px; }
+  .hifi { gap: 24px; } .large.hifi .spectrum { width: 400px; height: 158px; } .hifi .spectrum :global(.frame) { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(0, 0, 0, 0.8), 0 -1px 0 rgba(0, 0, 0, 0.35), 0 1px 0 rgba(255, 255, 255, 0.85), 0 2px 4px rgba(0, 0, 0, 0.35); } /* the whole analyser, glass and legends, set into the plate */
   .hifi .oledvu { backdrop-filter: none; background: radial-gradient(120% 90% at 50% 40%, #071513 0%, #030807 70%); box-shadow: 0 -1px 0 rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.85), inset 0 3px 8px rgba(0,0,0,0.95); }
   .face { stroke: rgba(0, 0, 0, 0.5); stroke-width: 0.8; }
   .scale { fill: none; stroke: #1d1a14; stroke-width: 0.9; stroke-linecap: round; }
