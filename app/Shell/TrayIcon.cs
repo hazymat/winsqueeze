@@ -13,6 +13,8 @@ public sealed class TrayIcon : IDisposable
     public TrayIcon()
     {
         var trayMenu = new ContextMenuStrip();
+        var versionRow = new ToolStripLabel { BackColor = SystemColors.ControlLight, ForeColor = SystemColors.GrayText, Font = new Font(SystemFonts.MenuFont!.FontFamily, SystemFonts.MenuFont.Size - 1), TextAlign = ContentAlignment.MiddleCenter, Padding = new Padding(0, 2, 0, 2) }; // shaded, non-clickable version row
+        trayMenu.Items.Add(versionRow);
         trayMenu.Items.Add(L.T("Play/Pause"), null, async (sender, args) => await App.SendPlayerCommandAsync("pause"));
         trayMenu.Items.Add(L.T("Next"), null, async (sender, args) => await App.SendPlayerCommandAsync("playlist", "index", "+1"));
         trayMenu.Items.Add(L.T("Previous"), null, async (sender, args) => await App.SendPlayerCommandAsync("playlist", "index", "-1"));
@@ -28,7 +30,7 @@ public sealed class TrayIcon : IDisposable
         trayMenu.Items.Add(L.T("Check for updates"), null, async (sender, args) => { await App.Updater.CheckNowAsync(); if (App.Updater.ReadyVersion == "") ShowTip("WinSqueeze", App.Updater.StatusText); });
         trayMenu.Items.Add(L.T("Settings"), null, (sender, args) => App.OpenSettings());
         trayMenu.Items.Add(L.T("Quit"), null, (sender, args) => App.Quit());
-        trayMenu.Opening += (sender, args) => { RebuildOutputMenu(); RebuildPlayerMenu(); RebuildSleepMenu(); RebuildSkinMenu(); };
+        trayMenu.Opening += (sender, args) => { versionRow.Text = App.Updater.CurrentVersion; RebuildOutputMenu(); RebuildPlayerMenu(); RebuildSleepMenu(); RebuildSkinMenu(); };
         notifyIcon = new NotifyIcon { Icon = CreateIcon(), Text = "WinSqueeze", ContextMenuStrip = trayMenu, Visible = App.Settings.General.ShowTrayIcon };
         notifyIcon.MouseClick += (sender, args) => { if (args.Button == MouseButtons.Left) App.ToggleMainWindow(); };
     }
