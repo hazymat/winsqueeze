@@ -44,6 +44,8 @@
   })
   const timelineYears = (events: any[]) => { const years: { year: number, events: any[] }[] = []; for (const event of events ?? []) { const last = years[years.length - 1]; if (last && last.year === event.year) last.events.push(event); else years.push({ year: event.year, events: [event] }) } return years }
   const bornYear = $derived(info.timeline?.found && info.timeline.subheading === 'person' ? (info.timeline.events.find((event: any) => event.kind === 'start')?.year ?? 0) : 0)
+  // Ages stop at the death year: later years (reissues, compilations) show no age
+  const diedYear = $derived(bornYear ? (info.timeline.events.find((event: any) => event.kind === 'end')?.year ?? 0) : 0)
   const timelineTitle = (event: any) => ({ member: t('Joined {name}', { name: event.title }), label: t('Signed to {name}', { name: event.title }), award: t('Won {name}', { name: event.title }), nominated: t('Nominated: {name}', { name: event.title }) } as Record<string, string>)[event.kind] ?? event.title
   const timelineDetail = (event: any) => [event.detail, event.endYear && event.endYear !== event.year ? t('until {year}', { year: event.endYear }) : ''].filter(Boolean).join(' · ')
   const missing = (kind: string) => info[kind] && info[kind] !== 'loading' && !info[kind].found
@@ -161,7 +163,7 @@
               {#if info.timeline?.found}
                 <ol class="timeline" use:centrePlaying>
                   {#each timelineYears(info.timeline.events) as group (group.year)}
-                    <li class="year-group"><div class="year">{group.year}{#if bornYear && group.year > bornYear && !group.events.some(event => event.kind === 'start')}<span class="age">{t('age {age}', { age: group.year - bornYear })}</span>{/if}</div>
+                    <li class="year-group"><div class="year">{group.year}{#if bornYear && group.year > bornYear && (!diedYear || group.year <= diedYear) && !group.events.some(event => event.kind === 'start')}<span class="age">{t('age {age}', { age: group.year - bornYear })}</span>{/if}</div>
                       {#each group.events as event}
                         {@const owned = event.kind === 'album' ? ownedAlbums[titleKey(event.title)] : null}
                         <div class="event {event.kind}" class:playing={event.kind === 'album' && titleKey(event.title) === titleKey(track?.album ?? '')}>
