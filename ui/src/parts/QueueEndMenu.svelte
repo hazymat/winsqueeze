@@ -52,7 +52,7 @@
   .text { display: inline-flex; align-items: baseline; gap: 7px; } /* label and value share a baseline; the pair is centred */ .label, .value { line-height: 1; } .label { color: var(--fg-quiet); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
   .value { font-weight: 600; }
   .chevron { color: var(--fg-quiet); transition: transform 150ms; } .open .chevron { transform: rotate(180deg); }
-  .queue-end-menu { position: fixed; width: 250px; overflow-y: auto; z-index: 100; padding: 6px; background: var(--panel-solid); backdrop-filter: blur(24px) saturate(1.5); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 16px 40px var(--shadow); }
+  .queue-end-menu { position: fixed; width: max-content; min-width: 250px; max-width: min(340px, 100vw - 24px); overflow-y: auto; z-index: 100; padding: 6px; background: var(--panel-solid); backdrop-filter: blur(24px) saturate(1.5); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 16px 40px var(--shadow); }
   .queue-end-menu .menu-title { padding: 8px 10px 6px; color: var(--fg-quiet); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
   .queue-end-menu button { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; background: none; border: 0; color: var(--fg); font: inherit; font-size: 13px; text-align: left; padding: 7px 10px; border-radius: 8px; cursor: pointer; }
   .queue-end-menu button:hover { background: var(--hover); }
