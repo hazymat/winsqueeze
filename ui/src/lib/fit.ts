@@ -8,7 +8,9 @@ export function fit(node: HTMLElement, steps = 2) {
     for (let step = 1; step <= steps && cutOff(); step++) node.classList.add('fit-' + step)
   }
   const schedule = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(check) }
-  const resize = new ResizeObserver(schedule), changes = new MutationObserver(schedule)
-  resize.observe(node); changes.observe(node, { subtree: true, childList: true, characterData: true }); schedule()
+  // Watches the row and everything in it: text that grows once a font arrives resizes the items, not the row
+  const resize = new ResizeObserver(schedule), watch = () => { resize.observe(node); node.querySelectorAll('*').forEach(element => resize.observe(element)) }
+  const changes = new MutationObserver(() => { watch(); schedule() })
+  watch(); changes.observe(node, { subtree: true, childList: true, characterData: true }); document.fonts?.ready.then(schedule); schedule()
   return { destroy() { resize.disconnect(); changes.disconnect(); cancelAnimationFrame(frame) } }
 }

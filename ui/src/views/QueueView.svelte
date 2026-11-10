@@ -1,6 +1,8 @@
 <script lang="ts">
   import { t, tn } from '../lib/i18n'
   import Hint from '../parts/Hint.svelte'
+  import Icon from '../parts/Icon.svelte'
+  import { fit } from '../lib/fit'
   import QueueEndMenu from '../parts/QueueEndMenu.svelte'
   import { playlistUrls, refillPlaylist } from '../lib/browseActions'
   import { command, live, trackArt, request } from '../bridge'
@@ -85,7 +87,7 @@
 
 <div class="head">
   <h3>{t('Up next')}</h3><span class="quiet">{tn(queue.length, '{count} track', '{count} tracks')} · {t('{time} left', { time: formatTime(Math.max(remaining, 0)) })}</span>
-  <div class="tools"><QueueEndMenu /><button class="ghost" onclick={saveQueue}>{t('Save')}</button><button class="ghost" onclick={startPlaylistFromQueue} title={t('Edit the queue as a new playlist')}>{t('Edit')}</button><button class="ghost" onclick={clearQueue}>{t('Clear')}</button></div>
+  <div class="tools" use:fit><QueueEndMenu /><button class="ghost" onclick={saveQueue} title={t('Save')} aria-label={t('Save')}><Icon name="save" size={15} /><span class="tool-text">{t('Save')}</span></button><button class="ghost" onclick={startPlaylistFromQueue} title={t('Edit the queue as a new playlist')} aria-label={t('Edit')}><Icon name="edit" size={15} /><span class="tool-text">{t('Edit')}</span></button><button class="ghost" onclick={clearQueue} title={t('Clear')} aria-label={t('Clear')}><Icon name="clear" size={15} /><span class="tool-text">{t('Clear')}</span></button></div>
 </div>
 {#if queue.length > 1}<Hint id="queue-reorder" text={t('Press and hold, then drag to reorder.')} /><Hint id="queue-multiselect" text={t('Press and hold without dragging to select several tracks.')} />{/if}
 {#if !queue.length}<p class="quiet">{t('The queue is empty.')}</p>{/if}
@@ -104,11 +106,12 @@
 <style>
   .head { display: flex; align-items: center; gap: 4px 10px; flex-wrap: wrap; margin-bottom: 8px; container-type: inline-size; }
   h3 { margin: 0; color: var(--fg); font-size: 16px; }
-  .tools { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 6px; margin-left: auto; min-width: 0; }
-  .tools .ghost { height: 28px; box-sizing: border-box; padding: 0 11px; font-size: 12px; white-space: nowrap; border-radius: 999px; }
-  /* narrow queue panel: the toolbar takes its own row, the pill drops its label */
-  @container (max-width: 600px) { .tools { margin-left: 0; width: 100%; justify-content: flex-end; } }
-  @container (max-width: 345px) { .tools :global(.queue-end .label) { display: none; } }
+  .tools { display: flex; align-items: center; gap: 6px; margin-left: auto; min-width: 0; } .tools :global(.queue-end) { margin-left: auto; } /* never wraps: see the fit steps. Right-aligned by margin, not justify-content, so too much spills to the right where fit sees it */
+  .tools .ghost { display: flex; align-items: center; height: 28px; box-sizing: border-box; padding: 0 11px; font-size: 12px; white-space: nowrap; border-radius: 999px; } .tools .ghost :global(.icon) { display: none; }
+  /* narrow queue panel: the toolbar takes its own row. Longer languages: the pill drops its label, then Save, Edit and Clear become icons (names stay as tooltips) */
+  @container (max-width: 600px) { .tools { margin-left: 0; width: 100%; } }
+  .tools:global(.fit-1) :global(.queue-end .label) { display: none; }
+  .tools:global(.fit-2) .tool-text { display: none; } .tools:global(.fit-2) .ghost { padding: 0 8px; } .tools:global(.fit-2) .ghost :global(.icon) { display: block; }
   .queue { display: flex; flex-direction: column; gap: 2px; }
   .item { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 52px; background: none; border: 0; border-radius: 10px; color: var(--fg); padding: 6px 10px; cursor: pointer; font: inherit; text-align: left; }
   .item:hover { background: var(--hover); }
