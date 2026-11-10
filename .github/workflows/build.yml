@@ -108,6 +108,8 @@ jobs:
           # Keep just the two downloads plus the updater's own feed files
           foreach ($duplicate in (Get-ChildItem releases | Where-Object { ($_.Name -like "*-Setup.exe" -or $_.Name -like "*-Portable.zip") -and $_.Name -ne "WinSqueeze-Setup.exe" })) { gh release delete-asset "v$version" $duplicate.Name --yes }
           gh release edit "v$version" --notes-file notes.txt
-          # One discussion per release for comments (needs Discussions enabled)
-          gh release edit "v$version" --discussion-category "Announcements"
-          if ($LASTEXITCODE -ne 0) { Write-Host "Discussions not enabled yet; skipped"; $global:LASTEXITCODE = 0 }
+          # One discussion per stable release for comments (the app's "Comments for this version"); dev builds fall back to the release page
+          if ($channel -eq "stable") {
+            gh release edit "v$version" --discussion-category "Announcements"
+            if ($LASTEXITCODE -ne 0) { Write-Host "Discussions not enabled yet; skipped"; $global:LASTEXITCODE = 0 }
+          }

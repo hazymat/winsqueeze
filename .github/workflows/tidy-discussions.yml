@@ -1,0 +1,30 @@
+name: tidy-discussions
+# One-off: deletes the bot discussions made for dev builds. Keeps stable releases' discussions and any with comments.
+on: workflow_dispatch
+permissions:
+  contents: read
+  discussions: write
+jobs:
+  tidy:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+    steps:
+      - shell: bash
+        run: |
+          set -euo pipefail
+          owner=${REPO%/*}; name=${REPO#*/}
+          keep_numbers=$(gh api --paginate "repos/$REPO/releases?per_page=100" --jq '.[] | select(.prerelease == false and .discussion_url != null) | .discussion_url | split("/") | last')
+          echo "Keeping stable discussions: $(echo $keep_numbers | tr '\n' ' ')"
+          gh api graphql --paginate -F owner="$owner" -F name="$name" -f query='query($owner:String!,$name:String!,$endCursor:String){repository(owner:$owner,name:$name){discussions(first:100,after:$endCursor){pageInfo{hasNextPage endCursor} nodes{id number title author{login} category{name} comments{totalCount}}}}}' --jq '.data.repository.discussions.nodes[] | [.id, .number, (.author.login // ""), .category.name, .comments.totalCount, .title] | @tsv' > discussions.tsv
+          echo "Discussions found: $(wc -l < discussions.tsv)"
+          deleted=0
+          while IFS=$'\t' read -r node_id number author category comment_count title; do
+            [ "$author" = "github-actions" ] && [ "$category" = "Announcements" ] || continue
+            if grep -qx "$number" <<< "$keep_numbers"; then echo "keep #$number $title (stable)"; continue; fi
+            if [ "$comment_count" -gt 0 ]; then echo "keep #$number $title ($comment_count comments)"; continue; fi
+            gh api graphql -f query='mutation($id:ID!){deleteDiscussion(input:{id:$id}){discussion{number}}}' -f id="$node_id" > /dev/null
+            echo "deleted #$number $title"; deleted=$((deleted + 1))
+          done < discussions.tsv
+          echo "Deleted $deleted discussions"
