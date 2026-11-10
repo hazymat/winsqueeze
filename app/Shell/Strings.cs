@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
+using WinSqueeze.Shell;
 namespace WinSqueeze;
 
 // Text in the user's language (SPEC.md › Languages). The English text is the key; locales/<code>.json (embedded) maps it to the translation, and anything missing stays English.
@@ -43,21 +44,27 @@ public static class L
     // Singular or plural by count, both forms being keys
     public static string N(long count, string one, string other, params (string name, object? value)[] values) => T(count == 1 ? one : other, new[] { ("count", (object?)count) }.Concat(values).ToArray());
 
-    // Translates the fixed English text a XAML window was written with: titles, labels, buttons, tooltips, headers and runs
+    // Translates the fixed English text a XAML window was written with: titles, labels, buttons, tooltips, headers and runs.
+    // A piece that fails stays in English and is logged: translation must never stop a window opening
     public static void Translate(DependencyObject root)
     {
         if (Code == "en") return;
-        if (root is Window window) window.Title = T(window.Title);
-        if (root is FrameworkElement { ToolTip: string tip } element) element.ToolTip = T(tip);
-        switch (root)
+        try
         {
-            case TextBlock textBlock when textBlock.Inlines.Count > 0 && textBlock.Inlines.All(inline => inline is Run): textBlock.Text = T(textBlock.Text); break;
-            case TextBlock textBlock: TranslateInlines(textBlock.Inlines); break;
-            case HeaderedContentControl { Header: string header } headered: headered.Header = T(header); break;
-            case HeaderedItemsControl { Header: string itemsHeader } headeredItems: headeredItems.Header = T(itemsHeader); break;
+            if (root is Window window) window.Title = T(window.Title);
+            if (root is FrameworkElement { ToolTip: string tip } element) element.ToolTip = T(tip);
+            switch (root)
+            {
+                case TextBlock textBlock when textBlock.Inlines.Count > 0 && textBlock.Inlines.All(inline => inline is Run): textBlock.Text = T(textBlock.Text); break;
+                case TextBlock textBlock: TranslateInlines(textBlock.Inlines); break;
+                case HeaderedContentControl { Header: string header } headered: headered.Header = T(header); break;
+                case HeaderedItemsControl { Header: string itemsHeader } headeredItems: headeredItems.Header = T(itemsHeader); break;
+            }
+            if (root is ContentControl { Content: string content } contentControl && !(root is Window)) contentControl.Content = T(content);
         }
-        if (root is ContentControl { Content: string content } contentControl && !(root is Window)) contentControl.Content = T(content);
-        foreach (var child in LogicalTreeHelper.GetChildren(root).OfType<DependencyObject>().ToList()) Translate(child);
+        catch (Exception error) { CrashReporter.Write("Translation skipped for a " + root.GetType().Name, error, false); }
+        List<DependencyObject> children; try { children = LogicalTreeHelper.GetChildren(root).OfType<DependencyObject>().ToList(); } catch { return; }
+        foreach (var child in children) Translate(child);
     }
     // Copied first: changing a run's text while walking the collection throws, which stopped Settings opening in any language but English
     static void TranslateInlines(InlineCollection inlines)

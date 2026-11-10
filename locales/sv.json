@@ -1135,5 +1135,7 @@
   "Browse": "Bläddra",
   "Turn to move through lists or change the volume, click to choose": "Vrid för att bläddra i listor eller ändra volymen; klicka för att välja",
   "Back to the library (Esc)": "Tillbaka till biblioteket (Esc)",
-  "drag to move the window · right-click for the Transporter": "dra för att flytta fönstret · högerklicka för Transporter"
+  "drag to move the window · right-click for the Transporter": "dra för att flytta fönstret · högerklicka för Transporter",
+  "Settings couldn't open": "Inställningarna kunde inte öppnas",
+  "Please tell us on GitHub Discussions. The details are in crash.log.": "Berätta för oss på GitHub Discussions. Detaljerna finns i crash.log."
 }
