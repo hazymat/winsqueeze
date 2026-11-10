@@ -743,6 +743,7 @@
   "Clear and rescan everything?": "Alles leeren und neu scannen?",
   "Clear and rescan": "Leeren und neu scannen",
   "No new albums": "Keine neuen Alben",
+  "Getting the results of the latest scan…": "Ergebnisse des letzten Scans werden geholt…",
   "The server didn't take it: {error}": "Der Server hat es nicht angenommen: {error}",
   "Not available while playing offline": "Nicht verfügbar bei Offline-Wiedergabe",
   "{tracks} tracks · {albums} albums · {artists} artists": "{tracks} Titel · {albums} Alben · {artists} Interpreten",

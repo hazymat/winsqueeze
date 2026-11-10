@@ -760,6 +760,7 @@
   "Clear and rescan everything?": "すべて消去して再スキャンしますか？",
   "Clear and rescan": "消去して再スキャン",
   "No new albums": "新しいアルバムはありません",
+  "Getting the results of the latest scan…": "最新のスキャン結果を取得中…",
   "The server didn't take it: {error}": "サーバーが受け付けませんでした：{error}",
   "Not available while playing offline": "オフライン再生中は使えません",
   "{tracks} tracks · {albums} albums · {artists} artists": "{tracks}曲 · {albums}枚 · {artists}人",

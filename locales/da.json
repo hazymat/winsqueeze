@@ -785,6 +785,7 @@
   "Clear and rescan everything?": "Ryd og genscan alt?",
   "Clear and rescan": "Ryd og genscan",
   "No new albums": "Ingen nye album",
+  "Getting the results of the latest scan…": "Henter resultaterne af den seneste scanning…",
   "The server didn't take it: {error}": "Serveren tog ikke imod det: {error}",
   "Not available while playing offline": "Ikke tilgængelig under offline-afspilning",
   "{tracks} tracks · {albums} albums · {artists} artists": "{tracks} numre · {albums} album · {artists} kunstnere",

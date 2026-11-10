@@ -785,6 +785,7 @@
   "Clear and rescan everything?": "Limpar e voltar a analisar tudo?",
   "Clear and rescan": "Limpar e voltar a analisar",
   "No new albums": "Sem álbuns novos",
+  "Getting the results of the latest scan…": "A obter os resultados da última análise…",
   "The server didn't take it: {error}": "O servidor não aceitou: {error}",
   "Not available while playing offline": "Indisponível durante a reprodução offline",
   "{tracks} tracks · {albums} albums · {artists} artists": "{tracks} faixas · {albums} álbuns · {artists} artistas",
