@@ -74,7 +74,8 @@
     if (upgradeStartedAt) {
       const elapsed = animationNow - upgradeStartedAt, percent = Math.max(0, Math.min(100, Math.round((elapsed - 400) / 20)))
       if (elapsed < 400) return { mode: 'upgrading', blank: true, trackDigits: '  ', timeDigits: '    ', colon: false, line1: '', line2: '', share: 0 }
-      if (percent >= 100) return { mode: 'upgrading', blank: false, trackDigits: 'UP', timeDigits: ' 100'.slice(-4), colon: false, line1: 'RESTARTING', line2: 'PLEASE WAIT', share: 1 }
+      // The percentage counts 0..99 in the right-hand pair of clock digits, like a fixed-digit tube, so no digit sits alone across the colon gap; at 100 they go dark
+      if (percent >= 100) return { mode: 'upgrading', blank: false, trackDigits: 'UP', timeDigits: '    ', colon: false, line1: 'RESTARTING', line2: 'PLEASE WAIT', share: 1 }
       return { mode: 'upgrading', blank: false, trackDigits: 'UP', timeDigits: String(percent).padStart(4, ' '), colon: false, line1: 'UPGRADING FIRMWARE', line2: `V${version} > V${updateReady}`, share: percent / 100 }
     }
     if (updateReady && updateHover) return { mode: 'prompt', blank: false, trackDigits: '  ', timeDigits: '    ', colon: false, line1: `V${updateReady} READY`, line2: 'PRESS UPDATE TO INSTALL', share: 0 }
