@@ -1,6 +1,6 @@
 <script lang="ts">
   // Crisp transport icons as SVG: text glyphs (⏮ ▶ ⏭) render off-centre with colour fringes in WebView2
-  let { name, size = 18 }: { name: 'back' | 'return' | 'history' | 'forward' | 'previous' | 'next' | 'play' | 'pause' | 'volume' | 'speaker' | 'pin' | 'favourites' | 'artists' | 'genres' | 'composers' | 'performers' | 'folders' | 'albums' | 'new' | 'queue' | 'plus' | 'settings' | 'playlists' | 'verified' | 'grid-large' | 'grid-small' | 'list' | 'cards' | 'minimise' | 'maximise' | 'restore' | 'close' | 'full-screen' | 'exit-full-screen' | 'lyrics' | 'download' | 'radio' | 'apps' | 'health'; size?: number } = $props()
+  let { name, size = 18 }: { name: 'back' | 'return' | 'history' | 'forward' | 'previous' | 'next' | 'play' | 'pause' | 'volume' | 'speaker' | 'pin' | 'favourites' | 'artists' | 'genres' | 'composers' | 'performers' | 'folders' | 'albums' | 'new' | 'queue' | 'plus' | 'settings' | 'playlists' | 'verified' | 'grid-large' | 'grid-small' | 'list' | 'cards' | 'minimise' | 'maximise' | 'restore' | 'close' | 'full-screen' | 'exit-full-screen' | 'lyrics' | 'download' | 'radio' | 'apps' | 'health' | 'save' | 'edit' | 'clear'; size?: number } = $props()
 </script>
 
 <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" class="icon">
@@ -42,7 +42,10 @@
   {:else if name === 'health'}<path d="M3.5 12h4l2-4.5 4 9 2-4.5h5" class="stroke" />
   {:else if name === 'download'}<path d="M12 4.5v10M7.5 10.5L12 15l4.5-4.5M5 19h14" class="stroke" />
   {:else if name === 'radio'}<rect x="3.5" y="8.5" width="17" height="11" rx="2" class="stroke" /><path d="M7 8.5l9-4.5" class="stroke" /><circle cx="15.5" cy="14" r="2.4" class="stroke" /><path d="M6.5 12.5h4M6.5 15.5h4" class="stroke" />
-  {:else if name === 'apps'}<rect x="4" y="4" width="6.5" height="6.5" rx="1.6" class="stroke" /><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6" class="stroke" /><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6" class="stroke" /><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6" class="stroke" />{/if}
+  {:else if name === 'apps'}<rect x="4" y="4" width="6.5" height="6.5" rx="1.6" class="stroke" /><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6" class="stroke" /><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6" class="stroke" /><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6" class="stroke" />
+  {:else if name === 'save'}<path d="M4 6.5h11M4 11h11M4 15.5h7" class="stroke" /><path d="M17.5 13v7M14 16.5h7" class="stroke" />
+  {:else if name === 'edit'}<path d="M5 19l1-4 9.5-9.5a2.1 2.1 0 0 1 3 3L9 18z" class="stroke" /><path d="M13.5 7.5l3 3" class="stroke" />
+  {:else if name === 'clear'}<path d="M5 7h14M10 4.5h4M7 7l.8 12a1.5 1.5 0 0 0 1.5 1.4h5.4a1.5 1.5 0 0 0 1.5-1.4L17 7" class="stroke" /><path d="M10.5 10.5v6M13.5 10.5v6" class="stroke" />{/if}
 </svg>
 
 <style>
