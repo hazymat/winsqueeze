@@ -2173,8 +2173,8 @@
  "v1.29.430": {
   "assets": {
    "WinSqueeze-1.29.430-stable-full.nupkg": 5,
-   "WinSqueeze-Portable.exe": 6,
-   "WinSqueeze-Setup.exe": 6,
+   "WinSqueeze-Portable.exe": 8,
+   "WinSqueeze-Setup.exe": 9,
    "releases.stable.json": 6
   },
   "prerelease": false,
@@ -2270,6 +2270,76 @@
   },
   "prerelease": true,
   "published": "2026-11-06T02:33:26Z"
+ },
+ "v1.30.429": {
+  "assets": {
+   "WinSqueeze-1.30.429-dev-full.nupkg": 5,
+   "WinSqueeze-Portable.exe": 1,
+   "WinSqueeze-Setup.exe": 1,
+   "releases.dev.json": 5
+  },
+  "prerelease": true,
+  "published": "2026-11-10T17:54:37Z"
+ },
+ "v1.30.430": {
+  "assets": {
+   "WinSqueeze-1.30.430-dev-full.nupkg": 7,
+   "WinSqueeze-Portable.exe": 1,
+   "WinSqueeze-Setup.exe": 1,
+   "releases.dev.json": 7
+  },
+  "prerelease": true,
+  "published": "2026-11-10T17:56:17Z"
+ },
+ "v1.30.432": {
+  "assets": {
+   "WinSqueeze-1.30.432-dev-full.nupkg": 6,
+   "WinSqueeze-Portable.exe": 1,
+   "WinSqueeze-Setup.exe": 1,
+   "releases.dev.json": 6
+  },
+  "prerelease": true,
+  "published": "2026-11-10T18:41:25Z"
+ },
+ "v1.30.434": {
+  "assets": {
+   "WinSqueeze-1.30.434-dev-full.nupkg": 5,
+   "WinSqueeze-Portable.exe": 1,
+   "WinSqueeze-Setup.exe": 1,
+   "releases.dev.json": 5
+  },
+  "prerelease": true,
+  "published": "2026-11-10T20:26:33Z"
+ },
+ "v1.30.436": {
+  "assets": {
+   "WinSqueeze-1.30.436-dev-full.nupkg": 5,
+   "WinSqueeze-Portable.exe": 1,
+   "WinSqueeze-Setup.exe": 1,
+   "releases.dev.json": 5
+  },
+  "prerelease": true,
+  "published": "2026-11-10T21:45:03Z"
+ },
+ "v1.30.438": {
+  "assets": {
+   "WinSqueeze-1.30.438-dev-full.nupkg": 3,
+   "WinSqueeze-Portable.exe": 1,
+   "WinSqueeze-Setup.exe": 1,
+   "releases.dev.json": 3
+  },
+  "prerelease": true,
+  "published": "2026-11-10T23:08:52Z"
+ },
+ "v1.30.440": {
+  "assets": {
+   "WinSqueeze-1.30.440-dev-full.nupkg": 0,
+   "WinSqueeze-Portable.exe": 0,
+   "WinSqueeze-Setup.exe": 0,
+   "releases.dev.json": 0
+  },
+  "prerelease": true,
+  "published": "2026-11-10T23:21:05Z"
  },
  "v1.4.139": {
   "assets": {
