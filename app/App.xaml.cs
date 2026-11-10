@@ -550,7 +550,8 @@ public partial class App : Application
 
     public void OpenSettings(string tabName = "")
     {
-        if (settingsWindow == null) { settingsWindow = new SettingsWindow(); settingsWindow.Closed += (sender, args) => settingsWindow = null; }
+        // A window that fails to build says so, instead of the click doing nothing
+        if (settingsWindow == null) { try { settingsWindow = new SettingsWindow(); } catch (Exception error) { CrashReporter.Write("Settings couldn't open", error, false); ShowTip(L.T("Settings couldn't open"), L.T("Please tell us on GitHub Discussions. The details are in crash.log.")); return; } settingsWindow.Closed += (sender, args) => settingsWindow = null; }
         if (mainWindow.IsVisible && settingsWindow.Owner == null) settingsWindow.Owner = mainWindow; // keeps Settings in front of the main window
         settingsWindow.SelectTab(tabName);
         settingsWindow.Show(); settingsWindow.Activate();

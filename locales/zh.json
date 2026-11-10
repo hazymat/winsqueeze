@@ -1135,5 +1135,7 @@
   "Browse": "浏览",
   "Turn to move through lists or change the volume, click to choose": "旋转以浏览列表或调节音量，单击以选择",
   "Back to the library (Esc)": "返回音乐库 (Esc)",
-  "drag to move the window · right-click for the Transporter": "拖动以移动窗口 · 右键单击切换到 Transporter"
+  "drag to move the window · right-click for the Transporter": "拖动以移动窗口 · 右键单击切换到 Transporter",
+  "Settings couldn't open": "无法打开设置",
+  "Please tell us on GitHub Discussions. The details are in crash.log.": "请在 GitHub Discussions 告诉我们。详细信息在 crash.log 中。"
 }

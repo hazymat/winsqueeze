@@ -1135,5 +1135,7 @@
   "Browse": "Sfoglia",
   "Turn to move through lists or change the volume, click to choose": "Ruota per scorrere gli elenchi o regolare il volume; fai clic per scegliere",
   "Back to the library (Esc)": "Torna alla libreria (Esc)",
-  "drag to move the window · right-click for the Transporter": "trascina per spostare la finestra · clic destro per il Transporter"
+  "drag to move the window · right-click for the Transporter": "trascina per spostare la finestra · clic destro per il Transporter",
+  "Settings couldn't open": "Impossibile aprire le impostazioni",
+  "Please tell us on GitHub Discussions. The details are in crash.log.": "Faccelo sapere su GitHub Discussions. I dettagli sono in crash.log."
 }
