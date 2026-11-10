@@ -217,7 +217,11 @@ public partial class MainWindow : Window
                 case "refreshLibrary": await App.Library.RefreshAsync(message.TryGetProperty("rebuild", out var rebuild) && rebuild.GetBoolean()); break;
             }
         }
-        catch (Exception bridgeError) { if (message.TryGetProperty("id", out _)) Reply(message, new { error = bridgeError.Message }); }
+        catch (Exception bridgeError)
+        {
+            if (message.TryGetProperty("id", out _)) Reply(message, new { error = bridgeError.Message });
+            else if (bridgeError is not (System.Net.Http.HttpRequestException or OperationCanceledException)) CrashReporter.Write("UI message failed: " + Text(message, "type"), bridgeError, false); // nothing else would show it (Settings once failed to open without a trace)
+        }
     }
 
     // Window state and bounds handed to the relaunched version after an update
