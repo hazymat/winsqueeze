@@ -29,7 +29,7 @@ public sealed class TrayIcon : IDisposable
         trayMenu.Items.Add(L.T("Settings"), null, (sender, args) => App.OpenSettings());
         trayMenu.Items.Add(L.T("Quit"), null, (sender, args) => App.Quit());
         trayMenu.Opening += (sender, args) => { RebuildOutputMenu(); RebuildPlayerMenu(); RebuildSleepMenu(); RebuildSkinMenu(); };
-        notifyIcon = new NotifyIcon { Icon = CreateIcon(), Text = "WinSqueeze", ContextMenuStrip = trayMenu, Visible = true };
+        notifyIcon = new NotifyIcon { Icon = CreateIcon(), Text = "WinSqueeze", ContextMenuStrip = trayMenu, Visible = App.Settings.General.ShowTrayIcon };
         notifyIcon.MouseClick += (sender, args) => { if (args.Button == MouseButtons.Left) App.ToggleMainWindow(); };
     }
 
@@ -110,7 +110,8 @@ public sealed class TrayIcon : IDisposable
         notifyIcon.Text = tooltipText.Length > 127 ? tooltipText[..127] : tooltipText;
     }
 
-    public void ShowTip(string title, string text) => notifyIcon.ShowBalloonTip(5000, title, text, ToolTipIcon.Info);
+    public bool Visible { set => notifyIcon.Visible = value; }
+    public void ShowTip(string title, string text) { if (notifyIcon.Visible) notifyIcon.ShowBalloonTip(5000, title, text, ToolTipIcon.Info); } // no icon, no balloon
 
     static Icon CreateIcon()
     {

@@ -512,6 +512,7 @@
             </Grid>
             <Border x:Name="autoPlayWarning" Style="{StaticResource Warning}" Margin="0,8,0,2"><DockPanel><TextBlock Style="{StaticResource WarningIcon}" /><TextBlock Style="{StaticResource CalloutText}" Text="Music may start playing as soon as your PC restarts, if the server was still playing to this player when it shut down." /></DockPanel></Border>
             <CheckBox x:Name="resumeAfterUpdateBox" Content="Resume playing after an update restarts WinSqueeze" />
+            <CheckBox x:Name="trayIconBox" Content="Show system tray icon" />
             <CheckBox x:Name="startMinimisedBox" Content="Start minimised to tray" />
             <CheckBox x:Name="closeHidesBox" Content="Close (X) keeps WinSqueeze running in the tray (otherwise it quits)" />
             <TextBlock Style="{StaticResource Label}" Text="When another Squeezelite is running at launch" Margin="0,14,0,3" />
