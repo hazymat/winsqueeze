@@ -8,7 +8,8 @@
   import Analyser from './Analyser.svelte'
   import MeterPanel, { panelThemes } from './MeterPanel.svelte'
   // Live from our Squeezelite build's sample export; with no audio the needles rest below -20 and the lamp dims
-  let { size = 'small', zoom = 1, moveWindow = false }: { size?: 'small' | 'large' | 'full', zoom?: number, moveWindow?: boolean } = $props()
+  // hifi: set into the hi-fi faceplate, each meter in its own chamfered cut-out instead of a black surround
+  let { size = 'small', zoom = 1, moveWindow = false, hifi = false }: { size?: 'small' | 'large' | 'full', zoom?: number, moveWindow?: boolean, hifi?: boolean } = $props()
   // Grain and dust are drawn in face units, so their frequency follows the real pixel size (window size × full-screen zoom) to stay fine
   let meterWidth = $state(384)
   const textureScale = $derived(Math.max(0.4, zoom * (meterWidth || 384) / 384))
@@ -64,7 +65,12 @@
   const detentAngles = Array.from({ length: 16 }, (unused, index) => 21 + index * 25 / 15)
 </script>
 
-<button class="meters {size}" bind:clientWidth={meterWidth} class:idle={!active} onclick={toggle} onpointerdown={pressMeters} onpointermove={dragMeters} onpointerup={() => pressedAt = null} oncontextmenu={(event) => { event.preventDefault(); event.stopPropagation(); cycleMeterView() }} title={(app.meterSettings.styles.length < 2 ? t('Click to tap the meter') : t('Click to switch meter style')) + ' · ' + (moveWindow ? (ui.hifi ? t('drag to move the window · right-click to close') : t('drag to move the window · right-click for hi-fi')) : t('right-click for full window'))}>
+<!-- Machined cut-out in the faceplate: the top wall in shadow, the bottom wall catching the light, the sides in between -->
+{#snippet chamfer(width: number, height: number, depth: number)}
+  <polygon points="0,0 {width},0 {width - depth},{depth} {depth},{depth}" class="chamfer top" /><polygon points="0,{height} {width},{height} {width - depth},{height - depth} {depth},{height - depth}" class="chamfer bottom" />
+  <polygon points="0,0 {depth},{depth} {depth},{height - depth} 0,{height}" class="chamfer left" /><polygon points="{width},0 {width - depth},{depth} {width - depth},{height - depth} {width},{height}" class="chamfer right" />
+{/snippet}
+<button class="meters {size}" class:hifi bind:clientWidth={meterWidth} class:idle={!active} onclick={toggle} onpointerdown={pressMeters} onpointermove={dragMeters} onpointerup={() => pressedAt = null} oncontextmenu={(event) => { event.preventDefault(); event.stopPropagation(); cycleMeterView() }} title={(app.meterSettings.styles.length < 2 ? t('Click to tap the meter') : t('Click to switch meter style')) + ' · ' + (moveWindow ? (ui.hifi ? t('drag to move the window · right-click to close') : t('drag to move the window · right-click for hi-fi')) : t('right-click for full window'))}>
   {#key meterView.epoch}
   {#if ui.meterStyle === 'vu'}
     {#each ['L', 'R'] as channel, channelIndex}
@@ -102,7 +108,7 @@
           <filter id={gradientId + '-lens-glint'} x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="0.12" /></filter>
           <clipPath id={gradientId + '-clip'}><rect x="5" y="5" width="110" height="62" rx="2" /></clipPath>
         </defs>
-        <rect x="0" y="0" width="120" height="72" rx="5" class="bezel" />
+        {#if hifi}<rect x="4" y="4" width="112" height="64" fill="#1a140c" />{@render chamfer(120, 72, 4)}{:else}<rect x="0" y="0" width="120" height="72" rx="5" class="bezel" />{/if}
         <rect x="5" y="5" width="110" height="62" rx="2" fill="url(#{gradientId}{channel})" class="face" />
         <path d={arc(-48, 21, 52)} class="scale" />
         <path d={arc(21, 46, 52)} class="red-line" />
@@ -158,7 +164,7 @@
       <span class="meter-stack">{@render vuLayer('face')}{@render vuLayer('needles')}{@render vuLayer('front')}<span class="lamp-light"></span><span class="peak-lamp" style:opacity={Math.pow(meters.lamp[channelIndex], 2)}><span class="peak-core" style:opacity={Math.pow(meters.lamp[channelIndex], 2)}></span></span></span>
     {/each}
   {:else if panelThemes[ui.meterStyle]}
-    <MeterPanel theme={ui.meterStyle} levels={meters.vu} reference={meters.reference} {size} {textureScale} idle={!active} />
+    <MeterPanel plate={hifi} theme={ui.meterStyle} levels={meters.vu} reference={meters.reference} {size} {textureScale} idle={!active} />
   {:else if ui.meterStyle === 'oledvu'}
     {#each ['L', 'R'] as channel, channelIndex}
       <!-- Cropped to the scale: the panel holds just the arc, numbers, needle and channel, centred top to bottom -->
@@ -186,7 +192,7 @@
     {/each}
   {:else}
     <!-- Spectrum analyser (the third style; stored as 'oled' so earlier choices carry over) -->
-    <div class="spectrum">{#if size !== 'small'}<Analyser levels={meters.bands} labels={bandLabels} scale={spectrumScale} segments={24} title={t('SPECTRUM ANALYZER')} fullRange={Math.max(0, Math.min(1, (Math.max(meters.vu[0] ?? -90, meters.vu[1] ?? -90) + 40) / 40))} />{:else}<Analyser levels={meters.bands} compact={true} segments={12} />{/if}</div>
+    <div class="spectrum">{#if size !== 'small'}<Analyser plate={hifi} levels={meters.bands} labels={bandLabels} scale={spectrumScale} segments={24} title={t('SPECTRUM ANALYZER')} fullRange={Math.max(0, Math.min(1, (Math.max(meters.vu[0] ?? -90, meters.vu[1] ?? -90) + 40) / 40))} />{:else}<Analyser levels={meters.bands} compact={true} segments={12} />{/if}</div>
   {/if}
   {/key}
 </button>
@@ -202,6 +208,9 @@
   .full :global(.panel.deck) { --full-share: 78; } .full :global(.panel.orange) { --full-share: 58; } .full :global(.panel.monitor) { --full-share: 94; } .full :global(.panel.blue) { --full-share: 86; } .full :global(.panel.green) { --full-share: 90; }
   .small .oledvu { height: 27px; } .large .oledvu { height: 85.5px; }
   .bezel { fill: #15161a; stroke: #2c2e34; stroke-width: 1; }
+  .chamfer.top { fill: #7a6d58; } .chamfer.bottom { fill: #f4ede2; } .chamfer.left { fill: #a5977f; } .chamfer.right { fill: #c6baa5; }
+  .hifi { gap: 24px; } .large.hifi .spectrum { width: 400px; height: 158px; }
+  .hifi .oledvu { backdrop-filter: none; background: radial-gradient(120% 90% at 50% 40%, #071513 0%, #030807 70%); box-shadow: 0 -1px 0 rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.85), inset 0 3px 8px rgba(0,0,0,0.95); }
   .face { stroke: rgba(0, 0, 0, 0.5); stroke-width: 0.8; }
   .scale { fill: none; stroke: #1d1a14; stroke-width: 0.9; stroke-linecap: round; }
   .red-line { fill: none; stroke: #c4291c; stroke-width: 0.9; }

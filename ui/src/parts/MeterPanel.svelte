@@ -6,7 +6,8 @@
 </script>
 <script lang="ts">
   import { meters } from '../state.svelte'
-  let { theme, levels, reference, size, idle, textureScale = 1 }: { theme: string, levels: number[], reference: number, size: string, idle: boolean, textureScale?: number } = $props()
+  // plate: set into the hi-fi faceplate (green: each window in its own cut-out, the legends engraved on the metal between them)
+  let { theme, levels, reference, size, idle, textureScale = 1, plate = false }: { theme: string, levels: number[], reference: number, size: string, idle: boolean, textureScale?: number, plate?: boolean } = $props()
   const id = `panel-${panelCount++}`
   const height = $derived(theme === 'monitor' || theme === 'blue' ? 110 : theme === 'deck' ? 96 : theme === 'orange' ? 130 : 120)
   const width = $derived(Math.round(panelThemes[theme].aspect * height))
@@ -55,6 +56,12 @@
 
 <!-- Three stacked copies: the textured face, the needles alone on their own compositor layer, and the glass and caps in front.
      A moving needle then repaints only its own thin layer, never the filtered face (repainting that every frame stalled the needles) -->
+<!-- Machined cut-out in the hi-fi faceplate: the top wall in shadow, the bottom wall catching the light -->
+{#snippet chamfer(x: number, y: number, boxWidth: number, boxHeight: number, depth: number)}
+  <polygon points="{x},{y} {x + boxWidth},{y} {x + boxWidth - depth},{y + depth} {x + depth},{y + depth}" class="chamfer top" /><polygon points="{x},{y + boxHeight} {x + boxWidth},{y + boxHeight} {x + boxWidth - depth},{y + boxHeight - depth} {x + depth},{y + boxHeight - depth}" class="chamfer bottom" />
+  <polygon points="{x},{y} {x + depth},{y + depth} {x + depth},{y + boxHeight - depth} {x},{y + boxHeight}" class="chamfer left" /><polygon points="{x + boxWidth},{y} {x + boxWidth - depth},{y + depth} {x + boxWidth - depth},{y + boxHeight - depth} {x + boxWidth},{y + boxHeight}" class="chamfer right" />
+  <rect x={x + depth} y={y + depth} width={boxWidth - depth * 2} height={boxHeight - depth * 2} fill="#030806" />
+{/snippet}
 {#snippet layerSvg(layer: string)}
 <svg viewBox="0 0 {width} {height}" class="panel {theme} layer-{layer}" class:idle aria-hidden="true" style:--aspect={panelThemes[theme].aspect} class:warm-filament={layer === 'face' && filament} class:warm-strike={layer === 'face' && !filament}>
   <defs>
@@ -202,9 +209,10 @@
       <radialGradient id={id + '-green'} cx="50%" cy="80%" r="75%"><stop offset="0%" stop-color="#1e4a2c" /><stop offset="45%" stop-color="#0d2416" /><stop offset="100%" stop-color="#030806" /></radialGradient>
       {#each greenWindows as green}<clipPath id="{id}-green-{green.channel}"><rect x={green.x} y="8" width="150" height="100" rx="2" /></clipPath>{/each}
     </defs>
-    <rect width={width} height={height} rx="4" fill="#0b0d0c" />
+    {#if !plate}<rect width={width} height={height} rx="4" fill="#0b0d0c" />{/if}
     {#each greenWindows as green, channelIndex}
       {@const centreX = green.x + 75}{@const pivotY = 112}{@const angle = jogged(powerAngle(relative(channelIndex), 55, 7), powerAngle(-90, 55, 7), channelIndex)}
+      {#if plate}{@render chamfer(green.x - 5, 3, 160, 110, 5)}{/if}
       <rect x={green.x} y="8" width="150" height="100" rx="2" fill="url(#{id}-green)" class="face" />
       <g clip-path="url(#{id}-green-{green.channel})">
         <g filter="url(#{id}-glow)" class="green-ink">
@@ -217,12 +225,18 @@
         </g>
         <line x1={centreX} y1={pivotY} x2={centreX} y2={pivotY - 84} class="needle green-needle" transform="rotate({angle} {centreX} {pivotY})" filter="url(#{id}-glow)" />
         <rect x={green.x} y="8" width="150" height="100" filter="url(#{id}-grain)" class="grain dark-grain front" />
+        {#if plate}<g class="front"><path d="M{green.x} 8 L{green.x + 70} 8 L{green.x + 34} 108 L{green.x} 108 Z" fill="#fff" opacity="0.05" /><rect x={green.x} y="8" width="150" height="100" fill="url(#{id}-sheen)" /><path d="M{green.x + 1} 8.7 H{green.x + 149}" class="glass-catch" /></g>{/if}
       </g>
       <rect x={green.x} y="8" width="150" height="100" rx="2" fill="none" stroke="#2c3a31" stroke-width="0.8" class="front" />
     {/each}
+    {#if plate}
+      <!-- On the faceplate: the legends engraved on the metal, each lamp behind a small slot -->
+      {#each [[30, 'PHASE'], [56, 'CAPACITOR'], [82, 'DUAL MONO']] as [lineY, text]}<text x="180" y={Number(lineY) - 4} class="legend engraved">{text}</text><rect x="171" y={Number(lineY) - 0.6} width="18" height="2.6" rx="0.5" class="lamp-slot" /><rect x="172" y={lineY} width="16" height="1.4" class="legend-bar" filter="url(#{id}-glow)" />{/each}
+    {:else}
     <rect x="162" y="8" width="36" height="100" fill="#060707" />
     <g filter="url(#{id}-glow)">{#each [[30, 'PHASE'], [56, 'CAPACITOR'], [82, 'DUAL MONO']] as [lineY, text]}<text x="166" y={Number(lineY) - 3} class="legend">{text}</text><rect x="178" y={lineY} width="16" height="1.4" class="legend-bar" />{/each}</g>
     <g class="front"><path d="M0 0 L{width * 0.42} 0 L{width * 0.2} {height} L0 {height} Z" fill="#fff" opacity="0.05" /><rect width={width} height={height} rx="4" fill="url(#{id}-sheen)" /></g>
+    {/if}
   {/if}
 </svg>
 {/snippet}
@@ -278,4 +292,7 @@
   .green-title { font-size: 5px; fill: #6dff9a; letter-spacing: 1px; font-weight: 600; }
   .green-needle { stroke: #cfffdc; stroke-width: 0.8; }
   .legend { font-size: 3px; fill: #b6c2b9; text-anchor: start; letter-spacing: 0.3px; } .legend-bar { fill: #d7ff4a; }
+  .chamfer.top { fill: #7a6d58; } .chamfer.bottom { fill: #f4ede2; } .chamfer.left { fill: #a5977f; } .chamfer.right { fill: #c6baa5; }
+  .legend.engraved { fill: #4a3b28; text-anchor: middle; font-size: 3.6px; font-weight: 700; letter-spacing: 0.5px; } .lamp-slot { fill: #0d0f0c; stroke: #f4ede2; stroke-width: 0.35; }
+  .glass-catch { stroke: #e8fff0; stroke-width: 0.5; opacity: 0.35; }
 </style>

@@ -39,10 +39,10 @@
   function startScan(event: PointerEvent, direction: number) { if (event.button !== 0) return; stopScan(); scanStart = window.setTimeout(() => { const hop = () => command('time', direction > 0 ? '+5' : '-5'); hop(); scanTimer = window.setInterval(hop, 450) }, 500) }
   function stopScan() { clearTimeout(scanStart); clearInterval(scanTimer); scanStart = 0; scanTimer = 0 }
   function clickScan(direction: number) { if (scanTimer) { stopScan(); return } stopScan(); command('time', direction > 0 ? '+10' : '-10') }
-  // Meter bridge: the real meters, zoomed to fit the window cut into the faceplate
+  // Meters: the real meters, zoomed to fill the left of the faceplate, each set into its own cut-out
   let meterBox = $state<HTMLElement>(), meterZoom = $state(1)
   // Fit from layout size (offsetWidth/Height): no zoom, transform or screen scaling can skew it, so the fit is the same on every monitor
-  function fitMeters() { if (!meterBox) return; const naturalWidth = meterBox.offsetWidth, naturalHeight = meterBox.offsetHeight; if (naturalWidth && naturalHeight) meterZoom = Math.min(470 / naturalWidth, 166 / naturalHeight) }
+  function fitMeters() { if (!meterBox) return; const naturalWidth = meterBox.offsetWidth, naturalHeight = meterBox.offsetHeight; if (naturalWidth && naturalHeight) meterZoom = Math.min(490 / naturalWidth, 190 / naturalHeight) }
   $effect(() => { meterBox; stageZoom; ui.meterStyle; requestAnimationFrame(fitMeters) })
   // Bare metal moves the window; right-click anywhere goes back to the normal player
   function pressPlate(event: MouseEvent) { if (event.button === 0 && !(event.target as HTMLElement).closest('button, .knob, .seek-zone, .clickable')) sendToShell({ type: 'dragWindow' }) }
@@ -153,7 +153,7 @@
       <div class="standby" class:on={playing} class:update={!!updateReady} class:upgrading={!!upgradeStartedAt} title={updateReady ? t('WinSqueeze {version} is ready', { version: updateReady }) : ''}></div>
       {#if updateReady}<button class="update-key" class:shown={updateHover || !!upgradeStartedAt} onclick={startUpgrade} title={t('Restart to update to {version}', { version: updateReady })}>UPDATE</button>{/if}
     </div>
-    <div class="meter-window"><div class="meter-zoom" bind:this={meterBox} style:transform="scale({meterZoom})"><Meters size="large" zoom={meterZoom * stageZoom} moveWindow={true} /></div><div class="pane"></div></div>
+    <div class="meter-window"><div class="meter-zoom" bind:this={meterBox} style:transform="scale({meterZoom})"><Meters size="large" zoom={meterZoom * stageZoom} moveWindow={true} hifi={true} /></div></div>
     <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
     <div class="display" class:clickable={showingUpdated} onclick={(event) => { if (showingUpdated && !(event.target as HTMLElement).closest('.seek-zone')) openWhatsNew() }}>
       <canvas bind:this={canvas} style:width="{vfdWidth}px" style:height="{vfdHeight}px"></canvas><div class="mesh"></div><div class="pane"></div>
@@ -195,8 +195,8 @@
   .update-key.shown { opacity: 1; translate: 0 0; pointer-events: auto; }
   .update-key:active { translate: 0 1px; box-shadow: 0 0 0 1.5px #3b3022, 0 0 0 3px rgba(0,0,0,0.2), inset 0 2px 3px rgba(0,0,0,0.25); }
   .display.clickable { cursor: pointer; }
-  /* Window cut into the plate: black recess, the two meters behind smoked glass */
-  .meter-window { position: absolute; left: var(--pad); top: 34px; width: 490px; height: 190px; border-radius: 6px; background: #0b0b0c; box-shadow: 0 -1px 0 rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.85), inset 0 3px 8px rgba(0,0,0,0.9); display: grid; place-items: center; overflow: hidden; }
+  /* Meter area: no surround of its own, the meters draw their own cut-outs in the plate */
+  .meter-window { position: absolute; left: var(--pad); top: 34px; width: 490px; height: 190px; display: grid; place-items: center; }
   .pane { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: linear-gradient(160deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.03) 28%, rgba(255,255,255,0) 29%, rgba(255,255,255,0) 100%); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); }
   /* VFD behind dark tinted acrylic, with the tube's fine grid mesh */
   .display { position: absolute; left: 552px; width: 414px; top: 34px; height: 190px; border-radius: 6px; background: radial-gradient(120% 90% at 50% 40%, #071513 0%, #030807 70%); box-shadow: 0 -1px 0 rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.85), inset 0 3px 10px rgba(0,0,0,0.95); overflow: hidden; }
