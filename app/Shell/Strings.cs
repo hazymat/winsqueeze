@@ -57,11 +57,12 @@ public static class L
             case HeaderedItemsControl { Header: string itemsHeader } headeredItems: headeredItems.Header = T(itemsHeader); break;
         }
         if (root is ContentControl { Content: string content } contentControl && !(root is Window)) contentControl.Content = T(content);
-        foreach (var child in LogicalTreeHelper.GetChildren(root).OfType<DependencyObject>()) Translate(child);
+        foreach (var child in LogicalTreeHelper.GetChildren(root).OfType<DependencyObject>().ToList()) Translate(child);
     }
+    // Copied first: changing a run's text while walking the collection throws, which stopped Settings opening in any language but English
     static void TranslateInlines(InlineCollection inlines)
     {
-        foreach (var inline in inlines)
+        foreach (var inline in inlines.ToList())
         {
             if (inline is Run run) run.Text = T(run.Text);
             else if (inline is Span span) TranslateInlines(span.Inlines);
