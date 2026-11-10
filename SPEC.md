@@ -308,7 +308,7 @@ Chosen direction: **Frosted Dark**, frosted glass meets Squeezebox hardware. iOS
 
 ## Windows integration
 
-**Tray icon:**
+**Tray icon:** on by default; Settings › General › "Show system tray icon" turns it off. Without it the window never hides: "Start minimised" and "Close (X) keeps WinSqueeze running" use the taskbar instead (their labels say so), a restart for an update that was hidden comes back minimised, and tray balloons are skipped.
 
 - Left-click: show/hide the main window.
 - Right-click menu: Play/Pause, Next, Previous, New playlist, Output device ▸, Player ▸, Sleep ▸, Window mode ▸, Skin ▸, Settings, Quit.
@@ -387,7 +387,7 @@ A separate Settings window with tabs, in standard Windows style, listed in a sid
 
 | Tab | Settings |
 | --- | --- |
-| General | Settings export / import (JSON; everything except passwords and other secrets); Start with Windows; resume playing on startup (off; when both are on, an amber bracket joins them with a warning that music may start as soon as the PC restarts); resume playing after an update (on); start minimised to tray; other Squeezelite at launch (ask / always stop / leave); minimise to tray when minimised; close (X) quits / keeps running in the tray (off); remember window position; language |
+| General | Settings export / import (JSON; everything except passwords and other secrets); Start with Windows; resume playing on startup (off; when both are on, an amber bracket joins them with a warning that music may start as soon as the PC restarts); resume playing after an update (on); show system tray icon (on); start minimised to tray (to the taskbar without the icon); other Squeezelite at launch (ask / always stop / leave); minimise to tray when minimised; close (X) quits / keeps running in the tray (off); remember window position; language |
 | Servers | Server finder (auto-discovery); profiles list (name, address, port, optional username/password); default profile; test connection |
 | Library (server) | Scan status and progress; Scan for changes; Playlists only; Clear and rescan everything (see Server library) |
 | Audio | Output device; driver type; exclusive mode on/off; volume mode (fixed / digital); player name (defaults to the computer name); extra Squeezelite arguments (advanced); fidelity warnings |

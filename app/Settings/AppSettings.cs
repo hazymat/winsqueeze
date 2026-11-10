@@ -162,6 +162,7 @@ public class CustomView
 public class GeneralSettings
 {
     public bool StartWithWindows { get; set; }
+    public bool ShowTrayIcon { get; set; } = true; // off: no tray icon, and the "to tray" choices below use the taskbar instead (minimised), so the window can always be found
     public bool StartMinimised { get; set; }
     public bool ResumeOnStartup { get; set; } // carry on at startup only if the server was still playing to this player (off by default)
     public bool ResumeAfterUpdate { get; set; } = true; // a restart for an update or version switch carries on from the same spot (on by default)

@@ -241,9 +241,9 @@ public partial class MainWindow : Window
             WindowStartupLocation = WindowStartupLocation.Manual;
             Left = numbers[0]; Top = numbers[1]; Width = numbers[2]; Height = numbers[3];
         }
-        if (parts[0] == "hidden") return;
+        if (parts[0] == "hidden" && App.Settings.General.ShowTrayIcon) return;
         Show();
-        if (parts[0] == "maximised") WindowState = WindowState.Maximized; else if (parts[0] == "minimised") WindowState = WindowState.Minimized;
+        if (parts[0] == "maximised") WindowState = WindowState.Maximized; else if (parts[0] is "minimised" or "hidden") WindowState = WindowState.Minimized; // hidden with no tray icon: the taskbar instead
     }
 
     // Hi-fi and Transporter modes: the window becomes the unit (hi-fi about 3.9:1, Transporter about 7.1:1, centred on the normal window); its normal size and state come back after.
@@ -436,6 +436,7 @@ public partial class MainWindow : Window
         if (App.IsQuitting) return;
         closingArgs.Cancel = true;
         if (!App.Settings.General.CloseToTray) { Dispatcher.BeginInvoke(App.Quit); return; } // after this Closing: Close() inside it throws
+        if (!App.Settings.General.ShowTrayIcon) { Dispatcher.BeginInvoke(() => WindowState = WindowState.Minimized); return; } // no tray icon: keep running on the taskbar
         SaveBounds(); App.Settings.Save();
         Hide();
         if (!App.Settings.General.CloseToTrayTipShown)

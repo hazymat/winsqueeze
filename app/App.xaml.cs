@@ -147,6 +147,7 @@ public partial class App : Application
         var windowArgument = startupArgs.Args.FirstOrDefault(argument => argument.StartsWith("--window="));
         if (windowArgument != null) mainWindow.RestoreFromArgument(windowArgument["--window=".Length..]);
         else if (!(Settings.General.StartMinimised || startupArgs.Args.Contains("--minimised"))) mainWindow.Show();
+        else if (!Settings.General.ShowTrayIcon) { mainWindow.WindowState = WindowState.Minimized; mainWindow.Show(); } // no tray icon: start minimised on the taskbar instead
         if (Settings.ActiveProfile is not { Host.Length: > 0 }) OpenSettings("Servers");
         Updater.Changed += () => Dispatcher.BeginInvoke(() => StatusChanged?.Invoke());
         Updater.Start();
@@ -534,6 +535,7 @@ public partial class App : Application
         Settings = importedSettings;
         Settings.Save();
         StartupRegistration.Apply(Settings.General.StartWithWindows);
+        ApplyTrayIcon();
         await StartPlayerAsync(false);
         LibraryChanged?.Invoke();
     }
@@ -545,6 +547,12 @@ public partial class App : Application
     public void NotifyTrackInfoChanged() { TrackInfo.Forget(); TrackInfoChanged?.Invoke(); }
 
     public void ShowMainWindow() { mainWindow.Show(); if (mainWindow.WindowState == WindowState.Minimized) mainWindow.WindowState = WindowState.Normal; mainWindow.Activate(); }
+    // Settings › General › Show system tray icon: without it the window never hides, it minimises to the taskbar
+    public void ApplyTrayIcon()
+    {
+        trayIcon.Visible = Settings.General.ShowTrayIcon;
+        if (!Settings.General.ShowTrayIcon && !mainWindow.IsVisible) { mainWindow.WindowState = WindowState.Minimized; mainWindow.Show(); }
+    }
     public void ToggleMainWindow() { if (mainWindow.IsVisible && mainWindow.WindowState != WindowState.Minimized) mainWindow.Hide(); else ShowMainWindow(); }
     public void ShowTip(string title, string text) => trayIcon.ShowTip(title, text);
 

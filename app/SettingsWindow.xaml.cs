@@ -152,6 +152,16 @@ public partial class SettingsWindow : Window
         showHintsBox.Click += (sender, args) => { Settings.General.HideHints = showHintsBox.IsChecked != true; Settings.Save(); App.NotifyHintsChanged(); };
         resetHintsButton.Click += (sender, args) => { Settings.General.DismissedHints.Clear(); Settings.General.HideHints = false; showHintsBox.IsChecked = true; Settings.Save(); App.NotifyHintsChanged(); };
         closeHidesBox.Click += (sender, args) => { Settings.General.CloseToTray = closeHidesBox.IsChecked == true; Settings.Save(); };
+        // No tray icon: starting minimised and Close (X) use the taskbar, and their labels say so
+        void ShowTrayChoices()
+        {
+            var showTray = Settings.General.ShowTrayIcon;
+            startMinimisedBox.Content = showTray ? L.T("Start minimised to tray") : L.T("Start minimised to the taskbar");
+            closeHidesBox.Content = showTray ? L.T("Close (X) keeps WinSqueeze running in the tray (otherwise it quits)") : L.T("Close (X) keeps WinSqueeze running on the taskbar (otherwise it quits)");
+        }
+        trayIconBox.IsChecked = Settings.General.ShowTrayIcon;
+        ShowTrayChoices();
+        trayIconBox.Click += (sender, args) => { Settings.General.ShowTrayIcon = trayIconBox.IsChecked == true; Settings.Save(); App.ApplyTrayIcon(); ShowTrayChoices(); };
         exportSettingsButton.Click += (sender, args) =>
         {
             var saveDialog = new Microsoft.Win32.SaveFileDialog { FileName = $"WinSqueeze-settings-{DateTime.Now:yyyy-MM-dd}.json", Filter = L.T("WinSqueeze settings") + " (*.json)|*.json" };
