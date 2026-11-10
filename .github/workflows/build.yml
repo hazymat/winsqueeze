@@ -3,8 +3,8 @@ on:
   push:
     branches: [main]
     tags: ['v*']
-    # Squeezelite's own sources build in squeezelite.yml; only the resulting exe (committed) changes the app
-    paths-ignore: ['vendor/squeezelite/src/**', 'vendor/squeezelite/CMakeLists.txt', 'vendor/squeezelite/vcpkg.json', '.github/workflows/squeezelite.yml']
+    # Squeezelite's own sources build in squeezelite.yml; only the resulting exe (committed) changes the app. Download stats (stats.yml) aren't the app either
+    paths-ignore: ['vendor/squeezelite/src/**', 'vendor/squeezelite/CMakeLists.txt', 'vendor/squeezelite/vcpkg.json', '.github/workflows/squeezelite.yml', '.github/workflows/stats.yml', '.github/stats/**']
   pull_request:
   workflow_dispatch:
     inputs:
