@@ -114,6 +114,7 @@ public partial class MainWindow : Window
                 case "setCustomViews": App.Settings.Library.CustomViews = message.GetProperty("views").Deserialize<List<CustomView>>() ?? new(); App.Settings.Save(); App.NotifyLibraryChanged(); break;
                 case "openSettings": App.OpenSettings(Text(message, "tab")); break;
                 case "openUrl": if (Uri.TryCreate(Text(message, "url"), UriKind.Absolute, out var webAddress) && (webAddress.Scheme == "https" || webAddress.Scheme == "http")) System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(webAddress.AbsoluteUri) { UseShellExecute = true }); break;
+                case "openExtra": Server.ServerExtras.Open(Text(message, "title"), Text(message, "url")); break;
                 case "quit": App.Quit(); break;
                 case "applyUpdate": await App.Updater.RestartToUpdateAsync(); break;
                 case "command": await App.Session.RequestAsync(true, CommandParts(message.GetProperty("command"))); break;
@@ -122,6 +123,7 @@ public partial class MainWindow : Window
                     var queryName = Text(message, "name");
                     var queryParameters = message.TryGetProperty("params", out var parameters) ? parameters : default;
                     var queries = App.Library.Queries;
+                    if (queryName == "extras") { Reply(message, await Server.ServerExtras.ListAsync(App.Session.PlayerId)); break; }
                     if (queryName == "nowPlayingInfo") { Reply(message, (await App.TrackInfo.LookupAsync(TrackInfo.RequestFrom(queryParameters))).ToJson()); break; }
                     if (queryName == "history") { var before = queryParameters.ValueKind == JsonValueKind.Object && queryParameters.TryGetProperty("before", out var beforeValue) ? beforeValue.GetInt64() : 0; Reply(message, await Task.Run(() => App.History.Recent(before, 400))); break; }
                     if (queryName == "health") { Reply(message, await App.Library.HealthAsync(queryParameters.ValueKind == JsonValueKind.Object && queryParameters.TryGetProperty("rescan", out var rescan) && rescan.ValueKind == JsonValueKind.True)); break; }

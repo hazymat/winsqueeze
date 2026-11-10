@@ -3,7 +3,7 @@
   import { untrack } from 'svelte'
   import { selectable } from '../lib/selectable.svelte'
   import type { SelectionAction } from '../lib/selection.svelte'
-  import { live } from '../bridge'
+  import { live, query, sendToShell, serverArt } from '../bridge'
   import { app, ui, openView, toast } from '../state.svelte'
   import { infoFor, splitName, detail, itemImage, isFolder } from '../lib/xmlBrowse'
   import Icon from '../parts/Icon.svelte'
@@ -13,13 +13,13 @@
   // Top level: kind 'radio' or 'apps' lists the server's own list. Inside: kind 'app' (key "cmd|itemId") browses; kind 'app-search' (same key) asks for words first.
   let { kind, key = '', title = '' }: { kind: string, key?: string, title?: string } = $props()
   const cmd = $derived(key.split('|')[0]), itemId = $derived(key.split('|').slice(1).join('|'))
-  let items = $state<any[]>([])
+  let items = $state<any[]>([]), extras = $state<{ key: string, title: string, url: string, icon: string }[]>([])
   let loading = $state(true), failed = $state(false)
   let searchWords = $state(''), searched = $state('')
   async function load() {
     loading = true; failed = false
     try {
-      if (kind === 'radio' || kind === 'apps') { const result = await live([kind === 'radio' ? 'radios' : 'apps', 0, 500], true); items = (result?.[kind === 'radio' ? 'radioss_loop' : 'appss_loop'] ?? []).filter((entry: any) => entry.cmd) }
+      if (kind === 'radio' || kind === 'apps') { const result = await live([kind === 'radio' ? 'radios' : 'apps', 0, 500], true); items = (result?.[kind === 'radio' ? 'radioss_loop' : 'appss_loop'] ?? []).filter((entry: any) => entry.cmd); if (kind === 'apps') extras = (await query('extras')) ?? [] }
       else if (kind === 'app-search' && !searched) items = []
       else { const result = await live([cmd, 'items', 0, 500, 'want_url:1'].concat(itemId ? [`item_id:${itemId}`] : [], searched ? [`search:${searched}`] : []), true); items = result?.loop_loop ?? []; failed = !result }
     }
@@ -30,6 +30,8 @@
   $effect(() => { kind; key; serverName; untrack(load) })
   const plain = (text: string) => (text ?? '').toLowerCase()
   const shown = $derived(ui.search.length >= 2 ? items.filter(item => plain(item.name).includes(plain(ui.search))) : items)
+  // Lyrion's Extras: plugins with their own web pages (Dynamic Playlists, Virtual Library Creator…), each opened in its own window
+  const shownExtras = $derived(ui.search.length >= 2 ? extras.filter(extra => plain(extra.title).includes(plain(ui.search))) : extras)
   const top = $derived(kind === 'radio' || kind === 'apps')
   const heading = $derived(kind === 'radio' ? t('Radio') : kind === 'apps' ? t('Apps') : title)
   function activate(item: any) {
@@ -69,7 +71,7 @@
 {/if}
 {#if loading}<p class="quiet">{t('Loading…')}</p>
 {:else if failed}<p class="quiet">{t('The server didn’t answer for this one. Some apps only work once they’re signed in on the server.')}</p>
-{:else if !items.length && (kind !== 'app-search' || searched)}<p class="quiet">{top ? (kind === 'radio' ? t('The server has no radio plugins turned on.') : t('The server has no apps turned on. Add them in Lyrion’s settings, under Plugins.')) : searched ? t('Nothing found.') : t('Nothing here.')}</p>{/if}
+{:else if !items.length && !extras.length && (kind !== 'app-search' || searched)}<p class="quiet">{top ? (kind === 'radio' ? t('The server has no radio plugins turned on.') : t('The server has no apps turned on. Add them in Lyrion’s settings, under Plugins.')) : searched ? t('Nothing found.') : t('Nothing here.')}</p>{/if}
 {#if top}
   <div class="tiles">
     {#each shown as item (item.cmd + item.name)}
@@ -79,6 +81,17 @@
       </button>
     {/each}
   </div>
+  {#if shownExtras.length}
+    <h2 class="row-head">{t('Extras')}</h2>
+    <div class="tiles">
+      {#each shownExtras as extra (extra.key)}
+        <button class="tile" onclick={() => sendToShell({ type: 'openExtra', title: extra.title, url: extra.url })} title={extra.title}>
+          {#if extra.icon}<img src={serverArt(extra.icon, 200)} alt="" loading="lazy" />{:else}<span class="glyph">✦</span>{/if}
+          <span class="tile-name">{extra.title}</span>
+        </button>
+      {/each}
+    </div>
+  {/if}
 {:else}
   <div class="items" use:selectable={{ scope: 'app:' + kind + key + searched, noun: 'item', actions: itemActions }}>
     {#each shown as item (item.id)}
@@ -97,6 +110,7 @@
   .search { display: flex; gap: 8px; margin: 0 0 14px; max-width: 520px; }
   .search input { flex: 1; min-width: 0; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line, var(--panel-strong)); background: var(--panel-strong); color: var(--fg); font: inherit; }
   .search button { padding: 8px 14px; border-radius: 8px; border: 0; background: var(--accent); color: var(--on-accent); font: inherit; cursor: pointer; } .search button:disabled { opacity: 0.5; cursor: default; }
+  .row-head { font-size: 15px; font-weight: 600; margin: 28px 0 10px; color: var(--fg-quiet); }
   .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 14px; }
   .tile { display: flex; flex-direction: column; align-items: center; gap: 8px; background: none; border: 0; color: var(--fg); padding: 10px; border-radius: 10px; cursor: pointer; font: inherit; }
   .tile:hover { background: var(--hover); }
