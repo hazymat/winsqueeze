@@ -70,7 +70,7 @@
   <polygon points="0,0 {width},0 {width - depth},{depth} {depth},{depth}" class="chamfer top" /><polygon points="0,{height} {width},{height} {width - depth},{height - depth} {depth},{height - depth}" class="chamfer bottom" />
   <polygon points="0,0 {depth},{depth} {depth},{height - depth} 0,{height}" class="chamfer left" /><polygon points="{width},0 {width - depth},{depth} {width - depth},{height - depth} {width},{height}" class="chamfer right" />
 {/snippet}
-<button class="meters {size}" class:hifi bind:clientWidth={meterWidth} class:idle={!active} onclick={toggle} onpointerdown={pressMeters} onpointermove={dragMeters} onpointerup={() => pressedAt = null} oncontextmenu={(event) => { event.preventDefault(); event.stopPropagation(); cycleMeterView() }} title={(app.meterSettings.styles.length < 2 ? t('Click to tap the meter') : t('Click to switch meter style')) + ' · ' + (moveWindow ? (ui.hifi ? t('drag to move the window · right-click to close') : t('drag to move the window · right-click for hi-fi')) : t('right-click for full window'))}>
+<button class="meters {size}" class:hifi bind:clientWidth={meterWidth} class:idle={!active} onclick={toggle} onpointerdown={pressMeters} onpointermove={dragMeters} onpointerup={() => pressedAt = null} oncontextmenu={(event) => { event.preventDefault(); event.stopPropagation(); cycleMeterView() }} title={(app.meterSettings.styles.length < 2 ? t('Click to tap the meter') : t('Click to switch meter style')) + ' · ' + (moveWindow ? (ui.hifi ? t('drag to move the window · right-click for the Transporter') : t('drag to move the window · right-click for hi-fi')) : t('right-click for full window'))}>
   {#key meterView.epoch}
   {#if ui.meterStyle === 'vu'}
     {#each ['L', 'R'] as channel, channelIndex}

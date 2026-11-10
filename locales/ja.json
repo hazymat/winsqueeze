@@ -265,7 +265,6 @@
   "Click or drag to move through the track": "クリックまたはドラッグでトラック内を移動",
   "Volume {volume} (drag up or down, or scroll)": "音量 {volume}（上下にドラッグ、またはホイール）",
   "VOLUME": "VOLUME",
-  "Back to the library (Esc or right-click)": "ライブラリに戻る（Escまたは右クリック）",
   "Back to the library": "ライブラリに戻る",
   "LIBRARY": "LIBRARY",
   "Dismiss hint": "ヒントを閉じる",
@@ -278,7 +277,6 @@
   "POWER": "POWER",
   "Click to tap the meter": "クリックでメーターを軽くたたく",
   "Click to switch meter style": "クリックでメーターのスタイルを切り替え",
-  "drag to move the window · right-click to close": "ドラッグでウィンドウを移動 · 右クリックで閉じる",
   "drag to move the window · right-click for hi-fi": "ドラッグでウィンドウを移動 · 右クリックでハイファイ",
   "right-click for full window": "右クリックで全体ウィンドウ",
   "0 VU": "0 VU",
@@ -1133,5 +1131,9 @@
   "on {title}": "{title} 収録",
   "Unplayable": "再生不可",
   "{count} error": "エラー {count} 件",
-  "{count} errors": "エラー {count} 件"
+  "{count} errors": "エラー {count} 件",
+  "Browse": "ブラウズ",
+  "Turn to move through lists or change the volume, click to choose": "回してリストの移動や音量の調整、クリックで選択",
+  "Back to the library (Esc)": "ライブラリに戻る (Esc)",
+  "drag to move the window · right-click for the Transporter": "ドラッグでウィンドウを移動 · 右クリックで Transporter"
 }

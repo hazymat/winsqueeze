@@ -281,7 +281,6 @@
   "Click or drag to move through the track": "Klikni nebo táhni pro pohyb ve skladbě",
   "Volume {volume} (drag up or down, or scroll)": "Hlasitost {volume} (táhni nahoru či dolů, nebo kolečko)",
   "VOLUME": "VOLUME",
-  "Back to the library (Esc or right-click)": "Zpět do knihovny (Esc nebo pravé tlačítko)",
   "Back to the library": "Zpět do knihovny",
   "LIBRARY": "LIBRARY",
   "Dismiss hint": "Skrýt tip",
@@ -294,7 +293,6 @@
   "POWER": "POWER",
   "Click to tap the meter": "Klikni a ťukni do měřidla",
   "Click to switch meter style": "Klikni pro změnu stylu měřidel",
-  "drag to move the window · right-click to close": "táhni pro přesun okna · pravé tlačítko zavře",
   "drag to move the window · right-click for hi-fi": "táhni pro přesun okna · pravé tlačítko pro hi-fi",
   "right-click for full window": "pravé tlačítko pro celé okno",
   "0 VU": "0 VU",
@@ -1133,5 +1131,9 @@
   "Right": "Šipka vpravo",
   "Up": "Šipka nahoru",
   "Down": "Šipka dolů",
-  "Alt": "Alt"
+  "Alt": "Alt",
+  "Browse": "Procházet",
+  "Turn to move through lists or change the volume, click to choose": "Otáčením procházej seznamy nebo měň hlasitost; kliknutím vyber",
+  "Back to the library (Esc)": "Zpět do knihovny (Esc)",
+  "drag to move the window · right-click for the Transporter": "přetažením přesuneš okno · pravým kliknutím na Transporter"
 }

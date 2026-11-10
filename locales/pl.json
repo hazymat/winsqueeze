@@ -265,7 +265,6 @@
   "Click or drag to move through the track": "Kliknij lub przeciągnij, aby przejść po utworze",
   "Volume {volume} (drag up or down, or scroll)": "Głośność {volume} (przeciągnij w górę lub w dół albo przewiń)",
   "VOLUME": "VOLUME",
-  "Back to the library (Esc or right-click)": "Wróć do biblioteki (Esc lub prawy przycisk)",
   "Back to the library": "Wróć do biblioteki",
   "LIBRARY": "LIBRARY",
   "Dismiss hint": "Ukryj podpowiedź",
@@ -278,7 +277,6 @@
   "POWER": "POWER",
   "Click to tap the meter": "Kliknij, aby stuknąć wskaźnik",
   "Click to switch meter style": "Kliknij, aby zmienić styl wskaźnika",
-  "drag to move the window · right-click to close": "przeciągnij, aby przesunąć okno · prawy przycisk, aby zamknąć",
   "drag to move the window · right-click for hi-fi": "przeciągnij, aby przesunąć okno · prawy przycisk dla hi-fi",
   "right-click for full window": "prawy przycisk dla pełnego okna",
   "0 VU": "0 VU",
@@ -1133,5 +1131,9 @@
   "on {title}": "na {title}",
   "Unplayable": "Nie do odtworzenia",
   "{count} error": "{count} błąd",
-  "{count} errors": "{count} błąd|{count} błędy|{count} błędów"
+  "{count} errors": "{count} błąd|{count} błędy|{count} błędów",
+  "Browse": "Przeglądaj",
+  "Turn to move through lists or change the volume, click to choose": "Obracaj, aby przewijać listy lub zmieniać głośność; kliknij, aby wybrać",
+  "Back to the library (Esc)": "Wróć do biblioteki (Esc)",
+  "drag to move the window · right-click for the Transporter": "przeciągnij, aby przesunąć okno · prawy przycisk: Transporter"
 }

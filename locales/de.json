@@ -273,7 +273,6 @@
   "POWER": "LEISTUNG",
   "Click to tap the meter": "Klicken, um auf die Anzeige zu tippen",
   "Click to switch meter style": "Klicken, um den Anzeigestil zu wechseln",
-  "drag to move the window · right-click to close": "ziehen, um das Fenster zu verschieben · Rechtsklick zum Schließen",
   "drag to move the window · right-click for hi-fi": "ziehen, um das Fenster zu verschieben · Rechtsklick für Hi-Fi",
   "right-click for full window": "Rechtsklick für ganzes Fenster",
   "0 VU": "0 VU",
@@ -1105,7 +1104,6 @@
   "Updated": "Aktualisiert",
   "Random": "Zufällig",
   "Shuffle again": "Neu mischen",
-  "Back to the library (Esc or right-click)": "Zurück zur Mediathek (Esc oder Rechtsklick)",
   "Back to the library": "Zurück zur Mediathek",
   "LIBRARY": "MEDIATHEK",
   "Right-click, then right-click again for hi-fi mode": "Rechtsklick, dann noch ein Rechtsklick für den Hi-Fi-Modus",
@@ -1133,5 +1131,9 @@
   "on {title}": "auf {title}",
   "Unplayable": "Nicht abspielbar",
   "{count} error": "{count} Fehler",
-  "{count} errors": "{count} Fehler"
+  "{count} errors": "{count} Fehler",
+  "Browse": "Durchsuchen",
+  "Turn to move through lists or change the volume, click to choose": "Drehen, um durch Listen zu blättern oder die Lautstärke zu ändern; klicken zum Auswählen",
+  "Back to the library (Esc)": "Zurück zur Mediathek (Esc)",
+  "drag to move the window · right-click for the Transporter": "ziehen, um das Fenster zu verschieben · Rechtsklick für den Transporter"
 }

@@ -265,7 +265,6 @@
   "Click or drag to move through the track": "Клацни або тягни, щоб переміщатися треком",
   "Volume {volume} (drag up or down, or scroll)": "Гучність {volume} (тягни вгору чи вниз або крути колесо)",
   "VOLUME": "ГУЧНІСТЬ",
-  "Back to the library (Esc or right-click)": "Назад до медіатеки (Esc або правий клік)",
   "Back to the library": "Назад до медіатеки",
   "LIBRARY": "МЕДІАТЕКА",
   "Dismiss hint": "Закрити підказку",
@@ -278,7 +277,6 @@
   "POWER": "ПОТУЖНІСТЬ",
   "Click to tap the meter": "Клацни, щоб постукати по індикатору",
   "Click to switch meter style": "Клацни, щоб змінити стиль індикатора",
-  "drag to move the window · right-click to close": "тягни, щоб перемістити вікно · правий клік, щоб закрити",
   "drag to move the window · right-click for hi-fi": "тягни, щоб перемістити вікно · правий клік для hi-fi",
   "right-click for full window": "правий клік для повного вікна",
   "0 VU": "0 VU",
@@ -1133,5 +1131,9 @@
   "on {title}": "на {title}",
   "Unplayable": "Не відтворюється",
   "{count} error": "{count} помилка",
-  "{count} errors": "{count} помилка|{count} помилки|{count} помилок"
+  "{count} errors": "{count} помилка|{count} помилки|{count} помилок",
+  "Browse": "Огляд",
+  "Turn to move through lists or change the volume, click to choose": "Обертай, щоб гортати списки або змінювати гучність; клацни, щоб вибрати",
+  "Back to the library (Esc)": "Назад до медіатеки (Esc)",
+  "drag to move the window · right-click for the Transporter": "тягни, щоб перемістити вікно · правий клік — Transporter"
 }
