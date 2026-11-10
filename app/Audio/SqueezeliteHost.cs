@@ -25,14 +25,14 @@ public sealed partial class SqueezeliteHost : IDisposable
     public bool ExclusiveRefused => Device != null && exclusiveRefused.ContainsKey(Device.SqueezeliteId);
     public string ExclusiveRefusedReason => Device != null && exclusiveRefused.TryGetValue(Device.SqueezeliteId, out var refusedReason) ? refusedReason : "";
     public event Action<string, string>? ExclusiveFailed; // device name + reason, on Squeezelite's reader thread; the app restarts it shared
-    string lastWasapiError = ""; // HRESULT our Squeezelite logs when PortAudio only says "Invalid device"
     public int OutputSampleRate { get; private set; }
     public int OutputLatencyMs { get; private set; } // what PortAudio reports once the device is open (shared mode adds to the requested latency)
     public event Action? StatusChanged;
     public event Action<string>? DecodeLine; // lines DamagedFiles cares about, on Squeezelite's reader thread
 
     [GeneratedRegex(@"opened device \d+ - (.+) at (\d+) latency(?: (\d+) ms)?")] private static partial Regex OpenedDeviceRegex();
-    [GeneratedRegex(@"WASAPI exclusive open .*hr 0x([0-9A-Fa-f]{8})")] private static partial Regex WasapiErrorRegex();
+    // A refused open, with the Windows error code our Squeezelite adds: mid-play ("error opening device") or at startup when every rate is refused (then it exits)
+    [GeneratedRegex(@"(?:error opening device|no available rate found).*?(?:\(hr 0x([0-9A-Fa-f]{8})\))?$")] private static partial Regex OpenRefusedRegex();
 
     // Plain words for the Windows (AUDCLNT_E_*) error behind a refused exclusive open
     public static string ExclusiveRefusalText(string hresult) => hresult.ToUpperInvariant() switch
@@ -52,7 +52,6 @@ public sealed partial class SqueezeliteHost : IDisposable
     {
         Stop();
         Device = device; ExclusiveActive = false; OutputSampleRate = 0; OutputLatencyMs = 0;
-        lastWasapiError = "";
         var useExclusive = audio.Exclusive && device.SupportsExclusive && !exclusiveRefused.ContainsKey(device.SqueezeliteId);
         var startInfo = new ProcessStartInfo(AppPaths.SqueezeliteExe) { CreateNoWindow = true, UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, WorkingDirectory = AppPaths.SqueezeliteFolder };
         // -s takes the slimproto host (port 3483), not the web port
@@ -129,13 +128,11 @@ public sealed partial class SqueezeliteHost : IDisposable
         if (++linesThisSecond <= 50) try { logWriter?.WriteLine(logLine); } catch (ObjectDisposedException) { } else droppedLines++;
         if (DamagedFiles.Matters(logLine)) DecodeLine?.Invoke(logLine);
         var openedMatch = OpenedDeviceRegex().Match(logLine);
-        var wasapiErrorMatch = WasapiErrorRegex().Match(logLine);
-        if (wasapiErrorMatch.Success) lastWasapiError = wasapiErrorMatch.Groups[1].Value;
+        var refusedMatch = OpenRefusedRegex().Match(logLine);
         if (logLine.Contains("opening WASAPI device in exclusive mode")) ExclusiveActive = true;
         else if (openedMatch.Success) { OutputSampleRate = int.Parse(openedMatch.Groups[2].Value); if (openedMatch.Groups[3].Success) OutputLatencyMs = int.Parse(openedMatch.Groups[3].Value); if (State == PlayerState.Failed) SetStatus(PlayerState.Running, L.T("Playing to {device}", ("device", openedMatch.Groups[1].Value))); else StatusChanged?.Invoke(); }
-        // "unable to open output device": every rate refused at startup, so Squeezelite exits
-        else if (ExclusiveActive && Device != null && (logLine.Contains("error opening device") || logLine.Contains("unable to open output device")) && exclusiveRefused.TryAdd(Device.SqueezeliteId, ExclusiveRefusalText(lastWasapiError))) ExclusiveFailed?.Invoke(Device.Name, exclusiveRefused[Device.SqueezeliteId]);
         else if (logLine.Contains("Invalid sample rate")) SetStatus(PlayerState.Failed, L.T("The device rejected this track's sample rate. Remove any -R override from Extra arguments so WinSqueeze can resample it."));
+        else if (ExclusiveActive && Device != null && refusedMatch.Success && exclusiveRefused.TryAdd(Device.SqueezeliteId, ExclusiveRefusalText(refusedMatch.Groups[1].Value))) ExclusiveFailed?.Invoke(Device.Name, exclusiveRefused[Device.SqueezeliteId]); // a rate problem isn't exclusive mode's fault (handled above)
     }
 
     void OnExited()

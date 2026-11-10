@@ -30,6 +30,7 @@
 #if WIN
 #ifndef PA18API
 #include <pa_win_wasapi.h>
+#include <objbase.h> // WinSqueeze: CoInitializeEx in output_init_pa
 #endif
 #define snprintf _snprintf
 #endif
@@ -160,27 +161,17 @@ static int pa_callback(void *pa_input, void *pa_output, unsigned long pa_frames_
 			   PaTimestamp outTime, void *userData);
 #endif
 #if WIN && !defined(PA18API)
-// WinSqueeze: PortAudio reports most WASAPI exclusive failures as "Invalid device"; log the Windows HRESULT behind it so the app can say why.
-// Some drivers refuse exclusive mode in event (pull) mode but accept polling (push) mode: retry once that way and keep using it if it works
-static bool wasapi_polling = false;
-static PaError open_output_stream(PaStreamParameters *params, double rate, PaStreamFlags flags) {
-	PaWasapiStreamInfo *wasapiInfo = (PaWasapiStreamInfo *)params->hostApiSpecificStreamInfo;
-	PaError err = Pa_OpenStream(&pa.stream, NULL, params, rate, paFramesPerBufferUnspecified, flags, pa_callback, NULL);
-	if (!wasapiInfo || (err != paInvalidDevice && err != paUnanticipatedHostError)) return err;
+// WinSqueeze: PortAudio reports WASAPI failures as "Invalid device"; add the Windows error code behind it so the app can say why
+static const char *pa_error_text(PaError err) {
+	static char text[96];
 	const PaHostErrorInfo *hostError = Pa_GetLastHostErrorInfo();
-	LOG_WARN("WASAPI exclusive open at %u refused: %s, hr 0x%08lX", (unsigned)rate, Pa_GetErrorText(err), hostError ? (unsigned long)hostError->errorCode : 0UL);
-	if (wasapiInfo->flags & paWinWasapiPolling) return err;
-	wasapiInfo->flags |= paWinWasapiPolling;
-	if ((err = Pa_OpenStream(&pa.stream, NULL, params, rate, paFramesPerBufferUnspecified, flags, pa_callback, NULL)) == paNoError) {
-		if (!wasapi_polling) LOG_INFO("WASAPI exclusive: event mode refused, using polling mode");
-		wasapi_polling = true;
-		return err;
-	}
-	hostError = Pa_GetLastHostErrorInfo();
-	LOG_WARN("WASAPI exclusive open at %u refused in polling mode too: %s, hr 0x%08lX", (unsigned)rate, Pa_GetErrorText(err), hostError ? (unsigned long)hostError->errorCode : 0UL);
-	wasapiInfo->flags &= ~paWinWasapiPolling;
-	return err;
+	if ((err != paInvalidDevice && err != paUnanticipatedHostError) || !hostError || !hostError->errorCode) return Pa_GetErrorText(err);
+	snprintf(text, sizeof(text) - 1, "%s (hr 0x%08lX)", Pa_GetErrorText(err), (unsigned long)hostError->errorCode);
+	text[sizeof(text) - 1] = 0;
+	return text;
 }
+#else
+#define pa_error_text Pa_GetErrorText
 #endif
 
 bool test_open(const char *device, unsigned rates[], bool userdef_rates) {
@@ -188,6 +179,7 @@ bool test_open(const char *device, unsigned rates[], bool userdef_rates) {
 	PaError err;
 	unsigned ref[] TEST_RATES;
 	int device_id, i, ind;
+	char last_error[96] = "every rate refused"; // WinSqueeze: why the device refused, if no rate worked
 #if WIN
 	PaWasapiStreamInfo wasapiInfo;
 	const PaDeviceInfo * paDeviceInfo;
@@ -220,7 +212,7 @@ bool test_open(const char *device, unsigned rates[], bool userdef_rates) {
 				wasapiInfo.size = sizeof(PaWasapiStreamInfo);
 				wasapiInfo.hostApiType = paWASAPI;
 				wasapiInfo.version = 1;
-				wasapiInfo.flags = paWinWasapiExclusive | (wasapi_polling ? paWinWasapiPolling : 0); // WinSqueeze: polling if event mode was refused
+				wasapiInfo.flags = paWinWasapiExclusive;
 				outputParameters.hostApiSpecificStreamInfo = &wasapiInfo;
 				LOG_INFO("opening WASAPI device in exclusive mode");
 			}
@@ -233,12 +225,8 @@ bool test_open(const char *device, unsigned rates[], bool userdef_rates) {
 	// Note use Pa_OpenStream as it appears more reliable than Pa_IsFormatSupported on some windows apis
 	for (i = 0, ind = 0; ref[i]; ++i) {
 #ifndef PA18API
-#if WIN
-		err = open_output_stream(&outputParameters, (double)ref[i], paNoFlag); // WinSqueeze
-#else
 		err = Pa_OpenStream(&pa.stream, NULL, &outputParameters, (double)ref[i],
 			paFramesPerBufferUnspecified, paNoFlag, pa_callback, NULL);
-#endif
 #else
 		err = Pa_OpenStream(&pa.stream, paNoDevice, 0, 0, NULL, outputParameters.device,
 			outputParameters.channelCount, outputParameters.sampleFormat, NULL, (double)ref[i],
@@ -251,9 +239,8 @@ bool test_open(const char *device, unsigned rates[], bool userdef_rates) {
 #if WIN && !defined (PA18API)
 			/* Ignore these errors for device probe */
 			case paUnanticipatedHostError:
-				continue;
-
 			case paInvalidDevice:
+				snprintf(last_error, sizeof(last_error) - 1, "%s", pa_error_text(err)); // WinSqueeze
 				continue;
 #endif
 #if SUN && defined (PA18API)
@@ -276,7 +263,7 @@ bool test_open(const char *device, unsigned rates[], bool userdef_rates) {
 	}
 
 	if (!rates[0] && !userdef_rates) {
-		LOG_WARN("no available rate found");
+		LOG_WARN("no available rate found: %s", last_error); // WinSqueeze: with the reason
 		return false;
 	}
 
@@ -414,7 +401,7 @@ void _pa_open(void) {
 					wasapiInfo.size = sizeof(PaWasapiStreamInfo);
 					wasapiInfo.hostApiType = paWASAPI;
 					wasapiInfo.version = 1;
-					wasapiInfo.flags = paWinWasapiExclusive | (wasapi_polling ? paWinWasapiPolling : 0); // WinSqueeze: polling if event mode was refused
+					wasapiInfo.flags = paWinWasapiExclusive;
 					outputParameters.hostApiSpecificStreamInfo = &wasapiInfo;
 					LOG_INFO("opening WASAPI device in exclusive mode");
 				}
@@ -425,14 +412,10 @@ void _pa_open(void) {
 
 	if (!err &&
 #ifndef PA18API
-#if WIN
-		(err = open_output_stream(&outputParameters, (double)output.current_sample_rate, paPrimeOutputBuffersUsingStreamCallback | paDitherOff)) != paNoError) { // WinSqueeze
-#else
 		(err = Pa_OpenStream(&pa.stream, NULL, &outputParameters, (double)output.current_sample_rate, paFramesPerBufferUnspecified,
 							 paPrimeOutputBuffersUsingStreamCallback | paDitherOff, pa_callback, NULL)) != paNoError) {
-#endif
 		LOG_WARN("error opening device %i - %s [%s] : %s", outputParameters.device, Pa_GetDeviceInfo(outputParameters.device)->name, 
-				  Pa_GetHostApiInfo(Pa_GetDeviceInfo(outputParameters.device)->hostApi)->name, Pa_GetErrorText(err));
+				  Pa_GetHostApiInfo(Pa_GetDeviceInfo(outputParameters.device)->hostApi)->name, pa_error_text(err)); // WinSqueeze: with the Windows error code
 #else
 		(err = Pa_OpenStream(&pa.stream, paNoDevice, 0, 0, NULL, outputParameters.device, outputParameters.channelCount,
 							outputParameters.sampleFormat, NULL, (double)output.current_sample_rate, paFramesPerBuffer,
@@ -644,6 +627,12 @@ void output_init_pa(log_level level, const char *device, unsigned output_buf_siz
 
 #ifndef PA18API
 	LOG_INFO("requested latency: %u", output.latency);
+#endif
+#if WIN
+	// WinSqueeze: Windows audio (WASAPI) needs COM on every thread that opens the device, and Squeezelite opens it from more than one:
+	// the main thread, and the monitor thread on first play when -C starts the output off and after each idle close (which failed with CO_E_NOTINITIALIZED).
+	// Putting this thread in the multithreaded apartment, for the life of the process, makes every thread that hasn't set up COM itself join it
+	CoInitializeEx(NULL, COINIT_MULTITHREADED);
 #endif
 
 	if ((err = Pa_Initialize()) != paNoError) {
