@@ -212,7 +212,7 @@ bool test_open(const char *device, unsigned rates[], bool userdef_rates) {
 				wasapiInfo.size = sizeof(PaWasapiStreamInfo);
 				wasapiInfo.hostApiType = paWASAPI;
 				wasapiInfo.version = 1;
-				wasapiInfo.flags = paWinWasapiExclusive;
+				wasapiInfo.flags = paWinWasapiExclusive | paWinWasapiPolling; // WinSqueeze: polling fills whatever room the driver has; event mode writes one fixed chunk per wake-up, so some USB DACs (Schiit Modi) played a chunk, then a gap
 				outputParameters.hostApiSpecificStreamInfo = &wasapiInfo;
 				LOG_INFO("opening WASAPI device in exclusive mode");
 			}
@@ -401,7 +401,7 @@ void _pa_open(void) {
 					wasapiInfo.size = sizeof(PaWasapiStreamInfo);
 					wasapiInfo.hostApiType = paWASAPI;
 					wasapiInfo.version = 1;
-					wasapiInfo.flags = paWinWasapiExclusive;
+					wasapiInfo.flags = paWinWasapiExclusive | paWinWasapiPolling; // WinSqueeze: polling fills whatever room the driver has; event mode writes one fixed chunk per wake-up, so some USB DACs (Schiit Modi) played a chunk, then a gap
 					outputParameters.hostApiSpecificStreamInfo = &wasapiInfo;
 					LOG_INFO("opening WASAPI device in exclusive mode");
 				}
