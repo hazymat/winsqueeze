@@ -26,8 +26,18 @@ export function writeSetting(name: string, value: string) { try { localStorage.s
 
 // Forward history, like a browser: Back keeps what it left, any new navigation clears it
 export const forwardHistory = $state({ views: [] as View[] })
-export function openSection(section: string) { nav.section = section; nav.stack = []; ui.search = ''; forwardHistory.views = []; sectionScroll = 0; restoreScroll(0) }
-// Scroll positions, like a browser: each view keeps how far down it was, Back and Forward return there, new views start at the top, a sidebar click starts the section afresh
+// Each sidebar section remembers where it was (drill-down, scroll, forward history), so coming back from Now playing or another section returns there; clicking the section it's already on goes back to its root and glides to the top
+type SectionMemory = { stack: View[]; scroll: number; forward: View[] }
+const sectionMemory: Record<string, SectionMemory> = {}
+export function openSection(section: string) {
+  if (section === nav.section) { const drilled = nav.stack.length > 0; ui.search = ''; forwardHistory.views = []; sectionScroll = 0; if (drilled) { nav.stack = []; restoreScroll(0) } else glideToTop(); return }
+  rememberScroll(); sectionMemory[nav.section] = { stack: nav.stack, scroll: sectionScroll, forward: forwardHistory.views }
+  const saved = sectionMemory[section]
+  nav.section = section; nav.stack = saved?.stack ?? []; ui.search = ''; forwardHistory.views = saved?.forward ?? []; sectionScroll = saved?.scroll ?? 0
+  restoreScroll(nav.stack.length ? nav.stack[nav.stack.length - 1].scroll ?? 0 : sectionScroll)
+}
+function glideToTop() { restoreRun++; const host = scrollHost(); if (host) host.scrollTo({ top: 0, behavior: 'smooth' }) }
+// Scroll positions, like a browser: each view keeps how far down it was, Back and Forward return there, new views start at the top
 let sectionScroll = 0, restoreRun = 0
 const scrollHost = () => document.querySelector<HTMLElement>('.body > main.content:not(.now-playing-host)')
 function rememberScroll() {

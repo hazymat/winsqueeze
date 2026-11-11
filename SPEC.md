@@ -91,7 +91,7 @@ Name matching splits on common separators (`,` `;` `&` `/` `feat.` `with` `and`)
 
 Sidebar sections, in this order: Favourites, Radio, Apps, Artists, Genres, Composers, Performers, Folders, Queue.
 
-Back and Forward (buttons, Alt+Left/Right, mouse side buttons, Esc for Back) work like a browser: each view keeps its scroll position, so going back returns to where it was. A newly opened view starts at the top, and clicking a sidebar section starts that section afresh from the top.
+Back and Forward (buttons, Alt+Left/Right, mouse side buttons, Esc for Back) work like a browser: each view keeps its scroll position, so going back returns to where it was. A newly opened view starts at the top. Each sidebar section remembers where it was: going to Now playing (or any other section) and back returns to the same drill-down level and scroll position. Clicking the section you're already in goes back to its top level and glides smoothly to the top.
 
 | Section | List shows | Click opens |
 | --- | --- | --- |
