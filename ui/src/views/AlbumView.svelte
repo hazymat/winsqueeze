@@ -23,7 +23,10 @@
   // Favourites go to Lyrion's own list, as the folder (one folder = one CD)
   async function favourite() {
     if (!data.folderPath) return
-    const folderUrl = 'file://' + encodeURI(data.folderPath.startsWith('/') ? data.folderPath : '/' + data.folderPath.replace(/\\/g, '/')) + '/'
+    // Cut from one of its tracks' URLs, so the folder's escaping matches the server's own (UTF-8 or Latin-1, #367); CD1/CD2 tracks lose their subfolder
+    const trackUrl = String((data.tracks ?? []).find((track: any) => String(track.url ?? '').startsWith('file:'))?.url ?? '')
+    const depth = data.folderPath.replace(/\\/g, '/').split('/').filter(Boolean).length, urlParts = trackUrl.replace(/^file:\/\/\/?/, '').split('/').filter(Boolean)
+    const folderUrl = urlParts.length > depth ? 'file:///' + urlParts.slice(0, depth).join('/') + '/' : 'file://' + encodeURI(data.folderPath.startsWith('/') ? data.folderPath : '/' + data.folderPath.replace(/\\/g, '/')) + '/'
     await live(['favorites', 'add', `url:${folderUrl}`, `title:${album.title}`])
     toast(t('Added {items} to favourites', { items: album.title }))
   }
