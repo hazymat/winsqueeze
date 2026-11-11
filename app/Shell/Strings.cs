@@ -55,7 +55,7 @@ public static class L
             if (root is FrameworkElement { ToolTip: string tip } element) element.ToolTip = T(tip);
             switch (root)
             {
-                case TextBlock textBlock when textBlock.Inlines.Count > 0 && textBlock.Inlines.All(inline => inline is Run): textBlock.Text = T(textBlock.Text); break;
+                // Each run is translated in place: replacing a TextBlock's runs with one Text left the Settings radio buttons blank (#361)
                 case TextBlock textBlock: TranslateInlines(textBlock.Inlines); break;
                 case HeaderedContentControl { Header: string header } headered: headered.Header = T(header); break;
                 case HeaderedItemsControl { Header: string itemsHeader } headeredItems: headeredItems.Header = T(itemsHeader); break;
