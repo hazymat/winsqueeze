@@ -1,4 +1,8 @@
+using System.IO;
 using System.Net;
+using System.Security.Cryptography;
+using System.Text;
+using WinSqueeze.Settings;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -9,7 +13,7 @@ namespace WinSqueeze.Shell;
 public sealed class TrackInfo
 {
     public record Request(string Kind, long TrackId, string ArtistId, string AlbumId, string Artist, string Album, string Title, double Duration, bool Remote);
-    public record Result(bool Found, string Heading = "", string Subheading = "", string Text = "", string Image = "", string Source = "", string Link = "", object? Events = null)
+    public record Result(bool Found, string Heading = "", string Subheading = "", string Text = "", string Image = "", string Source = "", string Link = "", object? Events = null, bool Incomplete = false)
     { public object ToJson() => new { found = Found, heading = Heading, subheading = Subheading, text = Text, image = Image, source = Source, link = Link, events = Events }; }
 
     public static Request RequestFrom(JsonElement parameters)
@@ -36,7 +40,7 @@ public sealed class TrackInfo
     public Task<Result> LookupAsync(Request request)
     {
         var lookupKey = string.Join("|", request.Kind, request.Artist.ToLowerInvariant(), request.Kind == "artist" ? "" : request.Album.ToLowerInvariant(), request.Kind == "lyrics" ? request.Title.ToLowerInvariant() : "");
-        lock (lookups) { if (!lookups.TryGetValue(lookupKey, out var lookup) || lookup.IsFaulted) lookups[lookupKey] = lookup = RunAsync(request); return lookup; }
+        lock (lookups) { if (!lookups.TryGetValue(lookupKey, out var lookup) || lookup.IsFaulted || lookup.IsCompletedSuccessfully && lookup.Result.Incomplete) lookups[lookupKey] = lookup = RunAsync(request); return lookup; } // a lookup cut short by a busy source is asked again next time
     }
 
     // The Music & Artist Information plugin on the server (null while the server can't be asked)
@@ -204,9 +208,14 @@ public sealed class TrackInfo
         var beginArea = artist.TryGetProperty("begin-area", out var area) && area.ValueKind == JsonValueKind.Object ? LyrionClient.ReadString(area, "name") : "";
         Add(YearOf(LyrionClient.ReadString(lifeSpan, "begin")), "start", isPerson ? L.T("Born") : L.T("Formed"), beginArea);
         Add(YearOf(LyrionClient.ReadString(lifeSpan, "end")), "end", isPerson ? L.T("Died") : L.T("Split"));
+        var albumsIncomplete = false;
         try
         {
-            if (await MusicBrainzAsync($"https://musicbrainz.org/ws/2/release-group?artist={LyrionClient.ReadString(artist, "id")}&type=album|ep&limit=100&fmt=json") is { } browse && browse.TryGetProperty("release-groups", out var releaseGroups))
+            // Every album and EP, a page of 100 at a time: big discographies (Herbie Hancock has hundreds of release groups) run to several pages
+            for (int offset = 0, total = 1; offset < total && offset < 1000; offset += 100)
+            {
+                if (await MusicBrainzAsync($"https://musicbrainz.org/ws/2/release-group?artist={LyrionClient.ReadString(artist, "id")}&type=album|ep&limit=100&offset={offset}&fmt=json") is not { } browse || !browse.TryGetProperty("release-groups", out var releaseGroups)) break;
+                total = LyrionClient.ReadInt(browse, "release-group-count");
                 foreach (var releaseGroup in releaseGroups.EnumerateArray())
                 {
                     var secondary = releaseGroup.TryGetProperty("secondary-types", out var types) ? types.EnumerateArray().Select(type => type.GetString() ?? "").ToList() : new();
@@ -214,8 +223,10 @@ public sealed class TrackInfo
                     var detail = secondary.Contains("Live") ? L.T("Live album") : secondary.Contains("Soundtrack") ? L.T("Soundtrack") : LyrionClient.ReadString(releaseGroup, "primary-type") == "EP" ? "EP" : "";
                     Add(YearOf(LyrionClient.ReadString(releaseGroup, "first-release-date")), "album", LyrionClient.ReadString(releaseGroup, "title"), detail, LyrionClient.ReadString(releaseGroup, "id"));
                 }
+                if (releaseGroups.GetArrayLength() == 0) break;
+            }
         }
-        catch (Exception error) { CrashReporter.Note("Timeline albums: " + error.Message); }
+        catch (Exception error) { CrashReporter.Note("Timeline albums: " + error.Message); albumsIncomplete = true; }
         var wikidataId = artist.TryGetProperty("relations", out var relations) ? relations.EnumerateArray().Where(relation => LyrionClient.ReadString(relation, "type") == "wikidata").Select(relation => relation.TryGetProperty("url", out var url) ? LyrionClient.ReadString(url, "resource").Split('/').Last() : "").FirstOrDefault(id => Regex.IsMatch(id, @"^Q\d+$")) ?? "" : "";
         if (wikidataId != "") try
         {
@@ -229,7 +240,8 @@ public sealed class TrackInfo
   {sourced}
   SERVICE wikibase:label {{ bd:serviceParam wikibase:language ""{labelLanguages}"". }}
 }}";
-            if (await GetJsonAsync("https://query.wikidata.org/sparql?format=json&query=" + Uri.EscapeDataString(sparql)) is { } answer && answer.TryGetProperty("results", out var results) && results.TryGetProperty("bindings", out var bindings))
+            var sparqlAddress = "https://query.wikidata.org/sparql?format=json&query=" + Uri.EscapeDataString(sparql);
+            if ((CachedAnswer(sparqlAddress, TimeSpan.FromDays(30)) is { } cachedSparql ? cachedSparql.Answer : await KeptAsync(sparqlAddress)) is { } answer && answer.TryGetProperty("results", out var results) && results.TryGetProperty("bindings", out var bindings))
             {
                 string Value(JsonElement binding, string name) => binding.TryGetProperty(name, out var field) ? LyrionClient.ReadString(field, "value") : "";
                 foreach (var binding in bindings.EnumerateArray())
@@ -242,11 +254,11 @@ public sealed class TrackInfo
                 }
             }
         }
-        catch (Exception error) { CrashReporter.Note("Timeline Wikidata: " + error.Message); }
-        if (!events.Any(item => (string)item["kind"] != "start" && (string)item["kind"] != "end")) return new(false);
+        catch (Exception error) { CrashReporter.Note("Timeline Wikidata: " + error.Message); albumsIncomplete = true; }
+        if (!events.Any(item => (string)item["kind"] != "start" && (string)item["kind"] != "end")) return new(false, Incomplete: albumsIncomplete);
         var kindOrder = new[] { "start", "member", "label", "album", "award", "nominated", "end" };
         var ordered = events.OrderBy(item => (int)item["year"]).ThenBy(item => Array.IndexOf(kindOrder, (string)item["kind"])).ThenBy(item => (string)item["title"]).ToList();
-        return new(true, request.Artist, isPerson ? "person" : "group", Source: L.T("MusicBrainz and Wikidata (sourced facts only)"), Link: $"https://musicbrainz.org/artist/{LyrionClient.ReadString(artist, "id")}", Events: ordered);
+        return new(true, request.Artist, isPerson ? "person" : "group", Source: L.T("MusicBrainz and Wikidata (sourced facts only)"), Link: $"https://musicbrainz.org/artist/{LyrionClient.ReadString(artist, "id")}", Events: ordered, Incomplete: albumsIncomplete);
     }
 
     // ---- Credits: who played, sang, wrote, produced and engineered the album, track by track (SPEC.md › Now playing views) ----
@@ -339,12 +351,48 @@ public sealed class TrackInfo
         return content == "" ? null : Found(request, content, "Last.fm", link: LyrionClient.ReadString(entity, "url"));
     }
 
+    // MusicBrainz answers 503 when busy and big lookups can time out: up to three tries, waiting longer each time. Every answer is kept on disk for 30 days,
+    // so an artist or album is asked about once a month at most, not on every play or restart; when MusicBrainz can't answer, an older copy is used
     async Task<JsonElement?> MusicBrainzAsync(string address)
     {
-        await musicBrainzGate.WaitAsync();
-        try { var wait = lastMusicBrainzCall.AddMilliseconds(1100) - DateTime.UtcNow; if (wait > TimeSpan.Zero) await Task.Delay(wait); lastMusicBrainzCall = DateTime.UtcNow; return await GetJsonAsync(address); }
-        finally { musicBrainzGate.Release(); }
+        if (CachedAnswer(address, TimeSpan.FromDays(30)) is { } fresh) return fresh.Answer;
+        for (var attempt = 1; ; attempt++)
+        {
+            await musicBrainzGate.WaitAsync();
+            try
+            {
+                if (DateTime.UtcNow < musicBrainzBusyUntil) throw new HttpRequestException("MusicBrainz is busy", null, HttpStatusCode.ServiceUnavailable);
+                var wait = lastMusicBrainzCall.AddMilliseconds(1100) - DateTime.UtcNow; if (wait > TimeSpan.Zero) await Task.Delay(wait); lastMusicBrainzCall = DateTime.UtcNow;
+                var answer = await GetJsonAsync(address); KeepAnswer(address, answer); return answer;
+            }
+            catch (Exception error) when (error is TaskCanceledException || error is HttpRequestException { StatusCode: HttpStatusCode.ServiceUnavailable or HttpStatusCode.TooManyRequests or null })
+            {
+                if (attempt >= 3) { musicBrainzBusyUntil = DateTime.UtcNow.AddMinutes(2); if (CachedAnswer(address, TimeSpan.MaxValue) is { } stale) return stale.Answer; throw; } // still busy: leave it alone for two minutes
+                lastMusicBrainzCall = DateTime.UtcNow.AddSeconds(attempt * 2);
+            }
+            finally { musicBrainzGate.Release(); }
+        }
     }
+    DateTime musicBrainzBusyUntil = DateTime.MinValue;
+
+    // The disk cache: one file per address in <data>\InfoCache, its age from the file's time; "null" is a remembered "not found"
+    static readonly string cacheFolder = Path.Combine(AppPaths.DataFolder, "InfoCache");
+    static string CacheFile(string address) => Path.Combine(cacheFolder, Convert.ToHexString(SHA1.HashData(Encoding.UTF8.GetBytes(address))) + ".json");
+    static (JsonElement? Answer, bool Hit)? CachedAnswer(string address, TimeSpan maxAge)
+    {
+        try
+        {
+            var file = new FileInfo(CacheFile(address));
+            if (!file.Exists || maxAge != TimeSpan.MaxValue && DateTime.UtcNow - file.LastWriteTimeUtc > maxAge) return null;
+            var text = File.ReadAllText(file.FullName);
+            if (text == "null") return (null, true);
+            using var document = JsonDocument.Parse(text); return (document.RootElement.Clone(), true);
+        }
+        catch { return null; }
+    }
+    static void KeepAnswer(string address, JsonElement? answer) { try { Directory.CreateDirectory(cacheFolder); File.WriteAllText(CacheFile(address), answer is { } found ? found.GetRawText() : "null"); } catch { } }
+
+    static async Task<JsonElement?> KeptAsync(string address) { var answer = await GetJsonAsync(address); KeepAnswer(address, answer); return answer; }
 
     static async Task<JsonElement?> GetJsonAsync(string address)
     {

@@ -254,8 +254,13 @@ public sealed class LibraryQueries
     {
         var folder = folderKey == "" ? Query(connection, "SELECT id, name, parent_id, album_key FROM folders WHERE parent_id IS NULL LIMIT 1").FirstOrDefault() : Query(connection, "SELECT id, name, parent_id, album_key FROM folders WHERE id=$id", ("$id", folderKey)).FirstOrDefault();
         if (folder == null) return new { children = new List<object>() };
-        var children = Query(connection, "SELECT f.id AS key, f.name, f.track_count AS tracks, f.album_key AS albumKey, a.cover_id AS cover, a.artist, a.year, (SELECT COUNT(*) FROM folders c WHERE c.parent_id=f.id) AS subfolders FROM folders f LEFT JOIN albums a ON a.key=f.album_key WHERE f.parent_id=$id ORDER BY f.name_norm", ("$id", folder["id"]));
-        return new { key = folder["id"], name = folder["name"], parent = folder["parent_id"], albumKey = folder["album_key"], children };
+        // A CD1/Disc 2 subfolder has no album of its own (its tracks belong to the parent folder's album), so it takes the album its tracks are on
+        const string discAlbum = "(SELECT at.album_key FROM tracks t JOIN album_tracks at ON at.track_id=t.id WHERE t.folder_id={0} AND at.album_key LIKE 'f:%' LIMIT 1)";
+        var children = Query(connection, $"SELECT f.id AS key, f.name, f.track_count AS tracks, k.albumKey, a.cover_id AS cover, a.artist, a.year, (SELECT COUNT(*) FROM folders c WHERE c.parent_id=f.id) AS subfolders FROM folders f JOIN (SELECT id, COALESCE(album_key, {string.Format(discAlbum, "folders.id")}) AS albumKey FROM folders WHERE parent_id=$id) k ON k.id=f.id LEFT JOIN albums a ON a.key=k.albumKey WHERE f.parent_id=$id ORDER BY f.name_norm", ("$id", folder["id"]));
+        var albumKey = folder["album_key"] ?? Query(connection, "SELECT " + string.Format(discAlbum, "$id") + " AS albumKey", ("$id", folder["id"])).FirstOrDefault()?["albumKey"];
+        // Breadcrumb: the folders above this one, top first, without the shared root
+        var trail = Query(connection, "WITH RECURSIVE up(id, name, parent_id, depth) AS (SELECT id, name, parent_id, 0 FROM folders WHERE id=(SELECT parent_id FROM folders WHERE id=$id) UNION ALL SELECT f.id, f.name, f.parent_id, up.depth + 1 FROM folders f JOIN up ON f.id=up.parent_id) SELECT id AS key, name FROM up WHERE parent_id IS NOT NULL ORDER BY depth DESC", ("$id", folder["id"]));
+        return new { key = folder["id"], name = folder["name"], parent = folder["parent_id"], albumKey, children, trail };
     }
 
     object Album(SqliteConnection connection, string albumKey)
