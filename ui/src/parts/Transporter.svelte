@@ -4,6 +4,7 @@
   import { app, meters, currentTrack, cycleMeterView, readSetting, writeSetting } from '../state.svelte'
   import { command, sendToShell, query, live } from '../bridge'
   import { resolveTracks } from '../lib/browseActions'
+  import { vfdGlyphs, vfdTop } from './vfdFont'
   const stageWidth = 1400, stageHeight = 196
   let windowWidth = $state(stageWidth), windowHeight = $state(stageHeight)
   const stageZoom = $derived(Math.min(windowWidth / stageWidth, windowHeight / stageHeight))
@@ -175,12 +176,26 @@
   }
   const smallWidth = (context: CanvasRenderingContext2D, text: string) => { const shown = plain(text); if (Array.from(shown).every(character => character in font)) return shown.length * 6 - 1; context.font = canvasFont(9.5); return Math.ceil(context.measureText(text.toUpperCase()).width) }
   function tinyText(context: CanvasRenderingContext2D, text: string, centreX: number, top: number) { const left = Math.round(centreX - (text.length * 4 - 1) / 2); for (const [cell, character] of Array.from(text).entries()) { const rows = tiny[character] ?? [0,0,0,0,0]; for (let row = 0; row < 5; row++) for (let column = 0; column < 3; column++) if (rows[row] & (4 >> column)) context.fillRect(left + cell * 4 + column, top + row, 1, 1) } }
-  // Big line: a proportional font, snapped to whole dots like the unit's own; long lines scroll after a pause (baseline 26 at 20 px leaves room for the tails of g, j, p, q and y on the 32-dot display, #366)
+  // Big line: a dot font with every letter drawn on the grid, like the unit's own (tools/vfd_font.py); text it can't draw (Japanese, Chinese…) falls back to a proportional font snapped to dots. Long lines scroll after a pause
+  const dotted = (text: string) => text.replace(/[\u00a0\t]/g, ' ')
+  const dotFontCovers = (text: string) => Array.from(dotted(text)).every(character => character === ' ' || character in vfdGlyphs)
+  const dotWidth = (text: string) => Array.from(dotted(text)).reduce((width, character) => width + (character === ' ' ? 5 : vfdGlyphs[character].length + 1), 0) - 1
+  function dotText(context: CanvasRenderingContext2D, text: string, left: number, clipLeft: number, clipRight: number) {
+    let x = left
+    for (const character of dotted(text)) {
+      if (character === ' ') { x += 5; continue }
+      const columns = vfdGlyphs[character]
+      for (const [index, column] of columns.entries()) { const at = x + index; if (at >= clipLeft && at < clipRight) for (let row = 0; column >> row; row++) if (column & (1 << row)) context.fillRect(at, vfdTop + row, 1, 1) }
+      x += columns.length + 1
+    }
+  }
+  const bigWidth = (context: CanvasRenderingContext2D, text: string, size: number) => { if (dotFontCovers(text)) return dotWidth(text); context.font = canvasFont(size); return context.measureText(text).width }
   function bigText(context: CanvasRenderingContext2D, text: string, left: number, baseline: number, size: number, room: number) {
+    const width = bigWidth(context, text, size), scrolling = width > room
+    const travel = Math.round(width + 40), offset = scrolling ? Math.round(Math.max(0, ((now / 1000 * 28) % (travel + 90)) - 90)) : 0
+    if (dotFontCovers(text)) { dotText(context, text, left - offset, left, left + room); if (scrolling) dotText(context, text, left - offset + travel, left, left + room); return }
     context.font = canvasFont(size); context.textAlign = 'left'
-    const width = context.measureText(text).width
-    if (width <= room) { context.fillText(text, left, baseline); return }
-    const travel = width + 40, offset = Math.max(0, ((now / 1000 * 28) % (travel + 90)) - 90)
+    if (!scrolling) { context.fillText(text, left, baseline); return }
     context.save(); context.beginPath(); context.rect(left, 0, room, dotsHigh); context.clip(); context.fillText(text, left - offset, baseline); context.fillText(text, left - offset + travel, baseline); context.restore()
   }
   const clock = (seconds: number) => { const whole = Math.max(0, Math.floor(seconds)); return String(Math.floor(whole / 60)).padStart(2, '0') + ':' + String(whole % 60).padStart(2, '0') }
@@ -196,7 +211,7 @@
     }
     if (screen === 'search') {
       smallText(context, t('Search'), 1, 1)
-      context.font = canvasFont(20); const width = context.measureText(searchText).width, cursorLeft = Math.min(312, 1 + width + 2)
+      const width = bigWidth(context, searchText, 20), cursorLeft = Math.min(312, 1 + width + 2)
       bigText(context, searchText, Math.min(1, 310 - width), 26, 20, 318); if (Math.floor(now / 500) % 2) context.fillRect(Math.round(cursorLeft), 11, 2, 19)
       return
     }
