@@ -34,7 +34,14 @@ public static class ServerExtras
         var profile = App.Instance.Settings.ActiveProfile;
         if (profile is not { Host.Length: > 0 } || !Uri.TryCreate(url, UriKind.Absolute, out var address) || address.Scheme != "http" || address.Host != profile.Host) return;
         var webView = new WebView2();
-        var window = new Window { Title = title, Width = 1000, Height = 760, MinWidth = 400, MinHeight = 300, WindowStartupLocation = WindowStartupLocation.CenterScreen, Content = webView, Icon = System.Windows.Media.Imaging.BitmapFrame.Create(new Uri("pack://application:,,,/Assets/WinSqueeze.ico")) };
+        // Sized to fit the screen the main window is on (small laptop screens at 125-150% scaling are only ~600 px tall), centred on it
+        var mainWindow = App.Instance.MainWindow;
+        var handle = mainWindow == null ? IntPtr.Zero : new System.Windows.Interop.WindowInteropHelper(mainWindow).Handle;
+        var screenArea = (handle == IntPtr.Zero ? System.Windows.Forms.Screen.PrimaryScreen! : System.Windows.Forms.Screen.FromHandle(handle)).WorkingArea;
+        var scale = mainWindow == null ? 1 : System.Windows.Media.VisualTreeHelper.GetDpi(mainWindow).DpiScaleX;
+        var workArea = new Rect(screenArea.X / scale, screenArea.Y / scale, screenArea.Width / scale, screenArea.Height / scale);
+        double width = Math.Min(1000, workArea.Width * 0.92), height = Math.Min(760, workArea.Height * 0.92);
+        var window = new Window { Title = title, Width = width, Height = height, MinWidth = Math.Min(400, width), MinHeight = Math.Min(300, height), WindowStartupLocation = WindowStartupLocation.Manual, Left = workArea.Left + (workArea.Width - width) / 2, Top = workArea.Top + (workArea.Height - height) / 2, Content = webView, Icon = System.Windows.Media.Imaging.BitmapFrame.Create(new Uri("pack://application:,,,/Assets/WinSqueeze.ico")) };
         window.Loaded += async (sender, args) =>
         {
             await webView.EnsureCoreWebView2Async(await CoreWebView2Environment.CreateAsync(null, Path.Combine(AppPaths.DataFolder, "WebView2")));
