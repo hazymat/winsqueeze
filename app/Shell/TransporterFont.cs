@@ -32,7 +32,7 @@ public static class TransporterFont
     static async Task DownloadAsync()
     {
         var sources = new List<string>();
-        if (App.Settings.ActiveProfile is { Host.Length: > 0 } profile) sources.Add($"http://{profile.Host}:{profile.Port}/Graphics/{fileName}");
+        if (App.Instance.Settings.ActiveProfile is { Host.Length: > 0 } profile) sources.Add($"http://{profile.Host}:{profile.Port}/Graphics/{fileName}");
         foreach (var branch in publicSources) sources.Add($"https://raw.githubusercontent.com/LMS-Community/slimserver/{branch}/Graphics/{fileName}");
         foreach (var source in sources)
         {
