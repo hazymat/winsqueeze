@@ -1142,5 +1142,19 @@
   "Back to the library (Esc)": "Torna alla libreria (Esc)",
   "drag to move the window · right-click for the Transporter": "trascina per spostare la finestra · clic destro per il Transporter",
   "Settings couldn't open": "Impossibile aprire le impostazioni",
-  "Please tell us on GitHub Discussions. The details are in crash.log.": "Faccelo sapere su GitHub Discussions. I dettagli sono in crash.log."
+  "Please tell us on GitHub Discussions. The details are in crash.log.": "Faccelo sapere su GitHub Discussions. I dettagli sono in crash.log.",
+  "Copy to folder…": "Copia in una cartella…",
+  "As MP3": "Come MP3",
+  "plays in most cars": "si ascolta in quasi tutte le auto",
+  "Original files": "File originali",
+  "same format as on the server": "stesso formato del server",
+  "Nothing to copy there": "Niente da copiare qui",
+  "Couldn’t copy: {error}": "Impossibile copiare: {error}",
+  "Copying {done} of {total} to {folder}…": "Copia di {done} su {total} in {folder}…",
+  "Copied {done} of {total} to {folder}. {failed} couldn’t be copied: {problem}": "Copiati {done} su {total} in {folder}. {failed} non copiati: {problem}",
+  "Copied {count} track to {folder}": "Copiato {count} brano in {folder}",
+  "Copied {count} tracks to {folder}": "Copiati {count} brani in {folder}",
+  "A copy is already running": "Una copia è già in corso",
+  "Copy to which folder?": "In quale cartella copiare?",
+  "Not connected to a server": "Non connesso a un server"
 }

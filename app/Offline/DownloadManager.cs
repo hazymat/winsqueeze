@@ -80,12 +80,12 @@ public sealed class DownloadManager : IDisposable
         return added;
     }
 
-    static string SafeName(string name, string fallback)
+    internal static string SafeName(string name, string fallback)
     {
         var cleaned = new string(name.Select(character => Path.GetInvalidFileNameChars().Contains(character) || character < ' ' ? '_' : character).ToArray()).Trim().TrimEnd('.');
         return cleaned == "" ? fallback : cleaned.Length > 80 ? cleaned[..80].Trim() : cleaned;
     }
-    static string Extension(string url, string contentType)
+    internal static string Extension(string url, string contentType)
     {
         try { var extension = Path.GetExtension(Uri.UnescapeDataString(new Uri(url).AbsolutePath)); if (extension.Length is > 1 and < 6) return extension.ToLowerInvariant(); } catch { }
         return "." + (contentType switch { "flc" => "flac", "alc" or "aac" => "m4a", "aif" => "aiff", "" => "bin", _ => contentType });

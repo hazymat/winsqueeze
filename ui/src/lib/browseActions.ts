@@ -3,7 +3,7 @@
 import { query, request, live, sendToShell } from '../bridge'
 import { app, ui, toast, playlist, newPlaylist, addToPlaylist, type PlaylistItem } from '../state.svelte'
 import type { SelectionAction, MenuChoice } from './selection.svelte'
-import { downloadItems } from './downloads.svelte'
+import { downloadItems, copyToFolder } from './downloads.svelte'
 import { t, tn } from './i18n'
 
 export const resolveTracks = async (kind: string, keys: string[]): Promise<PlaylistItem[]> => {
@@ -65,6 +65,8 @@ export function browseActions(kind: string): SelectionAction[] {
     { label: t('Add to end'), run: async keys => queueTracks(await resolveTracks(kind, keys), 'add') },
     { label: t('Add to playlist…'), menu: async keys => playlistMenu(() => resolveTracks(kind, keys)) },
     { label: t('Download'), run: async keys => downloadItems(kind, keys) },
+    // Copy to folder: for a USB stick in the car (most can't play FLAC), or the original files
+    { label: t('Copy to folder…'), menu: async keys => [{ label: t('As MP3'), detail: t('plays in most cars'), run: () => copyToFolder(kind, keys, true) }, { label: t('Original files'), detail: t('same format as on the server'), run: () => copyToFolder(kind, keys, false) }] },
     { label: t('Track info'), run: async keys => { ui.trackInfo = (await resolveTracks(kind, keys)).map(item => item.id) } }
   ]
 }

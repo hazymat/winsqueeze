@@ -1142,5 +1142,19 @@
   "Back to the library (Esc)": "返回音乐库 (Esc)",
   "drag to move the window · right-click for the Transporter": "拖动以移动窗口 · 右键单击切换到 Transporter",
   "Settings couldn't open": "无法打开设置",
-  "Please tell us on GitHub Discussions. The details are in crash.log.": "请在 GitHub Discussions 告诉我们。详细信息在 crash.log 中。"
+  "Please tell us on GitHub Discussions. The details are in crash.log.": "请在 GitHub Discussions 告诉我们。详细信息在 crash.log 中。",
+  "Copy to folder…": "复制到文件夹…",
+  "As MP3": "转为 MP3",
+  "plays in most cars": "大多数汽车都能播放",
+  "Original files": "原始文件",
+  "same format as on the server": "与服务器上格式相同",
+  "Nothing to copy there": "没有可复制的内容",
+  "Couldn’t copy: {error}": "无法复制：{error}",
+  "Copying {done} of {total} to {folder}…": "正在复制 {done}/{total} 到 {folder}…",
+  "Copied {done} of {total} to {folder}. {failed} couldn’t be copied: {problem}": "已复制 {done}/{total} 到 {folder}。{failed} 首无法复制：{problem}",
+  "Copied {count} track to {folder}": "已复制 {count} 首曲目到 {folder}",
+  "Copied {count} tracks to {folder}": "已复制 {count} 首曲目到 {folder}",
+  "A copy is already running": "已有复制正在进行",
+  "Copy to which folder?": "复制到哪个文件夹？",
+  "Not connected to a server": "未连接到服务器"
 }

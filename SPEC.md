@@ -253,6 +253,16 @@ Albums (or any selection: artists, genres, folders, tracks, playlists) can be do
 - **Going offline:** automatically when five player polls in a row fail and something is downloaded (tray note "Playing offline"), or by hand from the player picker (**Play offline**). The downloaded part of the current queue carries on at the same spot. The app opens Downloaded; browsing still works from the local index, and only downloaded tracks can be queued.
 - **Going back online:** checked every 30 seconds. If nothing is playing it goes back by itself; while playing it offers "The server is back · Go online" instead of interrupting.
 
+## Copy to folder
+
+Any selection (playlists, albums, artists, genres, folders, tracks) can be copied into a folder the user picks, such as a USB stick for the car.
+
+- **Where:** **Copy to folder…** in the selection bar, a menu of two: **As MP3** ("plays in most cars") or **Original files** ("same format as on the server"), then a Windows folder picker.
+- **Files:** straight into the chosen folder, numbered in play order so a car plays them in order: `01 <artist> - <title>.mp3` (more digits past 99 tracks). A file already there with that name is skipped, so copying again carries on.
+- **Source:** a track downloaded for offline play is read from this PC; the rest come from Lyrion like a download (`/music/<track id>/download`).
+- **MP3:** Windows' own Media Foundation decodes (FLAC, ALAC, AAC, WAV and others Windows reads) and encodes 320 kbps stereo at 44.1 kHz (hi-res and surround are converted first), then writes ID3 tags (title, artist, album, track). Files already MP3 are copied unchanged. Nothing extra ships.
+- **Progress:** in the action strip, "Copying 3 of 12 to E:\…", then "Copied 12 tracks to E:\" or how many couldn't be copied and why, each with **Open folder**. One copy at a time.
+
 ## Output device selection
 
 1. **Picker in the app:** a dropdown in the transport bar's device indicator, in settings (Audio tab) and in the tray menu.

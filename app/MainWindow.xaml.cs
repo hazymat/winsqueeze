@@ -160,7 +160,21 @@ public partial class MainWindow : Window
                 case "downloadRemove": var removeQueries = App.Library.Queries; var removeItems = message.GetProperty("items"); var removeIds = await Task.Run(() => removeQueries.TrackIds(removeItems)); App.Downloads.Cancel(removeIds, true); Reply(message, new { removed = removeIds.Count }); break;
                 case "downloadCancelAll": App.Downloads.CancelAll(); break;
                 case "downloadRetry": App.Downloads.Retry(); break;
-                case "openDownloads": Directory.CreateDirectory(App.Downloads.Folder); System.Diagnostics.Process.Start("explorer.exe", $"\"{App.Downloads.Folder}\""); break;
+                // Copy to folder (SPEC.md › Copy to folder): pick a folder, then copy in the background, reporting each track to the page
+                case "copyToFolder":
+                    if (Offline.FolderCopy.Busy) { Reply(message, new { error = L.T("A copy is already running") }); break; }
+                    var copyDialog = new Microsoft.Win32.OpenFolderDialog { Title = L.T("Copy to which folder?") };
+                    if (copyDialog.ShowDialog(this) != true) { Reply(message, null); break; }
+                    var copyIds = Ids(message.GetProperty("ids")); var copyQueries = App.Library.Queries;
+                    var copyRows = await Task.Run(() => copyQueries.DownloadInfo(copyIds).ToDictionary(row => Convert.ToInt64(row["id"])));
+                    var copyTracks = copyIds.Where(copyRows.ContainsKey).Select(trackId => copyRows[trackId]).ToList(); // in play order
+                    var copyFolder = copyDialog.FolderName;
+                    Reply(message, new { folder = copyFolder, total = copyTracks.Count });
+                    _ = Task.Run(() => Offline.FolderCopy.RunAsync(copyTracks, copyFolder, message.TryGetProperty("mp3", out var copyMp3) && copyMp3.GetBoolean(), App.Settings.ActiveProfile, App.Downloads.Find,
+                        progress => Push(JsonSerializer.Serialize(new { type = "copyProgress", done = progress.Done, failed = progress.Failed, total = progress.Total, current = progress.Current, finished = progress.Finished, problem = progress.Problem, folder = copyFolder }))));
+                    break;
+                case "openFolder": if (Text(message, "path") is { Length: > 0 } openPath && Directory.Exists(openPath)) System.Diagnostics.Process.Start("explorer.exe", $"\"{openPath}\""); break;
+                case "openDownloads":Directory.CreateDirectory(App.Downloads.Folder); System.Diagnostics.Process.Start("explorer.exe", $"\"{App.Downloads.Folder}\""); break;
                 case "historyDelete": App.History.Delete(Ids(message.GetProperty("ids"))); break;
                 case "historyClear": App.History.Clear(); break;
                 case "damagedClear": App.Damaged.Clear(); break;

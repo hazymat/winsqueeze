@@ -1142,5 +1142,19 @@
   "Back to the library (Esc)": "Takaisin kirjastoon (Esc)",
   "drag to move the window · right-click for the Transporter": "siirrä ikkunaa vetämällä · napsauta hiiren kakkospainikkeella Transporteriin",
   "Settings couldn't open": "Asetuksia ei voitu avata",
-  "Please tell us on GitHub Discussions. The details are in crash.log.": "Kerro meille GitHub Discussionsissa. Tiedot ovat crash.log-tiedostossa."
+  "Please tell us on GitHub Discussions. The details are in crash.log.": "Kerro meille GitHub Discussionsissa. Tiedot ovat crash.log-tiedostossa.",
+  "Copy to folder…": "Kopioi kansioon…",
+  "As MP3": "MP3:na",
+  "plays in most cars": "soi useimmissa autoissa",
+  "Original files": "Alkuperäiset tiedostot",
+  "same format as on the server": "sama muoto kuin palvelimella",
+  "Nothing to copy there": "Ei mitään kopioitavaa",
+  "Couldn’t copy: {error}": "Kopiointi epäonnistui: {error}",
+  "Copying {done} of {total} to {folder}…": "Kopioidaan {done}/{total} kansioon {folder}…",
+  "Copied {done} of {total} to {folder}. {failed} couldn’t be copied: {problem}": "Kopioitiin {done}/{total} kansioon {folder}. {failed} ei voitu kopioida: {problem}",
+  "Copied {count} track to {folder}": "Kopioitiin {count} kappale kansioon {folder}",
+  "Copied {count} tracks to {folder}": "Kopioitiin {count} kappaletta kansioon {folder}",
+  "A copy is already running": "Kopiointi on jo käynnissä",
+  "Copy to which folder?": "Mihin kansioon kopioidaan?",
+  "Not connected to a server": "Ei yhteyttä palvelimeen"
 }

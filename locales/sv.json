@@ -1142,5 +1142,19 @@
   "Back to the library (Esc)": "Tillbaka till biblioteket (Esc)",
   "drag to move the window · right-click for the Transporter": "dra för att flytta fönstret · högerklicka för Transporter",
   "Settings couldn't open": "Inställningarna kunde inte öppnas",
-  "Please tell us on GitHub Discussions. The details are in crash.log.": "Berätta för oss på GitHub Discussions. Detaljerna finns i crash.log."
+  "Please tell us on GitHub Discussions. The details are in crash.log.": "Berätta för oss på GitHub Discussions. Detaljerna finns i crash.log.",
+  "Copy to folder…": "Kopiera till mapp…",
+  "As MP3": "Som MP3",
+  "plays in most cars": "spelas i de flesta bilar",
+  "Original files": "Originalfiler",
+  "same format as on the server": "samma format som på servern",
+  "Nothing to copy there": "Inget att kopiera här",
+  "Couldn’t copy: {error}": "Kunde inte kopiera: {error}",
+  "Copying {done} of {total} to {folder}…": "Kopierar {done} av {total} till {folder}…",
+  "Copied {done} of {total} to {folder}. {failed} couldn’t be copied: {problem}": "Kopierade {done} av {total} till {folder}. {failed} kunde inte kopieras: {problem}",
+  "Copied {count} track to {folder}": "Kopierade {count} spår till {folder}",
+  "Copied {count} tracks to {folder}": "Kopierade {count} spår till {folder}",
+  "A copy is already running": "En kopiering pågår redan",
+  "Copy to which folder?": "Kopiera till vilken mapp?",
+  "Not connected to a server": "Inte ansluten till en server"
 }
