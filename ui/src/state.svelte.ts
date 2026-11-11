@@ -26,8 +26,16 @@ export function writeSetting(name: string, value: string) { try { localStorage.s
 
 // Forward history, like a browser: Back keeps what it left, any new navigation clears it
 export const forwardHistory = $state({ views: [] as View[] })
-export function openSection(section: string) { nav.section = section; nav.stack = []; ui.search = ''; forwardHistory.views = []; sectionScroll = 0; restoreScroll(0) }
-// Scroll positions, like a browser: each view keeps how far down it was, Back and Forward return there, new views start at the top, a sidebar click starts the section afresh
+// A sidebar click starts its section afresh from the top; the cover art on the transport bar flips between Now playing and the view before it, which comes back at the same level and scroll (restore)
+type SectionMemory = { stack: View[]; scroll: number; forward: View[] }
+const sectionMemory: Record<string, SectionMemory> = {}
+export function openSection(section: string, restore = false) {
+  rememberScroll(); sectionMemory[nav.section] = { stack: nav.stack, scroll: sectionScroll, forward: forwardHistory.views }
+  const saved = restore ? sectionMemory[section] : undefined
+  nav.section = section; nav.stack = saved?.stack ?? []; ui.search = ''; forwardHistory.views = saved?.forward ?? []; sectionScroll = saved?.scroll ?? 0
+  restoreScroll(nav.stack.length ? nav.stack[nav.stack.length - 1].scroll ?? 0 : sectionScroll)
+}
+// Scroll positions, like a browser: each view keeps how far down it was, Back and Forward return there, new views start at the top
 let sectionScroll = 0, restoreRun = 0
 const scrollHost = () => document.querySelector<HTMLElement>('.body > main.content:not(.now-playing-host)')
 function rememberScroll() {

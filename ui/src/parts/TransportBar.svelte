@@ -19,7 +19,7 @@
   $effect(() => { const ticker = setInterval(() => now = Date.now(), 250); return () => clearInterval(ticker) })
   // The art opens Now playing; again goes back to where you were
   let previousSection = 'artists'
-  function showNowPlaying() { if (nav.section === 'queue' && !nav.stack.length) openSection(previousSection); else { previousSection = nav.section === 'queue' ? previousSection : nav.section; openSection('queue') } }
+  function showNowPlaying() { if (nav.section === 'queue' && !nav.stack.length) openSection(previousSection, true); else { previousSection = nav.section === 'queue' ? previousSection : nav.section; openSection('queue') } }
   const status = $derived(app.nowPlaying)
   const track = $derived(currentTrack())
   const playing = $derived(status?.mode === 'play')
