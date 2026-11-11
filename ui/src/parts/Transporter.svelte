@@ -3,6 +3,7 @@
   // Transporter mode (SPEC.md › Transporter mode): the whole window becomes a two-display network player, black glass over a silver key strip, with a TransNav knob
   import { app, meters, currentTrack, cycleMeterView, readSetting, writeSetting } from '../state.svelte'
   import { command, sendToShell, query, live } from '../bridge'
+  import { lyrionFont } from './lyrionFont'
   import { resolveTracks } from '../lib/browseActions'
   import { vfdGlyphs, vfdTop } from './vfdFont'
   const stageWidth = 1400, stageHeight = 196
@@ -178,15 +179,18 @@
   function tinyText(context: CanvasRenderingContext2D, text: string, centreX: number, top: number) { const left = Math.round(centreX - (text.length * 4 - 1) / 2); for (const [cell, character] of Array.from(text).entries()) { const rows = tiny[character] ?? [0,0,0,0,0]; for (let row = 0; row < 5; row++) for (let column = 0; column < 3; column++) if (rows[row] & (4 >> column)) context.fillRect(left + cell * 4 + column, top + row, 1, 1) } }
   // Big line: a dot font with every letter drawn on the grid, like the unit's own (tools/vfd_font.py); text it can't draw (Japanese, Chinese…) falls back to a proportional font snapped to dots. Long lines scroll after a pause
   const dotted = (text: string) => text.replace(/[\u00a0\t]/g, ' ')
-  const dotFontCovers = (text: string) => Array.from(dotted(text)).every(character => character === ' ' || character in vfdGlyphs)
-  const dotWidth = (text: string) => Array.from(dotted(text)).reduce((width, character) => width + (character === ' ' ? 5 : vfdGlyphs[character].length + 1), 0) - 1
+  // The real unit's font when the shell has it (Lyrion's standard.2, downloaded on first use: app/Shell/TransporterFont.cs); letters it lacks come from the bundled dot font
+  const dotFont = lyrionFont // Lyrion's own standard.2 font; our Liberation dot font fills letters it lacks
+  const glyphOf = (character: string) => dotFont.glyphs[character] ?? vfdGlyphs[character]
+  const dotFontCovers = (text: string) => Array.from(dotted(text)).every(character => character === ' ' || glyphOf(character))
+  const dotWidth = (text: string) => Array.from(dotted(text)).reduce((width, character) => width + (character === ' ' ? dotFont.space : glyphOf(character).length) + dotFont.gap, 0) - dotFont.gap
   function dotText(context: CanvasRenderingContext2D, text: string, left: number, clipLeft: number, clipRight: number) {
     let x = left
     for (const character of dotted(text)) {
-      if (character === ' ') { x += 5; continue }
-      const columns = vfdGlyphs[character]
-      for (const [index, column] of columns.entries()) { const at = x + index; if (at >= clipLeft && at < clipRight) for (let row = 0; column >> row; row++) if (column & (1 << row)) context.fillRect(at, vfdTop + row, 1, 1) }
-      x += columns.length + 1
+      if (character === ' ') { x += dotFont.space + dotFont.gap; continue }
+      const columns = glyphOf(character), top = character in dotFont.glyphs ? dotFont.top : vfdTop
+      for (const [index, column] of columns.entries()) { const at = x + index; if (at >= clipLeft && at < clipRight) for (let row = 0; column >> row; row++) if (column & (1 << row)) context.fillRect(at, top + row, 1, 1) }
+      x += columns.length + dotFont.gap
     }
   }
   const bigWidth = (context: CanvasRenderingContext2D, text: string, size: number) => { if (dotFontCovers(text)) return dotWidth(text); context.font = canvasFont(size); return context.measureText(text).width }
