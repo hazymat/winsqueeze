@@ -175,7 +175,7 @@
   }
   const smallWidth = (context: CanvasRenderingContext2D, text: string) => { const shown = plain(text); if (Array.from(shown).every(character => character in font)) return shown.length * 6 - 1; context.font = canvasFont(9.5); return Math.ceil(context.measureText(text.toUpperCase()).width) }
   function tinyText(context: CanvasRenderingContext2D, text: string, centreX: number, top: number) { const left = Math.round(centreX - (text.length * 4 - 1) / 2); for (const [cell, character] of Array.from(text).entries()) { const rows = tiny[character] ?? [0,0,0,0,0]; for (let row = 0; row < 5; row++) for (let column = 0; column < 3; column++) if (rows[row] & (4 >> column)) context.fillRect(left + cell * 4 + column, top + row, 1, 1) } }
-  // Big line: a proportional font, snapped to whole dots like the unit's own; long lines scroll after a pause
+  // Big line: a proportional font, snapped to whole dots like the unit's own; long lines scroll after a pause (baseline 26 at 20 px leaves room for the tails of g, j, p, q and y on the 32-dot display, #366)
   function bigText(context: CanvasRenderingContext2D, text: string, left: number, baseline: number, size: number, room: number) {
     context.font = canvasFont(size); context.textAlign = 'left'
     const width = context.measureText(text).width
@@ -187,7 +187,7 @@
   const arrow = (context: CanvasRenderingContext2D) => { context.beginPath(); context.moveTo(311, 15); context.lineTo(317, 21); context.lineTo(311, 27); context.closePath(); context.fill() }
   function drawLeft(context: CanvasRenderingContext2D) {
     if (screen === 'standby') { context.font = canvasFont(22); context.textAlign = 'center'; context.fillText(new Date(now).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }), dotsWide / 2, 25); return }
-    if (flash.until > now) { smallText(context, String(track?.title ?? ''), 1, 1); bigText(context, flash.text, 1, 29, 19, 318); return }
+    if (flash.until > now) { smallText(context, String(track?.title ?? ''), 1, 1); bigText(context, flash.text, 1, 26, 19, 318); return }
     if (screen === 'volume') {
       smallText(context, `VOLUME (${Math.round(volume)})`, 1, 1)
       const steps = 40, filled = Math.round(volume / 100 * steps) // the unit's block bar: solid blocks up to the level, a dotted track after
@@ -196,14 +196,14 @@
     }
     if (screen === 'search') {
       smallText(context, t('Search'), 1, 1)
-      context.font = canvasFont(21); const width = context.measureText(searchText).width, cursorLeft = Math.min(312, 1 + width + 2)
-      bigText(context, searchText, Math.min(1, 310 - width), 29, 21, 318); if (Math.floor(now / 500) % 2) context.fillRect(Math.round(cursorLeft), 12, 2, 18)
+      context.font = canvasFont(20); const width = context.measureText(searchText).width, cursorLeft = Math.min(312, 1 + width + 2)
+      bigText(context, searchText, Math.min(1, 310 - width), 26, 20, 318); if (Math.floor(now / 500) % 2) context.fillRect(Math.round(cursorLeft), 11, 2, 19)
       return
     }
     if (screen === 'browse' && level) {
       const counter = loading ? ' …' : ` (${level.index + 1} OF ${level.entries.length})`
       smallText(context, level.title, 1, 1, 318 - smallWidth(context, counter) - 6); smallText(context, counter, 318 - smallWidth(context, counter), 1)
-      if (large) bigText(context, entry?.name ?? '', 1, 29, 21, entry?.open ? 304 : 318)
+      if (large) bigText(context, entry?.name ?? '', 1, 26, 20, entry?.open ? 304 : 318)
       else { smallText(context, entry?.name ?? '', 1, 12, 304); smallText(context, entry?.detail ?? '', 1, 23, 304) }
       if (entry?.open) arrow(context)
       return
@@ -216,9 +216,9 @@
     if (track && duration) smallText(context, elapsed, dotsWide - smallWidth(context, elapsed) - 1, 1)
     if (track && duration && nowPlayingFormat === 0) { const barLeft = smallWidth(context, heading) + 6, barRight = dotsWide - smallWidth(context, elapsed) - 6, share = position / duration; context.strokeStyle = '#fff'; context.lineWidth = 1; context.strokeRect(barLeft + 0.5, 1.5, barRight - barLeft - 1, 5); context.fillRect(barLeft + 1, 2, Math.round((barRight - barLeft - 2) * share), 4) }
     const line = [track?.artist ?? track?.albumartist, track?.title].filter(Boolean).join(' - ')
-    if (large) bigText(context, line || String(app.status?.message ?? ''), 1, 29, 21, playing ? 300 : 318)
+    if (large) bigText(context, line || String(app.status?.message ?? ''), 1, 26, 20, playing ? 300 : 318)
     else { smallText(context, String(track?.title ?? ''), 1, 12); smallText(context, [track?.artist, track?.album].filter(Boolean).join(' - '), 1, 23) }
-    if (playing && large) { context.font = '600 18px "Segoe UI Symbol", "DejaVu Sans", sans-serif'; context.textAlign = 'right'; context.fillText('♪', 318, 29) }
+    if (playing && large) { context.font = '600 18px "Segoe UI Symbol", "DejaVu Sans", sans-serif'; context.textAlign = 'right'; context.fillText('♪', 318, 26) }
   }
   // Spectrum: both channels across the whole display, bass at the outer edges, thin bars with peak dots that hang, then fall
   const barsPerSide = 53
