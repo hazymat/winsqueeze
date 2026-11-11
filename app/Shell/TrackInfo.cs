@@ -1,4 +1,7 @@
 using System.Net;
+using System.Security.Cryptography;
+using System.Text;
+using WinSqueeze.Settings;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -236,7 +239,8 @@ public sealed class TrackInfo
   {sourced}
   SERVICE wikibase:label {{ bd:serviceParam wikibase:language ""{labelLanguages}"". }}
 }}";
-            if (await GetJsonAsync("https://query.wikidata.org/sparql?format=json&query=" + Uri.EscapeDataString(sparql)) is { } answer && answer.TryGetProperty("results", out var results) && results.TryGetProperty("bindings", out var bindings))
+            var sparqlAddress = "https://query.wikidata.org/sparql?format=json&query=" + Uri.EscapeDataString(sparql);
+            if ((CachedAnswer(sparqlAddress, TimeSpan.FromDays(30)) is { } cachedSparql ? cachedSparql.Answer : await KeptAsync(sparqlAddress)) is { } answer && answer.TryGetProperty("results", out var results) && results.TryGetProperty("bindings", out var bindings))
             {
                 string Value(JsonElement binding, string name) => binding.TryGetProperty(name, out var field) ? LyrionClient.ReadString(field, "value") : "";
                 foreach (var binding in bindings.EnumerateArray())
@@ -346,17 +350,48 @@ public sealed class TrackInfo
         return content == "" ? null : Found(request, content, "Last.fm", link: LyrionClient.ReadString(entity, "url"));
     }
 
-    // MusicBrainz answers 503 when busy and big lookups can time out: up to three tries, waiting longer each time
+    // MusicBrainz answers 503 when busy and big lookups can time out: up to three tries, waiting longer each time. Every answer is kept on disk for 30 days,
+    // so an artist or album is asked about once a month at most, not on every play or restart; when MusicBrainz can't answer, an older copy is used
     async Task<JsonElement?> MusicBrainzAsync(string address)
     {
+        if (CachedAnswer(address, TimeSpan.FromDays(30)) is { } fresh) return fresh.Answer;
         for (var attempt = 1; ; attempt++)
         {
             await musicBrainzGate.WaitAsync();
-            try { var wait = lastMusicBrainzCall.AddMilliseconds(1100) - DateTime.UtcNow; if (wait > TimeSpan.Zero) await Task.Delay(wait); lastMusicBrainzCall = DateTime.UtcNow; return await GetJsonAsync(address); }
-            catch (Exception error) when (attempt < 3 && (error is TaskCanceledException || error is HttpRequestException { StatusCode: HttpStatusCode.ServiceUnavailable or HttpStatusCode.TooManyRequests or null })) { lastMusicBrainzCall = DateTime.UtcNow.AddSeconds(attempt * 2); }
+            try
+            {
+                if (DateTime.UtcNow < musicBrainzBusyUntil) throw new HttpRequestException("MusicBrainz is busy", null, HttpStatusCode.ServiceUnavailable);
+                var wait = lastMusicBrainzCall.AddMilliseconds(1100) - DateTime.UtcNow; if (wait > TimeSpan.Zero) await Task.Delay(wait); lastMusicBrainzCall = DateTime.UtcNow;
+                var answer = await GetJsonAsync(address); KeepAnswer(address, answer); return answer;
+            }
+            catch (Exception error) when (error is TaskCanceledException || error is HttpRequestException { StatusCode: HttpStatusCode.ServiceUnavailable or HttpStatusCode.TooManyRequests or null })
+            {
+                if (attempt >= 3) { musicBrainzBusyUntil = DateTime.UtcNow.AddMinutes(2); if (CachedAnswer(address, TimeSpan.MaxValue) is { } stale) return stale.Answer; throw; } // still busy: leave it alone for two minutes
+                lastMusicBrainzCall = DateTime.UtcNow.AddSeconds(attempt * 2);
+            }
             finally { musicBrainzGate.Release(); }
         }
     }
+    DateTime musicBrainzBusyUntil = DateTime.MinValue;
+
+    // The disk cache: one file per address in <data>\InfoCache, its age from the file's time; "null" is a remembered "not found"
+    static readonly string cacheFolder = Path.Combine(AppPaths.DataFolder, "InfoCache");
+    static string CacheFile(string address) => Path.Combine(cacheFolder, Convert.ToHexString(SHA1.HashData(Encoding.UTF8.GetBytes(address))) + ".json");
+    static (JsonElement? Answer, bool Hit)? CachedAnswer(string address, TimeSpan maxAge)
+    {
+        try
+        {
+            var file = new FileInfo(CacheFile(address));
+            if (!file.Exists || maxAge != TimeSpan.MaxValue && DateTime.UtcNow - file.LastWriteTimeUtc > maxAge) return null;
+            var text = File.ReadAllText(file.FullName);
+            if (text == "null") return (null, true);
+            using var document = JsonDocument.Parse(text); return (document.RootElement.Clone(), true);
+        }
+        catch { return null; }
+    }
+    static void KeepAnswer(string address, JsonElement? answer) { try { Directory.CreateDirectory(cacheFolder); File.WriteAllText(CacheFile(address), answer is { } found ? found.GetRawText() : "null"); } catch { } }
+
+    static async Task<JsonElement?> KeptAsync(string address) { var answer = await GetJsonAsync(address); KeepAnswer(address, answer); return answer; }
 
     static async Task<JsonElement?> GetJsonAsync(string address)
     {
