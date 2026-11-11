@@ -4,6 +4,7 @@
   import { app, meters, currentTrack, cycleMeterView, readSetting, writeSetting } from '../state.svelte'
   import { command, sendToShell, query, live } from '../bridge'
   import { lyrionFont } from './lyrionFont'
+  import { lyrionVuFace, lyrionVuNeedles } from './lyrionVu'
   import { resolveTracks } from '../lib/browseActions'
   import { vfdGlyphs, vfdTop } from './vfdFont'
   const stageWidth = 1400, stageHeight = 196
@@ -164,9 +165,8 @@
   let leftCanvas = $state<HTMLCanvasElement>(), rightCanvas = $state<HTMLCanvasElement>()
   const leftBuffer = document.createElement('canvas'), rightBuffer = document.createElement('canvas')
   leftBuffer.width = rightBuffer.width = dotsWide; leftBuffer.height = rightBuffer.height = dotsHigh
-  // 5x7 small font (the unit's top line) and a 3x5 figure font for the VU scales
+  // 5x7 small font (the unit's top line)
   const font: Record<string, number[]> = { A: [14,17,17,17,31,17,17], B: [30,17,17,30,17,17,30], C: [14,17,16,16,16,17,14], D: [28,18,17,17,17,18,28], E: [31,16,16,30,16,16,31], F: [31,16,16,30,16,16,16], G: [14,17,16,23,17,17,15], H: [17,17,17,31,17,17,17], I: [14,4,4,4,4,4,14], J: [7,2,2,2,2,18,12], K: [17,18,20,24,20,18,17], L: [16,16,16,16,16,16,31], M: [17,27,21,21,17,17,17], N: [17,17,25,21,19,17,17], O: [14,17,17,17,17,17,14], P: [30,17,17,30,16,16,16], Q: [14,17,17,17,21,18,13], R: [30,17,17,30,20,18,17], S: [15,16,16,14,1,1,30], T: [31,4,4,4,4,4,4], U: [17,17,17,17,17,17,14], V: [17,17,17,17,17,10,4], W: [17,17,17,21,21,21,10], X: [17,17,10,4,10,17,17], Y: [17,17,17,10,4,4,4], Z: [31,1,2,4,8,16,31], '0': [14,17,19,21,25,17,14], '1': [4,12,4,4,4,4,14], '2': [14,17,1,2,4,8,31], '3': [31,2,4,2,1,17,14], '4': [2,6,10,18,31,2,2], '5': [31,16,30,1,1,17,14], '6': [6,8,16,30,17,17,14], '7': [31,1,2,4,8,8,8], '8': [14,17,17,14,17,17,14], '9': [14,17,17,15,1,2,12], ':': [0,12,12,0,12,12,0], '.': [0,0,0,0,0,12,12], ',': [0,0,0,0,12,4,8], '-': [0,0,0,31,0,0,0], "'": [12,4,8,0,0,0,0], '"': [10,10,0,0,0,0,0], '“': [10,10,0,0,0,0,0], '”': [10,10,0,0,0,0,0], '/': [0,1,2,4,8,16,0], '·': [0,0,0,12,12,0,0], '(': [2,4,8,8,8,4,2], ')': [8,4,2,2,2,4,8], '&': [12,18,20,8,21,18,13], '!': [4,4,4,4,4,0,4], '?': [14,17,1,2,4,0,4], '+': [0,4,4,31,4,4,0], '#': [10,10,31,10,31,10,10], ' ': [0,0,0,0,0,0,0] }
-  const tiny: Record<string, number[]> = { '0': [7,5,5,5,7], '1': [2,6,2,2,7], '2': [7,1,7,4,7], '3': [7,1,3,1,7], '5': [7,4,7,1,7], '7': [7,1,1,2,2], '+': [0,2,7,2,0], '-': [0,0,7,0,0], V: [5,5,5,5,2], U: [5,5,5,5,7] }
   const plain = (text: string) => text.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[’‘]/g, "'").replace(/[–—]/g, '-').toUpperCase()
   const canvasFont = (size: number) => `600 ${size}px "Segoe UI", "Yu Gothic UI", "Microsoft YaHei UI", Inter, Arial, sans-serif`
   // Small line: the 5x7 font; text it can't draw (Cyrillic, Japanese…) falls back to a small proportional font
@@ -176,7 +176,6 @@
     for (const [cell, character] of Array.from(shown).entries()) { if ((cell + 1) * 6 > room) break; const rows = font[character]; for (let row = 0; row < 7; row++) for (let column = 0; column < 5; column++) if (rows[row] & (16 >> column)) context.fillRect(left + cell * 6 + column, top + row, 1, 1) }
   }
   const smallWidth = (context: CanvasRenderingContext2D, text: string) => { const shown = plain(text); if (Array.from(shown).every(character => character in font)) return shown.length * 6 - 1; context.font = canvasFont(9.5); return Math.ceil(context.measureText(text.toUpperCase()).width) }
-  function tinyText(context: CanvasRenderingContext2D, text: string, centreX: number, top: number) { const left = Math.round(centreX - (text.length * 4 - 1) / 2); for (const [cell, character] of Array.from(text).entries()) { const rows = tiny[character] ?? [0,0,0,0,0]; for (let row = 0; row < 5; row++) for (let column = 0; column < 3; column++) if (rows[row] & (4 >> column)) context.fillRect(left + cell * 4 + column, top + row, 1, 1) } }
   // Big line: a dot font with every letter drawn on the grid, like the unit's own (tools/vfd_font.py); text it can't draw (Japanese, Chinese…) falls back to a proportional font snapped to dots. Long lines scroll after a pause
   const dotted = (text: string) => text.replace(/[\u00a0\t]/g, ' ')
   // The real unit's font when the shell has it (Lyrion's standard.2, downloaded on first use: app/Shell/TransporterFont.cs); letters it lacks come from the bundled dot font
@@ -256,26 +255,21 @@
       if (peakHold[bar] > height + 1) context.fillRect(left, dotsHigh - Math.round(peakHold[bar]) - 1, 2, 1)
     })
   }
-  // VU: two classic meter faces drawn dot by dot, figures over a flat arc that thickens into the red zone past 0 VU, the needle rising from below the display
-  const vuScale = [[-20, -50], [-10, -32], [-7, -22], [-5, -13], [-3, -3], [-2, 3], [-1, 9], [0, 16], [1, 24], [2, 32], [3, 42]]
-  const angleOf = (decibels: number) => { if (decibels <= vuScale[0][0]) return vuScale[0][1] - Math.min(6, (vuScale[0][0] - decibels) * 0.3); for (let mark = 1; mark < vuScale.length; mark++) if (decibels <= vuScale[mark][0]) { const [lowDb, lowAngle] = vuScale[mark - 1], [highDb, highAngle] = vuScale[mark]; return lowAngle + (highAngle - lowAngle) * (decibels - lowDb) / (highDb - lowDb) } return 46 }
+  // VU: the Transporter's own analog meter (Lyrion's vumeter.bmp, 48 needle positions in four grey levels), one face a channel as on the unit
+  // Needle frame for each scale mark, measured from the bitmap: -20 VU sits at frame 1.5, 0 VU at 33.9, +3 at 45
+  const vuFrames = [[-22, 0], [-20, 1.53], [-10, 7.17], [-7, 12.87], [-5, 17.11], [-3, 23.72], [0, 33.86], [3, 44.95], [3.6, 47]]
+  const frameOf = (decibels: number) => { if (decibels <= vuFrames[0][0]) return 0; for (let mark = 1; mark < vuFrames.length; mark++) if (decibels <= vuFrames[mark][0]) { const [lowDb, lowFrame] = vuFrames[mark - 1], [highDb, highFrame] = vuFrames[mark]; return Math.round(lowFrame + (highFrame - lowFrame) * (decibels - lowDb) / (highDb - lowDb)) } return 47 }
+  const greys = ['', 'rgba(255,255,255,0.34)', 'rgba(255,255,255,0.67)', '#fff']
   function drawVu(context: CanvasRenderingContext2D) {
     for (const channel of [0, 1]) {
-      // The arc is a flattened ellipse, so the scale spans most of the face yet stays within the 32 rows
-      const centreX = 80 + channel * 160, centreY = 54, radiusX = 76, radiusY = 42
-      const arcPoint = (degrees: number, scale = 1) => { const radians = degrees * Math.PI / 180; return [centreX + Math.sin(radians) * radiusX * scale, centreY - Math.cos(radians) * radiusY * scale] }
-      const dot = (x: number, y: number) => context.fillRect(Math.round(x), Math.round(y), 1, 1)
-      for (let degrees = -50; degrees <= 42; degrees += 0.25) { const [x, y] = arcPoint(degrees); dot(x, y); if (degrees >= 16) { dot(x, y - 1); dot(x, y - 2) } }
-      for (const [decibels, degrees] of vuScale) { const major = [-20, -10, -7, -5, -3, 0, 3].includes(decibels); for (let along = 1; along <= (major ? 3 : 2); along++) { const [x, y] = arcPoint(degrees, 1 + along * 0.035); dot(x, y) } }
-      for (const [label, degrees] of [['20', -50], ['10', -32], ['7', -22], ['5', -13], ['3', -3], ['0', 16], ['3', 42]] as [string, number][]) { const [x, y] = arcPoint(degrees, 1.2); tinyText(context, label, x, Math.round(y - 3)) }
-      tinyText(context, '-', centreX - 70, 1); tinyText(context, '+', centreX + 70, 1); tinyText(context, 'VU', centreX + 4, 21)
-      // Needle: pivot well below the glass, so only its upper length shows
-      const degrees = angleOf(meters.vu[channel] - meters.reference), [tipX, tipY] = arcPoint(degrees, 1.12)
-      context.strokeStyle = '#fff'; context.lineWidth = 1.8; context.beginPath(); context.moveTo(centreX, 78); context.lineTo(tipX, tipY); context.stroke()
+      const left = channel * 160, needle = lyrionVuNeedles[frameOf(meters.vu[channel] - meters.reference)]
+      for (let row = 0; row < 32; row++) for (let column = 0; column < 160; column++) { const level = lyrionVuFace[(row * 160 + column) >> 2] >> (6 - (column & 3) * 2) & 3; if (level) { context.fillStyle = greys[level]; context.fillRect(left + column, row, 1, 1) } }
+      for (let at = 0; at < needle.length; at += 5) { const column = parseInt(needle.slice(at, at + 2), 16), row = parseInt(needle.slice(at + 2, at + 4), 16), level = Number(needle[at + 4]); context.clearRect(left + column, row, 1, 1); if (level) { context.fillStyle = greys[level]; context.fillRect(left + column, row, 1, 1) } }
     }
+    context.fillStyle = '#fff'
   }
   const lit = '#5ef3dc'
-  function paint(canvas: HTMLCanvasElement | undefined, buffer: HTMLCanvasElement, draw: (context: CanvasRenderingContext2D) => void, dim: number) {
+  function paint(canvas: HTMLCanvasElement | undefined, buffer: HTMLCanvasElement, draw: (context: CanvasRenderingContext2D) => void, dim: number, grey = false) {
     if (!canvas) return
     const bufferContext = buffer.getContext('2d', { willReadFrequently: true })!; bufferContext.clearRect(0, 0, dotsWide, dotsHigh); bufferContext.fillStyle = '#fff'; bufferContext.strokeStyle = '#fff'
     if (dim) draw(bufferContext)
@@ -284,13 +278,14 @@
     if (canvas.width !== Math.round(displayWidth * ratio)) { canvas.width = Math.round(displayWidth * ratio); canvas.height = Math.round(displayHeight * ratio) }
     const context = canvas.getContext('2d')!; context.setTransform(ratio, 0, 0, ratio, 0, 0); context.clearRect(0, 0, displayWidth, displayHeight)
     context.fillStyle = lit; context.globalAlpha = dim
-    for (let row = 0; row < dotsHigh; row++) for (let column = 0; column < dotsWide; column++) if (pixels[(row * dotsWide + column) * 4 + 3] > 110) context.fillRect(column * pitch + 0.1, row * pitch + 0.1, pitch * 0.82, pitch * 0.82)
+    // grey: the VU bitmap's four levels show as dimmer dots; otherwise a dot is simply lit or not
+    for (let row = 0; row < dotsHigh; row++) for (let column = 0; column < dotsWide; column++) { const alpha = pixels[(row * dotsWide + column) * 4 + 3]; if (grey ? alpha > 40 : alpha > 110) { if (grey) context.globalAlpha = dim * Math.round(alpha / 85) / 3; context.fillRect(column * pitch + 0.1, row * pitch + 0.1, pitch * 0.82, pitch * 0.82) } }
   }
   // About 30 frames a second is plenty for a VFD; standby dims to the lowest step, as the unit does
   $effect(() => {
     let frame = 0, drawnAt = 0
     const step = (time: number) => {
-      if (time - drawnAt > 30) { drawnAt = time; const dim = screen === 'standby' ? Math.min(0.3, [0, 0.3, 0.6, 1][brightness] || 0.3) : [0, 0.3, 0.6, 1][brightness]; paint(leftCanvas, leftBuffer, drawLeft, dim); paint(rightCanvas, rightBuffer, screen === 'standby' ? () => {} : visual === 'vu' ? drawVu : drawSpectrum, dim) }
+      if (time - drawnAt > 30) { drawnAt = time; const dim = screen === 'standby' ? Math.min(0.3, [0, 0.3, 0.6, 1][brightness] || 0.3) : [0, 0.3, 0.6, 1][brightness]; paint(leftCanvas, leftBuffer, drawLeft, dim); paint(rightCanvas, rightBuffer, screen === 'standby' ? () => {} : visual === 'vu' ? drawVu : drawSpectrum, dim, visual === 'vu') }
       frame = requestAnimationFrame(step)
     }
     frame = requestAnimationFrame(step); return () => cancelAnimationFrame(frame)
