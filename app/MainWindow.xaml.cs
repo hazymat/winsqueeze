@@ -215,7 +215,6 @@ public partial class MainWindow : Window
                 case "setTopmost": Topmost = message.GetProperty("on").GetBoolean(); break;
                 case "windowMode": SetWindowMode(Text(message, "mode")); break;
                 case "hifiWindow": SetHifiWindow(message.TryGetProperty("on", out var hifiOn) && hifiOn.GetBoolean(), Text(message, "shape") == "transporter"); break;
-                case "transporterFont": ReplyRaw(message, await Shell.TransporterFont.GlyphsJsonAsync()); break;
                 case "wideSpectrum": App.Visualiser.WideWanted = message.TryGetProperty("on", out var wideOn) && wideOn.GetBoolean(); break;
                 case "refreshLibrary": await App.Library.RefreshAsync(message.TryGetProperty("rebuild", out var rebuild) && rebuild.GetBoolean()); break;
             }
