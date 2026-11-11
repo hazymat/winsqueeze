@@ -2333,10 +2333,10 @@
  },
  "v1.30.440": {
   "assets": {
-   "WinSqueeze-1.30.440-dev-full.nupkg": 0,
-   "WinSqueeze-Portable.exe": 0,
-   "WinSqueeze-Setup.exe": 0,
-   "releases.dev.json": 0
+   "WinSqueeze-1.30.440-dev-full.nupkg": 4,
+   "WinSqueeze-Portable.exe": 1,
+   "WinSqueeze-Setup.exe": 1,
+   "releases.dev.json": 4
   },
   "prerelease": true,
   "published": "2026-11-10T23:21:05Z"
