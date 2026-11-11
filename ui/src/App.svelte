@@ -21,7 +21,6 @@
   import SearchView from './views/SearchView.svelte'
   import FavouritesView from './views/FavouritesView.svelte'
   import AppsView from './views/AppsView.svelte'
-  import MenuView from './views/MenuView.svelte'
   import ActionStrip from './parts/ActionStrip.svelte'
   import Meters from './parts/Meters.svelte'
   import HiFi from './parts/HiFi.svelte'
@@ -48,7 +47,7 @@
   const levelGlyphs: Record<string, string> = { genre: 'genres', composer: 'composers', artist: 'artists', performer: 'performers' }
   const customSections = $derived(((app.librarySettings.CustomViews ?? []) as any[]).filter(view => view.Enabled).reduce((entries: string[][], view) => { const key = view.Group ? 'customgroup:' + view.Group : 'custom:' + view.Id; if (!entries.some(entry => entry[0] === key)) entries.push([key, view.Group || view.Name, levelGlyphs[view.Levels?.[view.Levels.length - 1]] ?? 'albums']); return entries }, []))
   const allSections = $derived([['queue', t('Now playing'), 'queue'], ['favourites', t('Favourites'), 'favourites'], ['radio', t('Radio'), 'radio'], ['apps', t('Apps'), 'apps'], ['playlists', t('Playlists'), 'playlists'], ['artists', t('Artists'), 'artists'], ['albumartists', t('Album artists'), 'artists'], ['genres', t('Genres'), 'genres'], ['composers', t('Composers'), 'composers'], ['performers', t('Performers'), 'performers'], ['folders', folderMode ? t('Folders') : t('Albums'), folderMode ? 'folders' : 'albums'], ['compilations', t('Compilations'), 'albums'], ['new', t('New music'), 'new'], ['downloads', t('Downloaded'), 'download'], ['history', t('History'), 'history'], ['health', t('Library health'), 'health']].concat(customSections) as [string, string, any][])
-  const pinGlyphs: Record<string, string> = { genre: 'genres', artist: 'artists', composer: 'composers', performer: 'performers', album: 'albums', folder: 'folders', playlist: 'playlists', app: 'apps', menu: 'apps' }
+  const pinGlyphs: Record<string, string> = { genre: 'genres', artist: 'artists', composer: 'composers', performer: 'performers', album: 'albums', folder: 'folders', playlist: 'playlists', app: 'apps' }
   const pinSections = $derived(Object.entries(pins.views).map(([key, view]) => [key, view.title ?? '', pinGlyphs[view.kind] ?? 'pin']) as [string, string, any][])
   // Sidebar and bottom-bar customisation (one shared setting): every section shows by default; order, spacers and hidden ones are remembered per PC
   // The layout is section keys plus spacers ("spacer-…"); out of the box one spacer sits under the first section
@@ -298,8 +297,6 @@
             {#key view.key}<FavouritesView itemId={view.key ?? ''} title={view.title ?? ''} />{/key}
           {:else if view.kind === 'radio' || view.kind === 'apps' || view.kind === 'app' || view.kind === 'app-search'}
             {#key view.kind + view.key}<AppsView kind={view.kind} key={view.key ?? ''} title={view.title ?? ''} />{/key}
-          {:else if view.kind === 'menu'}
-            {#key view.key}<MenuView key={view.key ?? '{}'} title={view.title ?? ''} />{/key}
           {:else if view.kind === 'history'}
             <HistoryView />
           {:else if view.kind === 'health'}
