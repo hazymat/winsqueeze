@@ -32,7 +32,7 @@ public sealed partial class LibrarySync
             using var lyrionClient = new LyrionClient(profile);
             var serverStatus = await lyrionClient.GetServerStatusAsync();
             if (serverStatus.Scanning) return false; // mid-scan the server's library is partial; sync once the scan finishes
-            var signature = $"{serverStatus.LastScan}|{serverStatus.TotalSongs}|{serverStatus.TotalAlbums}|{serverStatus.TotalArtists}|{librarySettings.NameSeparators}|derive6|{librarySettings.NameOrder}|{librarySettings.ReadSurnameFirst}";
+            var signature = $"{serverStatus.LastScan}|{serverStatus.TotalSongs}|{serverStatus.TotalAlbums}|{serverStatus.TotalArtists}|{librarySettings.NameSeparators}|derive7|{librarySettings.NameOrder}|{librarySettings.ReadSurnameFirst}";
             var databasePath = DatabasePath(profile);
             if (!force && File.Exists(databasePath))
             {
@@ -85,7 +85,7 @@ public sealed partial class LibrarySync
     static TrackRow ParseTrack(JsonElement item, Dictionary<long, string> contributorNames, Dictionary<long, string> genreNames)
     {
         var url = LyrionClient.ReadString(item, "url");
-        var path = url.StartsWith("file:", StringComparison.OrdinalIgnoreCase) ? Uri.UnescapeDataString(new Uri(url).AbsolutePath) : url;
+        var path = ServerPath.FromFileUrl(url);
         var contributors = new List<(long contributorId, string role)>();
         foreach (var role in roles)
         {

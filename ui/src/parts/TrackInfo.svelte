@@ -7,7 +7,13 @@
   let { ids, items = null }: { ids: number[], items?: { name: string, fields: [string, string][] }[] | null } = $props()
   let tracks = $state<any[] | null>(null)
   $effect(() => { const wanted = ids; tracks = null; if (items) return; query('trackInfo', { ids: wanted }).then(rows => { const byId = new Map((Array.isArray(rows) ? rows : []).map((row: any) => [Number(row.id), row])); tracks = wanted.map(id => byId.get(id)).filter(Boolean) }) })
-  const pathOf = (url: string) => { try { return decodeURIComponent(String(url ?? '').replace(/^file:\/\/\/?/, '')).replace(/\//g, '\\') } catch { return '' } } // the full path to the file, as the server sees it
+  // Lyrion escapes paths in the server's filesystem encoding: UTF-8, or Latin-1 / Windows-1252 on some servers (#367)
+  function unescapePath(escaped: string) {
+    const bytes: number[] = [], encoder = new TextEncoder()
+    for (const part of escaped.split(/(%[0-9a-fA-F]{2})/)) { if (/^%[0-9a-fA-F]{2}$/.test(part)) bytes.push(parseInt(part.slice(1), 16)); else for (const byte of encoder.encode(part)) bytes.push(byte) }
+    try { return new TextDecoder('utf-8', { fatal: true }).decode(new Uint8Array(bytes)) } catch { return new TextDecoder('windows-1252').decode(new Uint8Array(bytes)) }
+  }
+  const pathOf = (url: string) => unescapePath(String(url ?? '').replace(/^file:\/\/\/?/, '')).replace(/\//g, '\\') // the full path to the file, as the server sees it
   const folderOf = (url: string) => pathOf(url).replace(/\\[^\\]*$/, ''), fileNameOf = (url: string) => pathOf(url).split('\\').pop() ?? ''
   const formats: Record<string, string> = { flc: 'FLAC', mp3: 'MP3', aac: 'AAC', mp4: 'AAC', alc: 'ALAC', wav: 'WAV', aif: 'AIFF', ogg: 'Ogg Vorbis', ops: 'Opus', wma: 'WMA', dsf: 'DSD', dff: 'DSD' }
   const formatOf = (track: any) => [formats[track.content_type] ?? String(track.content_type ?? '').toUpperCase(), Number(track.sample_rate) > 0 ? `${Number(track.sample_rate) / 1000} kHz` : '', Number(track.sample_size) > 0 ? `${track.sample_size}-bit` : '', String(track.bitrate ?? '').replace(/kb\/s/i, ' kbps').replace(/\s+/g, ' ').trim()].filter(Boolean).join(' · ') // one line, as on the Album tab

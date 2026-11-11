@@ -178,7 +178,7 @@ public static partial class LibraryHealth
         };
     }
 
-    static string FilePathOf(string url) => url.StartsWith("file:", StringComparison.OrdinalIgnoreCase) && Uri.TryCreate(url, UriKind.Absolute, out var fileUri) ? Uri.UnescapeDataString(fileUri.AbsolutePath) : url; // as the server sees it, like the folders table
+    static string FilePathOf(string url) => ServerPath.FromFileUrl(url); // as the server sees it, like the folders table
     static string FolderOf(string filePath) => filePath[..Math.Max(0, filePath.LastIndexOfAny(new[] { '/', '\\' }))];
     static string Few(List<string> items, int limit, string separator) => string.Join(separator, items.Take(limit)) + (items.Count > limit ? " " + L.T("and {count} more", ("count", items.Count - limit)) : "");
 }

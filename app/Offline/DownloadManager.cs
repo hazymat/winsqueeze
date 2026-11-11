@@ -87,7 +87,7 @@ public sealed class DownloadManager : IDisposable
     }
     static string Extension(string url, string contentType)
     {
-        try { var extension = Path.GetExtension(Uri.UnescapeDataString(new Uri(url).AbsolutePath)); if (extension.Length is > 1 and < 6) return extension.ToLowerInvariant(); } catch { }
+        try { var extension = Path.GetExtension(ServerPath.Unescape(new Uri(url).AbsolutePath)); if (extension.Length is > 1 and < 6) return extension.ToLowerInvariant(); } catch { }
         return "." + (contentType switch { "flc" => "flac", "alc" or "aac" => "m4a", "aif" => "aiff", "" => "bin", _ => contentType });
     }
 
