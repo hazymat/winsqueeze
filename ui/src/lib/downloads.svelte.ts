@@ -25,3 +25,17 @@ export async function removeDownloads(kind: string, keys: string[]) {
 }
 export const cancelDownloads = (albums: string[], tracks: number[] = []) => sendToShell({ type: 'downloadCancel', albums, tracks })
 export const formatBytes = (bytes: number) => bytes >= 1e9 ? `${(bytes / 1e9).toFixed(1)} GB` : bytes >= 1e6 ? `${Math.round(bytes / 1e6)} MB` : `${Math.max(0, Math.round(bytes / 1e3))} KB`
+
+// Copy to folder (SPEC.md › Copy to folder): the shell asks for a folder and copies in the background; progress shows in the action strip
+export async function copyToFolder(kind: string, keys: string[], mp3: boolean) {
+  const ids = (await resolveTracks(kind, keys)).map(track => track.id)
+  if (!ids.length) { toast(t('Nothing to copy there')); return }
+  const result = await request({ type: 'copyToFolder', ids, mp3 })
+  if (result?.error) toast(t('Couldn’t copy: {error}', { error: result.error }))
+}
+onShellMessage('copyProgress', message => {
+  const folder = String(message.folder ?? ''), openFolder = { action: { label: t('Open folder'), key: 'O', run: () => sendToShell({ type: 'openFolder', path: folder }) } }
+  if (!message.finished) { toast(t('Copying {done} of {total} to {folder}…', { done: message.done + message.failed + 1, total: message.total, folder }), undefined, 600000, openFolder); return }
+  if (message.failed) toast(t('Copied {done} of {total} to {folder}. {failed} couldn’t be copied: {problem}', { done: message.done, total: message.total, folder, failed: message.failed, problem: message.problem }), undefined, 20000, openFolder)
+  else toast(tn(message.done, 'Copied {count} track to {folder}', 'Copied {count} tracks to {folder}', { folder }), undefined, 15000, openFolder)
+})

@@ -1142,5 +1142,19 @@
   "Back to the library (Esc)": "Wróć do biblioteki (Esc)",
   "drag to move the window · right-click for the Transporter": "przeciągnij, aby przesunąć okno · prawy przycisk: Transporter",
   "Settings couldn't open": "Nie udało się otworzyć ustawień",
-  "Please tell us on GitHub Discussions. The details are in crash.log.": "Daj nam znać w GitHub Discussions. Szczegóły są w pliku crash.log."
+  "Please tell us on GitHub Discussions. The details are in crash.log.": "Daj nam znać w GitHub Discussions. Szczegóły są w pliku crash.log.",
+  "Copy to folder…": "Kopiuj do folderu…",
+  "As MP3": "Jako MP3",
+  "plays in most cars": "gra w większości samochodów",
+  "Original files": "Oryginalne pliki",
+  "same format as on the server": "ten sam format co na serwerze",
+  "Nothing to copy there": "Nie ma tu nic do skopiowania",
+  "Couldn’t copy: {error}": "Nie udało się skopiować: {error}",
+  "Copying {done} of {total} to {folder}…": "Kopiowanie {done} z {total} do {folder}…",
+  "Copied {done} of {total} to {folder}. {failed} couldn’t be copied: {problem}": "Skopiowano {done} z {total} do {folder}. Nie udało się skopiować: {failed}. {problem}",
+  "Copied {count} track to {folder}": "Skopiowano {count} utwór do {folder}",
+  "Copied {count} tracks to {folder}": "Skopiowano {count} utwór do {folder}|Skopiowano {count} utwory do {folder}|Skopiowano {count} utworów do {folder}",
+  "A copy is already running": "Kopiowanie już trwa",
+  "Copy to which folder?": "Do którego folderu skopiować?",
+  "Not connected to a server": "Brak połączenia z serwerem"
 }
