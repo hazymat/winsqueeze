@@ -48,8 +48,16 @@
     toast(mode === 'play' ? t('Playing {items}', { items: chosen.length === 1 ? splitName(chosen[0])[0] : t('{count} items', { count: chosen.length }) }) : mode === 'insert' ? t('Playing next') : t('Added to Now playing'))
   }
   async function favourite(keys: string[]) {
-    const chosen = byId(keys).filter(item => item.url)
-    for (const item of chosen) await live(['favorites', 'add', `url:${item.url}`, `title:${item.name}`].concat(item.image ? [`icon:${item.image}`] : []))
+    // Lyrion only hands out an item's favourite details (type link, parser…) in its menu format; without them a folder (e.g. a podcast feed) is saved as one track (#378)
+    const menuResult = await live([cmd, 'items', 0, 500, 'menu:1'].concat(itemId ? [`item_id:${itemId}`] : [], searched ? [`search:${searched}`] : []), true).catch(() => null)
+    const menuItems: any[] = menuResult?.item_loop ?? []
+    const presetFor = (item: any) => menuItems.find(entry => String(entry.params?.item_id ?? entry.actions?.go?.params?.item_id ?? '') === String(item.id) && entry.presetParams)?.presetParams ?? menuItems.find(entry => entry.presetParams?.favorites_url === item.url)?.presetParams
+    const chosen = byId(keys).filter(item => item.url || presetFor(item))
+    for (const item of chosen) {
+      const preset = presetFor(item), favouriteUrl = preset?.favorites_url ?? item.url, favouriteIcon = preset?.icon ?? item.image
+      const favouriteType = preset?.favorites_type ?? (isFolder(item) ? 'link' : 'audio')
+      await live(['favorites', 'add', `url:${favouriteUrl}`, `title:${preset?.favorites_title ?? item.name}`, `type:${favouriteType}`].concat(preset?.parser ? [`parser:${preset.parser}`] : [], favouriteIcon ? [`icon:${favouriteIcon}`] : []))
+    }
     toast(chosen.length ? t('Added {items} to favourites', { items: chosen.length === 1 ? splitName(chosen[0])[0] : t('{count} items', { count: chosen.length }) }) : t('This app doesn’t let that be a favourite'))
   }
   const itemActions: SelectionAction[] = [
