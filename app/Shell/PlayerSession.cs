@@ -19,6 +19,7 @@ public sealed class PlayerSession
     public event Action? PlayersUpdated;
     public event Action? ServerUnreachable; // several polls in a row failed
     int failedPolls;
+    public string LastPollError { get; private set; } = ""; // for logs\connection.log
     App App => App.Instance;
     public string PlayerId => SelectedPlayerId == "" ? App.Settings.PlayerMac : SelectedPlayerId;
 
@@ -64,7 +65,7 @@ public sealed class PlayerSession
                 PlayersUpdated?.Invoke();
             }
         }
-        catch { if (++failedPolls == 5 && !App.IsOffline) ServerUnreachable?.Invoke(); }
+        catch (Exception pollError) { LastPollError = pollError is TaskCanceledException ? "no reply in 10 s" : pollError.GetType().Name + ": " + pollError.Message; if (++failedPolls == 5 && !App.IsOffline) ServerUnreachable?.Invoke(); }
         finally { polling = false; }
         if (pollAgain) { pollAgain = false; await PollAsync(); }
     }

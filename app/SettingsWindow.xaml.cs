@@ -826,6 +826,7 @@ public partial class SettingsWindow : Window
         report.AppendLine($"Player: {audio.PlayerName} · {player.StatusText}{(player.State == PlayerState.Running ? (player.ExclusiveActive ? " · WASAPI exclusive" : player.ExclusiveRefused ? $" · shared (exclusive refused: {player.ExclusiveRefusedReason})" : " · shared") + (player.OutputSampleRate > 0 ? $" · {player.OutputSampleRate / 1000.0:0.#} kHz" : "") : "")}{(App.UsingFallbackDevice ? " (fallback device)" : "")}");
         report.AppendLine($"Output device: {(profile is null || profile.DeviceName == "" ? $"Windows default ({App.WindowsDefaultName})" : $"{profile.DeviceName} ({profile.DeviceHostApi})")} · exclusive {(audio.Exclusive ? "on" : "off")}");
         report.AppendLine().AppendLine("--- crash.log (end) ---").AppendLine(LogTail("crash.log", 60));
+        report.AppendLine().AppendLine("--- connection.log (end) ---").AppendLine(LogTail("connection.log", 30));
         report.AppendLine().AppendLine("--- squeezelite.log (end) ---").AppendLine(LogTail("squeezelite.log", 60));
         return report.ToString();
     }
