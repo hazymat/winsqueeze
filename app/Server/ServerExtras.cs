@@ -1,6 +1,7 @@
 using System.IO;
 using System.Net;
 using System.Net.Http;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Windows;
 using Microsoft.Web.WebView2.Core;
@@ -15,18 +16,35 @@ public static class ServerExtras
     static readonly HttpClient webClient = new() { Timeout = TimeSpan.FromSeconds(10) };
     static readonly HashSet<string> notPages = new() { "ALARM", "PLUGIN_LINE_IN", "PLUGIN_LINE_OUT" }; // settings shortcuts and switches, not plugin pages
     static readonly Regex menuItem = new("<div class=\"homeMenuItem\\s*\" id=\"([^\"]+)\">.*?<a href=\"([^\"]+)\"[^>]*>(.*?)</a>", RegexOptions.Singleline);
+    record Extra(string key, string title, string url, string icon);
+    // Two sources, joined: the Default skin's home page (always there), and Material Skin's own list when it is installed,
+    // which also carries the links plugins register for iPeng only (SugarCube, RandomFlow…)
     public static async Task<object[]> ListAsync(string playerId)
     {
         var profile = App.Instance.Settings.ActiveProfile;
         if (App.Instance.IsOffline || profile is not { Host.Length: > 0 }) return Array.Empty<object>();
         var serverRoot = $"http://{profile.Host}:{profile.Port}/";
-        string homePage;
-        try { homePage = await webClient.GetStringAsync($"{serverRoot}Default/home.html?player={Uri.EscapeDataString(playerId)}"); } catch { return Array.Empty<object>(); }
-        var sectionStart = homePage.IndexOf("id=\"PLUGINS_expanded\"", StringComparison.Ordinal);
-        if (sectionStart < 0) return Array.Empty<object>();
-        return menuItem.Matches(homePage[sectionStart..]).Select(match => (key: match.Groups[1].Value, href: WebUtility.HtmlDecode(match.Groups[2].Value), title: WebUtility.HtmlDecode(Regex.Replace(match.Groups[3].Value, "<[^>]+>", " ")).Trim(), icon: Regex.Match(match.Groups[3].Value, "<img src=\"([^\"]+)\"").Groups[1].Value))
-            .Where(entry => entry.title != "" && !notPages.Contains(entry.key) && !entry.href.StartsWith("javascript:", StringComparison.OrdinalIgnoreCase))
-            .Select(entry => (object)new { key = entry.key, title = entry.title, url = entry.href.StartsWith("http") ? entry.href : serverRoot + entry.href.TrimStart('/'), icon = WebUtility.HtmlDecode(entry.icon).Replace("_25x25", "_200x200") }).ToArray();
+        string Absolute(string href) => href.StartsWith("http") ? href : serverRoot + href.TrimStart('/');
+        var extras = new List<Extra>();
+        try
+        {
+            var homePage = await webClient.GetStringAsync($"{serverRoot}Default/home.html?player={Uri.EscapeDataString(playerId)}");
+            var sectionStart = homePage.IndexOf("id=\"PLUGINS_expanded\"", StringComparison.Ordinal);
+            if (sectionStart >= 0) extras.AddRange(menuItem.Matches(homePage[sectionStart..]).Select(match => new Extra(match.Groups[1].Value, WebUtility.HtmlDecode(Regex.Replace(match.Groups[3].Value, "<[^>]+>", " ")).Trim(), Absolute(WebUtility.HtmlDecode(match.Groups[2].Value)), WebUtility.HtmlDecode(Regex.Match(match.Groups[3].Value, "<img src=\"([^\"]+)\"").Groups[1].Value).Replace("_25x25", "_200x200"))));
+        }
+        catch { }
+        try
+        {
+            var materialList = await App.Instance.ServerRequestAsync(playerId, "material-skin", "extras");
+            if (materialList.ValueKind == JsonValueKind.Object && materialList.TryGetProperty("extras_loop", out var materialExtras) && materialExtras.ValueKind == JsonValueKind.Array)
+                foreach (var entry in materialExtras.EnumerateArray())
+                {
+                    string Field(string name) => entry.TryGetProperty(name, out var value) ? value.ToString() : "";
+                    if (Field("id") != "" && Field("url") != "" && !extras.Any(known => known.key == Field("id"))) extras.Add(new Extra(Field("id"), Field("title"), Absolute(Field("url") + "player=" + Uri.EscapeDataString(playerId)), Field("icon")));
+                }
+        }
+        catch { }
+        return extras.Where(extra => extra.title != "" && !notPages.Contains(extra.key) && !extra.url.Contains("javascript:", StringComparison.OrdinalIgnoreCase)).OrderBy(extra => extra.title, StringComparer.CurrentCultureIgnoreCase).Cast<object>().ToArray();
     }
     // Only the connected server's own pages open here; links the page opens in a new window stay in this one
     public static void Open(string title, string url)
