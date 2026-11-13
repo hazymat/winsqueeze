@@ -426,6 +426,16 @@ public partial class App : Application
 
     // ---- Offline (SPEC.md › Offline downloads) ----
     readonly DispatcherTimer serverBackTimer = new() { Interval = TimeSpan.FromSeconds(30) };
+    public DateTime OfflineSince { get; private set; }
+    public bool OfflineAutomatic { get; private set; } // the server stopped answering, rather than Play offline by hand
+    // The Downloaded banner's Why?: what can and can't be reached right now
+    public async Task<Offline.ConnectionReport?> CheckConnectionAsync(string logAs)
+    {
+        if (Settings.ActiveProfile is not { Host.Length: > 0 } profile) return null;
+        var report = await Task.Run(() => WinSqueeze.Offline.ConnectionCheck.RunAsync(profile));
+        WinSqueeze.Offline.ConnectionCheck.Log($"{logAs}: {report.Summary}");
+        return report;
+    }
     public async Task GoOfflineAsync(bool automatic)
     {
         if (IsOffline || Settings.ActiveProfile is not { } profile) return;
@@ -441,7 +451,9 @@ public partial class App : Application
         Offline = new Offline.OfflineServer(Downloads.Find) { PlayerMac = Settings.PlayerMac, PlayerName = Settings.Audio.PlayerName };
         Offline.Changed += () => Dispatcher.BeginInvoke(async () => await Session.PollAsync());
         Offline.Log += line => CrashReporter.Note("offline: " + line);
-        Session.SelectedPlayerId = ""; ServerBack = false;
+        Session.SelectedPlayerId = ""; ServerBack = false; OfflineSince = DateTime.Now; OfflineAutomatic = automatic;
+        if (automatic) { WinSqueeze.Offline.ConnectionCheck.Log("went offline: 5 status checks in a row failed, last: " + Session.LastPollError.Replace(profile.Host, "<server>")); _ = CheckConnectionAsync("at that moment"); }
+        else WinSqueeze.Offline.ConnectionCheck.Log("went offline: Play offline chosen");
         await StartPlayerAsync(false);
         serverBackTimer.Start();
         if (automatic) ShowTip(L.T("Playing offline"), L.T("The server can't be reached, so WinSqueeze is playing your downloads. It goes back online by itself when the server returns and nothing is playing."));
@@ -467,6 +479,7 @@ public partial class App : Application
         if (Offline is not { } offlineServer) return;
         serverBackTimer.Stop();
         Offline = null; ServerBack = false;
+        WinSqueeze.Offline.ConnectionCheck.Log("back online");
         await StartPlayerAsync(false); // Squeezelite back to the server, which still has this player's own queue
         offlineServer.Dispose();
         StatusChanged?.Invoke();
@@ -525,6 +538,8 @@ public partial class App : Application
         recording = new { available = SqueezeliteHost.SupportsRecording && Settings.Recording.ShowButton, on = Recorder.Recording, file = System.IO.Path.GetFileName(Recorder.CurrentFile), startedAt = Recorder.Recording ? new DateTimeOffset(Recorder.StartedAt).ToUnixTimeMilliseconds() : 0, files = Recorder.FilesThisRecording, note = Recorder.Note, noteSaved = Recorder.NoteIsSaved, noteId = Recorder.NoteId, folder = Recorder.SessionFolder },
         fallback = UsingFallbackDevice,
         offline = IsOffline,
+        offlineSince = IsOffline ? new DateTimeOffset(OfflineSince).ToUnixTimeMilliseconds() : 0,
+        offlineAutomatic = OfflineAutomatic,
         serverBack = ServerBack,
         version = Updater.CurrentVersion,
         updateReady = Updater.ReadyVersion

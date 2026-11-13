@@ -1,6 +1,6 @@
 <script lang="ts">
   import { t, tn } from '../lib/i18n'
-  import { artUrl, sendToShell } from '../bridge'
+  import { artUrl, sendToShell, request } from '../bridge'
   import { app } from '../state.svelte'
   import { downloads, cancelDownloads, formatBytes } from '../lib/downloads.svelte'
   import AlbumsOf from './AlbumsOf.svelte'
@@ -12,10 +12,33 @@
   const percent = (received: number, size: number) => size > 0 ? Math.min(100, (received / size) * 100) : 0
   const groupPercent = (group: any) => group.total ? ((group.done + group.tracks.filter((track: any) => track.state === 'downloading').reduce((sum: number, track: any) => sum + percent(track.received, track.size) / 100, 0)) / group.total) * 100 : 0
   const trackState = (track: any) => track.state === 'done' ? t('Done') : track.state === 'downloading' ? (track.size ? `${Math.round(percent(track.received, track.size))}%` : t('Starting')) : track.state === 'failed' ? t('Failed') : t('Waiting')
+  // Offline banner › Why?: the shell tries the network, a ping to the server's PC and Lyrion's port, and the banner says which one fails
+  let whyOpen = $state(false), checking = $state(false), connection = $state<any>(null), checkedAt = $state(0)
+  const clock = (milliseconds: number) => new Date(milliseconds).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  async function checkConnection() { if (checking) return; checking = true; connection = await request({ type: 'connectionCheck' }); checkedAt = Date.now(); checking = false }
+  function toggleWhy() { whyOpen = !whyOpen; if (whyOpen) checkConnection() }
+  const verdict = $derived(!connection ? '' : connection.lyrion ? t('Lyrion is answering again.') : !connection.network ? t('This PC isn\'t connected to a network.') : connection.problem === 'password' ? t('Lyrion turned down the user name or password.') : connection.ping ? t('The server PC is on, but Lyrion isn\'t answering.') : t('The server PC can\'t be reached.'))
+  const lyrionProblem = $derived(!connection || connection.lyrion ? '' : connection.problem === 'refused' ? t('nothing is listening') : connection.problem === 'notfound' ? t('name not found') : connection.problem === 'password' ? t('wrong user name or password') : connection.problem === 'http' ? t('error {code}', { code: connection.httpStatus }) : connection.problem === 'noreply' ? t('timed out after {seconds} s', { seconds: 10 }) : connection.problem === 'timeout' ? t('timed out after {seconds} s', { seconds: 4 }) : '')
+  const whyFoot = $derived((app.status?.offlineSince ? [t('Offline since {time}', { time: clock(app.status.offlineSince) }), app.status.offlineAutomatic ? t('5 checks in a row failed') : t('you chose Play offline')] : []).concat(checking ? [t('Checking…')] : checkedAt ? [t('checked {time}', { time: clock(checkedAt) })] : []).join(' · '))
 </script>
 
 {#if app.status?.offline}
-  <div class="banner"><span>{app.status.serverBack ? t('The server is back.') : t('Offline: playing what\'s on this PC.')}</span><button class="primary" onclick={() => sendToShell({ type: 'goOnline' })}>{t('Go online')}</button></div>
+  <div class="banner">
+    <div class="banner-row"><span>{app.status.serverBack ? t('The server is back.') : t('Offline: playing what\'s on this PC.')}</span><button class="why" class:open={whyOpen} onclick={toggleWhy} aria-expanded={whyOpen}><i>i</i>{t('Why?')}</button><button class="primary" onclick={() => sendToShell({ type: 'goOnline' })}>{t('Go online')}</button></div>
+    {#if whyOpen}
+      <div class="why-detail">
+        {#if connection}
+          <p class="verdict">{verdict}</p>
+          <div class="checks">
+            <b class={connection.network ? 'ok' : 'bad'}>{connection.network ? '✓' : '✕'}</b><span class="what">{t('Network')}</span><span>{connection.network ? t('Connected') + (connection.networkKind ? ' · ' + connection.networkKind : '') : t('Not connected')}</span>
+            <b class={connection.ping ? 'ok' : 'bad'}>{connection.ping ? '✓' : '✕'}</b><span class="what">{t('Server PC')}</span><span>{connection.ping ? t('{host} answers ping', { host: connection.host }) + ' · ' + t('{count} ms', { count: Math.max(1, connection.pingMs) }) : t('{host} doesn\'t answer ping', { host: connection.host })}</span>
+            <b class={connection.lyrion ? 'ok' : 'bad'}>{connection.lyrion ? '✓' : '✕'}</b><span class="what">Lyrion</span><span>{connection.lyrion ? t('Answering on port {port}', { port: connection.port }) : t('No reply on port {port}', { port: connection.port }) + (lyrionProblem ? ' · ' + lyrionProblem : '')}</span>
+          </div>
+        {/if}
+        <div class="why-foot"><span class="quiet">{whyFoot}</span><button class="ghost" disabled={checking} onclick={checkConnection}>{t('Check again')}</button></div>
+      </div>
+    {/if}
+  </div>
 {/if}
 {#if downloads.active.length}
   <section class="manager">
@@ -60,8 +83,16 @@
 {/if}
 
 <style>
-  .banner { display: flex; align-items: center; gap: 12px; margin: 8px 0 4px; padding: 10px 14px; border-radius: 10px; background: var(--accent-soft); color: var(--fg); }
-  .banner span { flex: 1; }
+  .banner { margin: 8px 0 4px; padding: 10px 14px; border-radius: 10px; background: var(--accent-soft); color: var(--fg); }
+  .banner-row { display: flex; align-items: center; gap: 12px; } .banner-row > span { flex: 1; min-width: 0; }
+  .why { display: flex; align-items: center; gap: 6px; flex: none; padding: 4px 8px; border: 0; border-radius: 6px; background: none; color: var(--fg); font: inherit; white-space: nowrap; cursor: pointer; opacity: 0.85; } .why:hover, .why.open { background: var(--hover); opacity: 1; }
+  .why i { display: inline-grid; place-items: center; width: 14px; height: 14px; border: 1.5px solid currentColor; border-radius: 50%; font: 700 10px Georgia, serif; }
+  .banner .primary { flex: none; white-space: nowrap; }
+  .why-detail { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+  .verdict { margin: 0 0 8px; font-weight: 600; }
+  .checks { display: grid; grid-template-columns: 20px minmax(80px, max-content) 1fr; gap: 6px 14px; align-items: baseline; font-size: 13px; } .checks span { overflow-wrap: anywhere; }
+  .checks .what { color: var(--fg-quiet); } .checks .ok { color: #3fb968; } .checks .bad { color: #ff7a6b; }
+  .why-foot { display: flex; align-items: center; gap: 10px; margin-top: 10px; } .why-foot span { flex: 1; min-width: 0; } .why-foot .ghost { flex: none; white-space: nowrap; }
   .manager { margin: 10px 0 6px; padding: 10px 12px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); }
   .manager-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
   .manager-head .quiet { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
