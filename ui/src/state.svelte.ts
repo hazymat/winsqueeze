@@ -12,7 +12,7 @@ export const app = $state({
   // Meter data from Squeezelite (~30 a second while playing): VU in dBFS, peak amplitude 0..1, spectrum bands 0..1
   levels: { vu: [-90, -90], peak: [0, 0], bands: Array(10).fill(0), wide: [] as number[], at: 0 }, // wide: Transporter's spectrum, 53 bands a channel (left then right), sent only while it's up
   meterSettings: { referenceDbfs: -18, autoReference: true, styles: ['vu', 'green', 'oled'] as string[] }, // Settings › Meters (styles: the ones a click cycles through, in order)
-  window: { glass: false, frameless: false, maximised: false }
+  window: { glass: false, frameless: false, maximised: false, fullScreen: false }
 })
 // Where you were browsing survives restarts (and updates)
 const savedNav = (() => { try { return JSON.parse(readSetting('nav', '')) } catch { return null } })()

@@ -190,6 +190,27 @@
       {/snippet}
       <span class="meter-stack">{@render oledLayer('face')}{@render oledLayer('needles')}</span>
     {/each}
+  {:else if ui.meterStyle === 'night'}
+    {#each ['L', 'R'] as channel, channelIndex}
+      <!-- Dark room VU: nothing but a thin dim scale and a fine needle on black; no lamp, glass, glow or frame, so it adds almost no light to the room -->
+      {#snippet nightLayer(layer: string)}
+      <svg viewBox="0 17 120 54" class="vu nightvu layer-{layer}" aria-hidden="true">
+        <defs><clipPath id={gradientId + '-night-clip'}><rect x="2" y="18" width="116" height="49" /></clipPath></defs>
+        <g class="display">
+          <path d={oledArc(-48, 21, oledRadius)} class="night-line" /><path d={oledArc(21, 46, oledRadius)} class="night-line hot" /><path d={oledArc(21, 46, oledRadius + 1.6)} class="night-band" />
+          {#each scaleMarks as [decibels, angle]}
+            {@const [innerX, innerY] = oledPoint(angle, oledRadius)}{@const [outerX, outerY] = oledPoint(angle, oledRadius + (decibels === 0 ? 4 : 2.6))}{@const [labelX, labelY] = oledPoint(angle, oledRadius + 8.5)}
+            <line x1={innerX} y1={innerY} x2={outerX} y2={outerY} class="night-tick" class:hot={decibels > 0} />
+            {#if decibels !== -2 && decibels !== -1 && decibels !== 1 && decibels !== 2}<text x={labelX} y={labelY} class="night-number" class:hot={decibels > 0}>{Math.abs(decibels)}</text>{/if}
+          {/each}
+          <text x="60" y="51" class="night-label">VU</text>
+          <g clip-path="url(#{gradientId}-night-clip)"><line x1={pivotX} y1={oledPivotY - 12} x2={pivotX} y2={oledPivotY - 46.5} class="oled-needle" transform="rotate({needleAngle(meters.vu[channelIndex] ?? -90, restAngle) * oledSpread} {pivotX} {oledPivotY})" /></g>
+        </g>
+        <text x="60" y="63" class="night-channel">{channel}</text>
+      </svg>
+      {/snippet}
+      <span class="meter-stack">{@render nightLayer('face')}{@render nightLayer('needles')}</span>
+    {/each}
   {:else}
     <!-- Spectrum analyser (the third style; stored as 'oled' so earlier choices carry over) -->
     <div class="spectrum">{#if size !== 'small'}<Analyser levels={meters.bands} labels={bandLabels} scale={spectrumScale} segments={24} title={t('SPECTRUM ANALYZER')} fullRange={Math.max(0, Math.min(1, (Math.max(meters.vu[0] ?? -90, meters.vu[1] ?? -90) + 40) / 40))} />{:else}<Analyser levels={meters.bands} compact={true} segments={12} />{/if}</div>
@@ -255,6 +276,14 @@
   .oled-needle { stroke: #d8f4ff; stroke-width: 1; }
   .oled-channel { fill: rgba(76, 192, 255, 0.35); font-size: 5px; text-anchor: middle; font-family: var(--font-display); }
   .idle .display { opacity: 0.55; }
+  /* Dark room VU: flat dim ink on black, no glow */
+  .small .nightvu { height: 27px; } .large .nightvu { height: 85.5px; }
+  .night-line { fill: none; stroke: #2c7a58; stroke-width: 0.55; } .night-line.hot, .night-tick.hot { stroke: #8a3427; } .night-band { fill: none; stroke: #8a3427; stroke-width: 1.6; opacity: 0.7; }
+  .night-tick { stroke: #2c7a58; stroke-width: 0.55; }
+  .night-number { fill: #2c7a58; font-size: 4.6px; text-anchor: middle; dominant-baseline: middle; font-family: "Segoe UI", Arial, sans-serif; } .night-number.hot { fill: #8a3427; }
+  .night-label { fill: #2c7a58; font-size: 5px; text-anchor: middle; font-family: "Segoe UI", Arial, sans-serif; letter-spacing: 1.5px; opacity: 0.8; }
+  .night-channel { fill: #2c7a58; opacity: 0.55; font-size: 4px; text-anchor: middle; font-family: "Segoe UI", Arial, sans-serif; }
+  .nightvu .oled-needle { stroke: #9ccfb4; stroke-width: 0.5; stroke-linecap: round; }
   .spectrum { display: flex; } .large .spectrum { width: 320px; height: 150px; }
   /* Full window (right-click): as big as the window allows */
   .full { gap: 2vw; } .full .vu { width: min(46vw, (100vh - 140px) * 1.66); height: auto; } .full .spectrum { width: min(92vw, (100vh - 140px) * 2.2); height: min(70vh, 46vw); } .small .spectrum { width: 64px; height: 29px; }

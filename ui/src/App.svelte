@@ -98,7 +98,7 @@
     ui.skin = message.skin || 'auto'; ui.coverAccent = !!message.coverAccent; ui.coverBackdrop = message.coverBackdrop !== false; ui.accent = message.accent ?? ''; ui.glassTransparency = message.glassTransparency ?? -1; ui.glassTintHue = message.glassTintHue ?? 0; ui.lookVersion++ // every skin message repaints the glass, even when nothing changed
     writeSetting('skin', ui.skin); writeSetting('coverAccent', ui.coverAccent ? '1' : ''); writeSetting('coverBackdrop', ui.coverBackdrop ? '1' : '0'); writeSetting('accent', ui.accent); writeSetting('glassTransparency', String(ui.glassTransparency)); writeSetting('glassTintHue', String(ui.glassTintHue))
   })
-  onShellMessage('window', message => app.window = { glass: !!message.glass, frameless: !!message.frameless, maximised: !!message.maximised })
+  onShellMessage('window', message => app.window = { glass: !!message.glass, frameless: !!message.frameless, maximised: !!message.maximised, fullScreen: !!message.fullScreen })
   onShellMessage('windowMoved', message => windowMoved(Number(message.x)))
   onShellMessage('settings', message => { if (message.library) app.librarySettings = message.library; if (message.hints) app.hints = message.hints; if (message.playback) app.playback = message.playback; if (Array.isArray(message.trackInfo)) app.trackInfoTabs = message.trackInfo })
   sendToShell({ type: 'ready' })
@@ -168,6 +168,7 @@
     else if (ui.trackInfo || ui.itemInfo) { ui.trackInfo = null; ui.itemInfo = null }
     else if (ui.transporter) setTransporter(false)
     else if (ui.hifi) setHifi(false)
+    else if (ui.metersFull && app.window.fullScreen) sendToShell({ type: 'fullScreen', on: false })
     else if (ui.metersFull) ui.metersFull = false
     else if (selection.keys.length) clearSelection()
     else if (ui.toast) ui.toast = null
@@ -178,6 +179,7 @@
     const typing = (event.target as HTMLElement)?.matches?.('input, textarea, select')
     // Esc closes one layer per press, innermost first. Menus, dropdowns and drags close themselves and preventDefault; this runs after them
     if (event.key === 'Escape') { setTimeout(() => escapeLayer(event)); return }
+    if (event.key === 'F11' && ui.metersFull) { event.preventDefault(); toggleMetersScreen(); return }
     if (event.key === ' ' && !typing) { event.preventDefault(); command('pause', app.nowPlaying?.mode === 'play' ? '1' : '0') }
     else if (event.ctrlKey && event.key === 'ArrowRight') { event.preventDefault(); command('playlist', 'index', '+1') }
     else if (event.ctrlKey && event.key === 'ArrowLeft') { event.preventDefault(); command('playlist', 'index', '-1') }
@@ -196,13 +198,20 @@
   let fullWidth = $state(0), fullHeight = $state(0), fullMeters = $state<HTMLElement>(), fullZoom = $state(1)
   function fitFullMeters() { if (!fullMeters) return; const rect = fullMeters.getBoundingClientRect(), naturalWidth = rect.width / fullZoom, naturalHeight = rect.height / fullZoom; if (naturalWidth && naturalHeight) fullZoom = Math.max(1, Math.min((fullWidth - 80) / naturalWidth, (fullHeight - 100) / naturalHeight)) }
   $effect(() => { fullMeters; fullWidth; fullHeight; ui.meterStyle; requestAnimationFrame(fitFullMeters) })
+  // Full screen (F11, double-click or the button): black all round, and the buttons and pointer fade away until the mouse moves, so a dark room stays dark
+  const metersScreen = $derived(ui.metersFull && !!app.window.fullScreen)
+  let metersQuiet = $state(false), metersQuietTimer = 0
+  const stirMeters = () => { metersQuiet = false; clearTimeout(metersQuietTimer); if (metersScreen) metersQuietTimer = setTimeout(() => metersQuiet = true, 2500) }
+  $effect(() => { metersScreen; stirMeters() })
+  $effect(() => { if (!ui.metersFull && app.window.fullScreen) sendToShell({ type: 'fullScreen', on: false }) })
+  const toggleMetersScreen = () => sendToShell({ type: 'fullScreen', on: !app.window.fullScreen })
 </script>
 
 <svelte:window bind:innerWidth={width} bind:innerHeight={height} onkeydown={onKey} onmouseup={(event) => { if (event.button === 3 && nav.stack.length) back(); if (event.button === 4) forward() }} oncontextmenu={onContextMenu} onpointerdown={(event) => { if (copyMenu && !(event.target as HTMLElement).closest('.copy-menu')) copyMenu = null }} />
 <WhatsNew {mini} offset={!!app.status?.updateReady} />
 {#if (ui.trackInfo || ui.itemInfo) && !mini}<TrackInfo ids={ui.trackInfo ?? []} items={ui.itemInfo} />{/if}
 {#if ui.metersFull && !mini}<!-- svelte-ignore a11y_no_noninteractive_element_interactions --><!-- blank frosted areas drag the window, like the meters themselves -->
-<div class="meters-full" role="dialog" aria-label={t('Meters')} tabindex="-1" oncontextmenu={(event) => { event.preventDefault(); cycleMeterView() }} onmousedown={(event) => { if (event.button === 0 && !(event.target as HTMLElement).closest("button")) sendToShell({ type: "dragWindow" }) }} bind:clientWidth={fullWidth} bind:clientHeight={fullHeight}><div class="meters-zoom" bind:this={fullMeters} style:zoom={fullZoom}><Meters size="large" zoom={fullZoom} moveWindow={true} /></div><button class="meters-full-close" onclick={() => ui.metersFull = false} title={t('Back to the player (Esc)')} aria-label={t('Back to the player')}><Icon name="return" /></button></div>{/if}
+<div class="meters-full" class:dark={metersScreen || ui.meterStyle === 'night'} class:quiet={metersQuiet && metersScreen} role="dialog" aria-label={t('Meters')} tabindex="-1" oncontextmenu={(event) => { event.preventDefault(); cycleMeterView() }} onpointermove={stirMeters} ondblclick={(event) => { if (!(event.target as HTMLElement).closest("button")) toggleMetersScreen() }} onmousedown={(event) => { if (event.button === 0 && event.detail < 2 && !metersScreen && !(event.target as HTMLElement).closest("button")) sendToShell({ type: "dragWindow" }) }} bind:clientWidth={fullWidth} bind:clientHeight={fullHeight}><div class="meters-zoom" bind:this={fullMeters} style:zoom={fullZoom}><Meters size="large" zoom={fullZoom} moveWindow={true} /></div><button class="meters-full-close screen" onclick={toggleMetersScreen} title={metersScreen ? t('Leave full screen (Esc)') : t('Full screen (F11)')} aria-label={metersScreen ? t('Leave full screen') : t('Full screen')}><Icon name={metersScreen ? 'exit-full-screen' : 'full-screen'} size={17} /></button><button class="meters-full-close" onclick={() => ui.metersFull = false} title={t('Back to the player (Esc)')} aria-label={t('Back to the player')}><Icon name="return" /></button></div>{/if}
 {#if ui.hifi}<HiFi />{/if}
 {#if ui.transporter}<Transporter />{/if}
 {#if app.window.frameless && !app.window.maximised}<ResizeEdges />{/if}
@@ -401,5 +410,7 @@
   .copy-menu button:hover { background: var(--hover); }
   /* Right-click on the meters: they fill the window, like Task Manager's graphs */
   .meters-full { position: fixed; inset: 0; z-index: 85; outline: none; display: grid; place-items: center; background: color-mix(in srgb, var(--panel-solid) 88%, transparent); backdrop-filter: blur(30px) saturate(1.3); }
+  .meters-full.dark { background: #000; backdrop-filter: none; } .meters-full.dark .meters-full-close { background: none; color: #5d6a64; } .meters-full.dark .meters-full-close:hover { background: #151a18; color: #9aa8a1; }
+  .meters-full-close { transition: opacity 0.6s; } .meters-full-close.screen { right: 54px; } .meters-full.quiet { cursor: none; } .meters-full.quiet :global(*) { cursor: none; } .meters-full.quiet .meters-full-close { opacity: 0; }
   .meters-full-close { position: absolute; top: 14px; right: 14px; width: 34px; height: 34px; border: 0; border-radius: 8px; background: var(--hover); color: var(--fg); display: grid; place-items: center; cursor: pointer; }
 </style>
