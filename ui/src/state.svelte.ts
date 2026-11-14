@@ -1,7 +1,7 @@
 import { sendToShell, query, command } from './bridge'
 import { t } from './lib/i18n'
 
-export type View = { kind: string; key?: string; title?: string; highlight?: string; filters?: CustomStep[]; scroll?: number }
+export type View = { kind: string; key?: string; title?: string; highlight?: string; filters?: CustomStep[]; scroll?: number; words?: string }
 // A step taken inside a custom view (SPEC.md › Custom views): the row chosen at that level
 export type CustomStep = { kind: string; key: string; name: string }
 export type PlaylistItem = { id: number; title: string; artist: string; duration: number }

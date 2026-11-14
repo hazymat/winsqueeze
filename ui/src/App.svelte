@@ -305,7 +305,7 @@
           {:else if view.kind === 'favourites'}
             {#key view.key}<FavouritesView itemId={view.key ?? ''} title={view.title ?? ''} />{/key}
           {:else if view.kind === 'radio' || view.kind === 'apps' || view.kind === 'app' || view.kind === 'app-search'}
-            {#key view.kind + view.key}<AppsView kind={view.kind} key={view.key ?? ''} title={view.title ?? ''} />{/key}
+            {#key view.kind + view.key}<AppsView kind={view.kind} key={view.key ?? ''} title={view.title ?? ''} words={view.words ?? ''} />{/key}
           {:else if view.kind === 'history'}
             <HistoryView />
           {:else if view.kind === 'health'}
