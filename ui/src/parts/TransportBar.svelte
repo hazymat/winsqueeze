@@ -165,7 +165,7 @@
   .mini .title { line-height: 1.25; }
   /* mini meters fill whatever the title and artist leave: the text column takes its natural width (wrapping past 55%), the meters get the rest of the row */
   .mini-meters { flex: 1 1 0; min-width: 0; align-self: stretch; container-type: size; display: flex; justify-content: center; align-items: center; } .mini .right > .mini-meters { flex-shrink: 1; }
-  .mini-meters :global(.meters) { gap: 6px; } .mini-meters :global(.large .vu) { width: min((100cqw - 6px) / 2, 100cqh * 1.66, 300px); height: auto; }
+  .mini-meters :global(.meters) { gap: 6px; } .mini-meters :global(:is(.large .vu, .large .designed)) { width: min((100cqw - 6px) / 2, 100cqh * 1.66, 300px); height: auto; }
   .mini-meters :global(.large .panel) { width: auto; height: min(100cqh, 100cqw / var(--aspect), 180px); } /* whole panels: as big as fits, their own shape */
   .mini-meters :global(.large .spectrum) { width: min(100cqw, 100cqh * 2.2, 360px); height: min(100cqh, 160px); }
   .mini-speaker { background: none; border: 0; cursor: pointer; color: var(--fg); opacity: 0.6; padding: 4px; } .mini-speaker.on, .mini-speaker:hover { opacity: 1; color: var(--accent); }

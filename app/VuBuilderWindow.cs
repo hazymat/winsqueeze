@@ -282,24 +282,25 @@ public sealed class VuBuilderWindow : Window
             Words(L.T("Name on the face"), () => meter.Brand, value => meter.Brand = value))));
         settingsPanel.Children.Add(Card(L.T("Scale"), Stack(
             Number(L.T("Shape"), 0, 1, () => meter.Roundness, value => meter.Roundness = value, L.T("Flat"), L.T("Round")),
-            Choice(L.T("Arc"), new[] { ("line", L.T("Line")), ("band", L.T("Line and red band")), ("ticks", L.T("Marks only")) }, () => meter.Arc, value => meter.Arc = value),
+            Choice(L.T("Arc"), new[] { ("line", L.T("Line")), ("band", L.T("Line and red band")), ("double", L.T("Double line")), ("wide", L.T("Wide band")), ("dotted", L.T("Dotted")), ("segments", L.T("Segments")), ("ticks", L.T("Marks only")) }, () => meter.Arc, value => meter.Arc = value),
             Number(L.T("Line weight"), 0.5, 3, () => meter.Weight, value => meter.Weight = value, L.T("Thin"), L.T("Bold")),
             Colour(L.T("Below 0"), new[] { "#3fa57a", "#e9dcc0", "#46e6ff", "#7dffb0", "#ffffff", "#1d1a14" }, () => meter.Cold, value => meter.Cold = value),
             Colour(L.T("Above 0"), new[] { "#b5402f", "#c4291c", "#ff6a3a", "#ffd54a", "#ff4d6d" }, () => meter.Hot, value => meter.Hot = value))));
         settingsPanel.Children.Add(Card(L.T("Needle"), Stack(
-            Choice(L.T("Shape"), new[] { ("blade", L.T("Blade")), ("line", L.T("Line")), ("bar", L.T("Bar")) }, () => meter.NeedleShape, value => meter.NeedleShape = value),
+            Choice(L.T("Shape"), new[] { ("blade", L.T("Blade")), ("line", L.T("Line")), ("bar", L.T("Bar")), ("arrow", L.T("Fine, arrow tip")), ("lance", L.T("Fine, lance tip")), ("spade", L.T("Fine, spade tip")), ("flag", L.T("Fine, with a flag")), ("ball", L.T("Fine, ball tip")) }, () => meter.NeedleShape, value => meter.NeedleShape = value),
+            Choice(L.T("Finish"), new[] { ("flat", L.T("Flat colour")), ("brass", L.T("Polished brass")), ("chrome", L.T("Chrome")), ("black", L.T("Black lacquer")) }, () => meter.NeedleFinish, value => meter.NeedleFinish = value),
+            Number(L.T("Shadow"), 0, 1, () => meter.Shadow, value => meter.Shadow = value, L.T("None"), L.T("Strong")),
             Choice(L.T("Comes from"), new[] { ("bottom", L.T("Bottom")), ("top", L.T("Top")) }, () => meter.NeedleFrom, value => meter.NeedleFrom = value),
-            Choice(L.T("Base"), new[] { ("none", L.T("None")), ("ring", L.T("Ring")), ("filled", L.T("Filled")), ("dome", L.T("Dome")) }, () => meter.Base, value => meter.Base = value),
+            Choice(L.T("Base"), new[] { ("none", L.T("None")), ("ring", L.T("Ring")), ("filled", L.T("Filled")), ("dome", L.T("Dome")), ("screw", L.T("Dome with screw")), ("knurled", L.T("Knurled chrome")), ("brass", L.T("Brass cap")) }, () => meter.Base, value => meter.Base = value),
             Colour(L.T("Colour"), new[] { "#ecd9a8", "#ffffff", "#ff6a3a", "#e23b2e", "#111111", "#d8f8ff" }, () => meter.NeedleColour, value => meter.NeedleColour = value))));
         settingsPanel.Children.Add(Card(L.T("Face and light"), Stack(
             Colour(L.T("Back"), new[] { "#000000", "#16181a", "#0b1626", "#efe2c4", "#f6f0e2", "#ffffff" }, () => meter.Back, value => meter.Back = value),
             Choice(L.T("Bulb"), new[] { ("none", L.T("Off")), ("tungsten", L.T("Tungsten")), ("warm", L.T("Warm white")), ("cool", L.T("Cool white")), ("amber", L.T("Amber")), ("green", L.T("Green")), ("blue", L.T("Blue")) }, () => meter.Lamp, value => meter.Lamp = value),
-            Choice(L.T("Lit from"), new[] { ("below", L.T("Below")), ("above", L.T("Above")), ("left", L.T("Left")), ("right", L.T("Right")) }, () => meter.LampFrom, value => meter.LampFrom = value),
-            Choice(L.T("Display"), new[] { ("analogue", L.T("Analogue")), ("dots", L.T("Dots")) }, () => meter.Display, value => meter.Display = value),
-            Number(L.T("Dot size"), 1.6, 5, () => meter.DotSize, value => meter.DotSize = value, L.T("Fine"), L.T("Coarse")),
+            Choice(L.T("Lit from"), new[] { ("below", L.T("Below")), ("above", L.T("Above")), ("left", L.T("Left")), ("right", L.T("Right")), ("behind", L.T("Behind the face")) }, () => meter.LampFrom, value => meter.LampFrom = value),
+            Choice(L.T("Display"), new[] { ("analogue", L.T("Analogue")), ("oled", "OLED") }, () => meter.Display == "dots" ? "oled" : meter.Display, value => meter.Display = value),
             Tick(L.T("Glow"), () => meter.Glow, value => meter.Glow = value))));
         settingsPanel.Children.Add(Card(L.T("Case"), Stack(
-            Choice(L.T("Casing"), new[] { ("none", L.T("None")), ("line", L.T("Line")), ("bezel", L.T("Bezel")), ("wood", L.T("Wood")), ("metal", L.T("Metal")) }, () => meter.Casing, value => meter.Casing = value),
+            Choice(L.T("Casing"), new[] { ("none", L.T("None")), ("line", L.T("Line")), ("bezel", L.T("Bezel")), ("metal", L.T("Brushed metal")), ("wood", L.T("Wood")), ("acrylic", L.T("Clear acrylic")) }, () => meter.Casing, value => meter.Casing = value),
             Choice(L.T("Glass"), new[] { ("none", L.T("None")), ("clear", L.T("Clear")), ("smoked", L.T("Smoked")) }, () => meter.Glass, value => meter.Glass = value))));
     }
 }
