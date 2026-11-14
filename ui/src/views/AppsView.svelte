@@ -4,18 +4,19 @@
   import { selectable } from '../lib/selectable.svelte'
   import type { SelectionAction } from '../lib/selection.svelte'
   import { live, query, sendToShell, serverArt } from '../bridge'
-  import { app, ui, openView, toast } from '../state.svelte'
+  import { app, ui, nav, openView, toast } from '../state.svelte'
   import { infoFor, splitName, detail, itemImage, isFolder } from '../lib/xmlBrowse'
   import Icon from '../parts/Icon.svelte'
   import PinButton from '../parts/PinButton.svelte'
   import PageHead from '../parts/PageHead.svelte'
   // Radio and Apps (SPEC.md › Radio and apps): any plugin the server offers, browsed through Lyrion's shared menu format, so no plugin needs its own support.
   // Top level: kind 'radio' or 'apps' lists the server's own list. Inside: kind 'app' (key "cmd|itemId") browses; kind 'app-search' (same key) asks for words first.
-  let { kind, key = '', title = '' }: { kind: string, key?: string, title?: string } = $props()
+  let { kind, key = '', title = '', words = '' }: { kind: string, key?: string, title?: string, words?: string } = $props()
   const cmd = $derived(key.split('|')[0]), itemId = $derived(key.split('|').slice(1).join('|'))
   let items = $state<any[]>([]), extras = $state<{ key: string, title: string, url: string, icon: string }[]>([])
   let loading = $state(true), failed = $state(false)
-  let searchWords = $state(''), searched = $state('')
+  // The words searched stay on the view, so Back from a result (e.g. a podcast's episodes) shows the same results again (#382)
+  let searchWords = $state(untrack(() => words)), searched = $state(untrack(() => words))
   async function load() {
     loading = true; failed = false
     try {
@@ -72,7 +73,7 @@
 
 <PageHead title={heading}>{#snippet titleExtra()}{#if !top && kind === 'app'}<PinButton view={{ kind, key, title }} />{/if}{/snippet}</PageHead>
 {#if kind === 'app-search'}
-  <form class="search" onsubmit={(event) => { event.preventDefault(); searched = searchWords.trim(); if (searched) load() }}>
+  <form class="search" onsubmit={(event) => { event.preventDefault(); searched = searchWords.trim(); const current = nav.stack[nav.stack.length - 1]; if (current) current.words = searched; if (searched) load() }}>
     <!-- svelte-ignore a11y_autofocus -->
     <input bind:value={searchWords} placeholder={t('Search {name}', { name: title })} autofocus /><button type="submit" disabled={!searchWords.trim()}>{t('Search')}</button>
   </form>
