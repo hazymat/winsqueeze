@@ -975,6 +975,7 @@
   "Name separators": "Separatory nazw",
   "Space between each": "Odstęp między każdym",
   "Read composer and conductor tags like \"Kapustin, Nikolai\" as one person": "Czytaj tagi kompozytora i dyrygenta jak „Kapustin, Nikolai” jako jedną osobę",
+  "Sort artists the way Lyrion does (uses ARTISTSORT tags like \"Bowie, David\")": "Sortuj wykonawców jak Lyrion (używa tagów ARTISTSORT, np. \"Bowie, David\")",
   "Composers list: leave out artists credited as composer only on their own albums (singer-songwriters)": "Lista kompozytorów: pomiń artystów podanych jako kompozytor tylko na własnych albumach (piosenkarze i autorzy piosenek)",
   "How names are split": "Jak dzielone są nazwy",
   "Split on the separators, never on commas: \"Earth, Wind & Fire\" stays whole.": "Dziel na separatorach, nigdy na przecinkach: „Earth, Wind & Fire” zostaje w całości.",

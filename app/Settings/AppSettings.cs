@@ -192,6 +192,7 @@ public class LibrarySettings
     public bool ReadSurnameFirst { get; set; } = true; // composer and conductor tags shaped "Kapustin, Nikolai" are one person, not two
     public string NameOrder { get; set; } = "surname"; // composers and conductors shown and sorted as surname | forename ("Kapustin, Nikolai" or "Nikolai Kapustin")
     public int RefreshMinutes { get; set; } = 5;
+    public bool LyrionArtistSort { get; set; } = true; // artists, bands and soloists sort in Lyrion's own order (its sort names: ARTISTSORT tags, leading "The" ignored)
     public bool HideOwnComposers { get; set; } = true; // composers list leaves out songwriters credited only on their own albums
     public string ListSizeGraphic { get; set; } = "bar"; // top-level lists show size graphically: none | dots | bar | bold
     public string ListCounts { get; set; } = "group"; // top-level lists show: group (whatever the next view groups by) | tracks | both
