@@ -45,14 +45,17 @@ public class MeterSettings
     public double SpectrumFallMs { get; set; } = 250;
     public List<InfoChoice> Styles { get; set; } = new(); // the styles a click on the meters cycles through, in order (one ticked: a click taps the meter)
     public List<CustomMeter> Custom { get; set; } = new(); // meters made in the VU Builder; each is a style ("custom-<id>")
-    public static readonly string[] StyleKeys = { "vu", "deck", "orange", "monitor", "blue", "green", "oledvu", "oled", "night" }; // night: the built-in Dark room VU, drawn from CustomMeter.DarkRoom
+    public static readonly string[] StyleKeys = { "vu", "deck", "orange", "monitor", "blue", "green", "oledvu", "oled" };
     public IEnumerable<string> AllStyleKeys => StyleKeys.Concat(Custom.Select(meter => meter.StyleKey));
-    // How each drawn-from-a-design style looks: the built-in Dark room plus the user's own
-    public Dictionary<string, CustomMeter> Designs() { var designs = new Dictionary<string, CustomMeter> { ["night"] = CustomMeter.DarkRoom() }; foreach (var meter in Custom) designs[meter.StyleKey] = meter; return designs; }
+    // How each VU Builder meter looks, by style key
+    public Dictionary<string, CustomMeter> Designs() { var designs = new Dictionary<string, CustomMeter>(); foreach (var meter in Custom) designs[meter.StyleKey] = meter; return designs; }
     public static readonly string[] DefaultStyles = { "vu", "green", "oled" };
     // Fills in anything missing (first run, or a style added in a later version); at least one stays ticked
     public void Normalise()
     {
+        // The built-in Dark room VU ("night", earlier dev builds) is now a starting point in the VU Builder: if it was ticked, it becomes your own meter in the same place
+        var night = Styles.FirstOrDefault(style => style.Key == "night");
+        if (night is { On: true }) { var darkRoom = Custom.FirstOrDefault(meter => meter.Id == "darkroom") ?? CustomMeter.DarkRoom(); if (!Custom.Contains(darkRoom)) Custom.Add(darkRoom); night.Key = darkRoom.StyleKey; }
         var allKeys = AllStyleKeys.ToList();
         Styles = Styles.Where(style => allKeys.Contains(style.Key)).GroupBy(style => style.Key).Select(group => group.First()).ToList();
         var firstRun = Styles.Count == 0;
@@ -101,7 +104,7 @@ public class CustomMeter
         if (upgraded is { } value) { Lamp = value.lamp; LampTint = value.tint; }
         return this;
     }
-    // Starting points in the builder; the first is also the built-in Dark room VU style
+    // Starting points in the builder
     public static CustomMeter DarkRoom() => new() { Id = "darkroom", Name = L.T("Dark room VU") };
     public static List<CustomMeter> Presets() => new()
     {

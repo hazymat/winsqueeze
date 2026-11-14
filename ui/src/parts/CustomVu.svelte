@@ -148,7 +148,8 @@
     <rect width="240" height="140" fill={oled ? '#020303' : spec.back} />
     {#if lit && pale && !oled}
       <!-- What the bulbs light: the face in their colour near them, dim further away (multiplied over face, print and needle alike) -->
-      <g class="multiply"><rect width="240" height="140" fill="#857a6c" /><g class="lamp {lamp.start}">{#each bulbs as unusedBulb, bulbIndex}<rect width="240" height="140" fill="url(#{id}-pool-{bulbIndex})" class="screen" opacity={eachBulb} />{/each}</g></g>
+      <g class="multiply"><rect width="240" height="140" fill="#857a6c" />{#each bulbs as unusedBulb, bulbIndex}<rect width="240" height="140" fill="url(#{id}-pool-{bulbIndex})" class="screen lamp {lamp.start}" style="--full: {eachBulb}" />{/each}</g>
+      {#if lamp.start === 'warm' || lamp.start === 'quick'}<rect width="240" height="140" fill="#000" class="warm-up {lamp.start}" />{/if}
     {/if}
     <g filter={oled ? `url(#${id}-oled)` : spec.glow ? `url(#${id}-glow)` : null}><g mask={oled ? `url(#${id}-pixel-mask)` : null} font-family={font}>
       {#if spec.arc === 'line' || spec.arc === 'band'}<path d={arcPath(0, zeroShare, 0)} stroke={spec.cold} stroke-width={spec.weight} fill="none" /><path d={arcPath(zeroShare, 1, 0)} stroke={spec.hot} stroke-width={spec.weight} fill="none" />{/if}
@@ -172,7 +173,7 @@
           <path d={needleShape} fill="url(#{id}-across)" /><path d={needleShape} fill="url(#{id}-along)" class="screen" />{/if}
       </g>
     </g></g>
-    {#if lit && (!pale || oled)}<g class="lamp {lamp.start}">{#each bulbs as unusedBulb, bulbIndex}<rect width="240" height="140" fill="url(#{id}-glow-{bulbIndex})" class="screen" opacity={(oled ? 0.35 : 0.6) * eachBulb} />{/each}</g>{/if}
+    {#if lit && (!pale || oled)}{#each bulbs as unusedBulb, bulbIndex}<rect width="240" height="140" fill="url(#{id}-glow-{bulbIndex})" class="screen lamp {lamp.start}" style="--full: {(oled ? 0.35 : 0.6) * eachBulb}" />{/each}{/if}
     <!-- Base the needle rises from -->
     {#if spec.base === 'ring'}<circle cx="120" cy={pivotY} r={cover(14)} fill={oled ? '#020303' : spec.back} stroke={spec.cold} stroke-width="1" />
     {:else if spec.base === 'filled'}<circle cx="120" cy={pivotY} r={cover(14)} fill={spec.cold} />
@@ -223,10 +224,16 @@
 <style>
   .custom-vu { display: block; overflow: visible; }
   .multiply { mix-blend-mode: multiply; isolation: isolate; } .screen { mix-blend-mode: screen; }
-  /* How each lamp comes on: filaments glow up, a tube strikes, neon never quite settles */
+  /* How each lamp comes on: filaments glow up, a tube strikes, neon never quite settles. Each light is faded on its own (fading a group of them would blend
+     them against nothing until the fade ends, so the face would turn deep amber and then jump back) */
+  .lamp { opacity: var(--full); }
+  /* On a pale face a filament lamp comes up by the whole face brightening evenly, so its colour never shifts on the way */
+  .multiply .lamp.warm, .multiply .lamp.quick { animation: none; }
+  .warm-up { opacity: 0; } .warm-up.warm { animation: warm-up 1.1s ease-in; } .warm-up.quick { animation: warm-up 0.25s ease-out; }
+  @keyframes warm-up { from { opacity: 0.85; } to { opacity: 0; } }
   .lamp.warm { animation: lamp-warm 1.1s ease-in; } .lamp.quick { animation: lamp-warm 0.25s ease-out; }
   .lamp.strike { animation: lamp-strike 0.9s steps(1, end); } .lamp.shimmer { animation: lamp-shimmer 2.3s ease-in-out infinite; }
   @keyframes lamp-warm { from { opacity: 0; } }
-  @keyframes lamp-strike { 0% { opacity: 0; } 12% { opacity: 0.9; } 18% { opacity: 0.1; } 30% { opacity: 1; } 36% { opacity: 0.25; } 52% { opacity: 1; } 58% { opacity: 0.6; } 64% { opacity: 1; } }
-  @keyframes lamp-shimmer { 0%, 100% { opacity: 1; } 31% { opacity: 0.93; } 47% { opacity: 0.99; } 72% { opacity: 0.9; } }
+  @keyframes lamp-strike { 0% { opacity: 0; } 12% { opacity: calc(var(--full) * 0.9); } 18% { opacity: calc(var(--full) * 0.1); } 30% { opacity: var(--full); } 36% { opacity: calc(var(--full) * 0.25); } 52% { opacity: var(--full); } 58% { opacity: calc(var(--full) * 0.6); } 64% { opacity: var(--full); } }
+  @keyframes lamp-shimmer { 0%, 100% { opacity: var(--full); } 31% { opacity: calc(var(--full) * 0.93); } 47% { opacity: calc(var(--full) * 0.99); } 72% { opacity: calc(var(--full) * 0.9); } }
 </style>
