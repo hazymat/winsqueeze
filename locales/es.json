@@ -1238,8 +1238,6 @@
   "Dome": "Cúpula",
   "Face and light": "Escala y luz",
   "Bulb": "Bombilla",
-  "Warm white": "Blanco cálido",
-  "Cool white": "Blanco frío",
   "Amber": "Ámbar",
   "Green": "Verde",
   "Blue": "Azul",
@@ -1284,5 +1282,13 @@
   "Dot display": "Pantalla de puntos",
   "Brightness": "Brillo",
   "Dim": "Tenue",
-  "Bright": "Intenso"
+  "Bright": "Intenso",
+  "Halogen": "Halógena",
+  "Pilot lamp": "Piloto",
+  "LED strip": "Tira LED",
+  "Fluorescent tube": "Tubo fluorescente",
+  "Neon": "Neón",
+  "Colour filter": "Filtro de color",
+  "Natural": "Natural",
+  "Red": "Rojo"
 }

@@ -1238,8 +1238,6 @@
   "Dome": "Dôme",
   "Face and light": "Cadran et lumière",
   "Bulb": "Ampoule",
-  "Warm white": "Blanc chaud",
-  "Cool white": "Blanc froid",
   "Amber": "Ambre",
   "Green": "Vert",
   "Blue": "Bleu",
@@ -1284,5 +1282,13 @@
   "Dot display": "Affichage à points",
   "Brightness": "Luminosité",
   "Dim": "Faible",
-  "Bright": "Fort"
+  "Bright": "Fort",
+  "Halogen": "Halogène",
+  "Pilot lamp": "Voyant",
+  "LED strip": "Bande LED",
+  "Fluorescent tube": "Tube fluorescent",
+  "Neon": "Néon",
+  "Colour filter": "Filtre coloré",
+  "Natural": "Naturel",
+  "Red": "Rouge"
 }

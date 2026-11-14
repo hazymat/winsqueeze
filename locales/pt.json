@@ -1238,8 +1238,6 @@
   "Dome": "Cúpula",
   "Face and light": "Mostrador e luz",
   "Bulb": "Lâmpada",
-  "Warm white": "Branco quente",
-  "Cool white": "Branco frio",
   "Amber": "Âmbar",
   "Green": "Verde",
   "Blue": "Azul",
@@ -1284,5 +1282,13 @@
   "Dot display": "Ecrã de pontos",
   "Brightness": "Brilho",
   "Dim": "Fraco",
-  "Bright": "Forte"
+  "Bright": "Forte",
+  "Halogen": "Halogénio",
+  "Pilot lamp": "Lâmpada piloto",
+  "LED strip": "Fita LED",
+  "Fluorescent tube": "Tubo fluorescente",
+  "Neon": "Néon",
+  "Colour filter": "Filtro de cor",
+  "Natural": "Natural",
+  "Red": "Vermelho"
 }

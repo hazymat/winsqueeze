@@ -1238,8 +1238,6 @@
   "Dome": "Kupu",
   "Face and light": "Asteikko ja valo",
   "Bulb": "Lamppu",
-  "Warm white": "Lämmin valkoinen",
-  "Cool white": "Kylmä valkoinen",
   "Amber": "Meripihka",
   "Green": "Vihreä",
   "Blue": "Sininen",
@@ -1284,5 +1282,13 @@
   "Dot display": "Pistenäyttö",
   "Brightness": "Kirkkaus",
   "Dim": "Himmeä",
-  "Bright": "Kirkas"
+  "Bright": "Kirkas",
+  "Halogen": "Halogeeni",
+  "Pilot lamp": "Merkkivalo",
+  "LED strip": "LED-nauha",
+  "Fluorescent tube": "Loisteputki",
+  "Neon": "Neon",
+  "Colour filter": "Värisuodin",
+  "Natural": "Luonnollinen",
+  "Red": "Punainen"
 }

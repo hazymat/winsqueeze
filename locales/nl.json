@@ -1238,8 +1238,6 @@
   "Dome": "Koepel",
   "Face and light": "Schaal en licht",
   "Bulb": "Lampje",
-  "Warm white": "Warm wit",
-  "Cool white": "Koel wit",
   "Amber": "Amber",
   "Green": "Groen",
   "Blue": "Blauw",
@@ -1284,5 +1282,13 @@
   "Dot display": "Puntendisplay",
   "Brightness": "Helderheid",
   "Dim": "Zwak",
-  "Bright": "Fel"
+  "Bright": "Fel",
+  "Halogen": "Halogeen",
+  "Pilot lamp": "Controlelampje",
+  "LED strip": "Ledstrip",
+  "Fluorescent tube": "TL-buis",
+  "Neon": "Neon",
+  "Colour filter": "Kleurfilter",
+  "Natural": "Natuurlijk",
+  "Red": "Rood"
 }

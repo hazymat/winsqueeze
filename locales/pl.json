@@ -1238,8 +1238,6 @@
   "Dome": "Kopuła",
   "Face and light": "Tarcza i światło",
   "Bulb": "Żarówka",
-  "Warm white": "Ciepła biel",
-  "Cool white": "Zimna biel",
   "Amber": "Bursztynowa",
   "Green": "Zielona",
   "Blue": "Niebieska",
@@ -1284,5 +1282,13 @@
   "Dot display": "Wyświetlacz punktowy",
   "Brightness": "Jasność",
   "Dim": "Słabo",
-  "Bright": "Jasno"
+  "Bright": "Jasno",
+  "Halogen": "Halogen",
+  "Pilot lamp": "Lampka kontrolna",
+  "LED strip": "Taśma LED",
+  "Fluorescent tube": "Świetlówka",
+  "Neon": "Neon",
+  "Colour filter": "Filtr barwny",
+  "Natural": "Naturalny",
+  "Red": "Czerwony"
 }

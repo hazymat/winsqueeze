@@ -126,7 +126,7 @@ public sealed class VuBuilderWindow : Window
         dirty = false; FillPicker(); BuildSettings(); PushDesign();
     }
 
-    static CustomMeter NewMeter(CustomMeter from) { var meter = from.Copy(); meter.Id = Guid.NewGuid().ToString("N")[..8]; meter.Name = ""; return meter; }
+    static CustomMeter NewMeter(CustomMeter from) { var meter = from.Copy().Upgrade(); meter.Id = Guid.NewGuid().ToString("N")[..8]; meter.Name = ""; return meter; }
 
     // A starting point replaces the look, and keeps the name you typed
     void StartFrom(CustomMeter preset)
@@ -295,7 +295,8 @@ public sealed class VuBuilderWindow : Window
             Colour(L.T("Colour"), new[] { "#ecd9a8", "#ffffff", "#ff6a3a", "#e23b2e", "#111111", "#d8f8ff" }, () => meter.NeedleColour, value => meter.NeedleColour = value))));
         settingsPanel.Children.Add(Card(L.T("Face and light"), Stack(
             Colour(L.T("Back"), new[] { "#000000", "#16181a", "#0b1626", "#efe2c4", "#f6f0e2", "#ffffff" }, () => meter.Back, value => meter.Back = value),
-            Choice(L.T("Bulb"), new[] { ("none", L.T("Off")), ("tungsten", L.T("Tungsten")), ("warm", L.T("Warm white")), ("cool", L.T("Cool white")), ("amber", L.T("Amber")), ("green", L.T("Green")), ("blue", L.T("Blue")) }, () => meter.Lamp, value => meter.Lamp = value),
+            Choice(L.T("Bulb"), new[] { ("none", L.T("Off")), ("tungsten", L.T("Tungsten")), ("halogen", L.T("Halogen")), ("pilot", L.T("Pilot lamp")), ("led", L.T("LED strip")), ("tube", L.T("Fluorescent tube")), ("neon", L.T("Neon")) }, () => meter.Lamp, value => meter.Lamp = value),
+            Choice(L.T("Colour filter"), new[] { ("natural", L.T("Natural")), ("amber", L.T("Amber")), ("red", L.T("Red")), ("green", L.T("Green")), ("blue", L.T("Blue")) }, () => meter.LampTint, value => meter.LampTint = value),
             Choice(L.T("Lit from"), new[] { ("below", L.T("Below")), ("above", L.T("Above")), ("left", L.T("Left")), ("right", L.T("Right")) }, () => meter.LampFrom == "behind" ? "below" : meter.LampFrom, value => meter.LampFrom = value),
             Number(L.T("Brightness"), 0, 1, () => meter.LampPower, value => meter.LampPower = value, L.T("Dim"), L.T("Bright")),
             Choice(L.T("Display"), new[] { ("analogue", L.T("Analogue")), ("oled", "OLED") }, () => meter.Display == "dots" ? "oled" : meter.Display, value => meter.Display = value),

@@ -1238,8 +1238,6 @@
   "Dome": "Kuppel",
   "Face and light": "Skala og lys",
   "Bulb": "Pære",
-  "Warm white": "Varm hvid",
-  "Cool white": "Kold hvid",
   "Amber": "Rav",
   "Green": "Grøn",
   "Blue": "Blå",
@@ -1284,5 +1282,13 @@
   "Dot display": "Prikdisplay",
   "Brightness": "Lysstyrke",
   "Dim": "Svag",
-  "Bright": "Kraftig"
+  "Bright": "Kraftig",
+  "Halogen": "Halogen",
+  "Pilot lamp": "Kontrollampe",
+  "LED strip": "LED-strip",
+  "Fluorescent tube": "Lysstofrør",
+  "Neon": "Neon",
+  "Colour filter": "Farvefilter",
+  "Natural": "Naturlig",
+  "Red": "Rød"
 }
