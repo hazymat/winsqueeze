@@ -179,7 +179,6 @@
     {#if lit && pale && !oled}
       <!-- What the bulbs light: the face in their colour near them, dim further away (multiplied over face, print and needle alike) -->
       <g class="multiply"><rect width="240" height={faceHeight} fill="#857a6c" />{#each bulbs as unusedBulb, bulbIndex}<rect width="240" height={faceHeight} fill="url(#{id}-pool-{bulbIndex})" class="screen lamp {lamp.start}" style="--full: {eachBulb}" />{/each}</g>
-      {#if lamp.start === 'warm' || lamp.start === 'quick'}<rect width="240" height={faceHeight} fill="#000" class="warm-up {lamp.start}" />{/if}
     {/if}
     <g filter={oled ? `url(#${id}-oled)` : spec.glow ? `url(#${id}-glow)` : null}><g mask={oled ? `url(#${id}-pixel-mask)` : null} font-family={font}>
       {#if spec.arc === 'line' || spec.arc === 'band'}<path d={arcPath(0, zeroShare, 0)} stroke={spec.cold} stroke-width={spec.weight} fill="none" /><path d={arcPath(zeroShare, 1, 0)} stroke={spec.hot} stroke-width={spec.weight} fill="none" />{/if}
@@ -203,6 +202,8 @@
           <path d={needleShape} fill="url(#{id}-across)" /><path d={needleShape} fill="url(#{id}-along)" class="screen" />{/if}
       </g>
     </g></g>
+    <!-- A filament lamp warming up: the whole face, print and needle included, comes up together (only the face under the print brightening left the red zone fully lit) -->
+    {#if lit && !oled && (lamp.start === 'warm' || lamp.start === 'quick')}<rect width="240" height={faceHeight} fill="#000" class="warm-up {lamp.start}" />{/if}
     {#if lit && (!pale || oled)}{#each bulbs as unusedBulb, bulbIndex}<rect width="240" height={faceHeight} fill="url(#{id}-glow-{bulbIndex})" class="screen lamp {lamp.start}" style="--full: {(oled ? 0.35 : 0.6) * eachBulb}" />{/each}{/if}
     <!-- Base the needle rises from -->
     {#if spec.base === 'ring'}<circle cx="120" cy={pivotY} r={cover(14)} fill={oled ? '#020303' : spec.back} stroke={spec.cold} stroke-width="1" />
