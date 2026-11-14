@@ -26,7 +26,8 @@
     const key = trackKey, kinds = infoTabs, playing = track
     if (key !== infoFor) { infoFor = key; info = {} }
     if (!playing) return
-    for (const kind of infoKinds(kinds)) if (untrack(() => info[kind]) === undefined) { // every tab's lookups at once (the shell already has them if they were prefetched), so switching tabs is instant
+    const started = app.nowPlaying?.mode === 'play' // before anything plays only the open tab is looked up, so opening the app doesn't wake the server's music drive (#383)
+    for (const kind of infoKinds(started ? kinds : kinds.filter(tab => tab === infoKey))) if (untrack(() => info[kind]) === undefined) { // every tab's lookups at once (the shell already has them if they were prefetched), so switching tabs is instant
       info = Object.assign({}, untrack(() => info), { [kind]: 'loading' })
       fetchInfo(kind, playing, key, 1)
     }
