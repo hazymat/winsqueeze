@@ -62,6 +62,11 @@
   const oledPivotY = 78, oledSpread = 1.25, oledRadius = 42, oledRestAngle = -68
   const oledPoint = (angle: number, radius: number) => [pivotX + radius * Math.sin(angle * oledSpread * Math.PI / 180), oledPivotY - radius * Math.cos(angle * oledSpread * Math.PI / 180)]
   const oledArc = (fromAngle: number, toAngle: number, radius: number) => { const [startX, startY] = oledPoint(fromAngle, radius); const [endX, endY] = oledPoint(toAngle, radius); return `M${startX} ${startY} A${radius} ${radius} 0 0 1 ${endX} ${endY}` }
+  // Dark room VU: the pivot sits at the window's bottom edge and the scale is a much flatter arc than the needle's sweep (centre far below), so the face is wide and low
+  const nightPivotY = 72, nightSpread = 1.087, nightScaleRadius = 136, nightScaleCentreY = 171
+  const nightPoint = (angle: number, beyond: number) => { const radians = angle * nightSpread * Math.PI / 180, drop = (nightScaleCentreY - nightPivotY) * Math.cos(radians), reach = -drop + Math.sqrt(drop * drop - (nightScaleCentreY - nightPivotY) ** 2 + nightScaleRadius ** 2) + beyond; return [pivotX + reach * Math.sin(radians), nightPivotY - reach * Math.cos(radians)] }
+  const nightArc = (fromAngle: number, toAngle: number, beyond = 0) => { const [startX, startY] = nightPoint(fromAngle, beyond), [endX, endY] = nightPoint(toAngle, beyond); return `M${startX} ${startY} A${nightScaleRadius + beyond} ${nightScaleRadius + beyond} 0 0 1 ${endX} ${endY}` }
+  const nightBlade = `M${pivotX - 0.85} ${nightPivotY - 3} L${pivotX - 0.14} ${nightPivotY - 47} L${pivotX + 0.14} ${nightPivotY - 47} L${pivotX + 0.85} ${nightPivotY - 3} Z`
   const detentAngles = Array.from({ length: 16 }, (unused, index) => 21 + index * 25 / 15)
 </script>
 
@@ -192,21 +197,22 @@
     {/each}
   {:else if ui.meterStyle === 'night'}
     {#each ['L', 'R'] as channel, channelIndex}
-      <!-- Dark room VU: nothing but a thin dim scale and a fine needle on black; no lamp, glass, glow or frame, so it adds almost no light to the room -->
+      <!-- Dark room VU: only a scale, a needle and a border on pure black; no lamp, glass or glow, so it adds little light to the room -->
       {#snippet nightLayer(layer: string)}
       <svg viewBox="0 17 120 54" class="vu nightvu layer-{layer}" aria-hidden="true">
-        <defs><clipPath id={gradientId + '-night-clip'}><rect x="2" y="18" width="116" height="49" /></clipPath></defs>
+        <defs><clipPath id={gradientId + '-night-clip'}><rect x="2" y="19" width="116" height="50" rx="3" /></clipPath></defs>
+        <rect x="1" y="18" width="118" height="52" rx="4" class="night-border" />
         <g class="display">
-          <path d={oledArc(-48, 21, oledRadius)} class="night-line" /><path d={oledArc(21, 46, oledRadius)} class="night-line hot" /><path d={oledArc(21, 46, oledRadius + 1.6)} class="night-band" />
+          <path d={nightArc(-48, 46)} class="night-line" /><path d={nightArc(21, 46, 1.3)} class="night-band" />
           {#each scaleMarks as [decibels, angle]}
-            {@const [innerX, innerY] = oledPoint(angle, oledRadius)}{@const [outerX, outerY] = oledPoint(angle, oledRadius + (decibels === 0 ? 4 : 2.6))}{@const [labelX, labelY] = oledPoint(angle, oledRadius + 8.5)}
+            {@const [innerX, innerY] = nightPoint(angle, 0)}{@const [outerX, outerY] = nightPoint(angle, decibels === 0 ? 4.6 : 3.4)}{@const [labelX, labelY] = nightPoint(angle, 8.4)}
             <line x1={innerX} y1={innerY} x2={outerX} y2={outerY} class="night-tick" class:hot={decibels > 0} />
             {#if decibels !== -2 && decibels !== -1 && decibels !== 1 && decibels !== 2}<text x={labelX} y={labelY} class="night-number" class:hot={decibels > 0}>{Math.abs(decibels)}</text>{/if}
           {/each}
-          <text x="60" y="51" class="night-label">VU</text>
-          <g clip-path="url(#{gradientId}-night-clip)"><line x1={pivotX} y1={oledPivotY - 12} x2={pivotX} y2={oledPivotY - 46.5} class="oled-needle" transform="rotate({needleAngle(meters.vu[channelIndex] ?? -90, restAngle) * oledSpread} {pivotX} {oledPivotY})" /></g>
+          <text x="60" y="53" class="night-label">VU</text><text x="9" y="26.5" class="night-channel">{channel}</text>
+          <g clip-path="url(#{gradientId}-night-clip)"><path d={nightBlade} class="oled-needle" transform="rotate({needleAngle(meters.vu[channelIndex] ?? -90, restAngle) * nightSpread} {pivotX} {nightPivotY})" /></g>
+          <path d="M49 70 A11 7.5 0 0 1 71 70 Z" class="oled-needle night-hub" />
         </g>
-        <text x="60" y="63" class="night-channel">{channel}</text>
       </svg>
       {/snippet}
       <span class="meter-stack">{@render nightLayer('face')}{@render nightLayer('needles')}</span>
@@ -278,12 +284,13 @@
   .idle .display { opacity: 0.55; }
   /* Dark room VU: flat dim ink on black, no glow */
   .small .nightvu { height: 27px; } .large .nightvu { height: 85.5px; }
-  .night-line { fill: none; stroke: #2c7a58; stroke-width: 0.55; } .night-line.hot, .night-tick.hot { stroke: #8a3427; } .night-band { fill: none; stroke: #8a3427; stroke-width: 1.6; opacity: 0.7; }
-  .night-tick { stroke: #2c7a58; stroke-width: 0.55; }
-  .night-number { fill: #2c7a58; font-size: 4.6px; text-anchor: middle; dominant-baseline: middle; font-family: "Segoe UI", Arial, sans-serif; } .night-number.hot { fill: #8a3427; }
-  .night-label { fill: #2c7a58; font-size: 5px; text-anchor: middle; font-family: "Segoe UI", Arial, sans-serif; letter-spacing: 1.5px; opacity: 0.8; }
-  .night-channel { fill: #2c7a58; opacity: 0.55; font-size: 4px; text-anchor: middle; font-family: "Segoe UI", Arial, sans-serif; }
-  .nightvu .oled-needle { stroke: #9ccfb4; stroke-width: 0.5; stroke-linecap: round; }
+  .night-border { fill: #000; stroke: #24624a; stroke-width: 0.5; }
+  .night-line { fill: none; stroke: #3fa57a; stroke-width: 1.1; stroke-linecap: round; } .night-band { fill: none; stroke: #b5402f; stroke-width: 2.6; }
+  .night-tick { stroke: #3fa57a; stroke-width: 0.9; stroke-linecap: round; } .night-tick.hot { stroke: #b5402f; }
+  .night-number { fill: #3fa57a; font-size: 5.4px; font-weight: 600; text-anchor: middle; dominant-baseline: middle; font-family: "Segoe UI", Arial, sans-serif; } .night-number.hot { fill: #b5402f; }
+  .night-label { fill: #3fa57a; font-size: 6px; font-weight: 700; text-anchor: middle; font-family: "Segoe UI", Arial, sans-serif; letter-spacing: 1px; }
+  .night-channel { fill: #3fa57a; opacity: 0.6; font-size: 4.4px; font-weight: 600; text-anchor: middle; font-family: "Segoe UI", Arial, sans-serif; }
+  .nightvu .oled-needle { fill: #ecd9a8; stroke: none; } .nightvu .night-hub { fill: #0c0f0e; stroke: #24624a; stroke-width: 0.5; }
   .spectrum { display: flex; } .large .spectrum { width: 320px; height: 150px; }
   /* Full window (right-click): as big as the window allows */
   .full { gap: 2vw; } .full .vu { width: min(46vw, (100vh - 140px) * 1.66); height: auto; } .full .spectrum { width: min(92vw, (100vh - 140px) * 2.2); height: min(70vh, 46vw); } .small .spectrum { width: 64px; height: 29px; }
