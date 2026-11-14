@@ -1254,7 +1254,6 @@
   "Bezel": "Рамка",
   "Wood": "Дерево",
   "Metal": "Метал",
-  "Smoked": "Тоноване",
   "VU Builder…": "Конструктор VU…",
   "Design your own VU meter": "Створіть власний VU-індикатор",
   "Double line": "Подвійна лінія",
@@ -1276,12 +1275,14 @@
   "Dome with screw": "Купол із гвинтом",
   "Knurled chrome": "Рифлений хром",
   "Brass cap": "Латунний ковпачок",
-  "Behind the face": "За шкалою",
   "Brushed metal": "Шліфований метал",
   "Clear acrylic": "Прозорий акрил",
   "Dots": "Крапки",
   "Fine": "Дрібні",
   "Coarse": "Великі",
   "Dot size": "Розмір точок",
-  "Dot display": "Точковий дисплей"
+  "Dot display": "Точковий дисплей",
+  "Brightness": "Яскравість",
+  "Dim": "Тьмяно",
+  "Bright": "Яскраво"
 }

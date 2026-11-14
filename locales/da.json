@@ -1254,7 +1254,6 @@
   "Bezel": "Ramme",
   "Wood": "Træ",
   "Metal": "Metal",
-  "Smoked": "Røget",
   "VU Builder…": "VU-byggeren…",
   "Design your own VU meter": "Design din egen VU-måler",
   "Double line": "Dobbelt linje",
@@ -1276,12 +1275,14 @@
   "Dome with screw": "Kuppel med skrue",
   "Knurled chrome": "Riflet krom",
   "Brass cap": "Messinghætte",
-  "Behind the face": "Bag skalaen",
   "Brushed metal": "Børstet metal",
   "Clear acrylic": "Klar akryl",
   "Dots": "Prikker",
   "Fine": "Fin",
   "Coarse": "Grov",
   "Dot size": "Prikstørrelse",
-  "Dot display": "Prikdisplay"
+  "Dot display": "Prikdisplay",
+  "Brightness": "Lysstyrke",
+  "Dim": "Svag",
+  "Bright": "Kraftig"
 }

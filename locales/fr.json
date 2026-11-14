@@ -1254,7 +1254,6 @@
   "Bezel": "Lunette",
   "Wood": "Bois",
   "Metal": "Métal",
-  "Smoked": "Fumé",
   "VU Builder…": "Atelier VU…",
   "Design your own VU meter": "Crée ton propre vu-mètre",
   "Double line": "Double ligne",
@@ -1276,12 +1275,14 @@
   "Dome with screw": "Dôme avec vis",
   "Knurled chrome": "Chrome moleté",
   "Brass cap": "Capuchon en laiton",
-  "Behind the face": "Derrière le cadran",
   "Brushed metal": "Métal brossé",
   "Clear acrylic": "Acrylique transparent",
   "Dots": "Points",
   "Fine": "Fins",
   "Coarse": "Gros",
   "Dot size": "Taille des points",
-  "Dot display": "Affichage à points"
+  "Dot display": "Affichage à points",
+  "Brightness": "Luminosité",
+  "Dim": "Faible",
+  "Bright": "Fort"
 }

@@ -1254,7 +1254,6 @@
   "Bezel": "Rámeček",
   "Wood": "Dřevo",
   "Metal": "Kov",
-  "Smoked": "Kouřové",
   "VU Builder…": "Návrhář VU…",
   "Design your own VU meter": "Navrhněte si vlastní měřidlo VU",
   "Double line": "Dvojitá čára",
@@ -1276,12 +1275,14 @@
   "Dome with screw": "Kupole se šroubkem",
   "Knurled chrome": "Vroubkovaný chrom",
   "Brass cap": "Mosazná krytka",
-  "Behind the face": "Za stupnicí",
   "Brushed metal": "Broušený kov",
   "Clear acrylic": "Čirý akryl",
   "Dots": "Tečky",
   "Fine": "Jemné",
   "Coarse": "Hrubé",
   "Dot size": "Velikost bodů",
-  "Dot display": "Bodový displej"
+  "Dot display": "Bodový displej",
+  "Brightness": "Jas",
+  "Dim": "Slabý",
+  "Bright": "Silný"
 }

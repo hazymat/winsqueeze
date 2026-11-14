@@ -1254,7 +1254,6 @@
   "Bezel": "Kehys",
   "Wood": "Puu",
   "Metal": "Metalli",
-  "Smoked": "Savu",
   "VU Builder…": "VU-rakennin…",
   "Design your own VU meter": "Suunnittele oma VU-mittari",
   "Double line": "Kaksoisviiva",
@@ -1276,12 +1275,14 @@
   "Dome with screw": "Kupu ja ruuvi",
   "Knurled chrome": "Pykälöity kromi",
   "Brass cap": "Messinkihattu",
-  "Behind the face": "Asteikon takana",
   "Brushed metal": "Harjattu metalli",
   "Clear acrylic": "Kirkas akryyli",
   "Dots": "Pisteet",
   "Fine": "Hieno",
   "Coarse": "Karkea",
   "Dot size": "Pisteen koko",
-  "Dot display": "Pistenäyttö"
+  "Dot display": "Pistenäyttö",
+  "Brightness": "Kirkkaus",
+  "Dim": "Himmeä",
+  "Bright": "Kirkas"
 }

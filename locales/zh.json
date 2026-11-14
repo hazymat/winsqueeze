@@ -1254,7 +1254,6 @@
   "Bezel": "边框",
   "Wood": "木",
   "Metal": "金属",
-  "Smoked": "烟熏",
   "VU Builder…": "VU 制作器…",
   "Design your own VU meter": "设计你自己的 VU 电平表",
   "Double line": "双线",
@@ -1276,12 +1275,14 @@
   "Dome with screw": "带螺丝的圆顶",
   "Knurled chrome": "滚花镀铬",
   "Brass cap": "黄铜帽",
-  "Behind the face": "表盘后方",
   "Brushed metal": "拉丝金属",
   "Clear acrylic": "透明亚克力",
   "Dots": "点",
   "Fine": "细",
   "Coarse": "粗",
   "Dot size": "点大小",
-  "Dot display": "点阵显示"
+  "Dot display": "点阵显示",
+  "Brightness": "亮度",
+  "Dim": "暗",
+  "Bright": "亮"
 }

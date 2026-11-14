@@ -1254,7 +1254,6 @@
   "Bezel": "Ramka",
   "Wood": "Drewno",
   "Metal": "Metal",
-  "Smoked": "Przyciemniana",
   "VU Builder…": "Kreator VU…",
   "Design your own VU meter": "Zaprojektuj własny wskaźnik VU",
   "Double line": "Podwójna linia",
@@ -1276,12 +1275,14 @@
   "Dome with screw": "Kopuła ze śrubą",
   "Knurled chrome": "Radełkowany chrom",
   "Brass cap": "Mosiężny kapturek",
-  "Behind the face": "Za tarczą",
   "Brushed metal": "Szczotkowany metal",
   "Clear acrylic": "Przezroczysty akryl",
   "Dots": "Kropki",
   "Fine": "Drobne",
   "Coarse": "Duże",
   "Dot size": "Wielkość punktów",
-  "Dot display": "Wyświetlacz punktowy"
+  "Dot display": "Wyświetlacz punktowy",
+  "Brightness": "Jasność",
+  "Dim": "Słabo",
+  "Bright": "Jasno"
 }
