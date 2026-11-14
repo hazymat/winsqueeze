@@ -197,7 +197,7 @@
   // Full-window meters: the normal large meters, zoomed evenly to fill the window (everything scales together, like a bigger copy)
   let fullWidth = $state(0), fullHeight = $state(0), fullMeters = $state<HTMLElement>(), fullZoom = $state(1)
   function fitFullMeters() { if (!fullMeters) return; const rect = fullMeters.getBoundingClientRect(), naturalWidth = rect.width / fullZoom, naturalHeight = rect.height / fullZoom; if (naturalWidth && naturalHeight) fullZoom = Math.max(1, Math.min((fullWidth - 80) / naturalWidth, (fullHeight - 100) / naturalHeight)) }
-  $effect(() => { fullMeters; fullWidth; fullHeight; ui.meterStyle; requestAnimationFrame(fitFullMeters) })
+  $effect(() => { fullMeters; fullWidth; fullHeight; ui.meterStyle; app.meterSettings.designs[ui.meterStyle]?.aspect; requestAnimationFrame(fitFullMeters) }) // a builder meter changing shape refits too
   // Full screen (F11, double-click or the button): black all round, and the buttons and pointer fade away until the mouse moves, so a dark room stays dark
   const metersScreen = $derived(ui.metersFull && !!app.window.fullScreen)
   let metersQuiet = $state(false), metersQuietTimer = 0
@@ -409,6 +409,7 @@
   .copy-menu button { display: block; min-width: 90px; text-align: left; background: none; border: 0; color: var(--fg); font: inherit; padding: 6px 10px; border-radius: 5px; cursor: pointer; }
   .copy-menu button:hover { background: var(--hover); }
   /* Right-click on the meters: they fill the window, like Task Manager's graphs */
+  .meters-zoom :global(.designed + .designed) { margin-left: calc(190px * var(--aspect-scale, 1) * 0.09 - 4px); } /* the same gap between a builder meter pair as in the VU Builder: 9% of a meter's width */
   .meters-full { position: fixed; inset: 0; z-index: 85; outline: none; display: grid; place-items: center; background: color-mix(in srgb, var(--panel-solid) 88%, transparent); backdrop-filter: blur(30px) saturate(1.3); }
   .meters-full.dark { background: #000; backdrop-filter: none; } .meters-full.dark .meters-full-close { background: none; color: #5d6a64; } .meters-full.dark .meters-full-close:hover { background: #151a18; color: #9aa8a1; }
   .meters-full-close { transition: opacity 0.6s; } .meters-full-close.screen { right: 54px; } .meters-full.quiet { cursor: none; } .meters-full.quiet :global(*) { cursor: none; } .meters-full.quiet .meters-full-close { opacity: 0; }

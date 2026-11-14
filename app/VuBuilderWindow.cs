@@ -302,12 +302,14 @@ public sealed class VuBuilderWindow : Window
             Choice(L.T("Colour filter"), new[] { ("natural", L.T("Natural")), ("amber", L.T("Amber")), ("red", L.T("Red")), ("green", L.T("Green")), ("blue", L.T("Blue")) }, () => meter.LampTint, value => meter.LampTint = value),
             Choice(L.T("Lit from"), new[] { ("below", L.T("Below")), ("above", L.T("Above")), ("left", L.T("Left")), ("right", L.T("Right")) }, () => meter.LampFrom == "behind" ? "below" : meter.LampFrom, value => meter.LampFrom = value),
             Number(L.T("Brightness"), 0, 1, () => meter.LampPower, value => meter.LampPower = value, L.T("Dim"), L.T("Bright")),
+            Number(L.T("Distance"), 0, 1, () => meter.LampDistance, value => meter.LampDistance = value, L.T("Near"), L.T("Far back")),
             Choice(L.T("Display"), new[] { ("analogue", L.T("Analogue")), ("oled", "OLED") }, () => meter.Display == "dots" ? "oled" : meter.Display, value => meter.Display = value),
-            Choice(L.T("Clip light"), new[] { ("none", L.T("None")), ("red", L.T("Red")), ("amber", L.T("Amber")), ("green", L.T("Green")) }, () => meter.PeakLamp, value => meter.PeakLamp = value),
+            Choice(L.T("Clip light"), new[] { ("none", L.T("None")), ("chrome", L.T("Chrome ring")), ("jewel", L.T("Jewel lens")), ("led", L.T("Bare LED")), ("flat", L.T("Flat dot")), ("bar", L.T("Flat bar")), ("word", L.T("The word PEAK")) }, () => meter.PeakLamp, value => meter.PeakLamp = value),
+            Colour(L.T("Clip colour"), new[] { "#ff3a1e", "#ffae1a", "#4dff6a", "#3aa8ff", "#ffffff" }, () => meter.PeakColour, value => meter.PeakColour = value),
             Tick(L.T("Glow"), () => meter.Glow, value => meter.Glow = value))));
         settingsPanel.Children.Add(Card(L.T("Case"), Stack(
-            Choice(L.T("Casing"), new[] { ("none", L.T("None")), ("line", L.T("Line")), ("bezel", L.T("Bezel")), ("metal", L.T("Brushed metal")), ("wood", L.T("Wood")), ("acrylic", L.T("Clear acrylic")) }, () => meter.Casing, value => meter.Casing = value),
+            Choice(L.T("Casing"), new[] { ("none", L.T("None")), ("line", L.T("Line")), ("bezel", L.T("Bezel")), ("metal", L.T("Brushed metal")), ("wood", L.T("Wood")), ("acrylic", L.T("Clear acrylic")), ("chrome", L.T("Polished chrome")), ("gold", L.T("Champagne gold")), ("bakelite", L.T("Bakelite")), ("rack", L.T("Rack panel")), ("enamel", L.T("Cream enamel")) }, () => meter.Casing, value => meter.Casing = value),
             Number(L.T("Inset depth"), 0, 1, () => meter.Inset, value => meter.Inset = value, L.T("Flat"), L.T("Deep")),
-            Choice(L.T("Glass"), new[] { ("none", L.T("None")), ("clear", L.T("Clear")) }, () => meter.Glass == "smoked" ? "clear" : meter.Glass, value => meter.Glass = value))));
+            Choice(L.T("Glass"), new[] { ("none", L.T("None")), ("clear", L.T("Clear")), ("curved", L.T("Curved")), ("window", L.T("Window reflection")), ("matte", L.T("Anti-glare")), ("dusty", L.T("Old and dusty")) }, () => meter.Glass == "smoked" ? "clear" : meter.Glass, value => meter.Glass = value))));
     }
 }

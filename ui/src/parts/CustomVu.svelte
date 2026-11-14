@@ -2,9 +2,9 @@
   // Bundled faces for VU Builder meters (all SIL Open Font Licence); a face only loads when a meter uses it
   import '@fontsource/jost/400.css'; import '@fontsource/cinzel/400.css'; import '@fontsource/poiret-one/400.css'; import '@fontsource/limelight/400.css'
   import '@fontsource/michroma/400.css'; import '@fontsource/courier-prime/400.css'; import '@fontsource/barlow-condensed/500.css'; import '@fontsource/vt323/400.css'
-  export type VuDesign = { font: string, fontSize: number, label: string, brand: string, roundness: number, arc: string, weight: number, cold: string, hot: string, needleColour: string, needleShape: string, needleFinish: string, shadow: number, needleFrom: string, base: string, back: string, lamp: string, lampTint: string, lampFrom: string, lampPower: number, display: string, glow: boolean, glass: string, casing: string, brandSize: number, brandSide: string, aspect: string, peakLamp: string, inset: number }
+  export type VuDesign = { font: string, fontSize: number, label: string, brand: string, roundness: number, arc: string, weight: number, cold: string, hot: string, needleColour: string, needleShape: string, needleFinish: string, shadow: number, needleFrom: string, base: string, back: string, lamp: string, lampTint: string, lampFrom: string, lampPower: number, display: string, glow: boolean, glass: string, casing: string, brandSize: number, brandSide: string, aspect: string, peakLamp: string, peakColour: string, inset: number, lampDistance: number }
   // Same values as CustomMeter's defaults in the shell (the Dark room VU)
-  export const darkRoom: VuDesign = { font: 'modern', fontSize: 1, label: 'vu', brand: '', roundness: 0.15, arc: 'band', weight: 1.4, cold: '#3fa57a', hot: '#b5402f', needleColour: '#ecd9a8', needleShape: 'blade', needleFinish: 'flat', shadow: 0.5, needleFrom: 'bottom', base: 'ring', back: '#000000', lamp: 'none', lampTint: 'natural', lampFrom: 'below', lampPower: 0.5, display: 'analogue', glow: false, glass: 'none', casing: 'line', brandSize: 1, brandSide: 'left', aspect: 'standard', peakLamp: 'none', inset: 0 }
+  export const darkRoom: VuDesign = { font: 'modern', fontSize: 1, label: 'vu', brand: '', roundness: 0.15, arc: 'band', weight: 1.4, cold: '#3fa57a', hot: '#b5402f', needleColour: '#ecd9a8', needleShape: 'blade', needleFinish: 'flat', shadow: 0.5, needleFrom: 'bottom', base: 'ring', back: '#000000', lamp: 'none', lampTint: 'natural', lampFrom: 'below', lampPower: 0.5, display: 'analogue', glow: false, glass: 'none', casing: 'line', brandSize: 1, brandSide: 'left', aspect: 'standard', peakLamp: 'none', peakColour: '#ff3a1e', inset: 0, lampDistance: 0.5 }
   const fontFamilies: Record<string, string> = { modern: 'Jost', engraved: 'Cinzel', deco: '"Poiret One"', thirties: 'Limelight', hifi: 'Michroma', typewriter: '"Courier Prime"', condensed: '"Barlow Condensed"', terminal: 'VT323' }
   const wideFonts: Record<string, number> = { hifi: 1.45, thirties: 1.2, engraved: 1.15, typewriter: 1.15, terminal: 0.9, condensed: 0.75 } // how wide "+3" sets, against Jost
   // Lamps: how many sources and how far along the edge they sit, how far the light reaches, how hot the centre of each is, their natural colour, how soft a shadow they cast and how they come on
@@ -20,7 +20,20 @@
   const tints: Record<string, string> = { amber: '#ff8c1a', red: '#ff3b2a', green: '#6dffa8', blue: '#5cbcff' } // a coloured gel over the lamp
   const oldLamps: Record<string, string[]> = { warm: ['halogen', 'natural'], cool: ['tube', 'natural'], amber: ['tungsten', 'amber'], green: ['tungsten', 'green'], blue: ['tungsten', 'blue'] } // an earlier dev build's bulb colours
   // Casing: how deep the frame is, and its outer corner (the inner corner follows, so the face's corners match the frame)
-  const casings: Record<string, { depth: number, corner: number }> = { none: { depth: 0, corner: 4 }, line: { depth: 3, corner: 10 }, bezel: { depth: 9, corner: 12 }, metal: { depth: 11, corner: 12 }, wood: { depth: 14, corner: 10 }, acrylic: { depth: 9, corner: 14 } }
+  const casings: Record<string, { depth: number, corner: number }> = { none: { depth: 0, corner: 4 }, line: { depth: 3, corner: 10 }, bezel: { depth: 9, corner: 12 }, metal: { depth: 11, corner: 12 }, wood: { depth: 14, corner: 10 }, acrylic: { depth: 9, corner: 14 }, chrome: { depth: 8, corner: 12 }, gold: { depth: 11, corner: 10 }, bakelite: { depth: 12, corner: 18 }, rack: { depth: 16, corner: 3 }, enamel: { depth: 10, corner: 14 } }
+  // Finished casings: a top-to-bottom ramp, then brushed grain, a gloss streak or rack screws; the inner edge shades at the top and catches light at the bottom
+  type CasingLook = { ramp: string[], rim: string, edgeDark: string, edgeLight: string, brushed?: number, gloss?: number, screws?: boolean }
+  const casingLooks: Record<string, CasingLook> = {
+    chrome: { ramp: ['#ffffff', '#a3a8af', '#f1f2f5', '#6a6f76', '#c9cdd3'], rim: '#ffffff', edgeDark: '#3c3f44', edgeLight: '#ffffff' }, // polished: hard bands of reflected room
+    gold: { ramp: ['#f6e7bd', '#d4b46a', '#a8853e', '#7a5b22'], rim: '#fff6d8', edgeDark: '#5a4214', edgeLight: '#fff1c4', brushed: 0.45 }, // brushed champagne gold
+    bakelite: { ramp: ['#5a3420', '#2e1a0e', '#1a0d05'], rim: '#8a5a3a', edgeDark: '#000000', edgeLight: '#6a4028', gloss: 0.22 }, // moulded, glossy dark brown
+    rack: { ramp: ['#2c2d30', '#1b1c1e', '#121314'], rim: '#4a4c50', edgeDark: '#000000', edgeLight: '#3a3c40', brushed: 0.12, screws: true }, // black anodised panel, a screw in each corner
+    enamel: { ramp: ['#f7f2e7', '#e6dfcf', '#cfc6b3'], rim: '#ffffff', edgeDark: '#9b917c', edgeLight: '#ffffff', gloss: 0.35 } // painted cream
+  }
+  // Clip light colours from an earlier dev build, which had the colour as the choice
+  const legacyPeak: Record<string, string> = { red: '#ff3a1e', amber: '#ffae1a', green: '#4dff6a' }
+  // Dust on old glass: the same specks every time
+  const dust = Array.from({ length: 46 }, (unused, index) => { const noise = (seed: number) => { const value = Math.sin(index * 12.9898 + seed * 78.233) * 43758.5453; return value - Math.floor(value) }; return [noise(1), noise(2), 0.18 + noise(3) * 0.45, 0.12 + noise(4) * 0.3] })
   export const faceHeights: Record<string, number> = { standard: 140, tall: 180, wide: 120 }
   // VU marks along the scale, as a share of its length
   const scaleMarks: [number, number][] = [[-20, 0], [-10, 0.2], [-7, 0.32], [-5, 0.43], [-3, 0.56], [-2, 0.63], [-1, 0.71], [0, 0.79], [1, 0.86], [2, 0.93], [3, 1]]
@@ -80,14 +93,16 @@
   const backLightness = $derived.by(() => { const hex = /^#?([0-9a-f]{6})$/i.exec(spec.back)?.[1] ?? '000000'; return (parseInt(hex.slice(0, 2), 16) * 0.3 + parseInt(hex.slice(2, 4), 16) * 0.59 + parseInt(hex.slice(4, 6), 16) * 0.11) / 255 })
   const lampType = $derived(oldLamps[spec.lamp]?.[0] ?? spec.lamp), lampTint = $derived(oldLamps[spec.lamp]?.[1] ?? spec.lampTint)
   const lamp = $derived(lamps[lampType] ?? lamps.tungsten), lit = $derived(lampType in lamps)
-  const lampColour = $derived(tints[lampTint] ?? lamp.colour), coreColour = $derived(lamp.core > 0.5 ? (lampTint in tints ? '#fff4e0' : '#ffffff') : lampColour)
+  const distance = $derived(Math.max(0, Math.min(1, spec.lampDistance ?? 0.5))) // how far back the lamps sit: close gives tight hot pools, far back a broad even wash
+  const lampOffset = $derived(distance < 0.5 ? distance * 6 : 3 + (distance - 0.5) * 50), lampReach = $derived(lamp.reach * (0.65 + distance * 0.7)), lampCore = $derived(Math.min(1, lamp.core * (1.6 - distance * 1.2)))
+  const lampColour = $derived(tints[lampTint] ?? lamp.colour), coreColour = $derived(lampCore > 0.5 ? (lampTint in tints ? '#fff4e0' : '#ffffff') : lampColour)
   const bulbs = $derived.by((): number[][] => {
     const along = Array.from({ length: lamp.count }, (unused, index) => lamp.count === 1 ? 0.5 : 0.5 + (index / (lamp.count - 1) - 0.5) * lamp.spread)
     const width = inner.right - inner.left, height = inner.bottom - inner.top
-    if (spec.lampFrom === 'above') return along.map(share => [inner.left + share * width, inner.top - 3])
-    if (spec.lampFrom === 'left') return along.map(share => [inner.left - 3, inner.top + share * height])
-    if (spec.lampFrom === 'right') return along.map(share => [inner.right + 3, inner.top + share * height])
-    return along.map(share => [inner.left + share * width, inner.bottom + 3])
+    if (spec.lampFrom === 'above') return along.map(share => [inner.left + share * width, inner.top - lampOffset])
+    if (spec.lampFrom === 'left') return along.map(share => [inner.left - lampOffset, inner.top + share * height])
+    if (spec.lampFrom === 'right') return along.map(share => [inner.right + lampOffset, inner.top + share * height])
+    return along.map(share => [inner.left + share * width, inner.bottom + lampOffset])
   })
   const eachBulb = $derived(Math.min(1, 2.2 / Math.pow(bulbs.length, 0.6))) // many small sources add up to the same light as two bulbs
   const shadowBulbs = $derived(bulbs.length <= 3 ? bulbs : [bulbs[0], bulbs[Math.floor(bulbs.length / 2)], bulbs[bulbs.length - 1]]) // a long source's shadow: its ends and middle
@@ -108,8 +123,9 @@
   const cover = (peek: number) => pivotOnFace ? peek * 0.75 : pivotDepth + peek
   const coverSpan = (peek: number) => pivotOnFace ? Math.PI : Math.acos(Math.min(1, pivotDepth / cover(peek))) // half the angle of the cover that shows
   // Clip light: a small lamp in a ring at the face's top corner (bottom when the needle hangs), lit by peaks like the beige VU's
-  const peakColours: Record<string, string[]> = { red: ['#ff3a1e', '#3a0a06'], amber: ['#ffae1a', '#3a2406'], green: ['#4dff6a', '#062a0c'] }
-  const peakColour = $derived(peakColours[spec.peakLamp] ?? null), peakX = $derived(inner.right - 13), peakY = $derived(fromTop ? inner.bottom - 13 : inner.top + 13)
+  const peakStyle = $derived(spec.peakLamp in legacyPeak ? 'chrome' : spec.peakLamp || 'none'), peakColour = $derived(legacyPeak[spec.peakLamp] ?? spec.peakColour ?? '#ff3a1e')
+  const peakLit = $derived(Math.pow(peak, 2)), peakX = $derived(inner.right - 13), peakY = $derived(fromTop ? inner.bottom - 13 : inner.top + 13)
+  const flatPeak = $derived(peakStyle === 'flat' || peakStyle === 'bar' || peakStyle === 'word') // printed or flat lamps: drawn pixel by pixel on an OLED face
   // The needle's shadow on the face: it stands a few mm off the face, so each bulb throws it a little away from itself
   const shadowOffset = (bulb: number[]) => { const [tipX, tipY] = onScale(needleShare, 0), middleX = (tipX + 120) / 2, middleY = (tipY + pivotY) / 2; return [(middleX - bulb[0]) * 0.035, (middleY - bulb[1]) * 0.035] }
   const ring = $derived(roundedRect(0, 0, 240, faceHeight, outerCorner) + roundedRect(inner.left, inner.top, inner.right - inner.left, inner.bottom - inner.top, innerCorner))
@@ -121,12 +137,18 @@
   <defs>
     <clipPath id="{id}-face"><path d={innerPath} /></clipPath>
     {#each bulbs as [bulbX, bulbY], bulbIndex}
-      <radialGradient id="{id}-pool-{bulbIndex}" gradientUnits="userSpaceOnUse" cx={bulbX} cy={bulbY} r={(70 + power * 150) * lamp.reach}><stop offset="0" stop-color={coreColour} /><stop offset={0.04 + lamp.core * 0.08} stop-color={coreColour} stop-opacity={0.4 + lamp.core * 0.6} /><stop offset="0.3" stop-color={lampColour} /><stop offset="0.65" stop-color={lampColour} stop-opacity="0.4" /><stop offset="1" stop-color={lampColour} stop-opacity="0" /></radialGradient>
-      <radialGradient id="{id}-glow-{bulbIndex}" gradientUnits="userSpaceOnUse" cx={bulbX} cy={bulbY} r={(35 + power * 80) * lamp.reach}><stop offset="0" stop-color={lamp.core > 0.5 ? coreColour : lampColour} stop-opacity="0.9" /><stop offset="0.25" stop-color={lampColour} stop-opacity="0.35" /><stop offset="1" stop-color={lampColour} stop-opacity="0" /></radialGradient>
+      <radialGradient id="{id}-pool-{bulbIndex}" gradientUnits="userSpaceOnUse" cx={bulbX} cy={bulbY} r={(70 + power * 150) * lampReach}><stop offset="0" stop-color={coreColour} /><stop offset={0.04 + lampCore * 0.08} stop-color={coreColour} stop-opacity={0.4 + lampCore * 0.6} /><stop offset="0.3" stop-color={lampColour} /><stop offset="0.65" stop-color={lampColour} stop-opacity="0.4" /><stop offset="1" stop-color={lampColour} stop-opacity="0" /></radialGradient>
+      <radialGradient id="{id}-glow-{bulbIndex}" gradientUnits="userSpaceOnUse" cx={bulbX} cy={bulbY} r={(35 + power * 80) * lampReach}><stop offset="0" stop-color={lampCore > 0.5 ? coreColour : lampColour} stop-opacity="0.9" /><stop offset="0.25" stop-color={lampColour} stop-opacity="0.35" /><stop offset="1" stop-color={lampColour} stop-opacity="0" /></radialGradient>
     {/each}
     <filter id="{id}-soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation={lit ? lamp.soft : 1.1} /></filter>
-    {#if peakColour}<radialGradient id="{id}-peak" cx="45%" cy="40%" r="60%"><stop offset="0" stop-color="#fff" /><stop offset="0.35" stop-color={peakColour[0]} /><stop offset="1" stop-color={peakColour[0]} stop-opacity="0.85" /></radialGradient>
-      <radialGradient id="{id}-peak-glow"><stop offset="0" stop-color={peakColour[0]} stop-opacity="0.8" /><stop offset="0.3" stop-color={peakColour[0]} stop-opacity="0.25" /><stop offset="1" stop-color={peakColour[0]} stop-opacity="0" /></radialGradient>{/if}
+    {#if peakStyle !== 'none'}<radialGradient id="{id}-peak" cx="45%" cy="40%" r="60%"><stop offset="0" stop-color="#fff" /><stop offset="0.35" stop-color={peakColour} /><stop offset="1" stop-color={peakColour} stop-opacity="0.85" /></radialGradient>
+      <radialGradient id="{id}-peak-glow"><stop offset="0" stop-color={peakColour} stop-opacity="0.8" /><stop offset="0.3" stop-color={peakColour} stop-opacity="0.25" /><stop offset="1" stop-color={peakColour} stop-opacity="0" /></radialGradient>{/if}
+    {#if casingLooks[spec.casing]}<linearGradient id="{id}-case" x1="0" y1="0" x2="0" y2="1">{#each casingLooks[spec.casing].ramp as colour, index}<stop offset={index / (casingLooks[spec.casing].ramp.length - 1)} stop-color={colour} />{/each}</linearGradient>{/if}
+    <!-- Glass: a curved window's bright top and darker edges; anti-glare haze -->
+    <linearGradient id="{id}-curve" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.02" /><stop offset="0.05" stop-color="#fff" stop-opacity="0.2" /><stop offset="0.2" stop-color="#fff" stop-opacity="0.05" /><stop offset="0.55" stop-color="#fff" stop-opacity="0" /><stop offset="1" stop-color="#fff" stop-opacity="0.04" /></linearGradient>
+    <radialGradient id="{id}-vignette" cx="50%" cy="50%" r="72%"><stop offset="0.55" stop-color="#000" stop-opacity="0" /><stop offset="1" stop-color="#000" stop-opacity="0.38" /></radialGradient>
+    <filter id="{id}-haze" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="1.6" /></filter>
+    <filter id="{id}-frost" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="1.4" numOctaves="2" seed="7" /><feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.16 0" /><feComposite in2="SourceGraphic" operator="in" /></filter>
     <filter id="{id}-lip" x="-5%" y="-5%" width="110%" height="110%"><feGaussianBlur stdDeviation="2.4" /></filter>
     <!-- OLED: crisp ink lit pixel by pixel on a fine grid, with only a faint bloom -->
     <pattern id="{id}-pixels" width="1.2" height="1.2" patternUnits="userSpaceOnUse"><rect x="0.12" y="0.12" width="0.96" height="0.96" rx="0.18" fill="#fff" /></pattern>
@@ -191,16 +213,35 @@
       {#each Array.from({ length: 31 }, (unused, index) => -coverSpan(17) + index * 2 * coverSpan(17) / 30) as angle}<line x1={120 + cover(12.6) * Math.sin(angle)} y1={pivotY - out * cover(12.6) * Math.cos(angle)} x2={120 + cover(17) * Math.sin(angle)} y2={pivotY - out * cover(17) * Math.cos(angle)} stroke="#3c3f44" stroke-width="0.7" />{/each}
       <circle cx="120" cy={pivotY} r={cover(12.6)} fill="url(#{id}-dome)" /><circle cx="120" cy={pivotY} r={cover(12.6)} fill="url(#{id}-chrome-band)" stroke="#55585d" stroke-width="0.4" /><circle cx="120" cy={screwY} r="2" fill="#2a2c30" />
     {:else if spec.base === 'brass'}<circle cx="120" cy={pivotY} r={cover(18)} fill="url(#{id}-brass)" stroke="#3a2808" stroke-width="0.5" /><circle cx="120" cy={screwY} r="3.6" fill="url(#{id}-brass)" stroke="#3a2808" stroke-width="0.4" /><line x1="117.2" y1={screwY} x2="122.8" y2={screwY} stroke="#3a2808" stroke-width="0.8" stroke-linecap="round" transform="rotate(18 120 {screwY})" />{/if}
-    {#if peakColour}
-      <circle cx={peakX} cy={peakY + 0.8} r="5.6" fill="#000" opacity="0.35" filter="url(#{id}-soft)" /><circle cx={peakX} cy={peakY} r="5.2" fill="url(#{id}-chrome)" stroke="#111" stroke-width="0.4" />
-      <circle cx={peakX} cy={peakY} r="3.7" fill={peakColour[1]} /><circle cx={peakX} cy={peakY} r="3.7" fill="url(#{id}-peak)" style:opacity={Math.pow(peak, 2)} />
-      <circle cx={peakX} cy={peakY} r="22" fill="url(#{id}-peak-glow)" class="screen" style:opacity={Math.pow(peak, 2)} /><circle cx={peakX - 1.2} cy={peakY - 1.3} r="0.9" fill="#fff" opacity="0.55" />
-    {/if}
+    <!-- Clip light, lit by peaks: in a chrome ring, behind a faceted jewel, a bare LED, or flat (a dot, a bar or the word PEAK) -->
+    {#if peakStyle !== 'none'}<g mask={oled && flatPeak ? `url(#${id}-pixel-mask)` : null}>
+      {#if peakStyle === 'chrome' || peakStyle === 'jewel'}
+        <circle cx={peakX} cy={peakY + 0.8} r="5.6" fill="#000" opacity="0.35" filter="url(#{id}-soft)" /><circle cx={peakX} cy={peakY} r="5.2" fill={peakStyle === 'jewel' ? '#151515' : `url(#${id}-chrome)`} stroke={peakStyle === 'jewel' ? '#8a8d92' : '#111'} stroke-width="0.4" />
+        <circle cx={peakX} cy={peakY} r={peakStyle === 'jewel' ? 4.1 : 3.7} fill="#000" /><circle cx={peakX} cy={peakY} r={peakStyle === 'jewel' ? 4.1 : 3.7} fill={peakColour} opacity="0.2" /><circle cx={peakX} cy={peakY} r={peakStyle === 'jewel' ? 4.1 : 3.7} fill="url(#{id}-peak)" style:opacity={peakLit} />
+        {#if peakStyle === 'jewel'}{#each [0, 60, 120] as facet}<line x1={peakX - 4.1} y1={peakY} x2={peakX + 4.1} y2={peakY} stroke="#fff" stroke-width="0.3" opacity="0.3" transform="rotate({facet} {peakX} {peakY})" />{/each}<circle cx={peakX} cy={peakY} r="2" fill="none" stroke="#fff" stroke-width="0.3" opacity="0.3" />{/if}
+        <circle cx={peakX} cy={peakY} r="22" fill="url(#{id}-peak-glow)" class="screen" style:opacity={peakLit} /><circle cx={peakX - 1.2} cy={peakY - 1.3} r="0.9" fill="#fff" opacity="0.55" />
+      {:else if peakStyle === 'led'}
+        <circle cx={peakX} cy={peakY} r="3.3" fill="#050505" /><circle cx={peakX} cy={peakY} r="2.6" fill={peakColour} opacity="0.28" /><circle cx={peakX} cy={peakY} r="2.6" fill="url(#{id}-peak)" style:opacity={peakLit} />
+        <circle cx={peakX} cy={peakY} r="16" fill="url(#{id}-peak-glow)" class="screen" style:opacity={peakLit} /><ellipse cx={peakX - 0.8} cy={peakY - 1.1} rx="1.1" ry="0.6" fill="#fff" opacity="0.6" />
+      {:else if peakStyle === 'flat'}
+        <circle cx={peakX} cy={peakY} r="2.6" fill={peakColour} opacity="0.16" /><circle cx={peakX} cy={peakY} r="2.6" fill={peakColour} style:opacity={peakLit} /><circle cx={peakX} cy={peakY} r="11" fill="url(#{id}-peak-glow)" class="screen" style:opacity={peakLit * 0.7} />
+      {:else if peakStyle === 'bar'}
+        <rect x={peakX - 8} y={peakY - 1.6} width="13" height="3.2" rx="0.6" fill={peakColour} opacity="0.16" /><rect x={peakX - 8} y={peakY - 1.6} width="13" height="3.2" rx="0.6" fill={peakColour} style:opacity={peakLit} /><ellipse cx={peakX - 1.5} cy={peakY} rx="16" ry="8" fill="url(#{id}-peak-glow)" class="screen" style:opacity={peakLit * 0.7} />
+      {:else if peakStyle === 'word'}
+        {#each [0.16, null] as dim}<text x={peakX + 5} y={peakY} fill={peakColour} font-family={font} font-size={textSize * 0.7} text-anchor="end" dominant-baseline="middle" letter-spacing="1" style:opacity={dim ?? peakLit} filter={dim ? null : `url(#${id}-glow)`}>PEAK</text>{/each}
+      {/if}
+    </g>{/if}
     <!-- Depth: the face sits back inside its casing, so the edge shades it (deepest along the top), and light through the edge where the bulbs are -->
     {#if spec.inset > 0}<path d={innerPath} fill="none" stroke="#000" stroke-width={3 + spec.inset * 5} opacity={Math.min(0.9, 0.25 + spec.inset * 0.6)} filter="url(#{id}-lip)" transform="translate(0 {0.5 + spec.inset * 4})" />
       <path d={innerPath} fill="none" stroke="#fff" stroke-width="1" opacity={spec.inset * 0.25} transform="translate(0 -0.6)" />{/if}
     {#if lit && depth >= 9 && spec.casing !== 'wood'}{#each bulbs as unusedBulb, bulbIndex}<path d={innerPath} fill="none" stroke="url(#{id}-glow-{bulbIndex})" stroke-width="3" opacity={0.9 * eachBulb} />{/each}{/if}
-    {#if spec.glass !== 'none'}<rect width="240" height={faceHeight} fill="url(#{id}-sheen)" />{/if}
+    <!-- Glass: clear with one streak; curved (bright along the top, darker edges); a window reflected in it; anti-glare haze; or old and dusty -->
+    {#if spec.glass === 'clear' || spec.glass === 'smoked' || spec.glass === 'dusty'}<rect width="240" height={faceHeight} fill="url(#{id}-sheen)" />
+    {:else if spec.glass === 'curved'}<rect width="240" height={faceHeight} fill="url(#{id}-vignette)" /><rect width="240" height={faceHeight} fill="url(#{id}-curve)" /><ellipse cx="120" cy={inner.top + 7} rx="96" ry="7" fill="#fff" opacity="0.08" filter="url(#{id}-haze)" />
+    {:else if spec.glass === 'window'}<g transform="translate({inner.left + 22} {inner.top + 8}) skewX(-14)" filter="url(#{id}-haze)" fill="#fff" opacity="0.09">{#each [[0, 0], [21, 0], [0, 25], [21, 25]] as [paneX, paneY]}<rect x={paneX} y={paneY} width="19" height="23" />{/each}</g>
+    {:else if spec.glass === 'matte'}<rect width="240" height={faceHeight} fill="#fff" opacity="0.035" /><rect width="240" height={faceHeight} fill="#fff" filter="url(#{id}-frost)" />{/if}
+    {#if spec.glass === 'dusty'}<rect width="240" height={faceHeight} fill="#d8cbb0" opacity="0.05" />{#each dust as [dustX, dustY, size, opacity]}<circle cx={inner.left + dustX * (inner.right - inner.left)} cy={inner.top + dustY * (inner.bottom - inner.top)} r={size} fill="#fff" {opacity} />{/each}
+      <path d="M{inner.left + 40} {inner.top + 20} q6 2 9 7" stroke="#fff" stroke-width="0.2" fill="none" opacity="0.3" /><path d="M{inner.right - 60} {inner.bottom - 30} q-4 5 -2 11" stroke="#fff" stroke-width="0.2" fill="none" opacity="0.25" />{/if}
   </g>
 
   <!-- Casing -->
@@ -232,6 +273,14 @@
     <path d={roundedRect(0.7, 0.7, 238.6, faceHeight - 1.4, outerCorner - 0.7)} fill="none" stroke="#fff" stroke-width="1.1" opacity="0.45" />
     <path d={innerPath} fill="none" stroke="#fff" stroke-width="1.3" opacity="0.5" /><path d={innerPath} fill="none" stroke="#000" stroke-width="0.6" opacity="0.8" transform="translate(0 -0.8)" />
     {#if lit}{#each bulbs as unusedBulb, bulbIndex}<path d={ring} fill="url(#{id}-glow-{bulbIndex})" fill-rule="evenodd" class="screen" opacity={eachBulb} />{/each}{/if}
+  {:else if casingLooks[spec.casing]}
+    {@const look = casingLooks[spec.casing]}
+    <path d={ring} fill="url(#{id}-case)" fill-rule="evenodd" />
+    {#if look.brushed}<path d={ring} fill="#fff" fill-rule="evenodd" filter="url(#{id}-brushed)" opacity={look.brushed} />{/if}
+    {#if look.gloss}<clipPath id="{id}-case-clip"><path d={ring} clip-rule="evenodd" /></clipPath><ellipse cx="96" cy={depth * 0.35} rx="110" ry={depth * 0.55} fill="#fff" opacity={look.gloss} clip-path="url(#{id}-case-clip)" filter="url(#{id}-haze)" />{/if}
+    <path d={innerPath} fill="none" stroke={look.edgeDark} stroke-width="2" transform="translate(0 -0.6)" opacity="0.8" /><path d={innerPath} fill="none" stroke={look.edgeLight} stroke-width="0.9" transform="translate(0 0.9)" opacity="0.6" />
+    <path d={roundedRect(0.4, 0.4, 239.2, faceHeight - 0.8, outerCorner - 0.4)} fill="none" stroke={look.rim} stroke-width="0.6" opacity="0.6" />
+    {#if look.screws}{#each [[depth / 2, depth / 2], [240 - depth / 2, depth / 2], [depth / 2, faceHeight - depth / 2], [240 - depth / 2, faceHeight - depth / 2]] as [screwX, screwCentreY]}<circle cx={screwX} cy={screwCentreY} r="3" fill="url(#{id}-chrome)" stroke="#000" stroke-width="0.4" /><line x1={screwX - 2.1} y1={screwCentreY} x2={screwX + 2.1} y2={screwCentreY} stroke="#2a2c30" stroke-width="0.7" transform="rotate(35 {screwX} {screwCentreY})" />{/each}{/if}
   {/if}
 </svg>
 
