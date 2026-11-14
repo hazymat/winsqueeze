@@ -13,7 +13,8 @@
   // New music has three lists, each with its own grouping: newest added (Lyrion's New Music), newest changed files (Lyrion's Recently Updated) and a random pick
   const newModes: [string, string, string][] = [['added', t('Added'), 'newAlbums'], ['updated', t('Updated'), 'updatedAlbums'], ['random', t('Random'), 'randomAlbums']]
   let newMode = $state(readSetting('newMusicMode', 'added')), shuffles = $state(0)
-  const setNewMode = (mode: string) => { newMode = mode; writeSetting('newMusicMode', mode) }
+  if (newMode === 'random') newMode = 'added' // older builds saved Random too
+  const setNewMode = (mode: string) => { newMode = mode; if (mode !== 'random') writeSetting('newMusicMode', mode) } // Random is a one-off: coming back to New music shows Added or Updated
   const ownView = browseState(kind), newViews: Record<string, ReturnType<typeof browseState>> = kind === 'new' ? { added: ownView, updated: browseState('updated'), random: browseState('random') } : {}
   const view = $derived(newViews[newMode] ?? ownView)
   const queryName: Record<string, string> = { artist: 'artistAlbums', composer: 'composerAlbums', performer: 'performerAlbums', genre: 'genreAlbums', albums: 'albums', downloads: 'downloadedAlbums', custom: 'customAlbums', new: 'newAlbums', compilations: 'compilations' }
