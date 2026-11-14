@@ -189,7 +189,7 @@ public partial class MainWindow : Window
                     var connection = await App.CheckConnectionAsync("checked");
                     Reply(message, connection == null ? null : new { network = connection.Network, networkKind = connection.NetworkKind, ping = connection.Ping, pingMs = connection.PingMs, lyrion = connection.Lyrion, problem = connection.LyrionProblem, httpStatus = connection.HttpStatus, host = App.Settings.ActiveProfile?.Host ?? "", port = App.Settings.ActiveProfile?.Port ?? 0 }); break;
                 case "playerCommand": await App.ServerRequestAsync(Text(message, "id"), CommandParts(message.GetProperty("command"))); if (!(message.TryGetProperty("quiet", out var quiet) && quiet.GetBoolean())) await App.Session.RefreshPlayersAsync(); break; // power, sync and volume of any player, not just the selected one
-                case "selectPlayer": App.Session.SelectedPlayerId = Text(message, "id") == App.Settings.PlayerMac ? "" : Text(message, "id"); await App.Session.RequestAsync(true, "status", "-", 1); break;
+                case "selectPlayer": await App.SelectPlayerAsync(Text(message, "id")); break;
                 case "savePlaylist":
                     var urlQueries = App.Library.Queries;
                     var idsJson = message.GetProperty("ids").GetRawText();

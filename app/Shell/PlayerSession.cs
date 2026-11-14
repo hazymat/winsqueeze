@@ -23,6 +23,9 @@ public sealed class PlayerSession
     App App => App.Instance;
     public string PlayerId => SelectedPlayerId == "" ? App.Settings.PlayerMac : SelectedPlayerId;
 
+    // At launch, the player picked last; dropped for this PC if the server's player list doesn't have it
+    string rememberedPlayerId = "";
+    public void ReturnTo(string playerId) { SelectedPlayerId = rememberedPlayerId = playerId; }
     public void Start() { pollTimer.Tick += async (sender, args) => await PollAsync(); pollTimer.Start(); }
     public void SetVisible(bool windowVisible) => pollTimer.Interval = TimeSpan.FromSeconds(windowVisible ? 1 : 5);
 
@@ -61,6 +64,7 @@ public sealed class PlayerSession
             {
                 var players = await App.ServerRequestAsync("", "players", 0, 50);
                 LastPlayersJson = players.ValueKind == JsonValueKind.Object && players.TryGetProperty("players_loop", out var playersLoop) ? playersLoop.GetRawText() : "[]";
+                if (rememberedPlayerId != "") { if (SelectedPlayerId == rememberedPlayerId && !LastPlayersJson.Contains($"\"{rememberedPlayerId}\"")) { SelectedPlayerId = ""; pollAgain = true; } rememberedPlayerId = ""; }
                 await LoadSyncGroupsAsync();
                 PlayersUpdated?.Invoke();
             }

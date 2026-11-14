@@ -142,6 +142,8 @@ public partial class SettingsWindow : Window
         resumeOnStartupBox.IsChecked = Settings.General.ResumeOnStartup;
         resumeAfterUpdateBox.IsChecked = Settings.General.ResumeAfterUpdate;
         resumeAfterUpdateBox.Click += (sender, args) => { Settings.General.ResumeAfterUpdate = resumeAfterUpdateBox.IsChecked == true; Settings.Save(); };
+        rememberPlayerBox.IsChecked = Settings.General.RememberPlayer;
+        rememberPlayerBox.Click += (sender, args) => { Settings.General.RememberPlayer = rememberPlayerBox.IsChecked == true; Settings.Save(); };
         // Both ticked = music can start on boot: show the bracket and warning
         void ShowAutoPlayWarning() { var autoPlayVisibility = Settings.General.StartWithWindows && Settings.General.ResumeOnStartup ? Visibility.Visible : Visibility.Collapsed; autoPlayBracket.Visibility = autoPlayVisibility; autoPlayWarning.Visibility = autoPlayVisibility; }
         ShowAutoPlayWarning();

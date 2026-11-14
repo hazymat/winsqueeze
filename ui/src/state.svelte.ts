@@ -204,7 +204,10 @@ function heatPeakLamps(elapsed: number) {
 function startMeterFrames() { if (!meterFrame) { meterLastTime = performance.now(); meterFrame = requestAnimationFrame(easeMeters) } }
 // Auto 0 VU: follows the music's loudness (power average over ~8 s) so loud masters don't pin the needles; average loudness reads about -4 VU
 let loudnessPower = 0, loudnessAt = 0
+// The meters measure this PC's audio, so they rest while another player is picked (unless it's synced with this PC and plays the same music); no player shares its levels with Lyrion
+const metersHearSelectedPlayer = () => !app.selectedPlayer || app.selectedPlayer === app.ownPlayer || app.syncGroups.some(group => group.includes(app.ownPlayer) && group.includes(app.selectedPlayer))
 export function receiveLevels(vu: number[], peak: number[], bands: number[], wide: number[] | null = null) {
+  if (!metersHearSelectedPlayer()) return
   const receivedAt = Date.now(), loudestDb = Math.max(vu[0] ?? -90, vu[1] ?? -90)
   if (loudestDb > -50) {
     const follow = loudnessPower > 0 ? 1 - Math.exp(-Math.max(0, Math.min(1000, receivedAt - loudnessAt)) / 8000) : 1 // clamped: the clock can jump back after sleep

@@ -122,7 +122,12 @@ public partial class App : Application
     public void NewPlaylist() { ShowMainWindow(); mainWindow.PushNewPlaylist(); }
     public void OpenSection(string section) { ShowMainWindow(); mainWindow.PushOpenSection(section); }
     public void SetSkin(string skin) { Settings.General.Skin = skin; Settings.Save(); ApplySkin(); }
-    public async Task SelectPlayerAsync(string playerId) { Session.SelectedPlayerId = playerId == Settings.PlayerMac ? "" : playerId; await Session.RequestAsync(true, "status", "-", 1); }
+    public async Task SelectPlayerAsync(string playerId)
+    {
+        Session.SelectedPlayerId = playerId == Settings.PlayerMac ? "" : playerId;
+        if (Settings.General.LastPlayerId != Session.SelectedPlayerId) { Settings.General.LastPlayerId = Session.SelectedPlayerId; Settings.Save(); } // for "Open with the player you used last"
+        await Session.RequestAsync(true, "status", "-", 1);
+    }
 
     protected override async void OnStartup(StartupEventArgs startupArgs)
     {
@@ -164,6 +169,7 @@ public partial class App : Application
         Library.IndexUpdated += () => { var queries = Library.Queries; Downloads.Relink(queries.TrackIdsByUrl); DownloadsChanged?.Invoke(); };
         Session.ServerUnreachable += () => _ = GoOfflineAsync(true);
         serverBackTimer.Tick += async (sender, args) => await CheckServerBackAsync();
+        if (Settings.General.RememberPlayer && Settings.General.LastPlayerId != "") Session.ReturnTo(Settings.General.LastPlayerId); // otherwise every launch starts on this PC
         Session.Start();
         Library.Start();
         await CheckOtherPlayersAsync();

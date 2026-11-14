@@ -236,6 +236,8 @@ public class GeneralSettings
     public bool ShowTrayIcon { get; set; } = true; // off: no tray icon, and the "to tray" choices below use the taskbar instead (minimised), so the window can always be found
     public bool StartMinimised { get; set; }
     public bool ResumeOnStartup { get; set; } // carry on at startup only if the server was still playing to this player (off by default)
+    public bool RememberPlayer { get; set; } // off: every launch starts on this PC's player; on: on the player picked last (if the server still knows it)
+    public string LastPlayerId { get; set; } = ""; // "" = this PC
     public bool ResumeAfterUpdate { get; set; } = true; // a restart for an update or version switch carries on from the same spot (on by default)
     public bool CloseToTray { get; set; } // off: Close (X) quits. Was CloseHidesToTray (on by default), renamed so everyone gets the new default
     public bool CloseToTrayTipShown { get; set; }
