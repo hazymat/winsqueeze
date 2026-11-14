@@ -975,6 +975,7 @@
   "Name separators": "名前の区切り",
   "Space between each": "それぞれの間にスペース",
   "Read composer and conductor tags like \"Kapustin, Nikolai\" as one person": "\"Kapustin, Nikolai\"のような作曲者・指揮者タグを一人として読む",
+  "Sort artists the way Lyrion does (uses ARTISTSORT tags like \"Bowie, David\")": "Lyrion と同じ順でアーティストを並べる（\"Bowie, David\" のような ARTISTSORT タグを使用）",
   "Composers list: leave out artists credited as composer only on their own albums (singer-songwriters)": "作曲者リスト：自分のアルバムでのみ作曲者としてクレジットされたアーティスト（シンガーソングライター）を除く",
   "How names are split": "名前の分け方",
   "Split on the separators, never on commas: \"Earth, Wind & Fire\" stays whole.": "区切りで分け、カンマでは分けない：\"Earth, Wind & Fire\"は一つのまま。",

@@ -550,6 +550,8 @@ public partial class SettingsWindow : Window
         readSurnameFirstBox.IsChecked = library.ReadSurnameFirst;
         readSurnameFirstBox.Click += async (sender, args) => { library.ReadSurnameFirst = readSurnameFirstBox.IsChecked == true; Settings.Save(); await App.Library.RefreshAsync(true); };
         nameOrderBox.SelectionChanged += async (sender, args) => { library.NameOrder = (string)((ComboBoxItem)nameOrderBox.SelectedItem).Tag; Settings.Save(); await App.Library.RefreshAsync(true); };
+        lyrionArtistSortBox.IsChecked = library.LyrionArtistSort;
+        lyrionArtistSortBox.Click += async (sender, args) => { library.LyrionArtistSort = lyrionArtistSortBox.IsChecked == true; Settings.Save(); await App.Library.RefreshAsync(true); };
         hideOwnComposersBox.IsChecked = library.HideOwnComposers;
         hideOwnComposersBox.Click += (sender, args) => { library.HideOwnComposers = hideOwnComposersBox.IsChecked == true; Settings.Save(); App.NotifyLibraryChanged(); };
         var listCountChoices = new[] { ("group", L.T("What the view groups by (e.g. album artists)")), ("tracks", L.T("Tracks")), ("both", L.T("Both")) };

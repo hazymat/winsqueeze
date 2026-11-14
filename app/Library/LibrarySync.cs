@@ -32,7 +32,7 @@ public sealed partial class LibrarySync
             using var lyrionClient = new LyrionClient(profile);
             var serverStatus = await lyrionClient.GetServerStatusAsync();
             if (serverStatus.Scanning) return false; // mid-scan the server's library is partial; sync once the scan finishes
-            var signature = $"{serverStatus.LastScan}|{serverStatus.TotalSongs}|{serverStatus.TotalAlbums}|{serverStatus.TotalArtists}|{librarySettings.NameSeparators}|derive7|{librarySettings.NameOrder}|{librarySettings.ReadSurnameFirst}";
+            var signature = $"{serverStatus.LastScan}|{serverStatus.TotalSongs}|{serverStatus.TotalAlbums}|{serverStatus.TotalArtists}|{librarySettings.NameSeparators}|derive8|{librarySettings.NameOrder}|{librarySettings.ReadSurnameFirst}|{librarySettings.LyrionArtistSort}";
             var databasePath = DatabasePath(profile);
             if (!force && File.Exists(databasePath))
             {
@@ -69,11 +69,12 @@ public sealed partial class LibrarySync
             Progress?.Invoke(L.T("Fetching albums"), 0, 0);
             var tagAlbums = await FetchTagAlbumsAsync(lyrionClient);
             await FillMissingNamesAsync(lyrionClient, tracks, contributorNames);
+            var artistOrder = librarySettings.LyrionArtistSort ? await FetchArtistOrderAsync(lyrionClient) : new Dictionary<string, (string letter, int rank)>();
             Progress?.Invoke(L.T("Building index"), tracks.Count, tracks.Count);
             using (var transaction = connection.BeginTransaction())
             {
                 WriteRaw(connection, tracks, contributorNames, genreNames, librarySettings);
-                Derive(connection, tracks, tagAlbums, contributorNames, librarySettings);
+                Derive(connection, tracks, tagAlbums, contributorNames, artistOrder, librarySettings);
                 Execute(connection, "INSERT INTO meta VALUES('signature',$signature),('synced_at',$syncedAt),('track_count',$trackCount)", ("$signature", signature), ("$syncedAt", DateTime.UtcNow.ToString("O")), ("$trackCount", tracks.Count.ToString()));
                 transaction.Commit();
             }
@@ -128,6 +129,40 @@ public sealed partial class LibrarySync
             if (pageCount < pageSize) break;
         }
         return tagAlbums;
+    }
+
+    // Lyrion lists artists by its sort name (ARTISTSORT tag, else the name without "The"); no query returns it, so keep each name's first letter (textkey) and place in that list
+    static async Task<Dictionary<string, (string letter, int rank)>> FetchArtistOrderAsync(LyrionClient lyrionClient)
+    {
+        var artistOrder = new Dictionary<string, (string letter, int rank)>();
+        try
+        {
+            for (var pageStart = 0; ; pageStart += pageSize)
+            {
+                var page = await lyrionClient.RequestAsync("", "artists", pageStart, pageSize, "role_id:ARTIST,ALBUMARTIST,TRACKARTIST,BAND", "tags:s");
+                if (page.ValueKind != JsonValueKind.Object || !page.TryGetProperty("artists_loop", out var artistsLoop)) break;
+                var pageCount = 0;
+                foreach (var item in artistsLoop.EnumerateArray()) { pageCount++; var nameNorm = TextNormaliser.Normalise(LyrionClient.ReadString(item, "artist")); artistOrder.TryAdd(nameNorm, (TextNormaliser.Normalise(LyrionClient.ReadString(item, "textkey")) is { Length: > 0 } letter ? letter : nameNorm[..Math.Min(1, nameNorm.Length)], artistOrder.Count + 1)); }
+                if (pageCount < pageSize) break;
+            }
+        }
+        catch { artistOrder.Clear(); } // older servers: plain name order
+        return artistOrder;
+    }
+
+    // Sort key "letter<tab>place": Lyrion's order within each first letter, so composers and conductors (sorted by name text) still fall under their letter in mixed lists.
+    // A name Lyrion doesn't list on its own (part of a split credit) goes under its own first letter, after the nearest listed name before it alphabetically
+    static Func<string, string> ArtistSortKey(Dictionary<string, (string letter, int rank)> artistOrder)
+    {
+        if (artistOrder.Count == 0) return nameNorm => nameNorm;
+        var namesByLetter = artistOrder.GroupBy(entry => entry.Value.letter).ToDictionary(group => group.Key, group => group.Select(entry => entry.Key).OrderBy(name => name, StringComparer.Ordinal).ToList());
+        return nameNorm =>
+        {
+            if (artistOrder.TryGetValue(nameNorm, out var place)) return $"{place.letter}\t{place.rank:D7}";
+            var letter = nameNorm[..Math.Min(1, nameNorm.Length)];
+            var before = namesByLetter.TryGetValue(letter, out var sameLetter) ? ~sameLetter.BinarySearch(nameNorm, StringComparer.Ordinal) - 1 : -1;
+            return $"{letter}\t{(before < 0 ? 0 : artistOrder[sameLetter![before]].rank):D7} {nameNorm}";
+        };
     }
 
     static async Task FillMissingNamesAsync(LyrionClient lyrionClient, List<TrackRow> tracks, Dictionary<long, string> contributorNames)
@@ -193,7 +228,7 @@ public sealed partial class LibrarySync
     }
 
     // Albums for both sources (tags and folders), credits for artist/composer/performer pages, people lists and the search index
-    static void Derive(SqliteConnection connection, List<TrackRow> tracks, Dictionary<long, TagAlbum> tagAlbums, Dictionary<long, string> contributorNames, LibrarySettings librarySettings)
+    static void Derive(SqliteConnection connection, List<TrackRow> tracks, Dictionary<long, TagAlbum> tagAlbums, Dictionary<long, string> contributorNames, Dictionary<string, (string letter, int rank)> artistOrder, LibrarySettings librarySettings)
     {
         var folderRows = Query(connection, "SELECT id, path, parent_id, name FROM folders").ToDictionary(row => (long)row["id"]!);
         var albumGroups = new Dictionary<string, List<(TrackRow track, int discNo)>>();
@@ -259,9 +294,10 @@ public sealed partial class LibrarySync
             foreach (var (partNorm, credit) in credits) Execute(connection, "INSERT INTO album_credits VALUES($key,$part,$credit)", ("$key", albumKey), ("$part", partNorm), ("$credit", credit));
             Execute(connection, "INSERT INTO search(kind,ref,source,label,detail,text) VALUES('album',$key,$source,$title,$artist,$text)", ("$key", albumKey), ("$source", albumKey[..1]), ("$title", title), ("$artist", albumArtist), ("$text", title + " " + albumArtist));
         }
+        var artistSortKey = ArtistSortKey(artistOrder);
         foreach (var ((partNorm, role), person) in people)
         {
-            Execute(connection, "INSERT INTO people(part_norm,role,display,album_count,album_count_t,sort_norm) VALUES($part,$role,$display,$countFolders,$countTags,$sort)", ("$part", partNorm), ("$role", role), ("$display", person.display), ("$sort", TextNormaliser.Normalise(person.display)), ("$countFolders", person.folderAlbums.Count), ("$countTags", person.tagAlbums.Count));
+            Execute(connection, "INSERT INTO people(part_norm,role,display,album_count,album_count_t,sort_norm) VALUES($part,$role,$display,$countFolders,$countTags,$sort)", ("$part", partNorm), ("$role", role), ("$display", person.display), ("$sort", role is "composer" or "conductor" ? TextNormaliser.Normalise(person.display) : artistSortKey(partNorm)), ("$countFolders", person.folderAlbums.Count), ("$countTags", person.tagAlbums.Count));
             var searchKind = role switch { "artist" => "artist", "composer" => "composer", _ => "performer" };
             if (role != "soloist") Execute(connection, "INSERT INTO search(kind,ref,source,label,detail,text) VALUES($kind,$part,'',$display,$role,$display)", ("$kind", searchKind), ("$part", partNorm), ("$display", person.display), ("$role", role));
         }

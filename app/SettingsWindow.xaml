@@ -321,6 +321,7 @@
               <TextBox x:Name="separatorsBox" Grid.Row="1" Grid.Column="1" Margin="0,8,0,0" ToolTip="Space between each" />
             </Grid>
             <CheckBox x:Name="readSurnameFirstBox" Content="Read composer and conductor tags like &quot;Kapustin, Nikolai&quot; as one person" />
+            <CheckBox x:Name="lyrionArtistSortBox" Content="Sort artists the way Lyrion does (uses ARTISTSORT tags like &quot;Bowie, David&quot;)" />
             <CheckBox x:Name="hideOwnComposersBox" Content="Composers list: leave out artists credited as composer only on their own albums (singer-songwriters)" />
             <Expander Header="How names are split" Style="{StaticResource More}">
               <Border Style="{StaticResource Callout}" Margin="0,6,0,0"><Grid>

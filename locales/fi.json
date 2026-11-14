@@ -1000,6 +1000,7 @@
   "Name separators": "Nimien erottimet",
   "Space between each": "Välilyönti kunkin välissä",
   "Read composer and conductor tags like \"Kapustin, Nikolai\" as one person": "Lue säveltäjä- ja kapellimestaritunnisteet kuten \"Kapustin, Nikolai\" yhdeksi henkilöksi",
+  "Sort artists the way Lyrion does (uses ARTISTSORT tags like \"Bowie, David\")": "Järjestä artistit kuten Lyrion (käyttää ARTISTSORT-tageja, esim. \"Bowie, David\")",
   "Composers list: leave out artists credited as composer only on their own albums (singer-songwriters)": "Säveltäjäluettelo: jätä pois artistit, jotka on mainittu säveltäjänä vain omilla albumeillaan (laulaja-lauluntekijät)",
   "How names are split": "Miten nimet jaetaan",
   "Split on the separators, never on commas: \"Earth, Wind & Fire\" stays whole.": "Jaa erottimista, ei koskaan pilkuista: \"Earth, Wind & Fire\" pysyy kokonaisena.",

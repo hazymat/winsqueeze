@@ -1000,6 +1000,7 @@
   "Name separators": "Oddělovače jmen",
   "Space between each": "Mezera mezi každým",
   "Read composer and conductor tags like \"Kapustin, Nikolai\" as one person": "Číst štítky skladatelů a dirigentů jako \"Kapustin, Nikolai\" jako jednu osobu",
+  "Sort artists the way Lyrion does (uses ARTISTSORT tags like \"Bowie, David\")": "Řadit interprety jako Lyrion (podle tagů ARTISTSORT, např. \"Bowie, David\")",
   "Composers list: leave out artists credited as composer only on their own albums (singer-songwriters)": "Seznam skladatelů: vynechat interprety uvedené jako skladatel jen na vlastních albech (písničkáři)",
   "How names are split": "Jak se jména dělí",
   "Split on the separators, never on commas: \"Earth, Wind & Fire\" stays whole.": "Dělit podle oddělovačů, nikdy podle čárek: \"Earth, Wind & Fire\" zůstane celé.",

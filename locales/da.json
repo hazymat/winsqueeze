@@ -1000,6 +1000,7 @@
   "Name separators": "Navneskilletegn",
   "Space between each": "Mellemrum mellem hver",
   "Read composer and conductor tags like \"Kapustin, Nikolai\" as one person": "Læs komponist- og dirigent-tags som \"Kapustin, Nikolai\" som én person",
+  "Sort artists the way Lyrion does (uses ARTISTSORT tags like \"Bowie, David\")": "Sorter kunstnere som Lyrion gør (bruger ARTISTSORT-tags som \"Bowie, David\")",
   "Composers list: leave out artists credited as composer only on their own albums (singer-songwriters)": "Komponistlisten: udelad kunstnere, der kun er krediteret som komponist på deres egne album (singer-songwritere)",
   "How names are split": "Sådan deles navne",
   "Split on the separators, never on commas: \"Earth, Wind & Fire\" stays whole.": "Del ved skilletegnene, aldrig ved kommaer: \"Earth, Wind & Fire\" forbliver hel.",

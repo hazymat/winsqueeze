@@ -975,6 +975,7 @@
   "Name separators": "名称分隔符",
   "Space between each": "每个之间用空格分开",
   "Read composer and conductor tags like \"Kapustin, Nikolai\" as one person": "将“Kapustin, Nikolai”这样的作曲家和指挥标签识别为同一个人",
+  "Sort artists the way Lyrion does (uses ARTISTSORT tags like \"Bowie, David\")": "按 Lyrion 的方式排序艺人（使用 \"Bowie, David\" 这样的 ARTISTSORT 标签）",
   "Composers list: leave out artists credited as composer only on their own albums (singer-songwriters)": "作曲家列表：排除只在自己专辑上署名为作曲家的艺人（创作歌手）",
   "How names are split": "名称如何拆分",
   "Split on the separators, never on commas: \"Earth, Wind & Fire\" stays whole.": "按分隔符拆分，从不按逗号拆分：“Earth, Wind & Fire”保持完整。",
