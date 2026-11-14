@@ -72,22 +72,23 @@ public class CustomMeter
     public string Label { get; set; } = "vu"; // vu, channel, reference, none
     public string Brand { get; set; } = ""; // small text top left
     public double Roundness { get; set; } = 0.15; // 0 flat .. 1 round
-    public string Arc { get; set; } = "band"; // line, band (red band over 0), ticks (no arc line)
+    public string Arc { get; set; } = "band"; // line, band (red band over 0), double, wide, dotted, segments, ticks (no arc line)
     public double Weight { get; set; } = 1.4; // line weight
     public string Cold { get; set; } = "#3fa57a"; // scale below 0
     public string Hot { get; set; } = "#b5402f"; // scale above 0
     public string NeedleColour { get; set; } = "#ecd9a8";
-    public string NeedleShape { get; set; } = "blade"; // blade, line, bar
+    public string NeedleShape { get; set; } = "blade"; // blade, line, bar, arrow, lance, spade, flag, ball
+    public string NeedleFinish { get; set; } = "flat"; // flat (its colour), brass, chrome, black: polished ones catch the light as they swing
+    public double Shadow { get; set; } = 0.5; // needle shadow on a pale face, 0..1
     public string NeedleFrom { get; set; } = "bottom"; // bottom, top
-    public string Base { get; set; } = "ring"; // none, ring, filled, dome
+    public string Base { get; set; } = "ring"; // none, ring, filled, dome, screw, knurled, brass
     public string Back { get; set; } = "#000000";
     public string Lamp { get; set; } = "none"; // none, tungsten, warm, cool, amber, green, blue
-    public string LampFrom { get; set; } = "below"; // below, above, left, right
-    public string Display { get; set; } = "analogue"; // analogue, dots
-    public double DotSize { get; set; } = 3; // dot pitch in face units (face is 240 x 140)
+    public string LampFrom { get; set; } = "below"; // below, above, left, right, behind
+    public string Display { get; set; } = "analogue"; // analogue, oled
     public bool Glow { get; set; }
     public string Glass { get; set; } = "none"; // none, clear, smoked
-    public string Casing { get; set; } = "line"; // none, line, bezel, wood, metal
+    public string Casing { get; set; } = "line"; // none, line, bezel, metal, wood, acrylic
     [JsonIgnore] public string StyleKey => "custom-" + Id;
     public CustomMeter Copy() { var copy = (CustomMeter)MemberwiseClone(); return copy; }
     // Starting points in the builder; the first is also the built-in Dark room VU style
@@ -95,11 +96,11 @@ public class CustomMeter
     public static List<CustomMeter> Presets() => new()
     {
         DarkRoom(),
-        new() { Id = "tungsten", Name = L.T("Tungsten"), Font = "engraved", Roundness = 0.55, Weight = 0.9, Cold = "#1d1a14", Hot = "#b52a1c", NeedleColour = "#111111", Back = "#efe2c4", Lamp = "tungsten", Base = "dome", Casing = "bezel", Glass = "clear", Brand = "WINSQUEEZE" },
-        new() { Id = "hanging", Name = L.T("Hanging needle"), Font = "deco", Roundness = 0.35, Arc = "line", Weight = 0.8, Cold = "#e9dcc0", Hot = "#ff6a3a", NeedleColour = "#ff6a3a", NeedleShape = "line", NeedleFrom = "top", Back = "#0b1626", Lamp = "amber", LampFrom = "above", Base = "filled", Casing = "metal", Glass = "clear", Label = "channel" },
-        new() { Id = "dots", Name = L.T("Dot display"), Font = "terminal", FontSize = 1.25, Roundness = 0.3, Arc = "line", Weight = 2.2, Cold = "#46e6ff", Hot = "#ff4d6d", NeedleColour = "#d8f8ff", NeedleShape = "bar", Display = "dots", DotSize = 2.6, Glow = true, Base = "none", Casing = "none" },
-        new() { Id = "studio", Name = L.T("Studio 1974"), Font = "hifi", FontSize = 0.8, Roundness = 0.7, Arc = "line", Weight = 0.8, Cold = "#1a1a1a", Hot = "#c0281d", NeedleColour = "#1a1a1a", Back = "#f6f0e2", Lamp = "warm", LampFrom = "left", Base = "dome", Casing = "wood", Glass = "smoked", Label = "reference" },
-        new() { Id = "greenglow", Name = L.T("Green glow"), Font = "thirties", FontSize = 1.1, Roundness = 0.5, Arc = "ticks", Weight = 1.2, Cold = "#7dffb0", Hot = "#ffd54a", NeedleColour = "#e6fff0", Back = "#16181a", Lamp = "green", Glow = true, Casing = "bezel", Glass = "clear" },
+        new() { Id = "tungsten", Name = L.T("Tungsten"), Font = "engraved", Roundness = 0.55, Weight = 0.9, Cold = "#1d1a14", Hot = "#b52a1c", NeedleColour = "#111111", NeedleFinish = "brass", Shadow = 0.5, Back = "#efe2c4", Lamp = "tungsten", Base = "screw", Casing = "bezel", Glass = "clear", Brand = "WINSQUEEZE" },
+        new() { Id = "hanging", Name = L.T("Hanging needle"), Font = "deco", Roundness = 0.35, Arc = "double", Weight = 0.8, Cold = "#e9dcc0", Hot = "#ff6a3a", NeedleColour = "#ff6a3a", NeedleShape = "arrow", NeedleFrom = "top", Back = "#0b1626", Lamp = "amber", LampFrom = "above", Base = "brass", Casing = "metal", Glass = "clear", Label = "channel" },
+        new() { Id = "oled", Name = "OLED", Font = "terminal", FontSize = 1.25, Roundness = 0.3, Arc = "segments", Weight = 1.2, Cold = "#46e6ff", Hot = "#ff4d6d", NeedleColour = "#d8f8ff", NeedleShape = "line", Display = "oled", Base = "none", Casing = "none" },
+        new() { Id = "studio", Name = L.T("Studio 1974"), Font = "hifi", FontSize = 0.8, Roundness = 0.7, Arc = "line", Weight = 0.8, Cold = "#1a1a1a", Hot = "#c0281d", NeedleColour = "#1a1a1a", NeedleShape = "spade", NeedleFinish = "black", Shadow = 0.7, Back = "#f6f0e2", Lamp = "warm", LampFrom = "left", Base = "knurled", Casing = "wood", Glass = "smoked", Label = "reference" },
+        new() { Id = "greenglow", Name = L.T("Green glow"), Font = "thirties", FontSize = 1.1, Roundness = 0.5, Arc = "wide", Weight = 1.2, Cold = "#7dffb0", Hot = "#ffd54a", NeedleColour = "#e6fff0", NeedleShape = "ball", Back = "#16181a", Lamp = "green", Glow = true, Base = "dome", Casing = "acrylic", Glass = "clear" },
     };
 }
 
