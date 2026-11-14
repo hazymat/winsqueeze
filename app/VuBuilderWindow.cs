@@ -296,11 +296,12 @@ public sealed class VuBuilderWindow : Window
         settingsPanel.Children.Add(Card(L.T("Face and light"), Stack(
             Colour(L.T("Back"), new[] { "#000000", "#16181a", "#0b1626", "#efe2c4", "#f6f0e2", "#ffffff" }, () => meter.Back, value => meter.Back = value),
             Choice(L.T("Bulb"), new[] { ("none", L.T("Off")), ("tungsten", L.T("Tungsten")), ("warm", L.T("Warm white")), ("cool", L.T("Cool white")), ("amber", L.T("Amber")), ("green", L.T("Green")), ("blue", L.T("Blue")) }, () => meter.Lamp, value => meter.Lamp = value),
-            Choice(L.T("Lit from"), new[] { ("below", L.T("Below")), ("above", L.T("Above")), ("left", L.T("Left")), ("right", L.T("Right")), ("behind", L.T("Behind the face")) }, () => meter.LampFrom, value => meter.LampFrom = value),
+            Choice(L.T("Lit from"), new[] { ("below", L.T("Below")), ("above", L.T("Above")), ("left", L.T("Left")), ("right", L.T("Right")) }, () => meter.LampFrom == "behind" ? "below" : meter.LampFrom, value => meter.LampFrom = value),
+            Number(L.T("Brightness"), 0, 1, () => meter.LampPower, value => meter.LampPower = value, L.T("Dim"), L.T("Bright")),
             Choice(L.T("Display"), new[] { ("analogue", L.T("Analogue")), ("oled", "OLED") }, () => meter.Display == "dots" ? "oled" : meter.Display, value => meter.Display = value),
             Tick(L.T("Glow"), () => meter.Glow, value => meter.Glow = value))));
         settingsPanel.Children.Add(Card(L.T("Case"), Stack(
             Choice(L.T("Casing"), new[] { ("none", L.T("None")), ("line", L.T("Line")), ("bezel", L.T("Bezel")), ("metal", L.T("Brushed metal")), ("wood", L.T("Wood")), ("acrylic", L.T("Clear acrylic")) }, () => meter.Casing, value => meter.Casing = value),
-            Choice(L.T("Glass"), new[] { ("none", L.T("None")), ("clear", L.T("Clear")), ("smoked", L.T("Smoked")) }, () => meter.Glass, value => meter.Glass = value))));
+            Choice(L.T("Glass"), new[] { ("none", L.T("None")), ("clear", L.T("Clear")) }, () => meter.Glass == "smoked" ? "clear" : meter.Glass, value => meter.Glass = value))));
     }
 }

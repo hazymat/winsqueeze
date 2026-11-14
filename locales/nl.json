@@ -1254,7 +1254,6 @@
   "Bezel": "Rand",
   "Wood": "Hout",
   "Metal": "Metaal",
-  "Smoked": "Getint",
   "VU Builder…": "VU-bouwer…",
   "Design your own VU meter": "Ontwerp je eigen VU-meter",
   "Double line": "Dubbele lijn",
@@ -1276,12 +1275,14 @@
   "Dome with screw": "Koepel met schroef",
   "Knurled chrome": "Gekarteld chroom",
   "Brass cap": "Messing dop",
-  "Behind the face": "Achter de schaal",
   "Brushed metal": "Geborsteld metaal",
   "Clear acrylic": "Helder acryl",
   "Dots": "Stippen",
   "Fine": "Fijn",
   "Coarse": "Grof",
   "Dot size": "Puntgrootte",
-  "Dot display": "Puntendisplay"
+  "Dot display": "Puntendisplay",
+  "Brightness": "Helderheid",
+  "Dim": "Zwak",
+  "Bright": "Fel"
 }

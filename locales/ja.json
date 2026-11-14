@@ -1254,7 +1254,6 @@
   "Bezel": "ベゼル",
   "Wood": "木",
   "Metal": "金属",
-  "Smoked": "スモーク",
   "VU Builder…": "VUビルダー…",
   "Design your own VU meter": "自分だけのVUメーターを作る",
   "Double line": "二重線",
@@ -1276,12 +1275,14 @@
   "Dome with screw": "ねじ付きドーム",
   "Knurled chrome": "ローレット加工クローム",
   "Brass cap": "真鍮キャップ",
-  "Behind the face": "目盛り板の裏",
   "Brushed metal": "ヘアライン金属",
   "Clear acrylic": "透明アクリル",
   "Dots": "ドット",
   "Fine": "細かい",
   "Coarse": "粗い",
   "Dot size": "ドットの大きさ",
-  "Dot display": "ドット表示"
+  "Dot display": "ドット表示",
+  "Brightness": "明るさ",
+  "Dim": "暗い",
+  "Bright": "明るい"
 }

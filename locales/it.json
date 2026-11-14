@@ -1254,7 +1254,6 @@
   "Bezel": "Cornice",
   "Wood": "Legno",
   "Metal": "Metallo",
-  "Smoked": "Fumé",
   "VU Builder…": "Costruttore VU…",
   "Design your own VU meter": "Crea il tuo indicatore VU",
   "Double line": "Doppia linea",
@@ -1276,12 +1275,14 @@
   "Dome with screw": "Cupola con vite",
   "Knurled chrome": "Cromo zigrinato",
   "Brass cap": "Cappuccio in ottone",
-  "Behind the face": "Dietro il quadrante",
   "Brushed metal": "Metallo spazzolato",
   "Clear acrylic": "Acrilico trasparente",
   "Dots": "Punti",
   "Fine": "Fini",
   "Coarse": "Grossi",
   "Dot size": "Dimensione punti",
-  "Dot display": "Display a punti"
+  "Dot display": "Display a punti",
+  "Brightness": "Luminosità",
+  "Dim": "Tenue",
+  "Bright": "Intensa"
 }
