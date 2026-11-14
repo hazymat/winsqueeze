@@ -1185,7 +1185,6 @@
   "Check again": "Vérifier à nouveau",
   "Dark room VU": "VU pour pièce sombre",
   "Tungsten": "Ampoule",
-  "Hanging needle": "Aiguille suspendue",
   "Studio 1974": "Studio 1974",
   "Green glow": "Lueur verte",
   "made in VU Builder": "créé dans l'atelier VU",
@@ -1291,5 +1290,8 @@
   "Neon": "Néon",
   "Colour filter": "Filtre coloré",
   "Natural": "Naturel",
-  "Red": "Rouge"
+  "Red": "Rouge",
+  "Red alert": "Alerte rouge",
+  "Lab meter": "Appareil de labo",
+  "Teal 60s": "Sarcelle années 60"
 }

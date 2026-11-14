@@ -1185,7 +1185,6 @@
   "Check again": "Zkontrolovat znovu",
   "Dark room VU": "VU do tmavé místnosti",
   "Tungsten": "Žárovka",
-  "Hanging needle": "Visící ručička",
   "Studio 1974": "Studio 1974",
   "Green glow": "Zelená záře",
   "made in VU Builder": "vytvořeno v návrháři VU",
@@ -1291,5 +1290,8 @@
   "Neon": "Neon",
   "Colour filter": "Barevný filtr",
   "Natural": "Přirozená",
-  "Red": "Červená"
+  "Red": "Červená",
+  "Red alert": "Červený poplach",
+  "Lab meter": "Laboratorní měřidlo",
+  "Teal 60s": "Petrolejová 60. léta"
 }
