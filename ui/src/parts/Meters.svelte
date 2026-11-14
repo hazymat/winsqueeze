@@ -7,7 +7,7 @@
   import { sendToShell } from '../bridge'
   import Analyser from './Analyser.svelte'
   import MeterPanel, { panelThemes } from './MeterPanel.svelte'
-  import CustomVu, { darkRoom } from './CustomVu.svelte'
+  import CustomVu, { darkRoom, faceHeights } from './CustomVu.svelte'
   // Live from our Squeezelite build's sample export; with no audio the needles rest below -20 and the lamp dims
   // hifi: set into the hi-fi faceplate, each meter in its own chamfered cut-out instead of a black surround
   let { size = 'small', zoom = 1, moveWindow = false, hifi = false }: { size?: 'small' | 'large' | 'full', zoom?: number, moveWindow?: boolean, hifi?: boolean } = $props()
@@ -193,7 +193,8 @@
     {/each}
   {:else if app.meterSettings.designs[ui.meterStyle]}
     <!-- Drawn from a VU Builder design (the built-in Dark room VU is one) -->
-    {#each ['L', 'R'] as channel, channelIndex}<span class="designed"><CustomVu design={app.meterSettings.designs[ui.meterStyle] ?? darkRoom} {channel} decibels={meters.vu[channelIndex] ?? -90} reference={meters.reference} /></span>{/each}
+    {@const design = app.meterSettings.designs[ui.meterStyle] ?? darkRoom}
+    {#each ['L', 'R'] as channel, channelIndex}<span class="designed" style:--aspect-scale={140 / (faceHeights[design.aspect] ?? 140)}><CustomVu {design} {channel} decibels={meters.vu[channelIndex] ?? -90} reference={meters.reference} peak={meters.lamp[channelIndex]} /></span>{/each}
   {:else}
     <!-- Spectrum analyser (the third style; stored as 'oled' so earlier choices carry over) -->
     <div class="spectrum">{#if size !== 'small'}<Analyser levels={meters.bands} labels={bandLabels} scale={spectrumScale} segments={24} title={t('SPECTRUM ANALYZER')} fullRange={Math.max(0, Math.min(1, (Math.max(meters.vu[0] ?? -90, meters.vu[1] ?? -90) + 40) / 40))} />{:else}<Analyser levels={meters.bands} compact={true} segments={12} />{/if}</div>
@@ -260,7 +261,7 @@
   .oled-channel { fill: rgba(76, 192, 255, 0.35); font-size: 5px; text-anchor: middle; font-family: var(--font-display); }
   .idle .display { opacity: 0.55; }
   /* VU Builder designs: the 240 x 140 face, sized like the other pairs */
-  .designed { display: flex; } .small .designed { width: 47px; } .large .designed { width: 190px; } .full .designed { width: min(46vw, (100vh - 140px) * 1.71); }
+  .designed { display: flex; } .small .designed { width: calc(47px * var(--aspect-scale, 1)); } .large .designed { width: calc(190px * var(--aspect-scale, 1)); } .full .designed { width: min(46vw, (100vh - 140px) * 1.71 * var(--aspect-scale, 1)); } /* taller or wider faces keep the same height */
   .designed :global(.custom-vu) { width: 100%; height: auto; }
   .spectrum { display: flex; } .large .spectrum { width: 320px; height: 150px; }
   /* Full window (right-click): as big as the window allows */

@@ -1293,5 +1293,14 @@
   "Red": "赤",
   "Red alert": "レッドアラート",
   "Lab meter": "計測器",
-  "Teal 60s": "60年代ティール"
+  "Teal 60s": "60年代ティール",
+  "Name size": "名前のサイズ",
+  "Name position": "名前の位置",
+  "Proportions": "縦横比",
+  "Standard": "標準",
+  "Taller": "縦長",
+  "Wider": "横長",
+  "Clip light": "クリップランプ",
+  "Inset depth": "奥行き",
+  "Deep": "深い"
 }

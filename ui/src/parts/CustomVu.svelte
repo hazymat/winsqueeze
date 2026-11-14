@@ -2,9 +2,9 @@
   // Bundled faces for VU Builder meters (all SIL Open Font Licence); a face only loads when a meter uses it
   import '@fontsource/jost/400.css'; import '@fontsource/cinzel/400.css'; import '@fontsource/poiret-one/400.css'; import '@fontsource/limelight/400.css'
   import '@fontsource/michroma/400.css'; import '@fontsource/courier-prime/400.css'; import '@fontsource/barlow-condensed/500.css'; import '@fontsource/vt323/400.css'
-  export type VuDesign = { font: string, fontSize: number, label: string, brand: string, roundness: number, arc: string, weight: number, cold: string, hot: string, needleColour: string, needleShape: string, needleFinish: string, shadow: number, needleFrom: string, base: string, back: string, lamp: string, lampTint: string, lampFrom: string, lampPower: number, display: string, glow: boolean, glass: string, casing: string }
+  export type VuDesign = { font: string, fontSize: number, label: string, brand: string, roundness: number, arc: string, weight: number, cold: string, hot: string, needleColour: string, needleShape: string, needleFinish: string, shadow: number, needleFrom: string, base: string, back: string, lamp: string, lampTint: string, lampFrom: string, lampPower: number, display: string, glow: boolean, glass: string, casing: string, brandSize: number, brandSide: string, aspect: string, peakLamp: string, inset: number }
   // Same values as CustomMeter's defaults in the shell (the Dark room VU)
-  export const darkRoom: VuDesign = { font: 'modern', fontSize: 1, label: 'vu', brand: '', roundness: 0.15, arc: 'band', weight: 1.4, cold: '#3fa57a', hot: '#b5402f', needleColour: '#ecd9a8', needleShape: 'blade', needleFinish: 'flat', shadow: 0.5, needleFrom: 'bottom', base: 'ring', back: '#000000', lamp: 'none', lampTint: 'natural', lampFrom: 'below', lampPower: 0.5, display: 'analogue', glow: false, glass: 'none', casing: 'line' }
+  export const darkRoom: VuDesign = { font: 'modern', fontSize: 1, label: 'vu', brand: '', roundness: 0.15, arc: 'band', weight: 1.4, cold: '#3fa57a', hot: '#b5402f', needleColour: '#ecd9a8', needleShape: 'blade', needleFinish: 'flat', shadow: 0.5, needleFrom: 'bottom', base: 'ring', back: '#000000', lamp: 'none', lampTint: 'natural', lampFrom: 'below', lampPower: 0.5, display: 'analogue', glow: false, glass: 'none', casing: 'line', brandSize: 1, brandSide: 'left', aspect: 'standard', peakLamp: 'none', inset: 0 }
   const fontFamilies: Record<string, string> = { modern: 'Jost', engraved: 'Cinzel', deco: '"Poiret One"', thirties: 'Limelight', hifi: 'Michroma', typewriter: '"Courier Prime"', condensed: '"Barlow Condensed"', terminal: 'VT323' }
   const wideFonts: Record<string, number> = { hifi: 1.45, thirties: 1.2, engraved: 1.15, typewriter: 1.15, terminal: 0.9, condensed: 0.75 } // how wide "+3" sets, against Jost
   // Lamps: how many sources and how far along the edge they sit, how far the light reaches, how hot the centre of each is, their natural colour, how soft a shadow they cast and how they come on
@@ -21,6 +21,7 @@
   const oldLamps: Record<string, string[]> = { warm: ['halogen', 'natural'], cool: ['tube', 'natural'], amber: ['tungsten', 'amber'], green: ['tungsten', 'green'], blue: ['tungsten', 'blue'] } // an earlier dev build's bulb colours
   // Casing: how deep the frame is, and its outer corner (the inner corner follows, so the face's corners match the frame)
   const casings: Record<string, { depth: number, corner: number }> = { none: { depth: 0, corner: 4 }, line: { depth: 3, corner: 10 }, bezel: { depth: 9, corner: 12 }, metal: { depth: 11, corner: 12 }, wood: { depth: 14, corner: 10 }, acrylic: { depth: 9, corner: 14 } }
+  export const faceHeights: Record<string, number> = { standard: 140, tall: 180, wide: 120 }
   // VU marks along the scale, as a share of its length
   const scaleMarks: [number, number][] = [[-20, 0], [-10, 0.2], [-7, 0.32], [-5, 0.43], [-3, 0.56], [-2, 0.63], [-1, 0.71], [0, 0.79], [1, 0.86], [2, 0.93], [3, 1]]
   const zeroShare = 0.79
@@ -31,21 +32,22 @@
 <script lang="ts">
   // A meter drawn from a VU Builder design (SPEC.md › VU Builder): face 240 x 140 inside its casing, scale on a circular arc whose flatness is the design's roundness,
   // sized so its numbers always fit; the needle swings from the arc's centre (behind a cover at the face's edge when the arc is flat), so it never changes length; bulbs behind the casing light the face
-  let { design, channel, decibels, reference, reading = null }: { design: VuDesign, channel: string, decibels: number, reference: number, reading?: number | null } = $props()
+  let { design, channel, decibels, reference, reading = null, peak = 0 }: { design: VuDesign, channel: string, decibels: number, reference: number, reading?: number | null, peak?: number } = $props()
   const id = `custom-vu-${meterCount++}`
   const spec = $derived(Object.assign({}, darkRoom, design ?? {}) as VuDesign)
   const oled = $derived(spec.display === 'oled' || spec.display === 'dots') // dots: an earlier dev build's display, shown as OLED
   const casing = $derived(casings[spec.casing] ?? casings.none), depth = $derived(casing.depth), outerCorner = $derived(casing.corner), innerCorner = $derived(Math.max(1.5, casing.corner - casing.depth * 0.75))
-  const inner = $derived({ left: depth, top: depth, right: 240 - depth, bottom: 140 - depth })
+  const faceHeight = $derived(faceHeights[spec.aspect] ?? 140) // the face is always 240 wide; taller or wider proportions change its height
+  const inner = $derived({ left: depth, top: depth, right: 240 - depth, bottom: faceHeight - depth })
   const fromTop = $derived(spec.needleFrom === 'top'), out = $derived(fromTop ? -1 : 1)
   const font = $derived(fontFamilies[spec.font] ?? 'Jost'), textSize = $derived(8.5 * spec.fontSize)
   // Scale: the circle's radius sets the flatness; its span is as wide as the face allows once the end numbers (set 17 units out) are inside it
   const radius = $derived(95 + (1 - Math.max(0, Math.min(1, spec.roundness))) * 200)
   const halfSpan = $derived(Math.asin(Math.min(0.97, (120 - depth - 6 - textSize * (wideFonts[spec.font] ?? 1)) / (radius + 17))))
   const numberSize = $derived(Math.min(textSize, 0.12 * 2 * halfSpan * (radius + 17) / (1.55 * (wideFonts[spec.font] ?? 1)))) // the tightest gap (10 to 7) still fits its numbers
-  const scaleEdge = $derived((fromTop ? 140 - inner.bottom : inner.top) + 34 + textSize * 1.3) // the arc's highest point (lowest when the needle hangs)
-  const pivotY = $derived(fromTop ? 140 - scaleEdge - radius : scaleEdge + radius) // the arc's centre, at or past the face's edge
-  const onScale = (share: number, beyond: number) => { const angle = -halfSpan + 2 * halfSpan * share, centreY = scaleEdge + radius, along = radius + beyond, y = centreY - along * Math.cos(angle); return [120 + along * Math.sin(angle), fromTop ? 140 - y : y] }
+  const scaleEdge = $derived((fromTop ? faceHeight - inner.bottom : inner.top) + 34 + (faceHeight - 140) * 0.5 + textSize * 1.3) // the arc's highest point (lowest when the needle hangs)
+  const pivotY = $derived(fromTop ? faceHeight - scaleEdge - radius : scaleEdge + radius) // the arc's centre, at or past the face's edge
+  const onScale = (share: number, beyond: number) => { const angle = -halfSpan + 2 * halfSpan * share, centreY = scaleEdge + radius, along = radius + beyond, y = centreY - along * Math.cos(angle); return [120 + along * Math.sin(angle), fromTop ? faceHeight - y : y] }
   const arcPath = (from: number, to: number, beyond: number) => { const [startX, startY] = onScale(from, beyond), [endX, endY] = onScale(to, beyond); return `M${startX} ${startY} A${radius + beyond} ${radius + beyond} 0 0 ${fromTop ? 0 : 1} ${endX} ${endY}` }
   // dB -> share of the scale; below -20 the needle sinks a little past the end to its rest
   const shareOf = (vu: number) => {
@@ -102,16 +104,20 @@
   const segments = $derived.by(() => { const list: number[][] = []; for (let mark = 1; mark < scaleMarks.length; mark++) { const from = scaleMarks[mark - 1][1], to = scaleMarks[mark][1], count = Math.max(1, Math.round((to - from) * 28)); for (let step = 0; step < count; step++) list.push([from + (to - from) * step / count, from + (to - from) * (step + 1) / count]) } return list })
   // The cover over the needle's pivot: a disc round the arc's centre that shows just past the face's edge
   const baseY = $derived(fromTop ? inner.top : inner.bottom), pivotDepth = $derived(Math.abs(pivotY - baseY))
-  const cover = (peek: number) => pivotDepth + peek
-  const coverSpan = (peek: number) => Math.acos(Math.min(1, pivotDepth / cover(peek))) // half the angle of the cover that shows
+  const pivotOnFace = $derived(fromTop ? pivotY > baseY : pivotY < baseY) // a round scale on a tall face: the pivot is on the face, under a small hub
+  const cover = (peek: number) => pivotOnFace ? peek * 0.75 : pivotDepth + peek
+  const coverSpan = (peek: number) => pivotOnFace ? Math.PI : Math.acos(Math.min(1, pivotDepth / cover(peek))) // half the angle of the cover that shows
+  // Clip light: a small lamp in a ring at the face's top corner (bottom when the needle hangs), lit by peaks like the beige VU's
+  const peakColours: Record<string, string[]> = { red: ['#ff3a1e', '#3a0a06'], amber: ['#ffae1a', '#3a2406'], green: ['#4dff6a', '#062a0c'] }
+  const peakColour = $derived(peakColours[spec.peakLamp] ?? null), peakX = $derived(inner.right - 13), peakY = $derived(fromTop ? inner.bottom - 13 : inner.top + 13)
   // The needle's shadow on the face: it stands a few mm off the face, so each bulb throws it a little away from itself
   const shadowOffset = (bulb: number[]) => { const [tipX, tipY] = onScale(needleShare, 0), middleX = (tipX + 120) / 2, middleY = (tipY + pivotY) / 2; return [(middleX - bulb[0]) * 0.035, (middleY - bulb[1]) * 0.035] }
-  const ring = $derived(roundedRect(0, 0, 240, 140, outerCorner) + roundedRect(inner.left, inner.top, inner.right - inner.left, inner.bottom - inner.top, innerCorner))
+  const ring = $derived(roundedRect(0, 0, 240, faceHeight, outerCorner) + roundedRect(inner.left, inner.top, inner.right - inner.left, inner.bottom - inner.top, innerCorner))
   const innerPath = $derived(roundedRect(inner.left, inner.top, inner.right - inner.left, inner.bottom - inner.top, innerCorner))
   const screwY = $derived(fromTop ? inner.top + 6 : inner.bottom - 6), highlightY = $derived(baseY - out * 13)
 </script>
 
-<svg viewBox="0 0 240 140" class="custom-vu" aria-hidden="true">
+<svg viewBox="0 0 240 {faceHeight}" class="custom-vu" aria-hidden="true">
   <defs>
     <clipPath id="{id}-face"><path d={innerPath} /></clipPath>
     {#each bulbs as [bulbX, bulbY], bulbIndex}
@@ -119,10 +125,12 @@
       <radialGradient id="{id}-glow-{bulbIndex}" gradientUnits="userSpaceOnUse" cx={bulbX} cy={bulbY} r={(35 + power * 80) * lamp.reach}><stop offset="0" stop-color={lamp.core > 0.5 ? coreColour : lampColour} stop-opacity="0.9" /><stop offset="0.25" stop-color={lampColour} stop-opacity="0.35" /><stop offset="1" stop-color={lampColour} stop-opacity="0" /></radialGradient>
     {/each}
     <filter id="{id}-soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation={lit ? lamp.soft : 1.1} /></filter>
+    {#if peakColour}<radialGradient id="{id}-peak" cx="45%" cy="40%" r="60%"><stop offset="0" stop-color="#fff" /><stop offset="0.35" stop-color={peakColour[0]} /><stop offset="1" stop-color={peakColour[0]} stop-opacity="0.85" /></radialGradient>
+      <radialGradient id="{id}-peak-glow"><stop offset="0" stop-color={peakColour[0]} stop-opacity="0.8" /><stop offset="0.3" stop-color={peakColour[0]} stop-opacity="0.25" /><stop offset="1" stop-color={peakColour[0]} stop-opacity="0" /></radialGradient>{/if}
     <filter id="{id}-lip" x="-5%" y="-5%" width="110%" height="110%"><feGaussianBlur stdDeviation="2.4" /></filter>
     <!-- OLED: crisp ink lit pixel by pixel on a fine grid, with only a faint bloom -->
     <pattern id="{id}-pixels" width="1.2" height="1.2" patternUnits="userSpaceOnUse"><rect x="0.12" y="0.12" width="0.96" height="0.96" rx="0.18" fill="#fff" /></pattern>
-    <mask id="{id}-pixel-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="240" height="140"><rect width="240" height="140" fill="url(#{id}-pixels)" /></mask>
+    <mask id="{id}-pixel-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="240" height={faceHeight}><rect width="240" height={faceHeight} fill="url(#{id}-pixels)" /></mask>
     <filter id="{id}-oled" x="-5%" y="-5%" width="110%" height="110%"><feGaussianBlur in="SourceGraphic" stdDeviation="1.4" result="halo" /><feComponentTransfer in="halo" result="halo"><feFuncA type="linear" slope="0.35" /></feComponentTransfer><feMerge><feMergeNode in="halo" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
     <filter id="{id}-glow" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="1.3" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
     <!-- Wood: long grain from stretched noise, coloured through a walnut ramp; the side rails run the other way -->
@@ -145,11 +153,11 @@
 
   <!-- Face, lit -->
   <g clip-path="url(#{id}-face)">
-    <rect width="240" height="140" fill={oled ? '#020303' : spec.back} />
+    <rect width="240" height={faceHeight} fill={oled ? '#020303' : spec.back} />
     {#if lit && pale && !oled}
       <!-- What the bulbs light: the face in their colour near them, dim further away (multiplied over face, print and needle alike) -->
-      <g class="multiply"><rect width="240" height="140" fill="#857a6c" />{#each bulbs as unusedBulb, bulbIndex}<rect width="240" height="140" fill="url(#{id}-pool-{bulbIndex})" class="screen lamp {lamp.start}" style="--full: {eachBulb}" />{/each}</g>
-      {#if lamp.start === 'warm' || lamp.start === 'quick'}<rect width="240" height="140" fill="#000" class="warm-up {lamp.start}" />{/if}
+      <g class="multiply"><rect width="240" height={faceHeight} fill="#857a6c" />{#each bulbs as unusedBulb, bulbIndex}<rect width="240" height={faceHeight} fill="url(#{id}-pool-{bulbIndex})" class="screen lamp {lamp.start}" style="--full: {eachBulb}" />{/each}</g>
+      {#if lamp.start === 'warm' || lamp.start === 'quick'}<rect width="240" height={faceHeight} fill="#000" class="warm-up {lamp.start}" />{/if}
     {/if}
     <g filter={oled ? `url(#${id}-oled)` : spec.glow ? `url(#${id}-glow)` : null}><g mask={oled ? `url(#${id}-pixel-mask)` : null} font-family={font}>
       {#if spec.arc === 'line' || spec.arc === 'band'}<path d={arcPath(0, zeroShare, 0)} stroke={spec.cold} stroke-width={spec.weight} fill="none" /><path d={arcPath(zeroShare, 1, 0)} stroke={spec.hot} stroke-width={spec.weight} fill="none" />{/if}
@@ -165,7 +173,7 @@
         {#if markDb !== -2 && markDb !== -1 && markDb !== 1}<text x={labelX} y={labelY} fill={colour} font-size={numberSize} text-anchor="middle" dominant-baseline="middle">{markDb > 0 ? '+' + markDb : Math.abs(markDb)}</text>{/if}
       {/each}
       {#if label}<text x="120" y={labelY} fill={spec.cold} font-size={spec.label === 'reference' ? textSize * 0.7 : textSize * 1.35} text-anchor="middle" letter-spacing="1.5" opacity="0.9">{label}</text>{/if}
-      {#if spec.brand}<text x={inner.left + 10} y={inner.bottom - 8} fill={spec.cold} font-size={textSize * 0.55} letter-spacing="2" opacity="0.6">{spec.brand}</text>{/if}
+      {#if spec.brand}<text x={spec.brandSide === 'right' ? inner.right - 10 : inner.left + 10} y={inner.bottom - 8} fill={spec.cold} font-size={textSize * 0.55 * (spec.brandSize || 1)} text-anchor={spec.brandSide === 'right' ? 'end' : 'start'} letter-spacing="2" opacity="0.6">{spec.brand}</text>{/if}
       {#if pale && !oled && spec.shadow > 0}{#each lit ? shadowBulbs : [[90, -200]] as bulb}{@const [shiftX, shiftY] = shadowOffset(bulb)}<path d={needleShape} fill="#1a1006" opacity={Math.min(0.75, spec.shadow * (lit ? (shadowBulbs.length > 2 ? 0.32 : 0.5) : 0.6))} filter="url(#{id}-soft)" transform="translate({120 + shiftX * (0.4 + spec.shadow * 1.6)} {pivotY + shiftY * (0.4 + spec.shadow * 1.6)}) rotate({needleAngle})" />{/each}{/if}
       <g transform="translate(120 {pivotY}) rotate({needleAngle})">
         <path d={needleShape} fill={finish ? finish.body : spec.needleColour} />
@@ -173,7 +181,7 @@
           <path d={needleShape} fill="url(#{id}-across)" /><path d={needleShape} fill="url(#{id}-along)" class="screen" />{/if}
       </g>
     </g></g>
-    {#if lit && (!pale || oled)}{#each bulbs as unusedBulb, bulbIndex}<rect width="240" height="140" fill="url(#{id}-glow-{bulbIndex})" class="screen lamp {lamp.start}" style="--full: {(oled ? 0.35 : 0.6) * eachBulb}" />{/each}{/if}
+    {#if lit && (!pale || oled)}{#each bulbs as unusedBulb, bulbIndex}<rect width="240" height={faceHeight} fill="url(#{id}-glow-{bulbIndex})" class="screen lamp {lamp.start}" style="--full: {(oled ? 0.35 : 0.6) * eachBulb}" />{/each}{/if}
     <!-- Base the needle rises from -->
     {#if spec.base === 'ring'}<circle cx="120" cy={pivotY} r={cover(14)} fill={oled ? '#020303' : spec.back} stroke={spec.cold} stroke-width="1" />
     {:else if spec.base === 'filled'}<circle cx="120" cy={pivotY} r={cover(14)} fill={spec.cold} />
@@ -183,39 +191,45 @@
       {#each Array.from({ length: 31 }, (unused, index) => -coverSpan(17) + index * 2 * coverSpan(17) / 30) as angle}<line x1={120 + cover(12.6) * Math.sin(angle)} y1={pivotY - out * cover(12.6) * Math.cos(angle)} x2={120 + cover(17) * Math.sin(angle)} y2={pivotY - out * cover(17) * Math.cos(angle)} stroke="#3c3f44" stroke-width="0.7" />{/each}
       <circle cx="120" cy={pivotY} r={cover(12.6)} fill="url(#{id}-dome)" /><circle cx="120" cy={pivotY} r={cover(12.6)} fill="url(#{id}-chrome-band)" stroke="#55585d" stroke-width="0.4" /><circle cx="120" cy={screwY} r="2" fill="#2a2c30" />
     {:else if spec.base === 'brass'}<circle cx="120" cy={pivotY} r={cover(18)} fill="url(#{id}-brass)" stroke="#3a2808" stroke-width="0.5" /><circle cx="120" cy={screwY} r="3.6" fill="url(#{id}-brass)" stroke="#3a2808" stroke-width="0.4" /><line x1="117.2" y1={screwY} x2="122.8" y2={screwY} stroke="#3a2808" stroke-width="0.8" stroke-linecap="round" transform="rotate(18 120 {screwY})" />{/if}
-    <!-- Depth: the casing's lip shades the face's edge (deepest along the top), and light through the edge where the bulbs are -->
-    {#if depth >= 9}<path d={innerPath} fill="none" stroke="#000" stroke-width="7" opacity="0.55" filter="url(#{id}-lip)" transform="translate(0 1.6)" />{/if}
+    {#if peakColour}
+      <circle cx={peakX} cy={peakY + 0.8} r="5.6" fill="#000" opacity="0.35" filter="url(#{id}-soft)" /><circle cx={peakX} cy={peakY} r="5.2" fill="url(#{id}-chrome)" stroke="#111" stroke-width="0.4" />
+      <circle cx={peakX} cy={peakY} r="3.7" fill={peakColour[1]} /><circle cx={peakX} cy={peakY} r="3.7" fill="url(#{id}-peak)" style:opacity={Math.pow(peak, 2)} />
+      <circle cx={peakX} cy={peakY} r="22" fill="url(#{id}-peak-glow)" class="screen" style:opacity={Math.pow(peak, 2)} /><circle cx={peakX - 1.2} cy={peakY - 1.3} r="0.9" fill="#fff" opacity="0.55" />
+    {/if}
+    <!-- Depth: the face sits back inside its casing, so the edge shades it (deepest along the top), and light through the edge where the bulbs are -->
+    {#if spec.inset > 0}<path d={innerPath} fill="none" stroke="#000" stroke-width={3 + spec.inset * 5} opacity={Math.min(0.9, 0.25 + spec.inset * 0.6)} filter="url(#{id}-lip)" transform="translate(0 {0.5 + spec.inset * 4})" />
+      <path d={innerPath} fill="none" stroke="#fff" stroke-width="1" opacity={spec.inset * 0.25} transform="translate(0 -0.6)" />{/if}
     {#if lit && depth >= 9 && spec.casing !== 'wood'}{#each bulbs as unusedBulb, bulbIndex}<path d={innerPath} fill="none" stroke="url(#{id}-glow-{bulbIndex})" stroke-width="3" opacity={0.9 * eachBulb} />{/each}{/if}
-    {#if spec.glass !== 'none'}<rect width="240" height="140" fill="url(#{id}-sheen)" />{/if}
+    {#if spec.glass !== 'none'}<rect width="240" height={faceHeight} fill="url(#{id}-sheen)" />{/if}
   </g>
 
   <!-- Casing -->
-  {#if spec.casing === 'line'}<path d={roundedRect(1.5, 1.5, 237, 137, outerCorner - 1.5)} fill="none" stroke={spec.cold} stroke-width="1.4" />
+  {#if spec.casing === 'line'}<path d={roundedRect(1.5, 1.5, 237, faceHeight - 3, outerCorner - 1.5)} fill="none" stroke={spec.cold} stroke-width="1.4" />
   {:else if spec.casing === 'bezel'}
     <path d={ring} fill="url(#{id}-bezel)" fill-rule="evenodd" />
-    <path d={roundedRect(0.5, 0.5, 239, 139, outerCorner - 0.5)} fill="none" stroke="#5a5d63" stroke-width="0.6" opacity="0.7" />
+    <path d={roundedRect(0.5, 0.5, 239, faceHeight - 1, outerCorner - 0.5)} fill="none" stroke="#5a5d63" stroke-width="0.6" opacity="0.7" />
     <path d={innerPath} fill="none" stroke="#000" stroke-width="1.2" />
   {:else if spec.casing === 'metal'}
     <path d={ring} fill="url(#{id}-metal)" fill-rule="evenodd" /><path d={ring} fill="#fff" fill-rule="evenodd" filter="url(#{id}-brushed)" opacity="0.55" />
     <!-- Chamfered inner edge: the top wall in shadow, the bottom catching the light -->
     <path d={innerPath} fill="none" stroke="#5c5f64" stroke-width="2.4" transform="translate(0 -0.6)" opacity="0.8" /><path d={innerPath} fill="none" stroke="#fbfbfc" stroke-width="1" transform="translate(0 1)" opacity="0.7" />
-    <path d={roundedRect(0.4, 0.4, 239.2, 139.2, outerCorner - 0.4)} fill="none" stroke="#fff" stroke-width="0.6" opacity="0.7" />
+    <path d={roundedRect(0.4, 0.4, 239.2, faceHeight - 0.8, outerCorner - 0.4)} fill="none" stroke="#fff" stroke-width="0.6" opacity="0.7" />
   {:else if spec.casing === 'wood'}
     <!-- Four mitred rails, grain running along each -->
     <clipPath id="{id}-ring"><path d={ring} clip-rule="evenodd" /></clipPath>
     <g clip-path="url(#{id}-ring)">
-      <polygon points="0,0 240,0 {240 - depth},{depth} {depth},{depth}" fill="#fff" filter="url(#{id}-grain-across)" /><polygon points="0,140 240,140 {240 - depth},{140 - depth} {depth},{140 - depth}" fill="#fff" filter="url(#{id}-grain-across)" />
-      <polygon points="0,0 {depth},{depth} {depth},{140 - depth} 0,140" fill="#fff" filter="url(#{id}-grain-down)" /><polygon points="240,0 {240 - depth},{depth} {240 - depth},{140 - depth} 240,140" fill="#fff" filter="url(#{id}-grain-down)" />
+      <polygon points="0,0 240,0 {240 - depth},{depth} {depth},{depth}" fill="#fff" filter="url(#{id}-grain-across)" /><polygon points="0,{faceHeight} 240,{faceHeight} {240 - depth},{faceHeight - depth} {depth},{faceHeight - depth}" fill="#fff" filter="url(#{id}-grain-across)" />
+      <polygon points="0,0 {depth},{depth} {depth},{faceHeight - depth} 0,{faceHeight}" fill="#fff" filter="url(#{id}-grain-down)" /><polygon points="240,0 {240 - depth},{depth} {240 - depth},{faceHeight - depth} 240,{faceHeight}" fill="#fff" filter="url(#{id}-grain-down)" />
       <!-- Light from above: top rail bright, bottom in shade, mitre joints as fine dark lines -->
-      <polygon points="0,0 240,0 {240 - depth},{depth} {depth},{depth}" fill="#fff" opacity="0.1" /><polygon points="0,140 240,140 {240 - depth},{140 - depth} {depth},{140 - depth}" fill="#000" opacity="0.28" />
-      <polygon points="0,0 {depth},{depth} {depth},{140 - depth} 0,140" fill="#000" opacity="0.08" /><polygon points="240,0 {240 - depth},{depth} {240 - depth},{140 - depth} 240,140" fill="#000" opacity="0.16" />
-      {#each [[0, 0, depth, depth], [240, 0, 240 - depth, depth], [0, 140, depth, 140 - depth], [240, 140, 240 - depth, 140 - depth]] as [fromX, fromY, toX, toY]}<line x1={fromX} y1={fromY} x2={toX} y2={toY} stroke="#1c0e05" stroke-width="0.5" opacity="0.7" />{/each}
+      <polygon points="0,0 240,0 {240 - depth},{depth} {depth},{depth}" fill="#fff" opacity="0.1" /><polygon points="0,{faceHeight} 240,{faceHeight} {240 - depth},{faceHeight - depth} {depth},{faceHeight - depth}" fill="#000" opacity="0.28" />
+      <polygon points="0,0 {depth},{depth} {depth},{faceHeight - depth} 0,{faceHeight}" fill="#000" opacity="0.08" /><polygon points="240,0 {240 - depth},{depth} {240 - depth},{faceHeight - depth} 240,{faceHeight}" fill="#000" opacity="0.16" />
+      {#each [[0, 0, depth, depth], [240, 0, 240 - depth, depth], [0, faceHeight, depth, faceHeight - depth], [240, faceHeight, 240 - depth, faceHeight - depth]] as [fromX, fromY, toX, toY]}<line x1={fromX} y1={fromY} x2={toX} y2={toY} stroke="#1c0e05" stroke-width="0.5" opacity="0.7" />{/each}
     </g>
-    <path d={innerPath} fill="none" stroke="#120802" stroke-width="1.4" /><path d={roundedRect(0.4, 0.4, 239.2, 139.2, outerCorner - 0.4)} fill="none" stroke="#c99a68" stroke-width="0.6" opacity="0.5" />
+    <path d={innerPath} fill="none" stroke="#120802" stroke-width="1.4" /><path d={roundedRect(0.4, 0.4, 239.2, faceHeight - 0.8, outerCorner - 0.4)} fill="none" stroke="#c99a68" stroke-width="0.6" opacity="0.5" />
   {:else if spec.casing === 'acrylic'}
     <!-- A thick clear frame: dark through its depth, bright where light bends through the edges -->
     <path d={ring} fill="#0d0f12" fill-opacity="0.82" fill-rule="evenodd" /><path d={ring} fill="url(#{id}-acrylic)" fill-rule="evenodd" />
-    <path d={roundedRect(0.7, 0.7, 238.6, 138.6, outerCorner - 0.7)} fill="none" stroke="#fff" stroke-width="1.1" opacity="0.45" />
+    <path d={roundedRect(0.7, 0.7, 238.6, faceHeight - 1.4, outerCorner - 0.7)} fill="none" stroke="#fff" stroke-width="1.1" opacity="0.45" />
     <path d={innerPath} fill="none" stroke="#fff" stroke-width="1.3" opacity="0.5" /><path d={innerPath} fill="none" stroke="#000" stroke-width="0.6" opacity="0.8" transform="translate(0 -0.8)" />
     {#if lit}{#each bulbs as unusedBulb, bulbIndex}<path d={ring} fill="url(#{id}-glow-{bulbIndex})" fill-rule="evenodd" class="screen" opacity={eachBulb} />{/each}{/if}
   {/if}

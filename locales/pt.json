@@ -1293,5 +1293,14 @@
   "Red": "Vermelho",
   "Red alert": "Alerta vermelho",
   "Lab meter": "Medidor de laboratório",
-  "Teal 60s": "Azul-petróleo anos 60"
+  "Teal 60s": "Azul-petróleo anos 60",
+  "Name size": "Tamanho do nome",
+  "Name position": "Posição do nome",
+  "Proportions": "Proporções",
+  "Standard": "Normal",
+  "Taller": "Mais alto",
+  "Wider": "Mais largo",
+  "Clip light": "Luz de saturação",
+  "Inset depth": "Profundidade",
+  "Deep": "Fundo"
 }

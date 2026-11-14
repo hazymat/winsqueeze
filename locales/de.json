@@ -1293,5 +1293,14 @@
   "Red": "Rot",
   "Red alert": "Alarmrot",
   "Lab meter": "Messinstrument",
-  "Teal 60s": "Petrol 60er"
+  "Teal 60s": "Petrol 60er",
+  "Name size": "Namensgröße",
+  "Name position": "Namensposition",
+  "Proportions": "Proportionen",
+  "Standard": "Standard",
+  "Taller": "Höher",
+  "Wider": "Breiter",
+  "Clip light": "Übersteuerungslampe",
+  "Inset depth": "Einbautiefe",
+  "Deep": "Tief"
 }

@@ -1293,5 +1293,14 @@
   "Red": "Punainen",
   "Red alert": "Punainen hälytys",
   "Lab meter": "Laboratoriomittari",
-  "Teal 60s": "Petrooli 60-luku"
+  "Teal 60s": "Petrooli 60-luku",
+  "Name size": "Nimen koko",
+  "Name position": "Nimen sijainti",
+  "Proportions": "Mittasuhteet",
+  "Standard": "Tavallinen",
+  "Taller": "Korkeampi",
+  "Wider": "Leveämpi",
+  "Clip light": "Leikkausvalo",
+  "Inset depth": "Upotussyvyys",
+  "Deep": "Syvä"
 }

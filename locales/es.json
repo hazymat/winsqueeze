@@ -1293,5 +1293,14 @@
   "Red": "Rojo",
   "Red alert": "Alerta roja",
   "Lab meter": "Medidor de laboratorio",
-  "Teal 60s": "Turquesa años 60"
+  "Teal 60s": "Turquesa años 60",
+  "Name size": "Tamaño del nombre",
+  "Name position": "Posición del nombre",
+  "Proportions": "Proporciones",
+  "Standard": "Estándar",
+  "Taller": "Más alto",
+  "Wider": "Más ancho",
+  "Clip light": "Piloto de saturación",
+  "Inset depth": "Profundidad",
+  "Deep": "Profundo"
 }
