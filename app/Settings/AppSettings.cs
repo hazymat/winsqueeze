@@ -44,17 +44,63 @@ public class MeterSettings
     public double VuIntegrationMs { get; set; } = 300; // needle ballistics
     public double SpectrumFallMs { get; set; } = 250;
     public List<InfoChoice> Styles { get; set; } = new(); // the styles a click on the meters cycles through, in order (one ticked: a click taps the meter)
-    public static readonly string[] StyleKeys = { "vu", "deck", "orange", "monitor", "blue", "green", "oledvu", "oled" };
+    public List<CustomMeter> Custom { get; set; } = new(); // meters made in the VU Builder; each is a style ("custom-<id>")
+    public static readonly string[] StyleKeys = { "vu", "deck", "orange", "monitor", "blue", "green", "oledvu", "oled", "night" }; // night: the built-in Dark room VU, drawn from CustomMeter.DarkRoom
+    public IEnumerable<string> AllStyleKeys => StyleKeys.Concat(Custom.Select(meter => meter.StyleKey));
+    // How each drawn-from-a-design style looks: the built-in Dark room plus the user's own
+    public Dictionary<string, CustomMeter> Designs() { var designs = new Dictionary<string, CustomMeter> { ["night"] = CustomMeter.DarkRoom() }; foreach (var meter in Custom) designs[meter.StyleKey] = meter; return designs; }
     public static readonly string[] DefaultStyles = { "vu", "green", "oled" };
     // Fills in anything missing (first run, or a style added in a later version); at least one stays ticked
     public void Normalise()
     {
-        Styles = Styles.Where(style => StyleKeys.Contains(style.Key)).GroupBy(style => style.Key).Select(group => group.First()).ToList();
+        var allKeys = AllStyleKeys.ToList();
+        Styles = Styles.Where(style => allKeys.Contains(style.Key)).GroupBy(style => style.Key).Select(group => group.First()).ToList();
         var firstRun = Styles.Count == 0;
-        foreach (var styleKey in StyleKeys) if (Styles.All(style => style.Key != styleKey)) Styles.Add(new InfoChoice { Key = styleKey, On = firstRun ? DefaultStyles.Contains(styleKey) : false });
+        foreach (var styleKey in allKeys) if (Styles.All(style => style.Key != styleKey)) Styles.Add(new InfoChoice { Key = styleKey, On = firstRun ? DefaultStyles.Contains(styleKey) : false });
         if (firstRun) Styles = DefaultStyles.Select(styleKey => Styles.First(style => style.Key == styleKey)).Concat(Styles.Where(style => !DefaultStyles.Contains(style.Key))).ToList();
         if (Styles.All(style => !style.On)) Styles[0].On = true;
     }
+}
+
+// A VU meter designed in the VU Builder (SPEC.md › VU Builder): the app draws it from these values. New fields need a default here and in ui/src/parts/CustomVu.svelte
+public class CustomMeter
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString("N")[..8];
+    public string Name { get; set; } = "";
+    public string Font { get; set; } = "modern"; // modern, engraved, deco, thirties, hifi, typewriter, condensed, terminal
+    public double FontSize { get; set; } = 1; // 0.6-1.6
+    public string Label { get; set; } = "vu"; // vu, channel, reference, none
+    public string Brand { get; set; } = ""; // small text top left
+    public double Roundness { get; set; } = 0.15; // 0 flat .. 1 round
+    public string Arc { get; set; } = "band"; // line, band (red band over 0), ticks (no arc line)
+    public double Weight { get; set; } = 1.4; // line weight
+    public string Cold { get; set; } = "#3fa57a"; // scale below 0
+    public string Hot { get; set; } = "#b5402f"; // scale above 0
+    public string NeedleColour { get; set; } = "#ecd9a8";
+    public string NeedleShape { get; set; } = "blade"; // blade, line, bar
+    public string NeedleFrom { get; set; } = "bottom"; // bottom, top
+    public string Base { get; set; } = "ring"; // none, ring, filled, dome
+    public string Back { get; set; } = "#000000";
+    public string Lamp { get; set; } = "none"; // none, tungsten, warm, cool, amber, green, blue
+    public string LampFrom { get; set; } = "below"; // below, above, left, right
+    public string Display { get; set; } = "analogue"; // analogue, dots
+    public double DotSize { get; set; } = 3; // dot pitch in face units (face is 240 x 140)
+    public bool Glow { get; set; }
+    public string Glass { get; set; } = "none"; // none, clear, smoked
+    public string Casing { get; set; } = "line"; // none, line, bezel, wood, metal
+    [JsonIgnore] public string StyleKey => "custom-" + Id;
+    public CustomMeter Copy() { var copy = (CustomMeter)MemberwiseClone(); return copy; }
+    // Starting points in the builder; the first is also the built-in Dark room VU style
+    public static CustomMeter DarkRoom() => new() { Id = "darkroom", Name = L.T("Dark room VU") };
+    public static List<CustomMeter> Presets() => new()
+    {
+        DarkRoom(),
+        new() { Id = "tungsten", Name = L.T("Tungsten"), Font = "engraved", Roundness = 0.55, Weight = 0.9, Cold = "#1d1a14", Hot = "#b52a1c", NeedleColour = "#111111", Back = "#efe2c4", Lamp = "tungsten", Base = "dome", Casing = "bezel", Glass = "clear", Brand = "WINSQUEEZE" },
+        new() { Id = "hanging", Name = L.T("Hanging needle"), Font = "deco", Roundness = 0.35, Arc = "line", Weight = 0.8, Cold = "#e9dcc0", Hot = "#ff6a3a", NeedleColour = "#ff6a3a", NeedleShape = "line", NeedleFrom = "top", Back = "#0b1626", Lamp = "amber", LampFrom = "above", Base = "filled", Casing = "metal", Glass = "clear", Label = "channel" },
+        new() { Id = "dots", Name = L.T("Dot display"), Font = "terminal", FontSize = 1.25, Roundness = 0.3, Arc = "line", Weight = 2.2, Cold = "#46e6ff", Hot = "#ff4d6d", NeedleColour = "#d8f8ff", NeedleShape = "bar", Display = "dots", DotSize = 2.6, Glow = true, Base = "none", Casing = "none" },
+        new() { Id = "studio", Name = L.T("Studio 1974"), Font = "hifi", FontSize = 0.8, Roundness = 0.7, Arc = "line", Weight = 0.8, Cold = "#1a1a1a", Hot = "#c0281d", NeedleColour = "#1a1a1a", Back = "#f6f0e2", Lamp = "warm", LampFrom = "left", Base = "dome", Casing = "wood", Glass = "smoked", Label = "reference" },
+        new() { Id = "greenglow", Name = L.T("Green glow"), Font = "thirties", FontSize = 1.1, Roundness = 0.5, Arc = "ticks", Weight = 1.2, Cold = "#7dffb0", Hot = "#ffd54a", NeedleColour = "#e6fff0", Back = "#16181a", Lamp = "green", Glow = true, Casing = "bezel", Glass = "clear" },
+    };
 }
 
 // Graphic equaliser and its window (SPEC.md › Equaliser)

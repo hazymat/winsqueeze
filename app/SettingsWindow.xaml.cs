@@ -734,11 +734,12 @@ public partial class SettingsWindow : Window
     }
 
     // Meter styles a click cycles through: tick and reorder like the Now playing views; at least one stays ticked
-    static readonly Dictionary<string, string> meterStyleNames = new() { ["vu"] = L.T("Beige VU"), ["deck"] = L.T("Tape deck"), ["orange"] = L.T("Round amber meters"), ["monitor"] = L.T("Power monitor"), ["blue"] = L.T("Blue power amp"), ["green"] = L.T("Green fluorescent"), ["oledvu"] = "OLED VU", ["oled"] = L.T("Spectrum analyser") };
+    static readonly Dictionary<string, string> meterStyleNames = new() { ["vu"] = L.T("Beige VU"), ["deck"] = L.T("Tape deck"), ["orange"] = L.T("Round amber meters"), ["monitor"] = L.T("Power monitor"), ["blue"] = L.T("Blue power amp"), ["green"] = L.T("Green fluorescent"), ["oledvu"] = "OLED VU", ["oled"] = L.T("Spectrum analyser"), ["night"] = L.T("Dark room VU") };
+    string MeterStyleName(string styleKey) => meterStyleNames.TryGetValue(styleKey, out var name) ? name : Settings.Meters.Custom.FirstOrDefault(meter => meter.StyleKey == styleKey)?.Name ?? styleKey;
     void DrawMeterStyles()
     {
         meterStylesList.Children.Clear();
-        foreach (var style in Settings.Meters.Styles) meterStylesList.Children.Add(InfoRow(Settings.Meters.Styles, style, meterStyleNames[style.Key], "", null, DrawMeterStyles, arrows: true, save: SaveMeterStyles));
+        foreach (var style in Settings.Meters.Styles) meterStylesList.Children.Add(InfoRow(Settings.Meters.Styles, style, MeterStyleName(style.Key), style.Key.StartsWith("custom-") ? L.T("made in VU Builder") : "", null, DrawMeterStyles, arrows: true, save: SaveMeterStyles));
     }
     void SaveMeterStyles() { var noneTicked = Settings.Meters.Styles.All(style => !style.On); Settings.Meters.Normalise(); Settings.Save(); App.ApplyMeters(); if (noneTicked) DrawMeterStyles(); }
 
@@ -776,7 +777,8 @@ public partial class SettingsWindow : Window
             AddRow(L.T("Spectrum fall"), L.T("How fast the spectrum columns fall back."), 50, 1000, 10, meters => meters.SpectrumFallMs, (meters, value) => meters.SpectrumFallMs = value, "ms");
         }
         Build(); DrawMeterStyles();
-        metersResetButton.Click += (sender, args) => { Settings.Meters = new MeterSettings(); Settings.Meters.Normalise(); Settings.Save(); App.ApplyMeters(); Build(); DrawMeterStyles(); };
+        vuBuilderButton.Click += (sender, args) => { var builder = App.OpenVuBuilder(this); builder.Saved -= DrawMeterStyles; builder.Saved += DrawMeterStyles; };
+        metersResetButton.Click += (sender, args) => { var ownMeters = Settings.Meters.Custom; Settings.Meters = new MeterSettings { Custom = ownMeters }; Settings.Meters.Normalise(); Settings.Save(); App.ApplyMeters(); Build(); DrawMeterStyles(); };
     }
 
     // A mid, fairly saturated colour for a hue, for the tint swatch

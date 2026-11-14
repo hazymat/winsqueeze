@@ -231,6 +231,7 @@ public partial class MainWindow : Window
                 case "theme": darkTheme = message.TryGetProperty("dark", out var darkValue) && darkValue.GetBoolean(); ApplyWindowStyle(); break;
                 case "setTopmost": Topmost = message.GetProperty("on").GetBoolean(); break;
                 case "windowMode": SetWindowMode(Text(message, "mode")); break;
+                case "fullScreen": SetFullScreen(message.TryGetProperty("on", out var fullScreenOn) && fullScreenOn.GetBoolean()); break;
                 case "hifiWindow": SetHifiWindow(message.TryGetProperty("on", out var hifiOn) && hifiOn.GetBoolean(), Text(message, "shape") == "transporter"); break;
                 case "wideSpectrum": App.Visualiser.WideWanted = message.TryGetProperty("on", out var wideOn) && wideOn.GetBoolean(); break;
                 case "refreshLibrary": await App.Library.RefreshAsync(message.TryGetProperty("rebuild", out var rebuild) && rebuild.GetBoolean()); break;
@@ -247,7 +248,7 @@ public partial class MainWindow : Window
     public string DescribeForRestart()
     {
         var shownState = !IsVisible ? "hidden" : WindowState == WindowState.Maximized ? "maximised" : WindowState == WindowState.Minimized ? "minimised" : "normal";
-        var bounds = boundsBeforeHifi ?? (WindowState == WindowState.Normal ? new Rect(Left, Top, Width, Height) : RestoreBounds);
+        var bounds = fullScreen ? boundsBeforeFullScreen : boundsBeforeHifi ?? (WindowState == WindowState.Normal ? new Rect(Left, Top, Width, Height) : RestoreBounds);
         return string.Join(",", new object[] { shownState, bounds.Left, bounds.Top, bounds.Width, bounds.Height }.Select(part => Convert.ToString(part, System.Globalization.CultureInfo.InvariantCulture)));
     }
 
@@ -268,6 +269,31 @@ public partial class MainWindow : Window
     // Hi-fi and Transporter modes: the window becomes the unit (hi-fi about 3.9:1, Transporter about 7.1:1, centred on the normal window); its normal size and state come back after.
     // Going from one unit to the other reshapes from the same normal window
     Rect? boundsBeforeHifi; bool maximisedBeforeHifi;
+    // Full screen (the full-window meters' F11): the whole screen the window is on, over the taskbar, no frame; the window comes back exactly as it was
+    bool fullScreen, maximisedBeforeFullScreen; Rect boundsBeforeFullScreen; WindowStyle styleBeforeFullScreen; ResizeMode resizeBeforeFullScreen;
+    void SetFullScreen(bool on)
+    {
+        if (on == fullScreen) return;
+        fullScreen = on;
+        if (on)
+        {
+            maximisedBeforeFullScreen = WindowState == WindowState.Maximized; boundsBeforeFullScreen = WindowState == WindowState.Normal ? new Rect(Left, Top, Width, Height) : RestoreBounds;
+            styleBeforeFullScreen = WindowStyle; resizeBeforeFullScreen = ResizeMode;
+            var screen = System.Windows.Forms.Screen.FromHandle(new WindowInteropHelper(this).Handle).Bounds;
+            var scale = PresentationSource.FromVisual(this)?.CompositionTarget?.TransformToDevice.M11 ?? 1;
+            WindowState = WindowState.Normal; WindowStyle = WindowStyle.None; ResizeMode = ResizeMode.NoResize; Topmost = true;
+            Left = screen.Left / scale; Top = screen.Top / scale; Width = screen.Width / scale; Height = screen.Height / scale;
+        }
+        else
+        {
+            Topmost = false; WindowStyle = styleBeforeFullScreen; ResizeMode = resizeBeforeFullScreen;
+            Left = boundsBeforeFullScreen.Left; Top = boundsBeforeFullScreen.Top; Width = boundsBeforeFullScreen.Width; Height = boundsBeforeFullScreen.Height;
+            if (maximisedBeforeFullScreen) WindowState = WindowState.Maximized;
+            ApplyWindowStyle();
+        }
+        PushWindowState();
+    }
+
     void SetHifiWindow(bool on, bool transporter)
     {
         if (on)
@@ -404,9 +430,9 @@ public partial class MainWindow : Window
     static string DisplayKey => string.Join("|", System.Windows.Forms.Screen.AllScreens.Select(screen => $"{screen.Bounds.X},{screen.Bounds.Y},{screen.Bounds.Width}x{screen.Bounds.Height}").OrderBy(text => text));
     public void SaveBounds()
     {
-        var bounds = boundsBeforeHifi ?? (WindowState == WindowState.Normal ? new Rect(Left, Top, Width, Height) : RestoreBounds); // hi-fi mode remembers the normal window
+        var bounds = fullScreen ? boundsBeforeFullScreen : boundsBeforeHifi ?? (WindowState == WindowState.Normal ? new Rect(Left, Top, Width, Height) : RestoreBounds); // hi-fi mode remembers the normal window
         if (bounds.IsEmpty || double.IsNaN(bounds.Width) || double.IsInfinity(bounds.Width) || bounds.Width < 200) return;
-        App.Settings.General.WindowBounds[DisplayKey] = new[] { bounds.Left, bounds.Top, bounds.Width, bounds.Height, (boundsBeforeHifi != null ? maximisedBeforeHifi : WindowState == WindowState.Maximized) ? 1 : 0 };
+        App.Settings.General.WindowBounds[DisplayKey] = new[] { bounds.Left, bounds.Top, bounds.Width, bounds.Height, (fullScreen ? maximisedBeforeFullScreen : boundsBeforeHifi != null ? maximisedBeforeHifi : WindowState == WindowState.Maximized) ? 1 : 0 };
     }
 
     public void RestoreBoundsForDisplays()
@@ -443,8 +469,9 @@ public partial class MainWindow : Window
         if (App.Settings.ActiveProfile is { } profile) library["AlbumSource"] = LibraryQueries.EffectiveSource(profile, App.Settings.Library) == "t" ? "tags" : "folders"; // the page browses what the index really has
         Push(JsonSerializer.Serialize(new { type = "settings", library, playback = new { App.Settings.Playback.QueueEnd, App.Settings.Playback.ContinueAdds, App.Settings.Playback.ContinueFrom }, hints = new { hidden = App.Settings.General.HideHints, dismissed = App.Settings.General.DismissedHints }, trackInfo = App.Settings.TrackInfo.Tabs.Where(tab => tab.On).Select(tab => tab.Key) }));
     }
-    public void PushMeterSettings() => Push(JsonSerializer.Serialize(new { type = "meterSettings", referenceDbfs = App.Settings.Meters.ReferenceDbfs, autoReference = App.Settings.Meters.AutoReference, styles = App.Settings.Meters.Styles.Where(style => style.On).Select(style => style.Key) }));
-    void PushWindowState() => Push(JsonSerializer.Serialize(new { type = "window", glass = glassActive, frameless = App.Settings.General.Frameless, maximised = WindowState == WindowState.Maximized }));
+    public void PushMeterSettings() => Push(JsonSerializer.Serialize(new { type = "meterSettings", referenceDbfs = App.Settings.Meters.ReferenceDbfs, autoReference = App.Settings.Meters.AutoReference, styles = App.Settings.Meters.Styles.Where(style => style.On).Select(style => style.Key), designs = App.Settings.Meters.Designs() }, camelCase));
+    public static readonly JsonSerializerOptions camelCase = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, DictionaryKeyPolicy = null };
+    void PushWindowState() => Push(JsonSerializer.Serialize(new { type = "window", glass = glassActive, frameless = App.Settings.General.Frameless, maximised = WindowState == WindowState.Maximized, fullScreen }));
 
     void OnPreviousThumb(object sender, EventArgs args) => _ = App.Session.RequestAsync(true, "playlist", "index", "-1");
     void OnPlayPauseThumb(object sender, EventArgs args) => _ = App.Session.RequestAsync(true, "pause");

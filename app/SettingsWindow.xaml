@@ -477,6 +477,7 @@
               <TextBlock Text="Click the meters to cycle" Style="{StaticResource CardTitle}" />
               <TextBlock Style="{StaticResource Quiet}" Margin="0,2,0,8" TextWrapping="Wrap" Text="Tick the styles a click moves through, in this order. With just one ticked, a click taps the meter instead." />
               <Border BorderBrush="#E3E5E8" BorderThickness="1" CornerRadius="6" ClipToBounds="True"><StackPanel x:Name="meterStylesList" /></Border>
+              <Button x:Name="vuBuilderButton" Content="VU Builder…" HorizontalAlignment="Left" Margin="0,10,0,0" ToolTip="Design your own VU meter" />
             </StackPanel>
           </Border>
           <Border Style="{StaticResource Card}">
