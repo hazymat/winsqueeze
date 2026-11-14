@@ -736,7 +736,7 @@ public partial class SettingsWindow : Window
     }
 
     // Meter styles a click cycles through: tick and reorder like the Now playing views; at least one stays ticked
-    static readonly Dictionary<string, string> meterStyleNames = new() { ["vu"] = L.T("Beige VU"), ["deck"] = L.T("Tape deck"), ["orange"] = L.T("Round amber meters"), ["monitor"] = L.T("Power monitor"), ["blue"] = L.T("Blue power amp"), ["green"] = L.T("Green fluorescent"), ["oledvu"] = "OLED VU", ["oled"] = L.T("Spectrum analyser"), ["night"] = L.T("Dark room VU") };
+    static readonly Dictionary<string, string> meterStyleNames = new() { ["vu"] = L.T("Beige VU"), ["deck"] = L.T("Tape deck"), ["orange"] = L.T("Round amber meters"), ["monitor"] = L.T("Power monitor"), ["blue"] = L.T("Blue power amp"), ["green"] = L.T("Green fluorescent"), ["oledvu"] = "OLED VU", ["oled"] = L.T("Spectrum analyser") };
     string MeterStyleName(string styleKey) => meterStyleNames.TryGetValue(styleKey, out var name) ? name : Settings.Meters.Custom.FirstOrDefault(meter => meter.StyleKey == styleKey)?.Name ?? styleKey;
     void DrawMeterStyles()
     {

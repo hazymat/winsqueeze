@@ -191,7 +191,7 @@
       {/snippet}
       <span class="meter-stack">{@render oledLayer('face')}{@render oledLayer('needles')}</span>
     {/each}
-  {:else if app.meterSettings.designs[ui.meterStyle] || ui.meterStyle === 'night'}
+  {:else if app.meterSettings.designs[ui.meterStyle]}
     <!-- Drawn from a VU Builder design (the built-in Dark room VU is one) -->
     {#each ['L', 'R'] as channel, channelIndex}<span class="designed"><CustomVu design={app.meterSettings.designs[ui.meterStyle] ?? darkRoom} {channel} decibels={meters.vu[channelIndex] ?? -90} reference={meters.reference} /></span>{/each}
   {:else}
