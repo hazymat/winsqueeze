@@ -1185,7 +1185,6 @@
   "Check again": "Tjek igen",
   "Dark room VU": "VU til mørkt rum",
   "Tungsten": "Glødepære",
-  "Hanging needle": "Hængende nål",
   "Studio 1974": "Studie 1974",
   "Green glow": "Grønt skær",
   "made in VU Builder": "lavet i VU-byggeren",
@@ -1291,5 +1290,8 @@
   "Neon": "Neon",
   "Colour filter": "Farvefilter",
   "Natural": "Naturlig",
-  "Red": "Rød"
+  "Red": "Rød",
+  "Red alert": "Rød alarm",
+  "Lab meter": "Laboratoriemåler",
+  "Teal 60s": "Petrol 60erne"
 }

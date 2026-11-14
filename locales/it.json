@@ -1185,7 +1185,6 @@
   "Check again": "Controlla di nuovo",
   "Dark room VU": "VU per stanza buia",
   "Tungsten": "Lampadina",
-  "Hanging needle": "Lancetta sospesa",
   "Studio 1974": "Studio 1974",
   "Green glow": "Bagliore verde",
   "made in VU Builder": "creato nel costruttore VU",
@@ -1291,5 +1290,8 @@
   "Neon": "Neon",
   "Colour filter": "Filtro colorato",
   "Natural": "Naturale",
-  "Red": "Rosso"
+  "Red": "Rosso",
+  "Red alert": "Allarme rosso",
+  "Lab meter": "Strumento da laboratorio",
+  "Teal 60s": "Ottanio anni 60"
 }

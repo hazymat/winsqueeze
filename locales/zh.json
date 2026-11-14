@@ -1185,7 +1185,6 @@
   "Check again": "再次检查",
   "Dark room VU": "暗室 VU",
   "Tungsten": "白炽灯",
-  "Hanging needle": "悬挂指针",
   "Studio 1974": "1974 录音室",
   "Green glow": "绿色辉光",
   "made in VU Builder": "在 VU 制作器中创建",
@@ -1291,5 +1290,8 @@
   "Neon": "霓虹灯",
   "Colour filter": "滤色片",
   "Natural": "自然",
-  "Red": "红色"
+  "Red": "红色",
+  "Red alert": "红色警报",
+  "Lab meter": "实验室仪表",
+  "Teal 60s": "60 年代青绿"
 }

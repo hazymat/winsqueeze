@@ -1185,7 +1185,6 @@
   "Check again": "再確認",
   "Dark room VU": "暗い部屋用VU",
   "Tungsten": "白熱電球",
-  "Hanging needle": "吊り下げ針",
   "Studio 1974": "スタジオ1974",
   "Green glow": "グリーングロー",
   "made in VU Builder": "VUビルダーで作成",
@@ -1291,5 +1290,8 @@
   "Neon": "ネオン",
   "Colour filter": "カラーフィルター",
   "Natural": "自然光",
-  "Red": "赤"
+  "Red": "赤",
+  "Red alert": "レッドアラート",
+  "Lab meter": "計測器",
+  "Teal 60s": "60年代ティール"
 }

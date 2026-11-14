@@ -1185,7 +1185,6 @@
   "Check again": "Opnieuw controleren",
   "Dark room VU": "VU voor een donkere kamer",
   "Tungsten": "Gloeilamp",
-  "Hanging needle": "Hangende naald",
   "Studio 1974": "Studio 1974",
   "Green glow": "Groene gloed",
   "made in VU Builder": "gemaakt in VU-bouwer",
@@ -1291,5 +1290,8 @@
   "Neon": "Neon",
   "Colour filter": "Kleurfilter",
   "Natural": "Natuurlijk",
-  "Red": "Rood"
+  "Red": "Rood",
+  "Red alert": "Rood alarm",
+  "Lab meter": "Labmeter",
+  "Teal 60s": "Petrol jaren 60"
 }

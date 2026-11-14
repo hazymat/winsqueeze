@@ -1185,7 +1185,6 @@
   "Check again": "Tarkista uudelleen",
   "Dark room VU": "Pimeän huoneen VU",
   "Tungsten": "Hehkulamppu",
-  "Hanging needle": "Riippuva neula",
   "Studio 1974": "Studio 1974",
   "Green glow": "Vihreä hehku",
   "made in VU Builder": "tehty VU-rakentimella",
@@ -1291,5 +1290,8 @@
   "Neon": "Neon",
   "Colour filter": "Värisuodin",
   "Natural": "Luonnollinen",
-  "Red": "Punainen"
+  "Red": "Punainen",
+  "Red alert": "Punainen hälytys",
+  "Lab meter": "Laboratoriomittari",
+  "Teal 60s": "Petrooli 60-luku"
 }
