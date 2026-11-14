@@ -137,7 +137,7 @@
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)')
   let systemDark = $state(prefersDark.matches)
   prefersDark.addEventListener('change', () => systemDark = prefersDark.matches)
-  $effect(() => prefetchInfo(currentTrack(), app.trackInfoTabs)) // Artist, Album and Lyrics looked up as each track starts, ready before their tabs open
+  $effect(() => { if (app.nowPlaying?.mode === 'play') prefetchInfo(currentTrack(), app.trackInfoTabs) }) // Artist, Album and Lyrics looked up as each track starts, ready before their tabs open; never before anything plays, as lyrics and pictures can come from the music folder and would wake a sleeping drive (#383)
   $effect(() => { document.documentElement.dataset.skin = ui.skin; sendToShell({ type: 'theme', dark: ui.skin === 'auto' ? systemDark : ui.skin !== 'light' }) })
   // Tell the shell the page's edge colour, so the frameless border matches it exactly (after the classes and skin have applied)
   $effect(() => { ui.skin; ui.glassTransparency; ui.glassTintHue; ui.lookVersion; systemDark; app.window.glass; app.window.frameless; mini; requestAnimationFrame(() => sendToShell({ type: 'edgeColour', colour: getComputedStyle(document.body).backgroundColor })) })

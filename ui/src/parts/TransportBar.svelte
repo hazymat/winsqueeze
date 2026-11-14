@@ -40,6 +40,7 @@
   $effect(() => {
     const playing = track, key = mini && playing ? [playing.id, playing.artist, playing.album, playing.title].join('|') : ''
     if (key === lyricsFor) return
+    if (key && app.nowPlaying?.mode !== 'play') { hasLyrics = false; return } // looked up once it plays, not at start-up (#383)
     lyricsFor = key; hasLyrics = false
     if (key && app.trackInfoTabs.includes('lyrics')) infoQuery('lyrics', playing).then(result => { if (lyricsFor === key) hasLyrics = !!result?.found })
   })
