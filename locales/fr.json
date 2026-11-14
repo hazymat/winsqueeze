@@ -1293,5 +1293,14 @@
   "Red": "Rouge",
   "Red alert": "Alerte rouge",
   "Lab meter": "Appareil de labo",
-  "Teal 60s": "Sarcelle années 60"
+  "Teal 60s": "Sarcelle années 60",
+  "Name size": "Taille du nom",
+  "Name position": "Position du nom",
+  "Proportions": "Proportions",
+  "Standard": "Standard",
+  "Taller": "Plus haut",
+  "Wider": "Plus large",
+  "Clip light": "Témoin d'écrêtage",
+  "Inset depth": "Profondeur",
+  "Deep": "Profond"
 }

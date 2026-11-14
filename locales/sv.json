@@ -1293,5 +1293,14 @@
   "Red": "Röd",
   "Red alert": "Rött larm",
   "Lab meter": "Labbmätare",
-  "Teal 60s": "Petrol 60-tal"
+  "Teal 60s": "Petrol 60-tal",
+  "Name size": "Namnstorlek",
+  "Name position": "Namnets placering",
+  "Proportions": "Proportioner",
+  "Standard": "Standard",
+  "Taller": "Högre",
+  "Wider": "Bredare",
+  "Clip light": "Överstyrningslampa",
+  "Inset depth": "Djup",
+  "Deep": "Djupt"
 }

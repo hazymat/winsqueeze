@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onShellMessage, sendToShell } from './bridge'
   import { app, meters, receiveLevels } from './state.svelte'
-  import CustomVu, { darkRoom, type VuDesign } from './parts/CustomVu.svelte'
+  import CustomVu, { darkRoom, faceHeights, type VuDesign } from './parts/CustomVu.svelte'
   // The VU Builder's preview (SPEC.md › VU Builder): the design being edited as a pair on black, moving with the music; with nothing playing the needles swing on their own so every change shows
   let design = $state<VuDesign>(darkRoom)
   onShellMessage('vuDesign', message => design = message.design)
@@ -15,12 +15,12 @@
 </script>
 
 <main class="preview">
-  {#each ['L', 'R'] as channel, channelIndex}<div class="meter"><CustomVu {design} {channel} decibels={meters.vu[channelIndex] ?? -90} reference={meters.reference} reading={live ? null : demo(channelIndex)} /></div>{/each}
+  {#each ['L', 'R'] as channel, channelIndex}<div class="meter" style:--aspect-scale={140 / (faceHeights[design.aspect] ?? 140)}><CustomVu {design} {channel} decibels={meters.vu[channelIndex] ?? -90} reference={meters.reference} reading={live ? null : demo(channelIndex)} peak={live ? meters.lamp[channelIndex] : Math.max(0, Math.min(1, (demo(channelIndex) - 0.76) * 25))} /></div>{/each}
 </main>
 
 <style>
   :global(html), :global(body) { margin: 0; height: 100%; background: #000; overflow: hidden; }
   .preview { position: fixed; inset: 0; background: #000; display: flex; align-items: center; justify-content: center; gap: 4vw; padding: 0 4vw; box-sizing: border-box; user-select: none; }
-  .meter { flex: 1; max-width: calc((100vh - 40px) * 1.71); }
+  .meter { flex: 1; max-width: calc((100vh - 40px) * 1.71 * var(--aspect-scale, 1)); }
   .meter :global(.custom-vu) { width: 100%; height: auto; }
 </style>

@@ -32,7 +32,7 @@ public sealed class LyricsWindow : Window
         App.Session.StatusUpdated += pushStatus;
         IsVisibleChanged += (sender, args) => App.UpdatePolling();
         Closing += (sender, args) => SaveBounds();
-        Closed += (sender, args) => { App.Session.StatusUpdated -= pushStatus; App.UpdatePolling(); };
+        Closed += (sender, args) => { App.Session.StatusUpdated -= pushStatus; App.UpdatePolling(); webView.Dispose(); }; // disposed on the UI thread, not left to the finaliser
     }
 
     async Task InitWebViewAsync()

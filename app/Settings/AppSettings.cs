@@ -95,6 +95,11 @@ public class CustomMeter
     public bool Glow { get; set; }
     public string Glass { get; set; } = "none"; // none, clear ("smoked" from an earlier dev build shows as clear)
     public string Casing { get; set; } = "line"; // none, line, bezel, metal, wood, acrylic
+    public double BrandSize { get; set; } = 1; // the name on the face, against its usual size
+    public string BrandSide { get; set; } = "left"; // left, right
+    public string Aspect { get; set; } = "standard"; // standard (12:7), tall (4:3), wide (2:1): the face's proportions
+    public string PeakLamp { get; set; } = "none"; // none, red, amber, green: a clip light lit by peaks, like the beige VU's
+    public double Inset { get; set; } = 0.5; // how deep the face sits in its casing, 0..1
     [JsonIgnore] public string StyleKey => "custom-" + Id;
     public CustomMeter Copy() { var copy = (CustomMeter)MemberwiseClone(); return copy; }
     // An earlier dev build's bulb colours become a lamp and a filter
@@ -105,7 +110,7 @@ public class CustomMeter
         return this;
     }
     // Starting points in the builder
-    public static CustomMeter DarkRoom() => new() { Id = "darkroom", Name = L.T("Dark room VU") };
+    public static CustomMeter DarkRoom() => new() { Id = "darkroom", Name = L.T("Dark room VU"), Inset = 0 };
     public static List<CustomMeter> Presets() => new()
     {
         DarkRoom(),

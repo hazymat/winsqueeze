@@ -74,7 +74,7 @@ public sealed class VuBuilderWindow : Window
         Closing += (sender, args) => { if (dirty && !AskToSave()) args.Cancel = true; };
         Loaded += async (sender, args) => await InitWebViewAsync();
         App.Visualiser.LevelsReady += OnLevels;
-        Closed += (sender, args) => App.Visualiser.LevelsReady -= OnLevels;
+        Closed += (sender, args) => { App.Visualiser.LevelsReady -= OnLevels; webView.Dispose(); }; // disposed here, on the UI thread: left to the finaliser it crashes the app
         // Opens on the first meter you made, or a new one starting from the Dark room VU
         var first = App.Settings.Meters.Custom.FirstOrDefault();
         if (first != null) Pick(first.Id); else { FillPicker(); BuildSettings(); }
@@ -122,7 +122,7 @@ public sealed class VuBuilderWindow : Window
         if (pickedId == (editingId ?? "")) return;
         if (dirty && !AskToSave()) { FillPicker(); return; }
         var saved = App.Settings.Meters.Custom.FirstOrDefault(meter => meter.Id == pickedId);
-        editing = saved?.Copy() ?? NewMeter(CustomMeter.DarkRoom()); editingId = saved?.Id;
+        editing = saved?.Copy() ?? NewMeter(editing); editingId = saved?.Id; // a new meter starts from the one you were just working on
         dirty = false; FillPicker(); BuildSettings(); PushDesign();
     }
 
@@ -168,7 +168,7 @@ public sealed class VuBuilderWindow : Window
         if (MessageBox.Show(this, L.T("Delete {name}?", ("name", editing.Name)), L.T("VU Builder"), MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK) return;
         App.Settings.Meters.Custom.RemoveAll(meter => meter.Id == editingId);
         App.Settings.Meters.Normalise(); App.Settings.Save(); App.ApplyMeters(); Saved?.Invoke();
-        editing = NewMeter(CustomMeter.DarkRoom()); editingId = null; dirty = false;
+        editing = NewMeter(editing); editingId = null; dirty = false;
         FillPicker(); BuildSettings(); PushDesign();
     }
 
@@ -279,8 +279,11 @@ public sealed class VuBuilderWindow : Window
             Choice(L.T("Font"), new[] { ("modern", L.T("Modern")), ("engraved", L.T("Engraved")), ("deco", L.T("Art deco")), ("thirties", L.T("Thirties")), ("hifi", L.T("70s hi-fi")), ("typewriter", L.T("Typewriter")), ("condensed", L.T("Condensed")), ("terminal", L.T("Terminal")) }, () => meter.Font, value => meter.Font = value),
             Number(L.T("Size"), 0.6, 1.6, () => meter.FontSize, value => meter.FontSize = value),
             Choice(L.T("Bottom label"), new[] { ("vu", "VU"), ("channel", L.T("L or R")), ("reference", L.T("0 VU level")), ("none", L.T("None")) }, () => meter.Label, value => meter.Label = value),
-            Words(L.T("Name on the face"), () => meter.Brand, value => meter.Brand = value))));
+            Words(L.T("Name on the face"), () => meter.Brand, value => meter.Brand = value),
+            Number(L.T("Name size"), 0.6, 2.5, () => meter.BrandSize, value => meter.BrandSize = value),
+            Choice(L.T("Name position"), new[] { ("left", L.T("Left")), ("right", L.T("Right")) }, () => meter.BrandSide, value => meter.BrandSide = value))));
         settingsPanel.Children.Add(Card(L.T("Scale"), Stack(
+            Choice(L.T("Proportions"), new[] { ("standard", L.T("Standard")), ("tall", L.T("Taller")), ("wide", L.T("Wider")) }, () => meter.Aspect, value => meter.Aspect = value),
             Number(L.T("Shape"), 0, 1, () => meter.Roundness, value => meter.Roundness = value, L.T("Flat"), L.T("Round")),
             Choice(L.T("Arc"), new[] { ("line", L.T("Line")), ("band", L.T("Line and red band")), ("double", L.T("Double line")), ("wide", L.T("Wide band")), ("dotted", L.T("Dotted")), ("segments", L.T("Segments")), ("ticks", L.T("Marks only")) }, () => meter.Arc, value => meter.Arc = value),
             Number(L.T("Line weight"), 0.5, 3, () => meter.Weight, value => meter.Weight = value, L.T("Thin"), L.T("Bold")),
@@ -300,9 +303,11 @@ public sealed class VuBuilderWindow : Window
             Choice(L.T("Lit from"), new[] { ("below", L.T("Below")), ("above", L.T("Above")), ("left", L.T("Left")), ("right", L.T("Right")) }, () => meter.LampFrom == "behind" ? "below" : meter.LampFrom, value => meter.LampFrom = value),
             Number(L.T("Brightness"), 0, 1, () => meter.LampPower, value => meter.LampPower = value, L.T("Dim"), L.T("Bright")),
             Choice(L.T("Display"), new[] { ("analogue", L.T("Analogue")), ("oled", "OLED") }, () => meter.Display == "dots" ? "oled" : meter.Display, value => meter.Display = value),
+            Choice(L.T("Clip light"), new[] { ("none", L.T("None")), ("red", L.T("Red")), ("amber", L.T("Amber")), ("green", L.T("Green")) }, () => meter.PeakLamp, value => meter.PeakLamp = value),
             Tick(L.T("Glow"), () => meter.Glow, value => meter.Glow = value))));
         settingsPanel.Children.Add(Card(L.T("Case"), Stack(
             Choice(L.T("Casing"), new[] { ("none", L.T("None")), ("line", L.T("Line")), ("bezel", L.T("Bezel")), ("metal", L.T("Brushed metal")), ("wood", L.T("Wood")), ("acrylic", L.T("Clear acrylic")) }, () => meter.Casing, value => meter.Casing = value),
+            Number(L.T("Inset depth"), 0, 1, () => meter.Inset, value => meter.Inset = value, L.T("Flat"), L.T("Deep")),
             Choice(L.T("Glass"), new[] { ("none", L.T("None")), ("clear", L.T("Clear")) }, () => meter.Glass == "smoked" ? "clear" : meter.Glass, value => meter.Glass = value))));
     }
 }
