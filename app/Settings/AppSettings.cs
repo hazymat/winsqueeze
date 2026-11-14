@@ -93,12 +93,14 @@ public class CustomMeter
     public double LampPower { get; set; } = 0.5; // bulb brightness: how far the light reaches across the face, 0..1
     public string Display { get; set; } = "analogue"; // analogue, oled
     public bool Glow { get; set; }
-    public string Glass { get; set; } = "none"; // none, clear ("smoked" from an earlier dev build shows as clear)
-    public string Casing { get; set; } = "line"; // none, line, bezel, metal, wood, acrylic
+    public string Glass { get; set; } = "none"; // none, clear, curved, window (a window reflected in it), matte (anti-glare), dusty ("smoked" from an earlier dev build shows as clear)
+    public string Casing { get; set; } = "line"; // none, line, bezel, metal, wood, acrylic, chrome, gold, bakelite, rack, enamel
     public double BrandSize { get; set; } = 1; // the name on the face, against its usual size
     public string BrandSide { get; set; } = "left"; // left, right
     public string Aspect { get; set; } = "standard"; // standard (12:7), tall (4:3), wide (2:1): the face's proportions
-    public string PeakLamp { get; set; } = "none"; // none, red, amber, green: a clip light lit by peaks, like the beige VU's
+    public string PeakLamp { get; set; } = "none"; // clip light lit by peaks, like the beige VU's: none, chrome (in a chrome ring), jewel, led (bare LED), flat (dot), bar, word (PEAK)
+    public string PeakColour { get; set; } = "#ff3a1e";
+    public double LampDistance { get; set; } = 0.5; // how far back the lamps sit: 0 close (tight hot pools) .. 1 far back (a broad even wash)
     public double Inset { get; set; } = 0.5; // how deep the face sits in its casing, 0..1
     [JsonIgnore] public string StyleKey => "custom-" + Id;
     public CustomMeter Copy() { var copy = (CustomMeter)MemberwiseClone(); return copy; }
@@ -107,6 +109,8 @@ public class CustomMeter
     {
         (string lamp, string tint)? upgraded = Lamp switch { "warm" => ("halogen", "natural"), "cool" => ("tube", "natural"), "amber" => ("tungsten", "amber"), "green" => ("tungsten", "green"), "blue" => ("tungsten", "blue"), _ => null };
         if (upgraded is { } value) { Lamp = value.lamp; LampTint = value.tint; }
+        string? clipColour = PeakLamp switch { "red" => "#ff3a1e", "amber" => "#ffae1a", "green" => "#4dff6a", _ => null }; // an earlier dev build chose the clip light by colour
+        if (clipColour != null) { PeakColour = clipColour; PeakLamp = "chrome"; }
         return this;
     }
     // Starting points in the builder
@@ -117,7 +121,7 @@ public class CustomMeter
         new() { Id = "tungsten", Name = L.T("Tungsten"), Font = "engraved", Roundness = 0.55, Weight = 0.9, Cold = "#1d1a14", Hot = "#b52a1c", NeedleColour = "#111111", NeedleFinish = "brass", Shadow = 0.55, Back = "#efe2c4", Lamp = "tungsten", LampPower = 0.55, Base = "screw", Casing = "bezel", Glass = "clear", Brand = "WINSQUEEZE" },
         new() { Id = "redalert", Name = L.T("Red alert"), Font = "condensed", FontSize = 1.2, Roundness = 0.5, Arc = "band", Weight = 1.1, Cold = "#ff6a55", Hot = "#ffffff", NeedleColour = "#ffffff", NeedleShape = "bar", Back = "#0b0606", Lamp = "tungsten", LampTint = "red", LampPower = 0.7, Glow = true, Base = "filled", Casing = "metal", Glass = "clear" },
         new() { Id = "studio", Name = L.T("Studio 1974"), Font = "hifi", FontSize = 0.8, Roundness = 0.75, Arc = "line", Weight = 0.8, Cold = "#1a1a1a", Hot = "#c0281d", NeedleColour = "#1a1a1a", NeedleShape = "spade", NeedleFinish = "black", Shadow = 0.75, Back = "#f6f0e2", Lamp = "halogen", LampFrom = "left", LampPower = 0.6, Base = "knurled", Casing = "wood", Glass = "clear", Label = "reference" },
-        new() { Id = "greenglow", Name = L.T("Green glow"), Font = "thirties", FontSize = 1.1, Roundness = 0.5, Arc = "wide", Weight = 1.2, Cold = "#7dffb0", Hot = "#ffd54a", NeedleColour = "#e6fff0", NeedleShape = "ball", Back = "#0f1513", Lamp = "tube", LampTint = "green", LampPower = 0.7, Glow = true, Base = "dome", Casing = "acrylic", Glass = "clear" },
+        new() { Id = "fineline", Name = L.T("Fine line"), Font = "hifi", FontSize = 1.01, Label = "channel", Brand = "WINSQUEEZE", BrandSize = 0.78, Roundness = 0.81, Arc = "wide", Weight = 0.5, NeedleColour = "#ffffff", Shadow = 0, Back = "#000000", Lamp = "halogen", LampTint = "green", LampPower = 0.87, Glass = "clear", Casing = "bezel", Aspect = "tall", PeakLamp = "flat", Inset = 0 },
         new() { Id = "lab", Name = L.T("Lab meter"), Font = "typewriter", FontSize = 0.9, Roundness = 1, Arc = "ticks", Weight = 0.7, Cold = "#202020", Hot = "#202020", NeedleColour = "#101010", NeedleShape = "line", Shadow = 0.9, Back = "#e4e2db", Base = "screw", Casing = "metal", Glass = "clear", Label = "channel", Brand = "TYPE 2" },
         new() { Id = "teal", Name = L.T("Teal 60s"), Font = "thirties", FontSize = 1.1, Roundness = 0.6, Arc = "band", Weight = 1, Cold = "#f2e6c8", Hot = "#ff7a4a", NeedleColour = "#f2e6c8", NeedleShape = "blade", Back = "#1d5a5c", Lamp = "tungsten", LampPower = 0.6, Base = "dome", Casing = "metal", Glass = "clear" },
     };
