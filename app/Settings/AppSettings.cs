@@ -59,6 +59,7 @@ public class MeterSettings
         foreach (var styleKey in allKeys) if (Styles.All(style => style.Key != styleKey)) Styles.Add(new InfoChoice { Key = styleKey, On = firstRun ? DefaultStyles.Contains(styleKey) : false });
         if (firstRun) Styles = DefaultStyles.Select(styleKey => Styles.First(style => style.Key == styleKey)).Concat(Styles.Where(style => !DefaultStyles.Contains(style.Key))).ToList();
         if (Styles.All(style => !style.On)) Styles[0].On = true;
+        foreach (var meter in Custom) meter.Upgrade();
     }
 }
 
@@ -83,7 +84,8 @@ public class CustomMeter
     public string NeedleFrom { get; set; } = "bottom"; // bottom, top
     public string Base { get; set; } = "ring"; // none, ring, filled, dome, screw, knurled, brass
     public string Back { get; set; } = "#000000";
-    public string Lamp { get; set; } = "none"; // none, tungsten, warm, cool, amber, green, blue
+    public string Lamp { get; set; } = "none"; // none, tungsten, halogen, pilot, led, tube, neon: each with its own sources, reach, hot spot, shadow and switch-on
+    public string LampTint { get; set; } = "natural"; // natural (the lamp's own colour), amber, red, green, blue: a coloured filter
     public string LampFrom { get; set; } = "below"; // below, above, left, right ("behind" from an earlier dev build shows as below)
     public double LampPower { get; set; } = 0.5; // bulb brightness: how far the light reaches across the face, 0..1
     public string Display { get; set; } = "analogue"; // analogue, oled
@@ -92,16 +94,23 @@ public class CustomMeter
     public string Casing { get; set; } = "line"; // none, line, bezel, metal, wood, acrylic
     [JsonIgnore] public string StyleKey => "custom-" + Id;
     public CustomMeter Copy() { var copy = (CustomMeter)MemberwiseClone(); return copy; }
+    // An earlier dev build's bulb colours become a lamp and a filter
+    public CustomMeter Upgrade()
+    {
+        (string lamp, string tint)? upgraded = Lamp switch { "warm" => ("halogen", "natural"), "cool" => ("tube", "natural"), "amber" => ("tungsten", "amber"), "green" => ("tungsten", "green"), "blue" => ("tungsten", "blue"), _ => null };
+        if (upgraded is { } value) { Lamp = value.lamp; LampTint = value.tint; }
+        return this;
+    }
     // Starting points in the builder; the first is also the built-in Dark room VU style
     public static CustomMeter DarkRoom() => new() { Id = "darkroom", Name = L.T("Dark room VU") };
     public static List<CustomMeter> Presets() => new()
     {
         DarkRoom(),
         new() { Id = "tungsten", Name = L.T("Tungsten"), Font = "engraved", Roundness = 0.55, Weight = 0.9, Cold = "#1d1a14", Hot = "#b52a1c", NeedleColour = "#111111", NeedleFinish = "brass", Shadow = 0.5, Back = "#efe2c4", Lamp = "tungsten", Base = "screw", Casing = "bezel", Glass = "clear", Brand = "WINSQUEEZE" },
-        new() { Id = "hanging", Name = L.T("Hanging needle"), Font = "deco", Roundness = 0.35, Arc = "double", Weight = 0.8, Cold = "#e9dcc0", Hot = "#ff6a3a", NeedleColour = "#ff6a3a", NeedleShape = "arrow", NeedleFrom = "top", Back = "#0b1626", Lamp = "amber", LampFrom = "above", Base = "brass", Casing = "metal", Glass = "clear", Label = "channel" },
+        new() { Id = "hanging", Name = L.T("Hanging needle"), Font = "deco", Roundness = 0.35, Arc = "double", Weight = 0.8, Cold = "#e9dcc0", Hot = "#ff6a3a", NeedleColour = "#ff6a3a", NeedleShape = "arrow", NeedleFrom = "top", Back = "#0b1626", Lamp = "pilot", LampFrom = "above", Base = "brass", Casing = "metal", Glass = "clear", Label = "channel" },
         new() { Id = "oled", Name = "OLED", Font = "terminal", FontSize = 1.25, Roundness = 0.3, Arc = "segments", Weight = 1.2, Cold = "#46e6ff", Hot = "#ff4d6d", NeedleColour = "#d8f8ff", NeedleShape = "line", Display = "oled", Base = "none", Casing = "none" },
-        new() { Id = "studio", Name = L.T("Studio 1974"), Font = "hifi", FontSize = 0.8, Roundness = 0.7, Arc = "line", Weight = 0.8, Cold = "#1a1a1a", Hot = "#c0281d", NeedleColour = "#1a1a1a", NeedleShape = "spade", NeedleFinish = "black", Shadow = 0.7, Back = "#f6f0e2", Lamp = "warm", LampFrom = "left", Base = "knurled", Casing = "wood", Glass = "clear", Label = "reference" },
-        new() { Id = "greenglow", Name = L.T("Green glow"), Font = "thirties", FontSize = 1.1, Roundness = 0.5, Arc = "wide", Weight = 1.2, Cold = "#7dffb0", Hot = "#ffd54a", NeedleColour = "#e6fff0", NeedleShape = "ball", Back = "#16181a", Lamp = "green", Glow = true, Base = "dome", Casing = "acrylic", Glass = "clear" },
+        new() { Id = "studio", Name = L.T("Studio 1974"), Font = "hifi", FontSize = 0.8, Roundness = 0.7, Arc = "line", Weight = 0.8, Cold = "#1a1a1a", Hot = "#c0281d", NeedleColour = "#1a1a1a", NeedleShape = "spade", NeedleFinish = "black", Shadow = 0.7, Back = "#f6f0e2", Lamp = "halogen", LampFrom = "left", Base = "knurled", Casing = "wood", Glass = "clear", Label = "reference" },
+        new() { Id = "greenglow", Name = L.T("Green glow"), Font = "thirties", FontSize = 1.1, Roundness = 0.5, Arc = "wide", Weight = 1.2, Cold = "#7dffb0", Hot = "#ffd54a", NeedleColour = "#e6fff0", NeedleShape = "ball", Back = "#16181a", Lamp = "tube", LampTint = "green", Glow = true, Base = "dome", Casing = "acrylic", Glass = "clear" },
     };
 }
 

@@ -1238,8 +1238,6 @@
   "Dome": "ドーム",
   "Face and light": "目盛り板と照明",
   "Bulb": "電球",
-  "Warm white": "温白色",
-  "Cool white": "昼白色",
   "Amber": "アンバー",
   "Green": "緑",
   "Blue": "青",
@@ -1284,5 +1282,13 @@
   "Dot display": "ドット表示",
   "Brightness": "明るさ",
   "Dim": "暗い",
-  "Bright": "明るい"
+  "Bright": "明るい",
+  "Halogen": "ハロゲン",
+  "Pilot lamp": "パイロットランプ",
+  "LED strip": "LEDストリップ",
+  "Fluorescent tube": "蛍光管",
+  "Neon": "ネオン",
+  "Colour filter": "カラーフィルター",
+  "Natural": "自然光",
+  "Red": "赤"
 }

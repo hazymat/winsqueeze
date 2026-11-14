@@ -1238,8 +1238,6 @@
   "Dome": "圆顶",
   "Face and light": "表盘与灯光",
   "Bulb": "灯泡",
-  "Warm white": "暖白",
-  "Cool white": "冷白",
   "Amber": "琥珀色",
   "Green": "绿色",
   "Blue": "蓝色",
@@ -1284,5 +1282,13 @@
   "Dot display": "点阵显示",
   "Brightness": "亮度",
   "Dim": "暗",
-  "Bright": "亮"
+  "Bright": "亮",
+  "Halogen": "卤素灯",
+  "Pilot lamp": "指示灯",
+  "LED strip": "LED 灯条",
+  "Fluorescent tube": "荧光灯管",
+  "Neon": "霓虹灯",
+  "Colour filter": "滤色片",
+  "Natural": "自然",
+  "Red": "红色"
 }

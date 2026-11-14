@@ -1238,8 +1238,6 @@
   "Dome": "Kuppel",
   "Face and light": "Skala und Licht",
   "Bulb": "Lampe",
-  "Warm white": "Warmweiß",
-  "Cool white": "Kaltweiß",
   "Amber": "Bernstein",
   "Green": "Grün",
   "Blue": "Blau",
@@ -1284,5 +1282,13 @@
   "Dot display": "Punktanzeige",
   "Brightness": "Helligkeit",
   "Dim": "Schwach",
-  "Bright": "Hell"
+  "Bright": "Hell",
+  "Halogen": "Halogen",
+  "Pilot lamp": "Kontrolllampe",
+  "LED strip": "LED-Leiste",
+  "Fluorescent tube": "Leuchtstoffröhre",
+  "Neon": "Neon",
+  "Colour filter": "Farbfilter",
+  "Natural": "Natürlich",
+  "Red": "Rot"
 }

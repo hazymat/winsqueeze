@@ -1238,8 +1238,6 @@
   "Dome": "Kupol",
   "Face and light": "Skala och ljus",
   "Bulb": "Lampa",
-  "Warm white": "Varmvit",
-  "Cool white": "Kallvit",
   "Amber": "Bärnsten",
   "Green": "Grön",
   "Blue": "Blå",
@@ -1284,5 +1282,13 @@
   "Dot display": "Punktdisplay",
   "Brightness": "Ljusstyrka",
   "Dim": "Svag",
-  "Bright": "Stark"
+  "Bright": "Stark",
+  "Halogen": "Halogen",
+  "Pilot lamp": "Kontrollampa",
+  "LED strip": "LED-list",
+  "Fluorescent tube": "Lysrör",
+  "Neon": "Neon",
+  "Colour filter": "Färgfilter",
+  "Natural": "Naturlig",
+  "Red": "Röd"
 }
