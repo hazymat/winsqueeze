@@ -7,6 +7,7 @@
   import { sendToShell } from '../bridge'
   import Analyser from './Analyser.svelte'
   import MeterPanel, { panelThemes } from './MeterPanel.svelte'
+  import CustomVu, { darkRoom } from './CustomVu.svelte'
   // Live from our Squeezelite build's sample export; with no audio the needles rest below -20 and the lamp dims
   // hifi: set into the hi-fi faceplate, each meter in its own chamfered cut-out instead of a black surround
   let { size = 'small', zoom = 1, moveWindow = false, hifi = false }: { size?: 'small' | 'large' | 'full', zoom?: number, moveWindow?: boolean, hifi?: boolean } = $props()
@@ -51,22 +52,17 @@
   let screwNote = $state(''), screwNoteTimer = 0
   const screwAngle = $derived(-30 + ((screwDrag?.reference ?? meters.reference) + 16) * 7.5)
   const showScrewNote = (note: string, holdMs: number) => { clearTimeout(screwNoteTimer); screwNote = note; if (holdMs) screwNoteTimer = setTimeout(() => screwNote = '', holdMs) }
-  const setReference = (reference: number) => { app.meterSettings = { referenceDbfs: reference, autoReference: false, styles: app.meterSettings.styles }; meters.reference = reference; showScrewNote(`0 VU = ${reference} dBFS`.replace('-', '−'), 0) }
+  const setReference = (reference: number) => { app.meterSettings = Object.assign({}, app.meterSettings, { referenceDbfs: reference, autoReference: false }); meters.reference = reference; showScrewNote(`0 VU = ${reference} dBFS`.replace('-', '−'), 0) }
   const grabScrew = (event: PointerEvent) => { if (size === 'small' || event.button !== 0) return; event.stopPropagation(); (event.currentTarget as Element).setPointerCapture(event.pointerId); screwDrag = { startX: event.clientX, startReference: Math.round(meters.reference), reference: Math.round(meters.reference), turned: false } }
   const turnScrew = (event: PointerEvent) => { if (!screwDrag) return; const reference = Math.max(-24, Math.min(-8, Math.round(screwDrag.startReference - (event.clientX - screwDrag.startX) / 6))); if (reference !== screwDrag.reference || !screwDrag.turned && Math.abs(event.clientX - screwDrag.startX) > 3) { screwDrag.reference = reference; screwDrag.turned = true; setReference(reference) } }
   const releaseScrew = () => { if (!screwDrag) return; if (screwDrag.turned) { sendToShell({ type: 'setMeterReference', referenceDbfs: screwDrag.reference }); showScrewNote(screwNote, 1500) } screwDrag = null }
   const nudgeScrew = (event: KeyboardEvent) => { const step = event.key === 'ArrowRight' ? -1 : event.key === 'ArrowLeft' ? 1 : 0; if (!step) return; event.preventDefault(); const reference = Math.max(-24, Math.min(-8, Math.round(meters.reference) + step)); setReference(reference); sendToShell({ type: 'setMeterReference', referenceDbfs: reference }); showScrewNote(screwNote, 1500) }
-  const autoScrew = (event: MouseEvent) => { event.stopPropagation(); if (size === 'small') return; app.meterSettings = { referenceDbfs: app.meterSettings.referenceDbfs, autoReference: true, styles: app.meterSettings.styles }; sendToShell({ type: 'setMeterReference', auto: true }); showScrewNote('Automatic 0 VU', 1500) }
+  const autoScrew = (event: MouseEvent) => { event.stopPropagation(); if (size === 'small') return; app.meterSettings = Object.assign({}, app.meterSettings, { autoReference: true }); sendToShell({ type: 'setMeterReference', auto: true }); showScrewNote('Automatic 0 VU', 1500) }
   // OLED VU: one even scale line; above it, a tick per mark and dense detents across the 0..+3 zone (like the Transporter display)
   // Its pivot sits just below the display, closer than the analogue meter's, so the scale is a wider arc and the resting needle lies flatter
   const oledPivotY = 78, oledSpread = 1.25, oledRadius = 42, oledRestAngle = -68
   const oledPoint = (angle: number, radius: number) => [pivotX + radius * Math.sin(angle * oledSpread * Math.PI / 180), oledPivotY - radius * Math.cos(angle * oledSpread * Math.PI / 180)]
   const oledArc = (fromAngle: number, toAngle: number, radius: number) => { const [startX, startY] = oledPoint(fromAngle, radius); const [endX, endY] = oledPoint(toAngle, radius); return `M${startX} ${startY} A${radius} ${radius} 0 0 1 ${endX} ${endY}` }
-  // Dark room VU: the pivot sits at the window's bottom edge and the scale is a much flatter arc than the needle's sweep (centre far below), so the face is wide and low
-  const nightPivotY = 72, nightSpread = 1.087, nightScaleRadius = 136, nightScaleCentreY = 171
-  const nightPoint = (angle: number, beyond: number) => { const radians = angle * nightSpread * Math.PI / 180, drop = (nightScaleCentreY - nightPivotY) * Math.cos(radians), reach = -drop + Math.sqrt(drop * drop - (nightScaleCentreY - nightPivotY) ** 2 + nightScaleRadius ** 2) + beyond; return [pivotX + reach * Math.sin(radians), nightPivotY - reach * Math.cos(radians)] }
-  const nightArc = (fromAngle: number, toAngle: number, beyond = 0) => { const [startX, startY] = nightPoint(fromAngle, beyond), [endX, endY] = nightPoint(toAngle, beyond); return `M${startX} ${startY} A${nightScaleRadius + beyond} ${nightScaleRadius + beyond} 0 0 1 ${endX} ${endY}` }
-  const nightBlade = `M${pivotX - 0.85} ${nightPivotY - 3} L${pivotX - 0.14} ${nightPivotY - 47} L${pivotX + 0.14} ${nightPivotY - 47} L${pivotX + 0.85} ${nightPivotY - 3} Z`
   const detentAngles = Array.from({ length: 16 }, (unused, index) => 21 + index * 25 / 15)
 </script>
 
@@ -195,28 +191,9 @@
       {/snippet}
       <span class="meter-stack">{@render oledLayer('face')}{@render oledLayer('needles')}</span>
     {/each}
-  {:else if ui.meterStyle === 'night'}
-    {#each ['L', 'R'] as channel, channelIndex}
-      <!-- Dark room VU: only a scale, a needle and a border on pure black; no lamp, glass or glow, so it adds little light to the room -->
-      {#snippet nightLayer(layer: string)}
-      <svg viewBox="0 17 120 54" class="vu nightvu layer-{layer}" aria-hidden="true">
-        <defs><clipPath id={gradientId + '-night-clip'}><rect x="2" y="19" width="116" height="50" rx="3" /></clipPath></defs>
-        <rect x="1" y="18" width="118" height="52" rx="4" class="night-border" />
-        <g class="display">
-          <path d={nightArc(-48, 46)} class="night-line" /><path d={nightArc(21, 46, 1.3)} class="night-band" />
-          {#each scaleMarks as [decibels, angle]}
-            {@const [innerX, innerY] = nightPoint(angle, 0)}{@const [outerX, outerY] = nightPoint(angle, decibels === 0 ? 4.6 : 3.4)}{@const [labelX, labelY] = nightPoint(angle, 8.4)}
-            <line x1={innerX} y1={innerY} x2={outerX} y2={outerY} class="night-tick" class:hot={decibels > 0} />
-            {#if decibels !== -2 && decibels !== -1 && decibels !== 1 && decibels !== 2}<text x={labelX} y={labelY} class="night-number" class:hot={decibels > 0}>{Math.abs(decibels)}</text>{/if}
-          {/each}
-          <text x="60" y="53" class="night-label">VU</text><text x="9" y="26.5" class="night-channel">{channel}</text>
-          <g clip-path="url(#{gradientId}-night-clip)"><path d={nightBlade} class="oled-needle" transform="rotate({needleAngle(meters.vu[channelIndex] ?? -90, restAngle) * nightSpread} {pivotX} {nightPivotY})" /></g>
-          <path d="M49 70 A11 7.5 0 0 1 71 70 Z" class="oled-needle night-hub" />
-        </g>
-      </svg>
-      {/snippet}
-      <span class="meter-stack">{@render nightLayer('face')}{@render nightLayer('needles')}</span>
-    {/each}
+  {:else if app.meterSettings.designs[ui.meterStyle] || ui.meterStyle === 'night'}
+    <!-- Drawn from a VU Builder design (the built-in Dark room VU is one) -->
+    {#each ['L', 'R'] as channel, channelIndex}<span class="designed"><CustomVu design={app.meterSettings.designs[ui.meterStyle] ?? darkRoom} {channel} decibels={meters.vu[channelIndex] ?? -90} reference={meters.reference} /></span>{/each}
   {:else}
     <!-- Spectrum analyser (the third style; stored as 'oled' so earlier choices carry over) -->
     <div class="spectrum">{#if size !== 'small'}<Analyser levels={meters.bands} labels={bandLabels} scale={spectrumScale} segments={24} title={t('SPECTRUM ANALYZER')} fullRange={Math.max(0, Math.min(1, (Math.max(meters.vu[0] ?? -90, meters.vu[1] ?? -90) + 40) / 40))} />{:else}<Analyser levels={meters.bands} compact={true} segments={12} />{/if}</div>
@@ -282,15 +259,9 @@
   .oled-needle { stroke: #d8f4ff; stroke-width: 1; }
   .oled-channel { fill: rgba(76, 192, 255, 0.35); font-size: 5px; text-anchor: middle; font-family: var(--font-display); }
   .idle .display { opacity: 0.55; }
-  /* Dark room VU: flat dim ink on black, no glow */
-  .small .nightvu { height: 27px; } .large .nightvu { height: 85.5px; }
-  .night-border { fill: #000; stroke: #24624a; stroke-width: 0.5; }
-  .night-line { fill: none; stroke: #3fa57a; stroke-width: 1.1; stroke-linecap: round; } .night-band { fill: none; stroke: #b5402f; stroke-width: 2.6; }
-  .night-tick { stroke: #3fa57a; stroke-width: 0.9; stroke-linecap: round; } .night-tick.hot { stroke: #b5402f; }
-  .night-number { fill: #3fa57a; font-size: 5.4px; font-weight: 600; text-anchor: middle; dominant-baseline: middle; font-family: "Segoe UI", Arial, sans-serif; } .night-number.hot { fill: #b5402f; }
-  .night-label { fill: #3fa57a; font-size: 6px; font-weight: 700; text-anchor: middle; font-family: "Segoe UI", Arial, sans-serif; letter-spacing: 1px; }
-  .night-channel { fill: #3fa57a; opacity: 0.6; font-size: 4.4px; font-weight: 600; text-anchor: middle; font-family: "Segoe UI", Arial, sans-serif; }
-  .nightvu .oled-needle { fill: #ecd9a8; stroke: none; } .nightvu .night-hub { fill: #0c0f0e; stroke: #24624a; stroke-width: 0.5; }
+  /* VU Builder designs: the 240 x 140 face, sized like the other pairs */
+  .designed { display: flex; } .small .designed { width: 47px; } .large .designed { width: 190px; } .full .designed { width: min(46vw, (100vh - 140px) * 1.71); }
+  .designed :global(.custom-vu) { width: 100%; height: auto; }
   .spectrum { display: flex; } .large .spectrum { width: 320px; height: 150px; }
   /* Full window (right-click): as big as the window allows */
   .full { gap: 2vw; } .full .vu { width: min(46vw, (100vh - 140px) * 1.66); height: auto; } .full .spectrum { width: min(92vw, (100vh - 140px) * 2.2); height: min(70vh, 46vw); } .small .spectrum { width: 64px; height: 29px; }

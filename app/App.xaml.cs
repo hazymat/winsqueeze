@@ -571,6 +571,15 @@ public partial class App : Application
     public void ToggleMainWindow() { if (mainWindow.IsVisible && mainWindow.WindowState != WindowState.Minimized) mainWindow.Hide(); else ShowMainWindow(); }
     public void ShowTip(string title, string text) => trayIcon.ShowTip(title, text);
 
+    // VU Builder (SPEC.md › VU Builder): one window, opened from Settings › Meters
+    VuBuilderWindow? vuBuilderWindow;
+    public VuBuilderWindow OpenVuBuilder(Window? owner)
+    {
+        if (vuBuilderWindow == null) { vuBuilderWindow = new VuBuilderWindow { Owner = owner }; vuBuilderWindow.Closed += (sender, args) => vuBuilderWindow = null; }
+        vuBuilderWindow.Show(); vuBuilderWindow.Activate();
+        return vuBuilderWindow;
+    }
+
     public void OpenSettings(string tabName = "")
     {
         // A window that fails to build says so, instead of the click doing nothing
