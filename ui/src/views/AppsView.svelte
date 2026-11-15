@@ -22,7 +22,7 @@
     try {
       if (kind === 'radio' || kind === 'apps') { const result = await live([kind === 'radio' ? 'radios' : 'apps', 0, 500], true); items = (result?.[kind === 'radio' ? 'radioss_loop' : 'appss_loop'] ?? []).filter((entry: any) => entry.cmd); if (kind === 'apps') extras = (await query('extras')) ?? [] }
       else if (kind === 'app-search' && !searched) items = []
-      else { const result = await live([cmd, 'items', 0, 500, 'want_url:1'].concat(itemId ? [`item_id:${itemId}`] : [], searched ? [`search:${searched}`] : []), true); items = result?.loop_loop ?? []; failed = !result }
+      else { const result = await live([cmd, 'items', 0, 500, 'want_url:1'].concat(itemId ? [`item_id:${itemId}`] : [], searched ? [`search:${searched}`] : []), true); items = (result?.loop_loop ?? []).map((item: any) => item.name == null && item.title != null ? Object.assign({}, item, { name: item.title }) : item); failed = !result } // podcast episodes carry a title and no name
     }
     catch { failed = true }
     loading = false
