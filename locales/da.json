@@ -1322,5 +1322,8 @@
   "Anti-glare": "Antirefleks",
   "Old and dusty": "Gammelt og støvet",
   "Fine line": "Fin streg",
-  "Open with the player you used last (otherwise this PC)": "Åbn med den afspiller, du brugte sidst (ellers denne pc)"
+  "Open with the player you used last (otherwise this PC)": "Åbn med den afspiller, du brugte sidst (ellers denne pc)",
+  "Playing on {player}": "Spiller på {player}",
+  "control": "styring",
+  "music": "musik"
 }

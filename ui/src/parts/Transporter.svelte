@@ -1,7 +1,7 @@
 <script lang="ts">
   import { t } from '../lib/i18n'
   // Transporter mode (SPEC.md › Transporter mode): the whole window becomes a two-display network player, black glass over a silver key strip, with a TransNav knob
-  import { app, meters, currentTrack, cycleMeterView, readSetting, writeSetting } from '../state.svelte'
+  import { app, meters, currentTrack, cycleMeterView, readSetting, writeSetting, metersHearSelectedPlayer } from '../state.svelte'
   import { command, sendToShell, query, live } from '../bridge'
   import { lyrionFont } from './lyrionFont'
   import { lyrionVuFace, lyrionVuNeedles } from './lyrionVu'
@@ -228,7 +228,9 @@
     }
     // Now playing: top line with the queue place and (NOW PLAYING cycles) a progress bar, the elapsed time or the time left
     const index = Number(status?.playlist_cur_index ?? 0) + 1, total = Number(status?.playlist_tracks ?? 0)
-    const heading = track ? `NOW PLAYING (${index} OF ${total})` : 'NOTHING PLAYING'
+    // Another player picked: the top line takes turns with where it's playing (the VU rests, as no player shares its levels)
+    const remoteName = metersHearSelectedPlayer() ? '' : app.players.find(player => player.playerid === app.selectedPlayer)?.name ?? ''
+    const heading = track ? (remoteName && Math.floor(now / 3000) % 2 === 0 ? `PLAYING ON ${remoteName.toUpperCase()}` : `NOW PLAYING (${index} OF ${total})`) : 'NOTHING PLAYING'
     smallText(context, heading, 1, 1)
     const elapsed = nowPlayingFormat === 2 ? '-' + clock(duration - position) : clock(position)
     if (track && duration) smallText(context, elapsed, dotsWide - smallWidth(context, elapsed) - 1, 1)

@@ -1322,5 +1322,8 @@
   "Anti-glare": "Heijastuksenesto",
   "Old and dusty": "Vanha ja pölyinen",
   "Fine line": "Ohut viiva",
-  "Open with the player you used last (otherwise this PC)": "Avaa viimeksi käyttämälläsi soittimella (muuten tällä tietokoneella)"
+  "Open with the player you used last (otherwise this PC)": "Avaa viimeksi käyttämälläsi soittimella (muuten tällä tietokoneella)",
+  "Playing on {player}": "Soi laitteessa {player}",
+  "control": "ohjaus",
+  "music": "musiikki"
 }
