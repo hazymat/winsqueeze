@@ -3,7 +3,8 @@
   let meterCount = 0
 </script>
 <script lang="ts">
-  import { app, ui, meters, meterView, writeSetting, tapMeters, cycleMeterView } from '../state.svelte'
+  import { app, ui, meters, meterView, writeSetting, tapMeters, cycleMeterView, metersHearSelectedPlayer, ownPlayerOff } from '../state.svelte'
+  import RemoteVisual from './RemoteVisual.svelte'
   import { sendToShell } from '../bridge'
   import Analyser from './Analyser.svelte'
   import MeterPanel, { panelThemes } from './MeterPanel.svelte'
@@ -71,7 +72,8 @@
   <polygon points="0,0 {width},0 {width - depth},{depth} {depth},{depth}" class="chamfer top" /><polygon points="0,{height} {width},{height} {width - depth},{height - depth} {depth},{height - depth}" class="chamfer bottom" />
   <polygon points="0,0 {depth},{depth} {depth},{height - depth} 0,{height}" class="chamfer left" /><polygon points="{width},0 {width - depth},{depth} {width - depth},{height - depth} {width},{height}" class="chamfer right" />
 {/snippet}
-<button class="meters {size}" class:hifi bind:clientWidth={meterWidth} class:idle={!active} onclick={toggle} onpointerdown={pressMeters} onpointermove={dragMeters} onpointerup={() => pressedAt = null} oncontextmenu={(event) => { event.preventDefault(); event.stopPropagation(); cycleMeterView() }} title={(app.meterSettings.styles.length < 2 ? t('Click to tap the meter') : t('Click to switch meter style')) + ' · ' + (moveWindow ? (ui.hifi ? t('drag to move the window · right-click for the Transporter') : t('drag to move the window · right-click for hi-fi')) : t('right-click for full window'))}>
+{#if !metersHearSelectedPlayer()}<RemoteVisual size={size} />{:else}
+<button class="meters {size}" class:hifi bind:clientWidth={meterWidth} class:idle={!active} class:off={ownPlayerOff()} onclick={toggle} onpointerdown={pressMeters} onpointermove={dragMeters} onpointerup={() => pressedAt = null} oncontextmenu={(event) => { event.preventDefault(); event.stopPropagation(); cycleMeterView() }} title={(app.meterSettings.styles.length < 2 ? t('Click to tap the meter') : t('Click to switch meter style')) + ' · ' + (moveWindow ? (ui.hifi ? t('drag to move the window · right-click for the Transporter') : t('drag to move the window · right-click for hi-fi')) : t('right-click for full window'))}>
   {#key meterView.epoch}
   {#if ui.meterStyle === 'vu'}
     {#each ['L', 'R'] as channel, channelIndex}
@@ -200,9 +202,10 @@
     <div class="spectrum">{#if size !== 'small'}<Analyser levels={meters.bands} labels={bandLabels} scale={spectrumScale} segments={24} title={t('SPECTRUM ANALYZER')} fullRange={Math.max(0, Math.min(1, (Math.max(meters.vu[0] ?? -90, meters.vu[1] ?? -90) + 40) / 40))} />{:else}<Analyser levels={meters.bands} compact={true} segments={12} />{/if}</div>
   {/if}
   {/key}
-</button>
+</button>{/if}
 
 <style>
+  .meters.off { filter: grayscale(0.85) brightness(0.45); opacity: 0.55; transition: filter 0.6s, opacity 0.6s; } /* this PC's player is switched off */
   .meters { display: flex; gap: 4px; background: none; border: 0; padding: 0; cursor: pointer; align-items: center; } .meters:focus-visible { outline: none; } /* a meter is an object, not a form control: no focus ring after full window and back */
   .small .vu { width: 60px; height: 36px; } .large .vu { width: 190px; height: 114px; }
   /* Whole panels keep their own shape and size: tall round meters, long low monitor strips… */

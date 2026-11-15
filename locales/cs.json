@@ -1322,5 +1322,8 @@
   "Anti-glare": "Antireflexní",
   "Old and dusty": "Staré a zaprášené",
   "Fine line": "Tenká čára",
-  "Open with the player you used last (otherwise this PC)": "Otevřít s posledním použitým přehrávačem (jinak tento počítač)"
+  "Open with the player you used last (otherwise this PC)": "Otevřít s posledním použitým přehrávačem (jinak tento počítač)",
+  "Playing on {player}": "Hraje na: {player}",
+  "control": "ovládání",
+  "music": "hudba"
 }

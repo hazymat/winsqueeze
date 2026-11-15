@@ -205,7 +205,9 @@ function startMeterFrames() { if (!meterFrame) { meterLastTime = performance.now
 // Auto 0 VU: follows the music's loudness (power average over ~8 s) so loud masters don't pin the needles; average loudness reads about -4 VU
 let loudnessPower = 0, loudnessAt = 0
 // The meters measure this PC's audio, so they rest while another player is picked (unless it's synced with this PC and plays the same music); no player shares its levels with Lyrion
-const metersHearSelectedPlayer = () => !app.selectedPlayer || app.selectedPlayer === app.ownPlayer || app.syncGroups.some(group => group.includes(app.ownPlayer) && group.includes(app.selectedPlayer))
+export const metersHearSelectedPlayer = () => !app.selectedPlayer || app.selectedPlayer === app.ownPlayer || app.syncGroups.some(group => group.includes(app.ownPlayer) && group.includes(app.selectedPlayer))
+// This PC's player switched off: the meters look switched off too
+export const ownPlayerOff = () => Number(app.players.find(player => player.playerid === app.ownPlayer)?.power ?? 1) === 0
 export function receiveLevels(vu: number[], peak: number[], bands: number[], wide: number[] | null = null) {
   if (!metersHearSelectedPlayer()) return
   const receivedAt = Date.now(), loudestDb = Math.max(vu[0] ?? -90, vu[1] ?? -90)

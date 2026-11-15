@@ -1322,5 +1322,8 @@
   "Anti-glare": "Antirreflejo",
   "Old and dusty": "Viejo y polvoriento",
   "Fine line": "Línea fina",
-  "Open with the player you used last (otherwise this PC)": "Abrir con el último reproductor que usaste (si no, este PC)"
+  "Open with the player you used last (otherwise this PC)": "Abrir con el último reproductor que usaste (si no, este PC)",
+  "Playing on {player}": "Sonando en {player}",
+  "control": "control",
+  "music": "música"
 }
