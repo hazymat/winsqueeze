@@ -1322,5 +1322,6 @@
   "Anti-glare": "Antireflet",
   "Old and dusty": "Vieux et poussiéreux",
   "Fine line": "Trait fin",
-  "Open with the player you used last (otherwise this PC)": "Ouvrir avec le dernier lecteur utilisé (sinon ce PC)"
+  "Open with the player you used last (otherwise this PC)": "Ouvrir avec le dernier lecteur utilisé (sinon ce PC)",
+  "Show meters in Now playing": "Afficher les VU dans Lecture en cours"
 }

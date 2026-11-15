@@ -774,6 +774,7 @@ public partial class SettingsWindow : Window
                 checkBox.Click += (sender, args) => { write(Settings.Meters, checkBox.IsChecked == true); Settings.Save(); App.ApplyMeters(); };
                 metersPanel.Children.Add(checkBox);
             }
+            AddCheck(L.T("Show meters in Now playing"), meters => meters.InNowPlaying, (meters, value) => meters.InNowPlaying = value);
             AddCheck(L.T("Meters and analysers show the sound after the EQ"), meters => meters.FollowEq, (meters, value) => meters.FollowEq = value);
             AddCheck(L.T("Meters and analysers drop with WinSqueeze's volume (off: they show the music at full level)"), meters => meters.FollowVolume, (meters, value) => meters.FollowVolume = value);
             AddRow(L.T("0 VU reference"), L.T("When automatic is off: the RMS level that reads 0 on the VU meters. Higher (e.g. −14) makes the needles read lower; −18 is the usual digital alignment."), -24, -8, 1, meters => meters.ReferenceDbfs, (meters, value) => meters.ReferenceDbfs = value, "dBFS");

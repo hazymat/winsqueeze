@@ -141,7 +141,7 @@
       {#if track?.band}<div class="quiet">{t('Orchestra')} {track.band}</div>{/if}
       <div class="readout"><Readout /></div>
       <!-- One-time tip, once music is playing: the right-click cycle (full-window meters, then hi-fi) has no other visible sign -->
-      <div class="meter-box"><Meters size="large" />{#if app.nowPlaying?.mode === 'play'}<Hint id="meters-hifi" bubble align="end" text={t('Right-click, then right-click again for hi-fi mode')} />{/if}</div>
+      {#if app.meterSettings.inNowPlaying}<div class="meter-box"><Meters size="large" />{#if app.nowPlaying?.mode === 'play'}<Hint id="meters-hifi" bubble align="end" text={t('Right-click, then right-click again for hi-fi mode')} />{/if}</div>{/if}
     </div>
     <div class="queue-panel" class:tabbed={infoTabs.length > 0}>
       {#if infoTabs.length}
