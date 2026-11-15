@@ -12,7 +12,7 @@
   let items = $state<any[]>([])
   let loading = $state(true)
   // Lyrion's own favourites, read live (they are small and change from other controllers)
-  async function load() { const result = await live(['favorites', 'items', 0, 500, 'want_url:1'].concat(itemId ? [`item_id:${itemId}`] : [])); items = result?.loop_loop ?? []; loading = false; if (itemId) addDates() }
+  async function load() { const result = await live(['favorites', 'items', 0, 500, 'want_url:1'].concat(itemId ? [`item_id:${itemId}`] : [])); items = (result?.loop_loop ?? []).map((item: any) => item.name == null && item.title != null ? Object.assign({}, item, { name: item.title }) : item); loading = false; if (itemId) addDates() }
   // Inside a folder (e.g. BBC Sounds episodes) only the menu form carries the date, as a second line of its text
   async function addDates() {
     const menu = await live(['favorites', 'items', 0, 500, 'menu:1', `item_id:${itemId}`], true)
