@@ -2174,7 +2174,7 @@
   "assets": {
    "WinSqueeze-1.29.430-stable-full.nupkg": 10,
    "WinSqueeze-Portable.exe": 31,
-   "WinSqueeze-Setup.exe": 25,
+   "WinSqueeze-Setup.exe": 26,
    "releases.stable.json": 10
   },
   "prerelease": false,
@@ -2603,10 +2603,10 @@
  },
  "v1.30.499": {
   "assets": {
-   "WinSqueeze-1.30.499-dev-full.nupkg": 6,
-   "WinSqueeze-Portable.exe": 2,
-   "WinSqueeze-Setup.exe": 1,
-   "releases.dev.json": 6
+   "WinSqueeze-1.30.499-dev-full.nupkg": 7,
+   "WinSqueeze-Portable.exe": 3,
+   "WinSqueeze-Setup.exe": 2,
+   "releases.dev.json": 7
   },
   "prerelease": true,
   "published": "2026-11-15T12:21:01Z"
