@@ -98,7 +98,7 @@ public sealed class TrackInfo
 
     async Task<Result?> FromPluginAsync(Request request)
     {
-        if (App.IsOffline || await PluginInstalledAsync() != true) return null;
+        if (App.IsOffline || request.Remote || await PluginInstalledAsync() != true) return null; // not for radio and other streams: the plugin looks in the music folder for pictures and lyric files, waking a sleeping drive (#383)
         var source = L.T("The server's Music & Artist Information plugin");
         var parameters = new List<object> { "musicartistinfo" };
         switch (request.Kind)
