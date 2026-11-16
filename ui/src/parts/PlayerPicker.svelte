@@ -36,7 +36,8 @@
   const sleepLeft = $derived(Math.round(Number(app.nowPlaying?.will_sleep_in ?? 0)))
   const trackLeft = $derived(Math.max(0, Math.ceil(Number(app.nowPlaying?.duration ?? 0) - Number(app.nowPlaying?.time ?? 0))))
   const sleepChoices = [15, 30, 45, 60, 90]
-  const sleepFor = (seconds: number) => command('sleep', seconds)
+  let sleepOpen = $state(false)
+  const sleepFor = (seconds: number) => { sleepOpen = false; command('sleep', seconds) }
 </script>
 
 <svelte:window onmousedown={(event) => { if (open && !(event.target as HTMLElement).closest('.picker')) open = false }} onkeydown={(event) => { if (open && event.key === 'Escape') { event.preventDefault(); open = false } }} />
@@ -64,12 +65,13 @@
       {/each}
       {#if !app.players.length}<div class="empty">{t('No players found')}</div>{/if}
       {#if online && selected?.connected}
-        <div class="menu-title sleep-title"><span>{t('Sleep')}{sleepLeft > 0 ? ' · ' + t('{count} min left', { count: Math.ceil(sleepLeft / 60) }) : ''}</span>{#if sleepLeft > 0}<button class="sleep-off" onclick={() => sleepFor(0)}>{t('Turn off')}</button>{/if}</div>
-        <!-- Two even rows of three: the times in order, then End of track -->
-        <div class="sleep">
-          {#each sleepChoices as minutes (minutes)}<button class="chip" onclick={() => sleepFor(minutes * 60)} title={t('Stop in {count} minutes', { count: minutes })}>{t('{count} min', { count: minutes })}</button>{/each}
-          <button class="chip" disabled={!trackLeft} onclick={() => sleepFor(trackLeft)} title={t('Stop when this track ends')}>{t('End of track')}</button>
-        </div>
+        <!-- Sleep: one row that opens its choices in place (a popup would be cut off by this scrolling menu) -->
+        <button class="sleep-row" class:open={sleepOpen} onclick={() => sleepOpen = !sleepOpen} aria-expanded={sleepOpen}><span class="sleep-label">{t('Sleep')}</span><span class="sleep-value">{sleepLeft > 0 ? t('{count} min left', { count: Math.ceil(sleepLeft / 60) }) : t('Off')}</span><svg class="sleep-chevron" viewBox="0 0 10 6" width="9" height="6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg></button>
+        {#if sleepOpen}<div class="sleep-choices" role="listbox" aria-label={t('Sleep')}>
+          {#if sleepLeft > 0}<button role="option" aria-selected="false" onclick={() => sleepFor(0)}>{t('Turn off')}</button>{/if}
+          {#each sleepChoices as minutes (minutes)}<button role="option" aria-selected="false" onclick={() => sleepFor(minutes * 60)} title={t('Stop in {count} minutes', { count: minutes })}>{t('{count} min', { count: minutes })}</button>{/each}
+          <button role="option" aria-selected="false" disabled={!trackLeft} onclick={() => sleepFor(trackLeft)} title={t('Stop when this track ends')}>{t('End of track')}</button>
+        </div>{/if}
       {/if}
       <!-- Offline: this PC plays its downloads without the server (SPEC.md › Offline downloads) -->
       {#if app.status?.offline}<button class="output" onclick={() => { open = false; sendToShell({ type: 'goOnline' }) }} title={t('Reconnect to the server')}><Icon name="download" size={12} /><span class="output-name">{t('Playing offline')}</span><span class="output-hint">{t('Go online')}</span></button>
@@ -96,6 +98,9 @@
   .detail { font-size: 11px; color: var(--fg-quiet); }
   .tick { color: var(--accent); font-weight: 700; }
   .menu.up { bottom: calc(100% + 8px); } .menu.down { top: calc(100% + 6px); }
+  .menu button.sleep-row { margin-top: 4px; border-top: 1px solid var(--line); border-radius: 0 0 8px 8px; padding-top: 9px; font-size: 12px; }
+  .sleep-label { color: var(--fg-quiet); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; } .sleep-value { flex: 1; text-align: right; } .sleep-chevron { color: var(--fg-quiet); transition: transform 0.15s; } .sleep-row.open .sleep-chevron { transform: rotate(180deg); }
+  .sleep-choices { padding: 0 0 4px 10px; } .menu .sleep-choices button { padding: 5px 10px; font-size: 12px; } .menu .sleep-choices button:disabled { opacity: 0.4; cursor: default; }
   .menu button.output { margin: -2px 0 4px 17px; width: calc(100% - 17px); padding: 4px 10px; gap: 6px; font-size: 11.5px; color: var(--fg-quiet); }
   .output-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .output-hint { font-size: 10.5px; color: var(--accent); opacity: 0; } .menu button.output:hover .output-hint { opacity: 1; }
   .row { display: flex; align-items: center; gap: 2px; } .row > button[role="option"] { flex: 1; min-width: 0; }
@@ -105,9 +110,6 @@
   .member-volume { display: block; width: calc(100% - 44px); margin: -2px 0 6px 44px; accent-color: var(--accent); height: 14px; }
   .moon { color: var(--accent); font-size: 12px; line-height: 1; }
   .menu-title { padding: 10px 10px 5px; color: var(--fg-quiet); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; border-top: 1px solid var(--line); margin-top: 4px; }
-  .sleep { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 0 8px 8px; }
   .menu button.chip { justify-content: center; padding: 5px 0; font-size: 11.5px; border: 1px solid var(--line); border-radius: 7px; white-space: nowrap; }
-  .sleep-title { display: flex; align-items: center; justify-content: space-between; }
-  .menu button.sleep-off { width: auto; padding: 0; font-size: 11px; text-transform: none; letter-spacing: 0; color: var(--accent); background: none; } .menu button.sleep-off:hover { background: none; text-decoration: underline; }
   .empty { padding: 8px 10px; color: var(--fg-quiet); font-size: 12px; }
 </style>
