@@ -1325,5 +1325,8 @@
   "Open with the player you used last (otherwise this PC)": "Åpne med spilleren du brukte sist (ellers denne PC-en)",
   "Playing on {player}": "Spiller på {player}",
   "control": "styring",
-  "music": "musikk"
+  "music": "musikk",
+  "Paused on {player}": "Satt på pause på {player}",
+  "Nothing playing on {player}": "Ingenting spilles på {player}",
+  "{player} is switched off": "{player} er slått av"
 }

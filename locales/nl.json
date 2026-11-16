@@ -1325,5 +1325,8 @@
   "Open with the player you used last (otherwise this PC)": "Openen met de laatst gebruikte speler (anders deze pc)",
   "Playing on {player}": "Speelt op {player}",
   "control": "bediening",
-  "music": "muziek"
+  "music": "muziek",
+  "Paused on {player}": "Gepauzeerd op {player}",
+  "Nothing playing on {player}": "Er speelt niets op {player}",
+  "{player} is switched off": "{player} staat uit"
 }

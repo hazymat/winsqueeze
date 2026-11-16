@@ -1325,5 +1325,8 @@
   "Open with the player you used last (otherwise this PC)": "Avaa viimeksi käyttämälläsi soittimella (muuten tällä tietokoneella)",
   "Playing on {player}": "Soi laitteessa {player}",
   "control": "ohjaus",
-  "music": "musiikki"
+  "music": "musiikki",
+  "Paused on {player}": "Tauolla laitteessa {player}",
+  "Nothing playing on {player}": "Laitteessa {player} ei soi mitään",
+  "{player} is switched off": "{player} on pois päältä"
 }

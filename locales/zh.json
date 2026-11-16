@@ -1325,5 +1325,8 @@
   "Open with the player you used last (otherwise this PC)": "启动时使用上次的播放器（否则使用这台电脑）",
   "Playing on {player}": "正在 {player} 上播放",
   "control": "控制",
-  "music": "音乐"
+  "music": "音乐",
+  "Paused on {player}": "{player} 已暂停",
+  "Nothing playing on {player}": "{player} 上没有播放",
+  "{player} is switched off": "{player} 已关闭"
 }

@@ -1325,5 +1325,8 @@
   "Open with the player you used last (otherwise this PC)": "Öppna med spelaren du använde senast (annars den här datorn)",
   "Playing on {player}": "Spelar på {player}",
   "control": "styrning",
-  "music": "musik"
+  "music": "musik",
+  "Paused on {player}": "Pausad på {player}",
+  "Nothing playing on {player}": "Inget spelas på {player}",
+  "{player} is switched off": "{player} är avstängd"
 }

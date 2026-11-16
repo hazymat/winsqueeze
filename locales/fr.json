@@ -1325,5 +1325,8 @@
   "Open with the player you used last (otherwise this PC)": "Ouvrir avec le dernier lecteur utilisé (sinon ce PC)",
   "Playing on {player}": "Lecture sur {player}",
   "control": "contrôle",
-  "music": "musique"
+  "music": "musique",
+  "Paused on {player}": "En pause sur {player}",
+  "Nothing playing on {player}": "Rien en lecture sur {player}",
+  "{player} is switched off": "{player} est éteint"
 }

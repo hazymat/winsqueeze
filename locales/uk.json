@@ -1325,5 +1325,8 @@
   "Open with the player you used last (otherwise this PC)": "Відкривати з плеєром, який ви використовували востаннє (інакше цей ПК)",
   "Playing on {player}": "Грає на {player}",
   "control": "керування",
-  "music": "музика"
+  "music": "музика",
+  "Paused on {player}": "Пауза на {player}",
+  "Nothing playing on {player}": "На {player} нічого не грає",
+  "{player} is switched off": "{player} вимкнено"
 }
