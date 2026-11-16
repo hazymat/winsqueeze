@@ -1,7 +1,7 @@
 <script lang="ts">
   import { t } from '../lib/i18n'
   // Hi-fi mode (SPEC.md › Hi-fi mode): the whole window becomes a champagne-aluminium hi-fi separate, with meters, a VFD, transport keys and a volume knob
-  import { app, ui, currentTrack, setHifi, cycleMeterView, readSetting, writeSetting } from '../state.svelte'
+  import { app, ui, currentTrack, setHifi, cycleMeterView, readSetting, writeSetting, metersHearSelectedPlayer } from '../state.svelte'
   import { command, sendToShell } from '../bridge'
   import Meters from './Meters.svelte'
   import { squeeze } from '../lib/fit'
@@ -136,6 +136,59 @@
     for (let segment = 0; segment < segments; segment++) { paint(segment / segments < share); context.fillRect(18 + segment * barWidth / segments, vfdHeight - 19, barWidth / segments - 2, 5) }
   }
   $effect(() => { screen; tick; stageZoom; canvas; drawVfd() })
+  // Another player picked: the meter window becomes a second dot-matrix tube showing where the music goes (This PC, control blips to Lyrion, music on to the player)
+  const remote = $derived(!metersHearSelectedPlayer())
+  const remotePlayer = $derived(app.players.find(player => player.playerid === app.selectedPlayer))
+  const remoteOn = $derived(Number(remotePlayer?.power ?? 1) === 1), remotePlaying = $derived(remoteOn && playing)
+  const remoteName = $derived(String(remotePlayer?.name ?? ''))
+  const remoteHeading = $derived(!remoteOn ? t('{player} is switched off', { player: remoteName }) : remotePlaying ? t('Playing on {player}', { player: remoteName }) : status?.mode === 'pause' ? t('Paused on {player}', { player: remoteName }) : t('Nothing playing on {player}', { player: remoteName }))
+  let linkCanvas = $state<HTMLCanvasElement>(), blipFrom = 0
+  const linkWidth = 414, linkHeight = 150, linkPitch = 2.45, linkColumns = Math.floor((linkWidth - 20) / linkPitch), linkRows = Math.floor((linkHeight - 16) / linkPitch)
+  $effect(() => { app.receivedAt; if (remoteOn && performance.now() - blipFrom > 2200) blipFrom = performance.now() }) // a blip out and back on each status reply, one at a time
+  // Hand-drawn icons on the dot grid: a laptop, a three-unit server with lamps, a speaker with tweeter and woofer
+  function linkDots(time: number) {
+    const levels = new Float32Array(linkColumns * linkRows) // 0 = unlit (ghost), 0.3 = path, 1 = lit
+    const plot = (column: number, row: number, level = 1) => { column = Math.round(column); row = Math.round(row); if (column >= 0 && row >= 0 && column < linkColumns && row < linkRows) levels[row * linkColumns + column] = Math.max(levels[row * linkColumns + column], level) }
+    const box = (left: number, top: number, boxWidth: number, boxHeight: number, level = 1) => { for (let column = left; column < left + boxWidth; column++) { plot(column, top, level); plot(column, top + boxHeight - 1, level) } for (let row = top; row < top + boxHeight; row++) { plot(left, row, level); plot(left + boxWidth - 1, row, level) } }
+    const ring = (centreColumn: number, centreRow: number, radius: number, level = 1) => { for (let column = -radius - 1; column <= radius + 1; column++) for (let row = -radius - 1; row <= radius + 1; row++) if (Math.abs(Math.hypot(column, row) - radius) < 0.55) plot(centreColumn + column, centreRow + row, level) }
+    const text = (line: string, centreColumn: number, row: number, level = 1) => { const shown = plain(line); const left = Math.round(centreColumn - (shown.length * 6 - 1) / 2); for (let cell = 0; cell < shown.length; cell++) { const rows = font[shown[cell]] ?? font[' ']; for (let fontRow = 0; fontRow < 7; fontRow++) for (let column = 0; column < 5; column++) if (rows[fontRow] & (16 >> column)) plot(left + cell * 6 + column, row + fontRow, level) } }
+    const fit = (line: string, cells: number) => { const shown = plain(line); return shown.length > cells ? shown.slice(0, cells - 1) + '.' : shown }
+    const middle = Math.floor(linkColumns / 2), linkRow = 30
+    const pulse = (column: number, level: number) => { plot(column, linkRow, level); plot(column - 1, linkRow, level * 0.5); plot(column + 1, linkRow, level * 0.5); plot(column, linkRow - 1, level * 0.5); plot(column, linkRow + 1, level * 0.5) } // a travelling dot, with a soft cross of neighbours
+    text(fit(remoteHeading, Math.floor(linkColumns / 6)), middle, 2, remotePlaying ? 1 : 0.45)
+    // This PC
+    const pcColumn = 18; box(pcColumn, 22, 20, 14); plot(pcColumn - 2, 37); for (let column = pcColumn - 2; column < pcColumn + 22; column++) plot(column, 38)
+    text(fit(t('This PC'), 7), pcColumn + 10, 44, 0.8)
+    // Lyrion: three units, a lamp each
+    const serverColumn = middle - 11; for (let unit = 0; unit < 3; unit++) { box(serverColumn, 19 + unit * 7, 23, 6); plot(serverColumn + 19, 21 + unit * 7); plot(serverColumn + 19, 22 + unit * 7) }
+    text('LYRION', serverColumn + 11, 44, 0.8)
+    // The player
+    const speakerColumn = linkColumns - 34; const speakerLevel = remoteOn ? 1 : 0.45
+    box(speakerColumn, 17, 15, 24, speakerLevel); ring(speakerColumn + 7, 23, 2, speakerLevel); ring(speakerColumn + 7, 33, 4, speakerLevel)
+    text(fit(remoteName, 8), speakerColumn + 7, 44, 0.8)
+    // Control: a dotted path, one blip travelling out and back
+    const controlFrom = pcColumn + 24, controlTo = serverColumn - 3
+    for (let column = controlFrom; column <= controlTo; column += 2) plot(column, linkRow, 0.25)
+    const blipShare = (time - blipFrom) / 2200
+    if (remoteOn && blipShare < 1) pulse(controlFrom + (controlTo - controlFrom) * (blipShare < 0.5 ? blipShare * 2 : 2 - blipShare * 2), 0.35 + 0.65 * Math.sin(Math.PI * ((blipShare * 2) % 1)))
+    // Music: a solid path while playing, four dots drifting along it, brightest mid-way
+    const musicFrom = serverColumn + 26, musicTo = speakerColumn - 3
+    for (let column = musicFrom; column <= musicTo; column++) plot(column, linkRow, remotePlaying ? 0.25 : 0.12)
+    if (remotePlaying) for (let dot = 0; dot < 4; dot++) { const share = (time / 4200 + dot / 4) % 1; pulse(musicFrom + (musicTo - musicFrom) * share, 0.35 + 0.65 * Math.sin(Math.PI * share)) }
+    return levels
+  }
+  function drawLink(time: number) {
+    if (!linkCanvas) return
+    const ratio = (window.devicePixelRatio || 1) * stageZoom
+    if (linkCanvas.width !== Math.round(linkWidth * ratio)) { linkCanvas.width = Math.round(linkWidth * ratio); linkCanvas.height = Math.round(linkHeight * ratio) }
+    const context = linkCanvas.getContext('2d')!; context.setTransform(ratio, 0, 0, ratio, 0, 0); context.clearRect(0, 0, linkWidth, linkHeight)
+    const levels = linkDots(time), left = (linkWidth - linkColumns * linkPitch) / 2, top = (linkHeight - linkRows * linkPitch) / 2, size = linkPitch * 0.78
+    context.fillStyle = ghost; for (let index = 0; index < levels.length; index++) if (levels[index] < 0.5) context.fillRect(left + (index % linkColumns) * linkPitch, top + Math.floor(index / linkColumns) * linkPitch, size, size)
+    context.fillStyle = lit
+    for (let index = 0; index < levels.length; index++) { const level = levels[index]; if (!level) continue; context.globalAlpha = level; context.shadowColor = level > 0.6 ? glow : 'transparent'; context.shadowBlur = level > 0.6 ? 7 : 0; context.fillRect(left + (index % linkColumns) * linkPitch, top + Math.floor(index / linkColumns) * linkPitch, size, size) }
+    context.globalAlpha = 1; context.shadowBlur = 0
+  }
+  $effect(() => { if (!remote || !linkCanvas) return; let frame = 0, drawnAt = 0; const step = (time: number) => { if (time - drawnAt > 45) { drawnAt = time; drawLink(time) } frame = requestAnimationFrame(step) }; frame = requestAnimationFrame(step); return () => cancelAnimationFrame(frame) })
   const keys: [string, string, string][] = [['previous', t('Previous track'), 'M6 5h2v14H6zM9.5 12 19 5v14z'], ['rewind', t('Rewind (hold to scan)'), 'M11 5v14L2 12zM21 5v14l-9-7z'], ['play', t('Play or pause'), 'M3 5v14l9-7zM14 5h3v14h-3zM19 5h3v14h-3z'], ['forward', t('Fast-forward (hold to scan)'), 'M3 5v14l9-7zM13 5v14l9-7z'], ['next', t('Next track'), 'M5 5v14l9.5-7zM16 5h2v14h-2z']]
   function pressKey(name: string) {
     if (name === 'previous') command('playlist', 'index', '-1')
@@ -155,7 +208,8 @@
       <div class="standby" class:on={playing} class:update={!!updateReady} class:upgrading={!!upgradeStartedAt} title={updateReady ? t('WinSqueeze {version} is ready', { version: updateReady }) : ''}></div>
       {#if updateReady}<button class="update-key" class:shown={updateHover || !!upgradeStartedAt} onclick={startUpgrade} title={t('Restart to update to {version}', { version: updateReady })}>UPDATE</button>{/if}
     </div>
-    <div class="meter-window"><div class="meter-zoom" bind:this={meterBox} style:transform="scale({meterZoom})"><Meters size="large" zoom={meterZoom * stageZoom} moveWindow={true} hifi={true} /></div></div>
+    {#if remote}<!-- svelte-ignore a11y_no_static_element_interactions --><div class="display link-display" title={remoteHeading} oncontextmenu={(event) => { event.preventDefault(); event.stopPropagation(); cycleMeterView() }}><canvas bind:this={linkCanvas} style:width="{linkWidth}px" style:height="{linkHeight}px"></canvas><div class="mesh"></div><div class="pane"></div></div>
+    {:else}<div class="meter-window"><div class="meter-zoom" bind:this={meterBox} style:transform="scale({meterZoom})"><Meters size="large" zoom={meterZoom * stageZoom} moveWindow={true} hifi={true} /></div></div>{/if}
     <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
     <div class="display" class:clickable={showingUpdated} onclick={(event) => { if (showingUpdated && !(event.target as HTMLElement).closest('.seek-zone')) openWhatsNew() }}>
       <canvas bind:this={canvas} style:width="{vfdWidth}px" style:height="{vfdHeight}px"></canvas><div class="mesh"></div><div class="pane"></div>
@@ -203,6 +257,7 @@
   /* VFD behind dark tinted acrylic, with the tube's fine grid mesh */
   .display { position: absolute; left: 552px; width: 414px; top: 34px; height: 190px; border-radius: 6px; background: radial-gradient(120% 90% at 50% 40%, #071513 0%, #030807 70%); box-shadow: 0 -1px 0 rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.85), inset 0 3px 10px rgba(0,0,0,0.95); overflow: hidden; }
   .display canvas { position: absolute; left: 0; top: 0; pointer-events: none; }
+  .display.link-display { left: calc(var(--pad) + 38px); top: 54px; width: 414px; height: 150px; } /* as wide as the VFD, shorter */ /* the second tube, where the meters sit, sharing the VFD's glass and bezel */
   .mesh { position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(0,0,0,0.22) 0 1px, transparent 1px 3px), repeating-linear-gradient(90deg, rgba(0,0,0,0.12) 0 1px, transparent 1px 3px); }
   .seek-zone { position: absolute; left: 10px; right: 10px; bottom: 6px; height: 22px; cursor: pointer; outline: none; }
   /* Transport keys: machined champagne aluminium, a dark gap around each, icons engraved */
