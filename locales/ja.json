@@ -1325,5 +1325,8 @@
   "Open with the player you used last (otherwise this PC)": "前回使ったプレーヤーで開く（オフならこのPC）",
   "Playing on {player}": "{player} で再生中",
   "control": "操作",
-  "music": "音楽"
+  "music": "音楽",
+  "Paused on {player}": "{player} で一時停止中",
+  "Nothing playing on {player}": "{player} で再生していません",
+  "{player} is switched off": "{player} はオフです"
 }

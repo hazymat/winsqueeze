@@ -230,7 +230,7 @@
     const index = Number(status?.playlist_cur_index ?? 0) + 1, total = Number(status?.playlist_tracks ?? 0)
     // Another player picked: the top line takes turns with where it's playing (the VU rests, as no player shares its levels)
     const remoteName = metersHearSelectedPlayer() ? '' : app.players.find(player => player.playerid === app.selectedPlayer)?.name ?? ''
-    const heading = track ? (remoteName && Math.floor(now / 3000) % 2 === 0 ? `PLAYING ON ${remoteName.toUpperCase()}` : `NOW PLAYING (${index} OF ${total})`) : 'NOTHING PLAYING'
+    const heading = track ? (remoteName && playing && Math.floor(now / 3000) % 2 === 0 ? `PLAYING ON ${remoteName.toUpperCase()}` : `NOW PLAYING (${index} OF ${total})`) : 'NOTHING PLAYING'
     smallText(context, heading, 1, 1)
     const elapsed = nowPlayingFormat === 2 ? '-' + clock(duration - position) : clock(position)
     if (track && duration) smallText(context, elapsed, dotsWide - smallWidth(context, elapsed) - 1, 1)

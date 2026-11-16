@@ -1325,5 +1325,8 @@
   "Open with the player you used last (otherwise this PC)": "Otevřít s posledním použitým přehrávačem (jinak tento počítač)",
   "Playing on {player}": "Hraje na: {player}",
   "control": "ovládání",
-  "music": "hudba"
+  "music": "hudba",
+  "Paused on {player}": "Pozastaveno na: {player}",
+  "Nothing playing on {player}": "Na {player} nic nehraje",
+  "{player} is switched off": "{player} je vypnutý"
 }
