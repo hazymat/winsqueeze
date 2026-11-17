@@ -21,18 +21,21 @@
   const infoTabs = $derived(app.trackInfoTabs)
   const infoKey = $derived(infoTabs.includes(ui.infoTab) ? ui.infoTab : 'queue')
   const trackKey = $derived(track ? [track.id, track.artist, track.album, track.title].join('|') : '')
-  let info = $state<Record<string, any>>({}), infoFor = ''
+  let info = $state<Record<string, any>>({}), infoFor = '', infoAsked: Record<string, string> = {} // infoAsked: per kind, 'online' or 'full' (server sources too)
   $effect(() => {
-    const started = hasPlayed(), key = trackKey + (started ? '' : '|idle'), kinds = infoTabs, playing = track // before anything plays only the open tab is looked up, and only online, so opening the app doesn't wake the server's music drive (#383); asked again in full once it plays
-    if (key !== infoFor) { infoFor = key; info = {} }
+    const started = hasPlayed(), open = infoKey, kinds = infoTabs, playing = track
+    if (trackKey !== infoFor) { infoFor = trackKey; info = {}; infoAsked = {} }
     if (!playing) return
-    for (const kind of infoKinds(started ? kinds : kinds.filter(tab => tab === infoKey))) if (untrack(() => info[kind]) === undefined) { // every tab's lookups at once (the shell already has them if they were prefetched), so switching tabs is instant
-      info = Object.assign({}, untrack(() => info), { [kind]: 'loading' })
-      fetchInfo(kind, playing, key, 1)
+    for (const kind of infoKinds(started ? kinds : kinds.filter(tab => tab === open))) { // other tabs online only, so switching is instant (before anything plays, only the open one: #383)
+      const mode = started && kind === open ? 'full' : 'online' // the server (tags, plugin) only for the tab being looked at, like Lyrion's web pages (#383)
+      if (infoAsked[kind] === 'full' || infoAsked[kind] === mode) continue
+      infoAsked[kind] = mode
+      if (untrack(() => info[kind]) === undefined) info = Object.assign({}, untrack(() => info), { [kind]: 'loading' })
+      fetchInfo(kind, playing, trackKey, mode, 1)
     }
   })
-  // A lookup that failed (network, MusicBrainz busy) is asked again twice before the tab gives up on this track
-  function fetchInfo(kind: string, playing: any, key: string, attempt: number) { infoQuery(kind, playing).then(result => { if (infoFor !== key) return; if (result?.error && attempt < 3) { setTimeout(() => { if (infoFor === key) fetchInfo(kind, playing, key, attempt + 1) }, attempt * 5000); return } info = Object.assign({}, info, { [kind]: result?.error ? { found: false } : result ?? { found: false } }) }) }
+  // A lookup that failed (network, MusicBrainz busy) is asked again twice before the tab gives up on this track; an online answer arriving after the full one is dropped
+  function fetchInfo(kind: string, playing: any, key: string, mode: string, attempt: number) { infoQuery(kind, playing, mode === 'full').then(result => { if (infoFor !== key || infoAsked[kind] !== mode) return; if (result?.error && attempt < 3) { setTimeout(() => { if (infoFor === key && infoAsked[kind] === mode) fetchInfo(kind, playing, key, mode, attempt + 1) }, attempt * 5000); return } info = Object.assign({}, info, { [kind]: result?.error ? { found: false } : result ?? { found: false } }) }) }
   // Timeline albums you have: matched on the album title among this artist's own albums in the library, so they open from the timeline
   let ownedAlbums = $state<Record<string, { key: string, title: string }>>({}), ownedFor = ''
   const titleKey = (title: string) => String(title ?? '').toLowerCase().replace(/\s*[([][^)\]]*(remaster|edition|deluxe|expanded|anniversary|bonus)[^)\]]*[)\]]/g, '').replace(/&/g, 'and').replace(/[^\p{L}\p{N}]+/gu, '')
