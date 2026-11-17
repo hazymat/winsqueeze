@@ -21,7 +21,7 @@
     const key = trackKey, playing = track
     if (key === lyricsFor) return
     lyricsFor = key; lyrics = playing ? 'loading' : null; scroller?.scrollTo({ top: 0 })
-    if (playing) infoQuery('lyrics', playing).then(result => { if (lyricsFor === key) lyrics = result ?? { found: false } })
+    if (playing) infoQuery('lyrics', playing, true).then(result => { if (lyricsFor === key) lyrics = result ?? { found: false } })
   })
   $effect(() => { document.title = track ? `${track.title} · Lyrics` : 'Lyrics' })
   // Controls fade out while you read, and come back when the mouse moves (the pointer hides too, in full screen)
