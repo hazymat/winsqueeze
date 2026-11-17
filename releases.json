@@ -2661,6 +2661,16 @@
   "prerelease": true,
   "published": "2026-11-16T17:07:04Z"
  },
+ "v1.30.512": {
+  "assets": {
+   "WinSqueeze-1.30.512-dev-full.nupkg": 1,
+   "WinSqueeze-Portable.exe": 1,
+   "WinSqueeze-Setup.exe": 1,
+   "releases.dev.json": 1
+  },
+  "prerelease": true,
+  "published": "2026-11-17T02:52:11Z"
+ },
  "v1.4.139": {
   "assets": {
    "WinSqueeze-1.4.139-dev-delta.nupkg": 2,
@@ -2865,7 +2875,7 @@
   "assets": {
    "WinSqueeze-1.4.161-dev-full.nupkg": 3,
    "WinSqueeze-Portable.exe": 2,
-   "WinSqueeze-Setup.exe": 1,
+   "WinSqueeze-Setup.exe": 2,
    "releases.dev.json": 2
   },
   "prerelease": true,
