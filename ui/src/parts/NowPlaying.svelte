@@ -3,7 +3,7 @@
   import { trackArt, serverArt, query, sendToShell } from '../bridge'
   import { isDamaged } from '../lib/damaged.svelte'
   import { fit } from '../lib/fit'
-  import { infoQuery, infoKinds } from '../lib/nowPlayingInfo'
+  import { infoQuery, infoKinds, hasPlayed } from '../lib/nowPlayingInfo'
   import { app, currentTrack, openView, openSection, personView, ui, toast, writeSetting, formatTime } from '../state.svelte'
   import Icon from './Icon.svelte'
   import Meters from './Meters.svelte'
@@ -23,10 +23,9 @@
   const trackKey = $derived(track ? [track.id, track.artist, track.album, track.title].join('|') : '')
   let info = $state<Record<string, any>>({}), infoFor = ''
   $effect(() => {
-    const key = trackKey, kinds = infoTabs, playing = track
+    const started = hasPlayed(), key = trackKey + (started ? '' : '|idle'), kinds = infoTabs, playing = track // before anything plays only the open tab is looked up, and only online, so opening the app doesn't wake the server's music drive (#383); asked again in full once it plays
     if (key !== infoFor) { infoFor = key; info = {} }
     if (!playing) return
-    const started = app.nowPlaying?.mode === 'play' // before anything plays only the open tab is looked up, so opening the app doesn't wake the server's music drive (#383)
     for (const kind of infoKinds(started ? kinds : kinds.filter(tab => tab === infoKey))) if (untrack(() => info[kind]) === undefined) { // every tab's lookups at once (the shell already has them if they were prefetched), so switching tabs is instant
       info = Object.assign({}, untrack(() => info), { [kind]: 'loading' })
       fetchInfo(kind, playing, key, 1)
