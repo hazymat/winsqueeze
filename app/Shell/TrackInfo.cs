@@ -12,14 +12,14 @@ namespace WinSqueeze.Shell;
 // Artist, Album and Lyrics for Now playing (SPEC.md › Now playing views): each tab tries its ticked sources in order and shows the first that has something
 public sealed class TrackInfo
 {
-    public record Request(string Kind, long TrackId, string ArtistId, string AlbumId, string Artist, string Album, string Title, double Duration, bool Remote);
+    public record Request(string Kind, long TrackId, string ArtistId, string AlbumId, string Artist, string Album, string Title, double Duration, bool Remote, bool Idle = false); // Idle: nothing has played since the app opened
     public record Result(bool Found, string Heading = "", string Subheading = "", string Text = "", string Image = "", string Source = "", string Link = "", object? Events = null, bool Incomplete = false)
     { public object ToJson() => new { found = Found, heading = Heading, subheading = Subheading, text = Text, image = Image, source = Source, link = Link, events = Events }; }
 
     public static Request RequestFrom(JsonElement parameters)
     {
         string Text(string name) => parameters.ValueKind == JsonValueKind.Object && parameters.TryGetProperty(name, out var value) ? value.ValueKind == JsonValueKind.String ? value.GetString() ?? "" : value.GetRawText() : "";
-        return new(Text("kind"), long.TryParse(Text("id"), out var trackId) ? trackId : 0, Text("artistId"), Text("albumId"), Text("artist"), Text("album"), Text("title"), double.TryParse(Text("duration"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var duration) ? duration : 0, Text("remote") == "1");
+        return new(Text("kind"), long.TryParse(Text("id"), out var trackId) ? trackId : 0, Text("artistId"), Text("albumId"), Text("artist"), Text("album"), Text("title"), double.TryParse(Text("duration"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var duration) ? duration : 0, Text("remote") == "1", Text("idle") == "1");
     }
 
     static App App => App.Instance;
@@ -39,7 +39,7 @@ public sealed class TrackInfo
 
     public Task<Result> LookupAsync(Request request)
     {
-        var lookupKey = string.Join("|", request.Kind, request.Artist.ToLowerInvariant(), request.Kind == "artist" ? "" : request.Album.ToLowerInvariant(), request.Kind == "lyrics" ? request.Title.ToLowerInvariant() : "");
+        var lookupKey = string.Join("|", request.Kind, request.Artist.ToLowerInvariant(), request.Kind == "artist" ? "" : request.Album.ToLowerInvariant(), request.Kind == "lyrics" ? request.Title.ToLowerInvariant() : "", request.Idle ? "idle" : "");
         lock (lookups) { if (!lookups.TryGetValue(lookupKey, out var lookup) || lookup.IsFaulted || lookup.IsCompletedSuccessfully && lookup.Result.Incomplete) lookups[lookupKey] = lookup = RunAsync(request); return lookup; } // a lookup cut short by a busy source is asked again next time
     }
 
@@ -89,7 +89,7 @@ public sealed class TrackInfo
     // ---- On the server ----
     async Task<Result?> FromTagsAsync(Request request)
     {
-        if (request.TrackId <= 0 || App.IsOffline) return null;
+        if (request.TrackId <= 0 || App.IsOffline || request.Idle) return null;
         var songInfo = await App.ServerRequestAsync("", "songinfo", 0, 100, $"track_id:{request.TrackId}", "tags:W");
         if (!songInfo.TryGetProperty("songinfo_loop", out var fields)) return null;
         foreach (var field in fields.EnumerateArray()) if (LyrionClient.ReadString(field, "lyrics") is { Length: > 0 } lyrics) return LyricsFound(request, lyrics, L.T("The file's own tags"));
@@ -98,7 +98,7 @@ public sealed class TrackInfo
 
     async Task<Result?> FromPluginAsync(Request request)
     {
-        if (App.IsOffline || request.Remote || await PluginInstalledAsync() != true) return null; // not for radio and other streams: the plugin looks in the music folder for pictures and lyric files, waking a sleeping drive (#383)
+        if (App.IsOffline || request.Remote || request.Idle || await PluginInstalledAsync() != true) return null; // not for radio and other streams, nor before anything has played: the plugin looks in the music folder for pictures and lyric files, waking a sleeping drive (#383)
         var source = L.T("The server's Music & Artist Information plugin");
         var parameters = new List<object> { "musicartistinfo" };
         switch (request.Kind)
