@@ -41,7 +41,7 @@ public sealed class LibraryQueries
     string AlbumOrder(string sort) => sort switch { "title" => "a.title_norm", "year" => "a.year, a.artist_norm", "added" => "a.added DESC", "random" => "random()", _ => "a.artist_norm, a.year, a.title_norm" };
     string CountColumn => albumSource == "f" ? "album_count" : "album_count_t";
 
-    public object Run(string queryName, JsonElement queryParameters, int newMusicLimit = 100)
+    public object Run(string queryName, JsonElement queryParameters, int newMusicLimit = 100, List<long>? serverNewAlbumIds = null)
     {
         if (!HasIndex) return new { empty = true };
         string Text(string name) => queryParameters.ValueKind == JsonValueKind.Object && queryParameters.TryGetProperty(name, out var value) ? value.ToString() : "";
@@ -63,7 +63,7 @@ public sealed class LibraryQueries
             "compilations" => new { own = Query(connection, $"SELECT {albumColumns} FROM albums a WHERE a.source=$source AND a.compilation=1 ORDER BY {AlbumOrder(Text("sort"))}", ("$source", albumSource)) },
             // Recently updated: newest (New Music Limit) by their newest file change, as Lyrion's own; "added" carries that time so Date added groups by it
             "updatedAlbums" => new { own = Query(connection, "SELECT a.key, a.title, a.artist, a.year, a.cover_id AS cover, a.track_count AS tracks, a.duration, a.format, MAX(t.modified) AS added FROM albums a JOIN album_tracks at ON at.album_key=a.key JOIN tracks t ON t.id=at.track_id WHERE a.source=$source GROUP BY a.key ORDER BY added DESC, a.artist_norm, a.title_norm LIMIT $limit", ("$source", albumSource), ("$limit", newMusicLimit)) },
-            "newAlbums" => new { own = NewAlbums(connection, 0, newMusicLimit) }, // New music: as many as the server's New Music Limit (Server Settings > Behavior), as Lyrion's own New Music
+            "newAlbums" => new { own = serverNewAlbumIds is { Count: > 0 } ? ServerOrderedNew(connection, serverNewAlbumIds) : NewAlbums(connection, 0, newMusicLimit) }, // New music: as many as the server's New Music Limit (Server Settings > Behavior), as Lyrion's own New Music
             "folder" => Folder(connection, Text("key")),
             "album" => Album(connection, Text("key")),
             "albumTrackIds" => Query(connection, "SELECT track_id AS id FROM album_tracks WHERE album_key=$key ORDER BY disc_no, track_no", ("$key", Text("key"))).Select(row => row["id"]).ToList(),
@@ -244,6 +244,15 @@ public sealed class LibraryQueries
     // Albums with any downloaded track; downloaded = how many of its tracks are on this PC
     // Albums whose newest track the server first saw after a time (Lyrion's added time, which survives a clear and rescan)
     List<Dictionary<string, object?>> NewAlbums(SqliteConnection connection, long addedAfter, int limit) => Query(connection, $"SELECT {albumColumns} FROM albums a WHERE a.source=$source AND a.added>$after ORDER BY a.added DESC, a.artist_norm, a.title_norm LIMIT $limit", ("$source", albumSource), ("$after", addedAfter), ("$limit", limit));
+    // New music in the server's own order (albums sort:new = each album's first track first seen, kept when files change; the index's added time is reset by a changed file), each server album matched to the local albums holding its tracks.
+    // The month shown never runs ahead of the album above it, so a re-tagged album stays where Lyrion puts it
+    List<Dictionary<string, object?>> ServerOrderedNew(SqliteConnection connection, List<long> serverAlbumIds)
+    {
+        var albums = Query(connection, $"SELECT {albumColumns}, MIN(t.added) AS first_added FROM json_each($ids) j JOIN tracks t ON t.tag_album_id=j.value JOIN album_tracks at ON at.track_id=t.id JOIN albums a ON a.key=at.album_key AND a.source=$source GROUP BY a.key ORDER BY MIN(j.key)", ("$ids", JsonSerializer.Serialize(serverAlbumIds)), ("$source", albumSource));
+        var ceiling = long.MaxValue;
+        foreach (var album in albums) { ceiling = Math.Min(ceiling, Convert.ToInt64(album["first_added"] ?? 0L)); album["added"] = ceiling; album.Remove("first_added"); }
+        return albums;
+    }
     public List<Dictionary<string, object?>> AlbumsAddedAfter(long addedAfter) => !HasIndex ? new() : WithConnection(connection => NewAlbums(connection, addedAfter, 500));
 
     public object DownloadedAlbums(List<long> downloadedIds, string sort) => !HasIndex ? new { own = new List<object>() } : WithConnection<object>(connection => new { own = Query(connection, $"SELECT {albumColumns}, COUNT(DISTINCT at.track_id) AS downloaded FROM albums a JOIN album_tracks at ON at.album_key=a.key WHERE a.source=$source AND at.track_id IN (SELECT value FROM json_each($ids)) GROUP BY a.key ORDER BY {AlbumOrder(sort)}", ("$source", albumSource), ("$ids", JsonSerializer.Serialize(downloadedIds))) });

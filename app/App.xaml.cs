@@ -439,6 +439,20 @@ public partial class App : Application
         return newMusicLimit;
     }
 
+    // Lyrion's own New Music list (album ids, newest first), so New music matches the server; null offline or when the server is slow, and the index's own order is used
+    public async Task<List<long>?> ServerNewAlbumIdsAsync(int limit)
+    {
+        if (IsOffline) return null;
+        try
+        {
+            var albumsRequest = ServerRequestAsync("", "albums", 0, limit, "sort:new", "tags:");
+            if (await Task.WhenAny(albumsRequest, Task.Delay(3000)) != albumsRequest) return null;
+            var page = await albumsRequest;
+            return page.ValueKind == JsonValueKind.Object && page.TryGetProperty("albums_loop", out var albumsLoop) ? albumsLoop.EnumerateArray().Select(album => LyrionClient.ReadLong(album, "id")).Where(albumId => albumId > 0).ToList() : null;
+        }
+        catch { return null; }
+    }
+
     // ---- Offline (SPEC.md › Offline downloads) ----
     readonly DispatcherTimer serverBackTimer = new() { Interval = TimeSpan.FromSeconds(30) };
     public DateTime OfflineSince { get; private set; }

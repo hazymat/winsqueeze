@@ -131,7 +131,8 @@ public partial class MainWindow : Window
                     if (queryName == "damaged") { Reply(message, App.Damaged.Files.OrderByDescending(damagedFile => damagedFile.Unplayable).ThenByDescending(damagedFile => damagedFile.Errors).Select(damagedFile => new { id = damagedFile.Id, title = damagedFile.Title, artist = damagedFile.Artist, album = damagedFile.Album, errors = damagedFile.Errors, unplayable = damagedFile.Unplayable, firstError = damagedFile.FirstError, path = damagedFile.Path })); break; }
                     if (queryName == "downloadedAlbums") { var sortName = queryParameters.ValueKind == JsonValueKind.Object ? Text(queryParameters, "sort") : ""; Reply(message, await Task.Run(() => queries.DownloadedAlbums(App.Downloads.DownloadedIds(), sortName))); break; }
                     var newMusicLimit = queryName is "newAlbums" or "updatedAlbums" ? await App.NewMusicLimitAsync() : 100;
-                    Reply(message, await Task.Run(() => queries.Run(queryName, queryParameters, newMusicLimit)));
+                    var serverNewAlbumIds = queryName == "newAlbums" ? await App.ServerNewAlbumIdsAsync(newMusicLimit) : null;
+                    Reply(message, await Task.Run(() => queries.Run(queryName, queryParameters, newMusicLimit, serverNewAlbumIds)));
                     break;
                 case "setPlayback":
                     var playbackSettings = App.Settings.Playback;
