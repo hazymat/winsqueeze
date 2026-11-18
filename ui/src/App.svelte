@@ -196,8 +196,9 @@
   }
   // Full-window meters: the normal large meters, zoomed evenly to fill the window (everything scales together, like a bigger copy)
   let fullWidth = $state(0), fullHeight = $state(0), fullMeters = $state<HTMLElement>(), fullZoom = $state(1)
-  function fitFullMeters() { if (!fullMeters) return; const rect = fullMeters.getBoundingClientRect(), naturalWidth = rect.width / fullZoom, naturalHeight = rect.height / fullZoom; if (naturalWidth && naturalHeight) fullZoom = Math.max(0.1, Math.min((fullWidth - Math.min(80, fullWidth * 0.08)) / naturalWidth, (fullHeight - Math.min(100, fullHeight * 0.3)) / naturalHeight)) } // small windows shrink the meters (margins shrink too, the buttons keep their corners)
+  function fitFullMeters() { if (!fullMeters) return; const rect = fullMeters.getBoundingClientRect(), naturalWidth = rect.width / fullZoom, naturalHeight = rect.height / fullZoom; if (!naturalWidth || !naturalHeight) return; const fittedZoom = Math.max(0.1, Math.min((fullWidth - Math.min(80, fullWidth * 0.08)) / naturalWidth, (fullHeight - Math.min(100, fullHeight * 0.3)) / naturalHeight)); if (Math.abs(fittedZoom - fullZoom) > 0.002) fullZoom = fittedZoom } // small windows shrink the meters (margins shrink too, the buttons keep their corners)
   $effect(() => { fullMeters; fullWidth; fullHeight; ui.meterStyle; app.meterSettings.designs[ui.meterStyle]?.aspect; requestAnimationFrame(fitFullMeters) }) // a builder meter changing shape refits too
+  $effect(() => { if (!fullMeters) return; const meterSizeWatch = new ResizeObserver(() => requestAnimationFrame(fitFullMeters)); meterSizeWatch.observe(fullMeters); return () => meterSizeWatch.disconnect() }) // a new style draws a frame or two later at its own shape: refit when it does, not on the next window resize
   // Full screen (F11, double-click or the button): black all round, and the buttons and pointer fade away until the mouse moves, so a dark room stays dark
   const metersScreen = $derived(ui.metersFull && !!app.window.fullScreen)
   let metersQuiet = $state(false), metersQuietTimer = 0
@@ -409,6 +410,7 @@
   .copy-menu button { display: block; min-width: 90px; text-align: left; background: none; border: 0; color: var(--fg); font: inherit; padding: 6px 10px; border-radius: 5px; cursor: pointer; }
   .copy-menu button:hover { background: var(--hover); }
   /* Right-click on the meters: they fill the window, like Task Manager's graphs */
+  .meters-zoom { width: max-content; } /* its own size, never squeezed to the window, so the fit measures the real meters */
   .meters-zoom :global(.designed + .designed) { margin-left: calc(190px * var(--aspect-scale, 1) * 0.09 - 4px); } /* the same gap between a builder meter pair as in the VU Builder: 9% of a meter's width */
   .meters-full { position: fixed; inset: 0; z-index: 85; outline: none; display: grid; place-items: center; background: color-mix(in srgb, var(--panel-solid) 88%, transparent); backdrop-filter: blur(30px) saturate(1.3); }
   .meters-full.dark { background: #000; backdrop-filter: none; } .meters-full.dark .meters-full-close { background: none; color: #5d6a64; } .meters-full.dark .meters-full-close:hover { background: #151a18; color: #9aa8a1; }
