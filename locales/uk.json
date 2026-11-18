@@ -1328,5 +1328,6 @@
   "music": "музика",
   "Paused on {player}": "Пауза на {player}",
   "Nothing playing on {player}": "На {player} нічого не грає",
-  "{player} is switched off": "{player} вимкнено"
+  "{player} is switched off": "{player} вимкнено",
+  "Full window meters switch to the mini player when the window gets small": "Індикатори на все вікно перемикаються на міні-плеєр, коли вікно стає малим"
 }

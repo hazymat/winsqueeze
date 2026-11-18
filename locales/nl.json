@@ -1328,5 +1328,6 @@
   "music": "muziek",
   "Paused on {player}": "Gepauzeerd op {player}",
   "Nothing playing on {player}": "Er speelt niets op {player}",
-  "{player} is switched off": "{player} staat uit"
+  "{player} is switched off": "{player} staat uit",
+  "Full window meters switch to the mini player when the window gets small": "Meters in het volledige venster schakelen naar de minispeler als het venster klein wordt"
 }

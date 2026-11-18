@@ -40,7 +40,7 @@
   let searchView = $state<SearchView>()
   let width = $state(window.innerWidth)
   let height = $state(window.innerHeight)
-  const mini = $derived(!ui.hifi && !ui.transporter && (height < 400 || width < 460)) // short or narrow windows snap to the mini player, with big meters
+  const mini = $derived(!ui.hifi && !ui.transporter && !(ui.metersFull && !app.meterSettings.leaveFullWindowWhenSmall) && (height < 400 || width < 460)) // short or narrow windows snap to the mini player, with big meters; full window meters shrink instead unless Settings › Meters says otherwise
   const vertical = $derived(!mini && width <= 900)
   const folderMode = $derived(app.librarySettings.AlbumSource !== 'tags')
   // Switched-on custom views (SPEC.md › Custom views): one entry each, or one per group for views that share a group
@@ -92,7 +92,7 @@
   onShellMessage('openSection', message => openSection(message.section))
   onShellMessage('newPlaylist', () => { if (!playlist.open) newPlaylist(); else playlist.collapsed = false })
   onShellMessage('levels', message => receiveLevels(message.vu, message.peak, message.bands, message.wide))
-  onShellMessage('meterSettings', message => { app.meterSettings = { referenceDbfs: message.referenceDbfs, autoReference: message.autoReference, designs: message.designs ?? {}, styles: Array.isArray(message.styles) && message.styles.length ? message.styles : ['vu'] }; if (!app.meterSettings.styles.includes(ui.meterStyle)) { ui.meterStyle = app.meterSettings.styles[0]; writeSetting('meterStyle', ui.meterStyle) } })
+  onShellMessage('meterSettings', message => { app.meterSettings = { referenceDbfs: message.referenceDbfs, autoReference: message.autoReference, leaveFullWindowWhenSmall: !!message.leaveFullWindowWhenSmall, designs: message.designs ?? {}, styles: Array.isArray(message.styles) && message.styles.length ? message.styles : ['vu'] }; if (!app.meterSettings.styles.includes(ui.meterStyle)) { ui.meterStyle = app.meterSettings.styles[0]; writeSetting('meterStyle', ui.meterStyle) } })
   // The skin is chosen in Settings › Appearance and applied live; cached locally so the next start paints in it straight away
   onShellMessage('skin', message => {
     ui.skin = message.skin || 'auto'; ui.coverAccent = !!message.coverAccent; ui.coverBackdrop = message.coverBackdrop !== false; ui.accent = message.accent ?? ''; ui.glassTransparency = message.glassTransparency ?? -1; ui.glassTintHue = message.glassTintHue ?? 0; ui.lookVersion++ // every skin message repaints the glass, even when nothing changed
@@ -196,7 +196,7 @@
   }
   // Full-window meters: the normal large meters, zoomed evenly to fill the window (everything scales together, like a bigger copy)
   let fullWidth = $state(0), fullHeight = $state(0), fullMeters = $state<HTMLElement>(), fullZoom = $state(1)
-  function fitFullMeters() { if (!fullMeters) return; const rect = fullMeters.getBoundingClientRect(), naturalWidth = rect.width / fullZoom, naturalHeight = rect.height / fullZoom; if (naturalWidth && naturalHeight) fullZoom = Math.max(1, Math.min((fullWidth - 80) / naturalWidth, (fullHeight - 100) / naturalHeight)) }
+  function fitFullMeters() { if (!fullMeters) return; const rect = fullMeters.getBoundingClientRect(), naturalWidth = rect.width / fullZoom, naturalHeight = rect.height / fullZoom; if (naturalWidth && naturalHeight) fullZoom = Math.max(0.1, Math.min((fullWidth - Math.min(80, fullWidth * 0.08)) / naturalWidth, (fullHeight - Math.min(100, fullHeight * 0.3)) / naturalHeight)) } // small windows shrink the meters (margins shrink too, the buttons keep their corners)
   $effect(() => { fullMeters; fullWidth; fullHeight; ui.meterStyle; app.meterSettings.designs[ui.meterStyle]?.aspect; requestAnimationFrame(fitFullMeters) }) // a builder meter changing shape refits too
   // Full screen (F11, double-click or the button): black all round, and the buttons and pointer fade away until the mouse moves, so a dark room stays dark
   const metersScreen = $derived(ui.metersFull && !!app.window.fullScreen)

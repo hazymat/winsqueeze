@@ -1328,5 +1328,6 @@
   "music": "música",
   "Paused on {player}": "Em pausa em {player}",
   "Nothing playing on {player}": "Nada a tocar em {player}",
-  "{player} is switched off": "{player} está desligado"
+  "{player} is switched off": "{player} está desligado",
+  "Full window meters switch to the mini player when the window gets small": "Os medidores em janela completa passam para o minileitor quando a janela fica pequena"
 }
