@@ -1332,8 +1332,6 @@
   "Full window meters switch to the mini player when the window gets small": "ウィンドウが小さくなると、全体ウィンドウのメーターをミニプレーヤーに切り替える",
   "Update WinSqueeze to {version}": "WinSqueezeを{version}にアップデート",
   "WinSqueeze {version} is downloaded. The blue dot stays until you update.": "WinSqueeze {version}をダウンロードしました。アップデートするまで青い点が表示されます。",
-  "Update now, or later from the tray menu.": "今すぐ、または後で通知領域のメニューからアップデートできます。",
-  "Update now, or later from Settings › About.": "今すぐ、または後で設定 › 情報からアップデートできます。",
   "Update WinSqueeze now": "今すぐWinSqueezeをアップデート",
   "Update ready: {version}": "アップデートの準備完了: {version}",
   "Flash a blue dot on the tray icon when an update is ready": "アップデートの準備ができたら通知領域のアイコンで青い点を点滅させる"

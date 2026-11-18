@@ -10,7 +10,7 @@ public sealed class TrayIcon : IDisposable
     readonly ToolStripMenuItem updateItem = new() { Visible = false }; // "Update WinSqueeze to x" with the blue dot, top of the menu while an update is ready; flashes while the menu is open
     readonly System.Windows.Forms.Timer flashTimer = new() { Interval = 900 }; // update ready: the tray dot flashes until seen (card or menu), the menu row whenever the menu is open
     bool flashOn = true, menuOpen;
-    string seenUpdate = "", announcedUpdate = ""; // the ready version the user has seen explained (then the dot stays solid blue), and the one the card has announced
+    string seenUpdate = ""; // the ready version the user has seen explained (then the dot stays solid blue)
     string tipText = "WinSqueeze", iconKey = "";
     readonly Image blueDot = Dot(NoticeCard.UpdateColour), noDot = new Bitmap(64, 64);
     string ReadyVersion => App.Updater.ReadyVersion;
@@ -45,19 +45,18 @@ public sealed class TrayIcon : IDisposable
         trayMenu.Closed += (sender, args) => { menuOpen = false; if (updateItem.Visible) seenUpdate = ReadyVersion; RefreshDot(); }; // seen in the menu: the tray dot stops flashing
         notifyIcon = new NotifyIcon { Text = "WinSqueeze", ContextMenuStrip = trayMenu, Visible = App.Settings.General.ShowTrayIcon };
         // Left-click opens or hides the window as always; with the blue dot showing it also brings up the update card, so the dot always explains itself
-        notifyIcon.MouseClick += (sender, args) => { if (args.Button != MouseButtons.Left) return; App.ToggleMainWindow(); if (DotShown) ShowUpdateCard(true); };
+        notifyIcon.MouseClick += (sender, args) => { if (args.Button != MouseButtons.Left) return; App.ToggleMainWindow(); if (DotShown) ShowUpdateCard(); };
         flashTimer.Tick += (sender, args) => { flashOn = !flashOn; flashTimer.Interval = flashOn ? 900 : 500; if (menuOpen && updateItem.Visible) { updateItem.Image = flashOn ? blueDot : noDot; updateItem.Invalidate(); } RefreshDot(); };
-        App.Updater.Changed += () => App.Dispatcher.BeginInvoke(() => { if (ReadyVersion != "" && ReadyVersion != announcedUpdate) { announcedUpdate = ReadyVersion; ShowUpdateCard(false); } RefreshDot(); });
+        App.Updater.Changed += () => App.Dispatcher.BeginInvoke(RefreshDot); // no pop-up when an update arrives (Mat 18 Nov): only the window's banner, Settings and this dot
         Microsoft.Win32.SystemEvents.DisplaySettingsChanged += (sender, args) => App.Dispatcher.BeginInvoke(RefreshDot); // taskbar scaling
         RefreshDot();
     }
 
-    // Blue: the moment an update is downloaded (skipped in full screen), and on every left-click while the dot shows. Never says "Restart": it updates
-    void ShowUpdateCard(bool clicked)
+    // Only on a left-click while the dot shows, never by itself. Never says "Restart": it updates
+    void ShowUpdateCard()
     {
-        if (clicked) seenUpdate = ReadyVersion;
-        var text = clicked ? L.T("WinSqueeze {version} is downloaded. The blue dot stays until you update.", ("version", ReadyVersion)) : notifyIcon.Visible ? L.T("Update now, or later from the tray menu.") : L.T("Update now, or later from Settings › About.");
-        NoticeCard.Show(clicked ? L.T("Update ready") : L.T("WinSqueeze {version} is ready", ("version", ReadyVersion)), text, L.T("Update WinSqueeze now"), () => _ = App.Updater.RestartToUpdateAsync(), NoticeCard.UpdateColour, clicked);
+        seenUpdate = ReadyVersion;
+        NoticeCard.Show(L.T("Update ready"), L.T("WinSqueeze {version} is downloaded. The blue dot stays until you update.", ("version", ReadyVersion)), L.T("Update WinSqueeze now"), () => _ = App.Updater.RestartToUpdateAsync(), NoticeCard.UpdateColour, true);
         RefreshDot();
     }
 
