@@ -297,9 +297,9 @@
       <StackPanel Margin="20,8,20,16">
         <Border Style="{StaticResource Card}">
           <StackPanel>
-            <TextBlock Text="Albums are built from" Style="{StaticResource CardTitle}" />
-            <RadioButton x:Name="folderAlbumsRadio" GroupName="albumSource" Margin="0,4,0,0"><TextBlock TextWrapping="Wrap"><Run FontWeight="SemiBold" Text="Folders" /><Run Foreground="#666" Text="  one folder is one album or CD (CD1/CD2 subfolders join their parent)" /></TextBlock></RadioButton>
-            <RadioButton x:Name="tagAlbumsRadio" GroupName="albumSource" Margin="0,6,0,0"><TextBlock TextWrapping="Wrap"><Run FontWeight="SemiBold" Text="Tags" /><Run Foreground="#666" Text="  Lyrion's own albums" /></TextBlock></RadioButton>
+            <TextBlock Text="What counts as an album" Style="{StaticResource CardTitle}" />
+            <RadioButton x:Name="folderAlbumsRadio" GroupName="albumSource" Margin="0,4,0,0"><TextBlock TextWrapping="Wrap"><Run FontWeight="SemiBold" Text="Each folder" /><Run Foreground="#666" Text="  CD1/CD2 subfolders join their parent" /></TextBlock></RadioButton>
+            <RadioButton x:Name="tagAlbumsRadio" GroupName="albumSource" Margin="0,6,0,0"><TextBlock TextWrapping="Wrap"><Run FontWeight="SemiBold" Text="Lyrion's albums" /><Run Foreground="#666" Text="  grouped by tags, as in Lyrion" /></TextBlock></RadioButton>
           </StackPanel>
         </Border>
         <Border Style="{StaticResource Card}">
