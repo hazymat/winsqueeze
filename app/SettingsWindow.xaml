@@ -516,6 +516,7 @@
             <CheckBox x:Name="resumeAfterUpdateBox" Content="Resume playing after an update restarts WinSqueeze" />
             <CheckBox x:Name="rememberPlayerBox" Content="Open with the player you used last (otherwise this PC)" />
             <CheckBox x:Name="trayIconBox" Content="Show system tray icon" />
+            <CheckBox x:Name="updateDotBox" Content="Flash a blue dot on the tray icon when an update is ready" Margin="24,0,0,0" />
             <CheckBox x:Name="startMinimisedBox" Content="Start minimised to tray" />
             <CheckBox x:Name="closeHidesBox" Content="Close (X) keeps WinSqueeze running in the tray (otherwise it quits)" />
             <TextBlock Style="{StaticResource Label}" Text="When another Squeezelite is running at launch" Margin="0,14,0,3" />

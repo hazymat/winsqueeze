@@ -1329,5 +1329,12 @@
   "Paused on {player}": "Em pausa em {player}",
   "Nothing playing on {player}": "Nada a tocar em {player}",
   "{player} is switched off": "{player} está desligado",
-  "Full window meters switch to the mini player when the window gets small": "Os medidores em janela completa passam para o minileitor quando a janela fica pequena"
+  "Full window meters switch to the mini player when the window gets small": "Os medidores em janela completa passam para o minileitor quando a janela fica pequena",
+  "Update WinSqueeze to {version}": "Atualizar o WinSqueeze para {version}",
+  "WinSqueeze {version} is downloaded. The blue dot stays until you update.": "O WinSqueeze {version} já foi transferido. O ponto azul fica até atualizares.",
+  "Update now, or later from the tray menu.": "Atualiza agora, ou mais tarde no menu da área de notificação.",
+  "Update now, or later from Settings › About.": "Atualiza agora, ou mais tarde em Definições › Sobre.",
+  "Update WinSqueeze now": "Atualizar o WinSqueeze agora",
+  "Update ready: {version}": "Atualização pronta: {version}",
+  "Flash a blue dot on the tray icon when an update is ready": "Piscar um ponto azul no ícone da área de notificação quando houver uma atualização pronta"
 }

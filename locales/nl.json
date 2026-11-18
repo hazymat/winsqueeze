@@ -1329,5 +1329,12 @@
   "Paused on {player}": "Gepauzeerd op {player}",
   "Nothing playing on {player}": "Er speelt niets op {player}",
   "{player} is switched off": "{player} staat uit",
-  "Full window meters switch to the mini player when the window gets small": "Meters in het volledige venster schakelen naar de minispeler als het venster klein wordt"
+  "Full window meters switch to the mini player when the window gets small": "Meters in het volledige venster schakelen naar de minispeler als het venster klein wordt",
+  "Update WinSqueeze to {version}": "WinSqueeze bijwerken naar {version}",
+  "WinSqueeze {version} is downloaded. The blue dot stays until you update.": "WinSqueeze {version} is gedownload. De blauwe stip blijft tot je bijwerkt.",
+  "Update now, or later from the tray menu.": "Werk nu bij, of later via het menu in het systeemvak.",
+  "Update now, or later from Settings › About.": "Werk nu bij, of later via Instellingen › Over.",
+  "Update WinSqueeze now": "WinSqueeze nu bijwerken",
+  "Update ready: {version}": "Update klaar: {version}",
+  "Flash a blue dot on the tray icon when an update is ready": "Een blauwe stip laten knipperen op het systeemvakpictogram als er een update klaarstaat"
 }

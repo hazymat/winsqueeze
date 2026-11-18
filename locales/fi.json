@@ -1329,5 +1329,12 @@
   "Paused on {player}": "Tauolla laitteessa {player}",
   "Nothing playing on {player}": "Laitteessa {player} ei soi mitään",
   "{player} is switched off": "{player} on pois päältä",
-  "Full window meters switch to the mini player when the window gets small": "Koko ikkunan mittarit vaihtuvat minisoittimeen, kun ikkuna pienenee"
+  "Full window meters switch to the mini player when the window gets small": "Koko ikkunan mittarit vaihtuvat minisoittimeen, kun ikkuna pienenee",
+  "Update WinSqueeze to {version}": "Päivitä WinSqueeze versioon {version}",
+  "WinSqueeze {version} is downloaded. The blue dot stays until you update.": "WinSqueeze {version} on ladattu. Sininen piste pysyy, kunnes päivität.",
+  "Update now, or later from the tray menu.": "Päivitä nyt tai myöhemmin ilmoitusalueen valikosta.",
+  "Update now, or later from Settings › About.": "Päivitä nyt tai myöhemmin kohdasta Asetukset › Tietoja.",
+  "Update WinSqueeze now": "Päivitä WinSqueeze nyt",
+  "Update ready: {version}": "Päivitys valmis: {version}",
+  "Flash a blue dot on the tray icon when an update is ready": "Vilkuta sinistä pistettä ilmoitusalueen kuvakkeessa, kun päivitys on valmis"
 }

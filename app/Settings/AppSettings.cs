@@ -235,6 +235,7 @@ public class GeneralSettings
 {
     public bool StartWithWindows { get; set; }
     public bool ShowTrayIcon { get; set; } = true; // off: no tray icon, and the "to tray" choices below use the taskbar instead (minimised), so the window can always be found
+    public bool UpdateDot { get; set; } = true; // a blue dot on the tray icon while an update is ready: flashes until seen, then solid until updated
     public bool StartMinimised { get; set; }
     public bool ResumeOnStartup { get; set; } // carry on at startup only if the server was still playing to this player (off by default)
     public bool RememberPlayer { get; set; } // off: every launch starts on this PC's player; on: on the player picked last (if the server still knows it)

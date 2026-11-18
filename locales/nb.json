@@ -1329,5 +1329,12 @@
   "Paused on {player}": "Satt på pause på {player}",
   "Nothing playing on {player}": "Ingenting spilles på {player}",
   "{player} is switched off": "{player} er slått av",
-  "Full window meters switch to the mini player when the window gets small": "Målere i fullt vindu bytter til minispilleren når vinduet blir lite"
+  "Full window meters switch to the mini player when the window gets small": "Målere i fullt vindu bytter til minispilleren når vinduet blir lite",
+  "Update WinSqueeze to {version}": "Oppdater WinSqueeze til {version}",
+  "WinSqueeze {version} is downloaded. The blue dot stays until you update.": "WinSqueeze {version} er lastet ned. Den blå prikken blir værende til du oppdaterer.",
+  "Update now, or later from the tray menu.": "Oppdater nå, eller senere fra menyen i systemstatusfeltet.",
+  "Update now, or later from Settings › About.": "Oppdater nå, eller senere under Innstillinger › Om.",
+  "Update WinSqueeze now": "Oppdater WinSqueeze nå",
+  "Update ready: {version}": "Oppdatering klar: {version}",
+  "Flash a blue dot on the tray icon when an update is ready": "Blink med en blå prikk på ikonet i systemstatusfeltet når en oppdatering er klar"
 }

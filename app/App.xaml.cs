@@ -576,6 +576,7 @@ public partial class App : Application
     }
     public void ToggleMainWindow() { if (mainWindow.IsVisible && mainWindow.WindowState != WindowState.Minimized) mainWindow.Hide(); else ShowMainWindow(); }
     public void ShowTip(string title, string text) => trayIcon.ShowTip(title, text);
+    public void RefreshTrayDot() => trayIcon.RefreshDot();
 
     // VU Builder (SPEC.md › VU Builder): one window, opened from Settings › Meters
     VuBuilderWindow? vuBuilderWindow;
