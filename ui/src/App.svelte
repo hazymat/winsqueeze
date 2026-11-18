@@ -45,14 +45,14 @@
   // Switched-on custom views (SPEC.md › Custom views): one entry each, or one per group for views that share a group
   const levelGlyphs: Record<string, string> = { genre: 'genres', composer: 'composers', artist: 'artists', performer: 'performers' }
   const customSections = $derived(((app.librarySettings.CustomViews ?? []) as any[]).filter(view => view.Enabled).reduce((entries: string[][], view) => { const key = view.Group ? 'customgroup:' + view.Group : 'custom:' + view.Id; if (!entries.some(entry => entry[0] === key)) entries.push([key, view.Group || view.Name, levelGlyphs[view.Levels?.[view.Levels.length - 1]] ?? 'albums']); return entries }, []))
-  const allSections = $derived([['queue', t('Now playing'), 'queue'], ['favourites', t('Favourites'), 'favourites'], ['radio', t('Radio'), 'radio'], ['apps', t('Apps'), 'apps'], ['playlists', t('Playlists'), 'playlists'], ['artists', t('Artists'), 'artists'], ['albumartists', t('Album artists'), 'artists'], ['genres', t('Genres'), 'genres'], ['composers', t('Composers'), 'composers'], ['performers', t('Performers'), 'performers'], ['folders', t('Albums'), 'albums'], ['compilations', t('Compilations'), 'albums'], ['new', t('New music'), 'new'], ['downloads', t('Downloaded'), 'download'], ['history', t('History'), 'history'], ['health', t('Library health'), 'health']].concat(customSections) as [string, string, any][])
+  const allSections = $derived([['queue', t('Now playing'), 'queue'], ['favourites', t('Favourites'), 'favourites'], ['radio', t('Radio'), 'radio'], ['apps', t('Apps'), 'apps'], ['playlists', t('Playlists'), 'playlists'], ['artists', t('Artists'), 'artists'], ['albumartists', t('Album artists'), 'artists'], ['genres', t('Genres'), 'genres'], ['composers', t('Composers'), 'composers'], ['performers', t('Performers'), 'performers'], ['folders', t('Albums'), 'albums'], ['foldertree', t('Folders'), 'folders'], ['compilations', t('Compilations'), 'albums'], ['new', t('New music'), 'new'], ['downloads', t('Downloaded'), 'download'], ['history', t('History'), 'history'], ['health', t('Library health'), 'health']].concat(customSections) as [string, string, any][])
   const pinGlyphs: Record<string, string> = { genre: 'genres', artist: 'artists', composer: 'composers', performer: 'performers', album: 'albums', folder: 'folders', playlist: 'playlists', app: 'apps' }
   const pinSections = $derived(Object.entries(pins.views).map(([key, view]) => [key, view.title ?? '', pinGlyphs[view.kind] ?? 'pin']) as [string, string, any][])
   // Sidebar and bottom-bar customisation (one shared setting): every section shows by default; order, spacers and hidden ones are remembered per PC
   // The layout is section keys plus spacers ("spacer-…"); out of the box one spacer sits under the first section
   const isSpacer = (key: string) => key.startsWith('spacer-')
   // Sections added later arrive next to their neighbour in a sidebar customised before they existed (Radio and Apps by Favourites, Album artists by Artists, Compilations by Albums)
-  function initialLayout(): string[] { const stored: string[] = JSON.parse(readSetting('sectionOrder', '[]')); for (const [neighbour, arrivals] of [['favourites', ['radio', 'apps']], ['artists', ['albumartists']], ['folders', ['compilations']]] as [string, string[]][]) if (stored.length && !stored.includes(arrivals[0])) arrivals.slice().reverse().forEach(arrival => stored.splice(stored.includes(neighbour) ? stored.indexOf(neighbour) + 1 : stored.length, 0, arrival)); if (readSetting('spacersAdded', '')) return stored; return stored.length ? stored.slice(0, 1).concat(['spacer-1'], stored.slice(1)) : ['queue', 'spacer-1', 'favourites', 'radio', 'spacer-2'] } // new install: Now playing | Favourites, Radio | the rest
+  function initialLayout(): string[] { const stored: string[] = JSON.parse(readSetting('sectionOrder', '[]')); for (const [neighbour, arrivals] of [['favourites', ['radio', 'apps']], ['artists', ['albumartists']], ['folders', ['compilations']], ['folders', ['foldertree']]] as [string, string[]][]) if (stored.length && !stored.includes(arrivals[0])) arrivals.slice().reverse().forEach(arrival => stored.splice(stored.includes(neighbour) ? stored.indexOf(neighbour) + 1 : stored.length, 0, arrival)); if (readSetting('spacersAdded', '')) return stored; return stored.length ? stored.slice(0, 1).concat(['spacer-1'], stored.slice(1)) : ['queue', 'spacer-1', 'favourites', 'radio', 'spacer-2'] } // new install: Now playing | Favourites, Radio | the rest
   let layoutOrder = $state<string[]>(initialLayout())
   // Stored order first (unknown keys dropped), then any section not placed yet
   const placeable = $derived(allSections.concat(pinSections))
@@ -291,6 +291,8 @@
           {:else if view.kind === 'compilations'}
             <AlbumsOf kind="compilations" title={t('Compilations')} />
           {:else if view.kind === 'folders'}
+            <AlbumsOf kind="albums" title={t('Albums')} />
+          {:else if view.kind === 'foldertree'}
             <FolderView />
           {:else if view.kind === 'folder'}
             {#key view.key}<FolderView folderKey={view.key} />{/key}
