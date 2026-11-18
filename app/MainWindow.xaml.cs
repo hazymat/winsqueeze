@@ -469,6 +469,14 @@ public partial class MainWindow : Window
     {
         if (double.IsNaN(Left) || double.IsNaN(Top)) return;
         var scale = PresentationSource.FromVisual(this)?.CompositionTarget?.TransformToDevice.M11 ?? 1;
+        // Never bigger than the screen it is on (a smaller monitor after a dock change)
+        var windowHandle = new WindowInteropHelper(this).Handle;
+        if (windowHandle != IntPtr.Zero && WindowState == WindowState.Normal)
+        {
+            var currentArea = System.Windows.Forms.Screen.FromHandle(windowHandle).WorkingArea;
+            if (Width > currentArea.Width / scale) { Width = currentArea.Width / scale; Left = currentArea.X / scale; }
+            if (Height > currentArea.Height / scale) { Height = currentArea.Height / scale; Top = currentArea.Y / scale; }
+        }
         var dragPoint = new Point(Left + Math.Min(Width, 400) / 2, Top + 12);
         var onScreen = System.Windows.Forms.Screen.AllScreens.Any(screen => new Rect(screen.WorkingArea.X / scale, screen.WorkingArea.Y / scale, screen.WorkingArea.Width / scale, screen.WorkingArea.Height / scale).Contains(dragPoint));
         if (onScreen) return;
