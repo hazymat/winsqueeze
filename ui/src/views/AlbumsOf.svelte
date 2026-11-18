@@ -8,7 +8,7 @@
   import PinButton from '../parts/PinButton.svelte'
   import PageHead from '../parts/PageHead.svelte'
   import { downloads } from '../lib/downloads.svelte'
-  let { kind, key = '', title = '', params = {}, chips }: { kind: string; key?: string; title?: string; params?: Record<string, unknown>; chips?: import('svelte').Snippet } = $props()
+  let { kind, key = '', title = '', params = {} }: { kind: string; key?: string; title?: string; params?: Record<string, unknown> } = $props()
   let result = $state<any>({ own: [], appearsOn: [] })
   // New music has two lists, each with its own grouping: newest added (Lyrion's New Music) and newest changed files (Lyrion's Recently Updated). Random albums live in Albums > Sort > Random
   const newModes: [string, string, string][] = [['added', t('Added'), 'newAlbums'], ['updated', t('Updated'), 'updatedAlbums']]
@@ -37,7 +37,6 @@
   {#if kind === 'albums' && view.sort === 'random'}<button class="ghost" onclick={() => shuffles++}>{t('Shuffle again')}</button>{/if}
   <BrowseBar {view} showSort={kind !== 'new'} sorts={kind === 'albums' ? albumsSortOptions : sortOptions} />
 </PageHead>
-{@render chips?.()}
 {#if kind === 'new'}<div class="chips">{#each newModes as [mode, label]}<button class:on={newMode === mode} onclick={() => setNewMode(mode)}>{label}</button>{/each}</div>{/if}
 {#each sections as [sectionName, albums] (sectionName)}
   {@const groups = groupAlbums(albums, view.group)}

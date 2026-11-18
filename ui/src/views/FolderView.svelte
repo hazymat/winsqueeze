@@ -5,36 +5,26 @@
   import { selectable } from '../lib/selectable.svelte'
   import { browseActions } from '../lib/browseActions'
   import { query, artUrl } from '../bridge'
-  import { app, ui, nav, openView, back, readSetting, writeSetting } from '../state.svelte'
+  import { app, ui, nav, openView, back } from '../state.svelte'
   import AlbumView from './AlbumView.svelte'
-  import AlbumsOf from './AlbumsOf.svelte'
   let { folderKey = '' }: { folderKey?: string } = $props()
   let folder = $state<any>({ children: [] })
   $effect(() => { app.indexVersion; query('folder', { key: folderKey }).then(result => folder = result ?? { children: [] }) })
   const plain = (text: string) => (text ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
   // Breadcrumb: a folder already in the Back history is gone back to (so Back and the list positions still make sense), any other opens
   function openCrumb(key: string, name: string) {
-    if (!key) writeSetting('albumsRoot', 'folders') // the Folders crumb lands on the folder tree, not the Albums chip
-    const depth = key ? nav.stack.map(view => view.kind === 'folder' && view.key === key).lastIndexOf(true) + 1 : nav.section === 'folders' ? 0 : -1
-    if (depth < 0 || (key && depth === 0)) { openView(key ? { kind: 'folder', key, title: name } : { kind: 'folders', title: t('Folders') }); return }
+    const depth = key ? nav.stack.map(view => view.kind === 'folder' && view.key === key).lastIndexOf(true) + 1 : nav.section === 'foldertree' ? 0 : -1
+    if (depth < 0 || (key && depth === 0)) { openView(key ? { kind: 'folder', key, title: name } : { kind: 'foldertree', title: t('Folders') }); return }
     while (nav.stack.length > depth) back()
   }
-  // With albums from folders the sidebar's Albums entry lists every album (as Lyrion's Albums menu); a Folders chip switches to the folder tree, remembered
-  let rootMode = $state(readSetting('albumsRoot', 'albums'))
-  const setRootMode = (mode: string) => { rootMode = mode; writeSetting('albumsRoot', mode) }
   const shown = $derived(ui.search.length >= 2 ? (folder.children ?? []).filter((child: any) => plain(child.name).includes(plain(ui.search))) : folder.children ?? [])
 </script>
 
-{#snippet rootChips()}<div class="chips">{#each [['albums', t('Albums')], ['folders', t('Folders')]] as [mode, label]}<button class:on={rootMode === mode} onclick={() => setRootMode(mode)}>{label}</button>{/each}</div>{/snippet}
-{#if !folderKey && rootMode === 'albums'}
-  <AlbumsOf kind="albums" title={t('Albums')} chips={rootChips} />
-{:else}
 {#if folderKey}<nav class="crumbs"><button class="crumb" onclick={() => openCrumb('', '')}>{t('Folders')}</button>{#each folder.trail ?? [] as crumb (crumb.key)}<span class="sep">›</span><button class="crumb" onclick={() => openCrumb(String(crumb.key), crumb.name)}>{crumb.name}</button>{/each}<span class="sep">›</span><span class="here">{folder.name ?? ''}</span></nav>{/if}
 {#if folder.albumKey && !(folder.children ?? []).some((child: any) => child.subfolders > 0 || !child.albumKey)}
   <AlbumView albumKey={folder.albumKey} />
 {:else}
   <PageHead title={folder.name ?? t('Folders')} detail={(folder.children ?? []).length ? tn((folder.children ?? []).length, '{count} item', '{count} items') : ''}>{#snippet titleExtra()}{#if folderKey}<PinButton view={{ kind: 'folder', key: folderKey, title: folder.name ?? 'Folder' }} />{/if}{/snippet}</PageHead>
-  {#if !folderKey}{@render rootChips()}{/if}
   <div class="folders" use:selectable={{ scope: 'folder:' + folderKey, noun: 'folder', actions: browseActions('folder') }}>
     {#each shown as child (child.key)}
       <button class="folder" data-select-key={String(child.key)} onclick={() => openView({ kind: 'folder', key: String(child.key), title: child.name })}>
@@ -43,7 +33,6 @@
       </button>
     {/each}
   </div>
-{/if}
 {/if}
 
 <style>
