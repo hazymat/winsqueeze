@@ -3,6 +3,8 @@ import { sendToShell } from '../bridge'
 import { t, language } from './i18n'
 // Second-level browsing: how each area sorts, groups and sizes its albums (SPEC.md › Browsing)
 export const sortOptions: [string, string][] = [['artist', t('Album artist')], ['title', t('Title')], ['year', t('Year')], ['added', t('Recently added')]]
+// The whole-library Albums list can also be shuffled (Lyrion's Random Albums)
+export const albumsSortOptions: [string, string][] = sortOptions.concat([['random', t('Random')]])
 export const groupOptions: [string, string][] = [['none', t('None')], ['artist', t('Album artist')], ['year', t('Year')], ['decade', t('Decade')], ['added', t('Date added')], ['format', t('Format')], ['initial', t('First letter')]]
 export const sizeOptions: [string, string][] = [['large', t('Large')], ['compact', t('Compact')], ['list', t('List')]]
 export const builtInGroupDefaults: Record<string, string> = { genre: 'artist', artist: 'none', composer: 'artist', performer: 'artist', albums: 'none', custom: 'artist', new: 'added', updated: 'added', random: 'none', compilations: 'none' }

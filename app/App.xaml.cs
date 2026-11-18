@@ -430,6 +430,15 @@ public partial class App : Application
         return await lyrionClient.RequestAsync(playerId, command);
     }
 
+    // New music shows as many albums as the server's own New Music Limit (Server Settings > Behavior, pref browseagelimit); the last answer is kept for offline
+    int newMusicLimit = 100;
+    public async Task<int> NewMusicLimitAsync()
+    {
+        if (IsOffline) return newMusicLimit;
+        try { var prefRequest = ServerRequestAsync("", "pref", "browseagelimit", "?"); if (await Task.WhenAny(prefRequest, Task.Delay(2000)) == prefRequest && int.TryParse(LyrionClient.ReadString(await prefRequest, "_p2"), out var serverLimit) && serverLimit > 0) newMusicLimit = Math.Min(serverLimit, 5000); } catch { } // a slow server doesn't hold up the page: last known limit
+        return newMusicLimit;
+    }
+
     // ---- Offline (SPEC.md › Offline downloads) ----
     readonly DispatcherTimer serverBackTimer = new() { Interval = TimeSpan.FromSeconds(30) };
     public DateTime OfflineSince { get; private set; }
