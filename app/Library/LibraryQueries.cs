@@ -38,10 +38,10 @@ public sealed class LibraryQueries
 
     T WithConnection<T>(Func<SqliteConnection, T> work) { using var connection = Open(databasePath, true); return work(connection); }
 
-    string AlbumOrder(string sort) => sort switch { "title" => "a.title_norm", "year" => "a.year, a.artist_norm", "added" => "a.added DESC", _ => "a.artist_norm, a.year, a.title_norm" };
+    string AlbumOrder(string sort) => sort switch { "title" => "a.title_norm", "year" => "a.year, a.artist_norm", "added" => "a.added DESC", "random" => "random()", _ => "a.artist_norm, a.year, a.title_norm" };
     string CountColumn => albumSource == "f" ? "album_count" : "album_count_t";
 
-    public object Run(string queryName, JsonElement queryParameters)
+    public object Run(string queryName, JsonElement queryParameters, int newMusicLimit = 100)
     {
         if (!HasIndex) return new { empty = true };
         string Text(string name) => queryParameters.ValueKind == JsonValueKind.Object && queryParameters.TryGetProperty(name, out var value) ? value.ToString() : "";
@@ -61,10 +61,10 @@ public sealed class LibraryQueries
             "genreAlbums" => new { own = Query(connection, $"SELECT DISTINCT {albumColumns} FROM albums a JOIN album_tracks at ON at.album_key=a.key JOIN track_genres tg ON tg.track_id=at.track_id WHERE a.source=$source AND tg.genre_id=$genre ORDER BY {AlbumOrder(Text("sort"))}", ("$source", albumSource), ("$genre", Text("key"))) },
             "albums" => new { own = Query(connection, $"SELECT {albumColumns} FROM albums a WHERE a.source=$source ORDER BY {AlbumOrder(Text("sort"))}", ("$source", albumSource)) },
             "compilations" => new { own = Query(connection, $"SELECT {albumColumns} FROM albums a WHERE a.source=$source AND a.compilation=1 ORDER BY {AlbumOrder(Text("sort"))}", ("$source", albumSource)) },
-            // Recently updated: newest 100 by their newest file change, as Lyrion's own; "added" carries that time so Date added groups by it
-            "updatedAlbums" => new { own = Query(connection, "SELECT a.key, a.title, a.artist, a.year, a.cover_id AS cover, a.track_count AS tracks, a.duration, a.format, MAX(t.modified) AS added FROM albums a JOIN album_tracks at ON at.album_key=a.key JOIN tracks t ON t.id=at.track_id WHERE a.source=$source GROUP BY a.key ORDER BY added DESC, a.artist_norm, a.title_norm LIMIT 100", ("$source", albumSource)) },
+            // Recently updated: newest (New Music Limit) by their newest file change, as Lyrion's own; "added" carries that time so Date added groups by it
+            "updatedAlbums" => new { own = Query(connection, "SELECT a.key, a.title, a.artist, a.year, a.cover_id AS cover, a.track_count AS tracks, a.duration, a.format, MAX(t.modified) AS added FROM albums a JOIN album_tracks at ON at.album_key=a.key JOIN tracks t ON t.id=at.track_id WHERE a.source=$source GROUP BY a.key ORDER BY added DESC, a.artist_norm, a.title_norm LIMIT $limit", ("$source", albumSource), ("$limit", newMusicLimit)) },
             "randomAlbums" => new { own = Query(connection, $"SELECT {albumColumns} FROM albums a WHERE a.source=$source ORDER BY random() LIMIT 100", ("$source", albumSource)) },
-            "newAlbums" => new { own = NewAlbums(connection, 0, 100) }, // New music: the newest 100, as Lyrion's own New Music
+            "newAlbums" => new { own = NewAlbums(connection, 0, newMusicLimit) }, // New music: as many as the server's New Music Limit (Server Settings > Behavior), as Lyrion's own New Music
             "folder" => Folder(connection, Text("key")),
             "album" => Album(connection, Text("key")),
             "albumTrackIds" => Query(connection, "SELECT track_id AS id FROM album_tracks WHERE album_key=$key ORDER BY disc_no, track_no", ("$key", Text("key"))).Select(row => row["id"]).ToList(),

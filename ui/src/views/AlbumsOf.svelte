@@ -2,13 +2,13 @@
   import { t, tn } from '../lib/i18n'
   import { query } from '../bridge'
   import { app, addToPlaylist, playlist, albumItems, readSetting, writeSetting } from '../state.svelte'
-  import { browseState, groupAlbums } from '../lib/browse.svelte'
+  import { browseState, groupAlbums, albumsSortOptions, sortOptions } from '../lib/browse.svelte'
   import AlbumList from '../parts/AlbumList.svelte'
   import BrowseBar from '../parts/BrowseBar.svelte'
   import PinButton from '../parts/PinButton.svelte'
   import PageHead from '../parts/PageHead.svelte'
   import { downloads } from '../lib/downloads.svelte'
-  let { kind, key = '', title = '', params = {} }: { kind: string; key?: string; title?: string; params?: Record<string, unknown> } = $props()
+  let { kind, key = '', title = '', params = {}, chips }: { kind: string; key?: string; title?: string; params?: Record<string, unknown>; chips?: import('svelte').Snippet } = $props()
   let result = $state<any>({ own: [], appearsOn: [] })
   // New music has three lists, each with its own grouping: newest added (Lyrion's New Music), newest changed files (Lyrion's Recently Updated) and a random pick
   const newModes: [string, string, string][] = [['added', t('Added'), 'newAlbums'], ['updated', t('Updated'), 'updatedAlbums'], ['random', t('Random'), 'randomAlbums']]
@@ -34,9 +34,10 @@
 <PageHead title={title || result.name || ''} detail={albumCount ? tn(albumCount, '{count} album', '{count} albums') : ''}>
   {#snippet titleExtra()}{#if kind !== 'albums' && kind !== 'custom' && key}<PinButton view={{ kind, key, title: title || result.name || '' }} />{/if}{/snippet}
   {#if playlist.open && (result.own ?? []).length}<button class="ghost" onclick={addAll}>{t('＋ Add all to {playlist}', { playlist: playlist.name })}</button>{/if}
-  {#if kind === 'new' && newMode === 'random'}<button class="ghost" onclick={() => shuffles++}>{t('Shuffle again')}</button>{/if}
-  <BrowseBar {view} showSort={kind !== 'new'} />
+  {#if kind === 'new' && newMode === 'random' || kind === 'albums' && view.sort === 'random'}<button class="ghost" onclick={() => shuffles++}>{t('Shuffle again')}</button>{/if}
+  <BrowseBar {view} showSort={kind !== 'new'} sorts={kind === 'albums' ? albumsSortOptions : sortOptions} />
 </PageHead>
+{@render chips?.()}
 {#if kind === 'new'}<div class="chips">{#each newModes as [mode, label]}<button class:on={newMode === mode} onclick={() => setNewMode(mode)}>{label}</button>{/each}</div>{/if}
 {#each sections as [sectionName, albums] (sectionName)}
   {@const groups = groupAlbums(albums, view.group)}
