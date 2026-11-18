@@ -1329,5 +1329,12 @@
   "Paused on {player}": "Pozastaveno na: {player}",
   "Nothing playing on {player}": "Na {player} nic nehraje",
   "{player} is switched off": "{player} je vypnutý",
-  "Full window meters switch to the mini player when the window gets small": "Měřáky na celé okno se přepnou na minipřehrávač, když se okno zmenší"
+  "Full window meters switch to the mini player when the window gets small": "Měřáky na celé okno se přepnou na minipřehrávač, když se okno zmenší",
+  "Update WinSqueeze to {version}": "Aktualizovat WinSqueeze na {version}",
+  "WinSqueeze {version} is downloaded. The blue dot stays until you update.": "WinSqueeze {version} je stažený. Modrá tečka zůstane, dokud neaktualizuješ.",
+  "Update now, or later from the tray menu.": "Aktualizuj teď, nebo později z nabídky v oznamovací oblasti.",
+  "Update now, or later from Settings › About.": "Aktualizuj teď, nebo později v Nastavení › O aplikaci.",
+  "Update WinSqueeze now": "Aktualizovat WinSqueeze teď",
+  "Update ready: {version}": "Aktualizace připravena: {version}",
+  "Flash a blue dot on the tray icon when an update is ready": "Blikat modrou tečkou na ikoně v oznamovací oblasti, když je připravena aktualizace"
 }
