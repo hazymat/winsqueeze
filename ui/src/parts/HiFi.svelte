@@ -45,6 +45,7 @@
   // Fit from layout size (offsetWidth/Height): no zoom, transform or screen scaling can skew it, so the fit is the same on every monitor
   function fitMeters() { if (!meterBox) return; const naturalWidth = meterBox.offsetWidth, naturalHeight = meterBox.offsetHeight; if (naturalWidth && naturalHeight) meterZoom = Math.min(490 / naturalWidth, 190 / naturalHeight) }
   $effect(() => { meterBox; stageZoom; ui.meterStyle; requestAnimationFrame(fitMeters) })
+  $effect(() => { if (!meterBox) return; const meterSizeWatch = new ResizeObserver(() => requestAnimationFrame(fitMeters)); meterSizeWatch.observe(meterBox); return () => meterSizeWatch.disconnect() }) // a new style (or a builder meter of another shape) draws a frame later: refit when it does
   // Bare metal moves the window; right-click anywhere moves on to the Transporter
   function pressPlate(event: MouseEvent) { if (event.button === 0 && !(event.target as HTMLElement).closest('button, .knob, .seek-zone, .clickable')) sendToShell({ type: 'dragWindow' }) }
   // Firmware-style update (SPEC.md › Hi-fi mode): the standby lamp pulses blue when an update is ready; hovering it shows the update on the display with an Update key;
@@ -253,6 +254,7 @@
   .display.clickable { cursor: pointer; }
   /* Meter area: no surround of its own, the meters draw their own cut-outs in the plate */
   .meter-window { position: absolute; left: var(--pad); top: 34px; width: 490px; height: 190px; display: grid; place-items: center; }
+  .meter-zoom { width: max-content; } /* its own size, never squeezed to the window, so the fit measures the real meters */
   .pane { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: linear-gradient(160deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.03) 28%, rgba(255,255,255,0) 29%, rgba(255,255,255,0) 100%); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); }
   /* VFD behind dark tinted acrylic, with the tube's fine grid mesh */
   .display { position: absolute; left: 552px; width: 414px; top: 34px; height: 190px; border-radius: 6px; background: radial-gradient(120% 90% at 50% 40%, #071513 0%, #030807 70%); box-shadow: 0 -1px 0 rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.85), inset 0 3px 10px rgba(0,0,0,0.95); overflow: hidden; }
