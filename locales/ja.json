@@ -1328,5 +1328,6 @@
   "music": "音楽",
   "Paused on {player}": "{player} で一時停止中",
   "Nothing playing on {player}": "{player} で再生していません",
-  "{player} is switched off": "{player} はオフです"
+  "{player} is switched off": "{player} はオフです",
+  "Full window meters switch to the mini player when the window gets small": "ウィンドウが小さくなると、全体ウィンドウのメーターをミニプレーヤーに切り替える"
 }

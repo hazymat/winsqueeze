@@ -1328,5 +1328,6 @@
   "music": "musiikki",
   "Paused on {player}": "Tauolla laitteessa {player}",
   "Nothing playing on {player}": "Laitteessa {player} ei soi mitään",
-  "{player} is switched off": "{player} on pois päältä"
+  "{player} is switched off": "{player} on pois päältä",
+  "Full window meters switch to the mini player when the window gets small": "Koko ikkunan mittarit vaihtuvat minisoittimeen, kun ikkuna pienenee"
 }

@@ -1328,5 +1328,6 @@
   "music": "音乐",
   "Paused on {player}": "{player} 已暂停",
   "Nothing playing on {player}": "{player} 上没有播放",
-  "{player} is switched off": "{player} 已关闭"
+  "{player} is switched off": "{player} 已关闭",
+  "Full window meters switch to the mini player when the window gets small": "窗口变小时，完整窗口的电平表切换为迷你播放器"
 }

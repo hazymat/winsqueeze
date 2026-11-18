@@ -1328,5 +1328,6 @@
   "music": "musique",
   "Paused on {player}": "En pause sur {player}",
   "Nothing playing on {player}": "Rien en lecture sur {player}",
-  "{player} is switched off": "{player} est éteint"
+  "{player} is switched off": "{player} est éteint",
+  "Full window meters switch to the mini player when the window gets small": "Les vumètres en fenêtre complète passent au mini-lecteur quand la fenêtre devient petite"
 }

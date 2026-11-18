@@ -1328,5 +1328,6 @@
   "music": "musik",
   "Paused on {player}": "Sat på pause på {player}",
   "Nothing playing on {player}": "Intet spiller på {player}",
-  "{player} is switched off": "{player} er slukket"
+  "{player} is switched off": "{player} er slukket",
+  "Full window meters switch to the mini player when the window gets small": "Målere i fuldt vindue skifter til miniafspilleren, når vinduet bliver lille"
 }

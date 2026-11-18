@@ -1328,5 +1328,6 @@
   "music": "hudba",
   "Paused on {player}": "Pozastaveno na: {player}",
   "Nothing playing on {player}": "Na {player} nic nehraje",
-  "{player} is switched off": "{player} je vypnutý"
+  "{player} is switched off": "{player} je vypnutý",
+  "Full window meters switch to the mini player when the window gets small": "Měřáky na celé okno se přepnou na minipřehrávač, když se okno zmenší"
 }

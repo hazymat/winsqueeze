@@ -776,6 +776,7 @@ public partial class SettingsWindow : Window
             }
             AddCheck(L.T("Meters and analysers show the sound after the EQ"), meters => meters.FollowEq, (meters, value) => meters.FollowEq = value);
             AddCheck(L.T("Meters and analysers drop with WinSqueeze's volume (off: they show the music at full level)"), meters => meters.FollowVolume, (meters, value) => meters.FollowVolume = value);
+            AddCheck(L.T("Full window meters switch to the mini player when the window gets small"), meters => meters.LeaveFullWindowWhenSmall, (meters, value) => meters.LeaveFullWindowWhenSmall = value);
             AddRow(L.T("0 VU reference"), L.T("When automatic is off: the RMS level that reads 0 on the VU meters. Higher (e.g. −14) makes the needles read lower; −18 is the usual digital alignment."), -24, -8, 1, meters => meters.ReferenceDbfs, (meters, value) => meters.ReferenceDbfs = value, "dBFS");
             AddRow(L.T("VU ballistics"), L.T("How quickly the needles follow the music. 300 ms is a classic VU."), 50, 1000, 10, meters => meters.VuIntegrationMs, (meters, value) => meters.VuIntegrationMs = value, "ms");
             AddRow(L.T("Spectrum fall"), L.T("How fast the spectrum columns fall back."), 50, 1000, 10, meters => meters.SpectrumFallMs, (meters, value) => meters.SpectrumFallMs = value, "ms");
