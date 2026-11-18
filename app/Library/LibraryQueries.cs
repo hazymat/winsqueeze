@@ -63,7 +63,6 @@ public sealed class LibraryQueries
             "compilations" => new { own = Query(connection, $"SELECT {albumColumns} FROM albums a WHERE a.source=$source AND a.compilation=1 ORDER BY {AlbumOrder(Text("sort"))}", ("$source", albumSource)) },
             // Recently updated: newest (New Music Limit) by their newest file change, as Lyrion's own; "added" carries that time so Date added groups by it
             "updatedAlbums" => new { own = Query(connection, "SELECT a.key, a.title, a.artist, a.year, a.cover_id AS cover, a.track_count AS tracks, a.duration, a.format, MAX(t.modified) AS added FROM albums a JOIN album_tracks at ON at.album_key=a.key JOIN tracks t ON t.id=at.track_id WHERE a.source=$source GROUP BY a.key ORDER BY added DESC, a.artist_norm, a.title_norm LIMIT $limit", ("$source", albumSource), ("$limit", newMusicLimit)) },
-            "randomAlbums" => new { own = Query(connection, $"SELECT {albumColumns} FROM albums a WHERE a.source=$source ORDER BY random() LIMIT 100", ("$source", albumSource)) },
             "newAlbums" => new { own = NewAlbums(connection, 0, newMusicLimit) }, // New music: as many as the server's New Music Limit (Server Settings > Behavior), as Lyrion's own New Music
             "folder" => Folder(connection, Text("key")),
             "album" => Album(connection, Text("key")),

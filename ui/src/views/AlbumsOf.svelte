@@ -10,12 +10,12 @@
   import { downloads } from '../lib/downloads.svelte'
   let { kind, key = '', title = '', params = {}, chips }: { kind: string; key?: string; title?: string; params?: Record<string, unknown>; chips?: import('svelte').Snippet } = $props()
   let result = $state<any>({ own: [], appearsOn: [] })
-  // New music has three lists, each with its own grouping: newest added (Lyrion's New Music), newest changed files (Lyrion's Recently Updated) and a random pick
-  const newModes: [string, string, string][] = [['added', t('Added'), 'newAlbums'], ['updated', t('Updated'), 'updatedAlbums'], ['random', t('Random'), 'randomAlbums']]
+  // New music has two lists, each with its own grouping: newest added (Lyrion's New Music) and newest changed files (Lyrion's Recently Updated). Random albums live in Albums > Sort > Random
+  const newModes: [string, string, string][] = [['added', t('Added'), 'newAlbums'], ['updated', t('Updated'), 'updatedAlbums']]
   let newMode = $state(readSetting('newMusicMode', 'added')), shuffles = $state(0)
   if (newMode === 'random') newMode = 'added' // older builds saved Random too
-  const setNewMode = (mode: string) => { newMode = mode; if (mode !== 'random') writeSetting('newMusicMode', mode) } // Random is a one-off: coming back to New music shows Added or Updated
-  const ownView = browseState(kind), newViews: Record<string, ReturnType<typeof browseState>> = kind === 'new' ? { added: ownView, updated: browseState('updated'), random: browseState('random') } : {}
+  const setNewMode = (mode: string) => { newMode = mode; writeSetting('newMusicMode', mode) }
+  const ownView = browseState(kind), newViews: Record<string, ReturnType<typeof browseState>> = kind === 'new' ? { added: ownView, updated: browseState('updated') } : {}
   const view = $derived(newViews[newMode] ?? ownView)
   const queryName: Record<string, string> = { artist: 'artistAlbums', composer: 'composerAlbums', performer: 'performerAlbums', genre: 'genreAlbums', albums: 'albums', downloads: 'downloadedAlbums', custom: 'customAlbums', new: 'newAlbums', compilations: 'compilations' }
   $effect(() => { app.indexVersion; if (kind === 'downloads') downloads.finishedTracks; app.librarySettings.AlbumSource; app.librarySettings.ContributorGrouping; shuffles; query(kind === 'new' ? (newModes.find(mode => mode[0] === newMode) ?? newModes[0])[2] : queryName[kind], Object.assign({ key, sort: view.sort }, params)).then(data => result = data ?? { own: [] }) })
@@ -34,7 +34,7 @@
 <PageHead title={title || result.name || ''} detail={albumCount ? tn(albumCount, '{count} album', '{count} albums') : ''}>
   {#snippet titleExtra()}{#if kind !== 'albums' && kind !== 'custom' && key}<PinButton view={{ kind, key, title: title || result.name || '' }} />{/if}{/snippet}
   {#if playlist.open && (result.own ?? []).length}<button class="ghost" onclick={addAll}>{t('＋ Add all to {playlist}', { playlist: playlist.name })}</button>{/if}
-  {#if kind === 'new' && newMode === 'random' || kind === 'albums' && view.sort === 'random'}<button class="ghost" onclick={() => shuffles++}>{t('Shuffle again')}</button>{/if}
+  {#if kind === 'albums' && view.sort === 'random'}<button class="ghost" onclick={() => shuffles++}>{t('Shuffle again')}</button>{/if}
   <BrowseBar {view} showSort={kind !== 'new'} sorts={kind === 'albums' ? albumsSortOptions : sortOptions} />
 </PageHead>
 {@render chips?.()}

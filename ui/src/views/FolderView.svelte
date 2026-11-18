@@ -14,17 +14,18 @@
   const plain = (text: string) => (text ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
   // Breadcrumb: a folder already in the Back history is gone back to (so Back and the list positions still make sense), any other opens
   function openCrumb(key: string, name: string) {
+    if (!key) writeSetting('albumsRoot', 'folders') // the Folders crumb lands on the folder tree, not the Albums chip
     const depth = key ? nav.stack.map(view => view.kind === 'folder' && view.key === key).lastIndexOf(true) + 1 : nav.section === 'folders' ? 0 : -1
     if (depth < 0 || (key && depth === 0)) { openView(key ? { kind: 'folder', key, title: name } : { kind: 'folders', title: t('Folders') }); return }
     while (nav.stack.length > depth) back()
   }
-  // With albums from folders the sidebar's Albums entry is Folders; its top page can also list every album (sort by Title, or Random), as Lyrion's Albums menu
-  let rootMode = $state(readSetting('foldersRoot', 'folders'))
-  const setRootMode = (mode: string) => { rootMode = mode; writeSetting('foldersRoot', mode) }
+  // With albums from folders the sidebar's Albums entry lists every album (as Lyrion's Albums menu); a Folders chip switches to the folder tree, remembered
+  let rootMode = $state(readSetting('albumsRoot', 'albums'))
+  const setRootMode = (mode: string) => { rootMode = mode; writeSetting('albumsRoot', mode) }
   const shown = $derived(ui.search.length >= 2 ? (folder.children ?? []).filter((child: any) => plain(child.name).includes(plain(ui.search))) : folder.children ?? [])
 </script>
 
-{#snippet rootChips()}<div class="chips">{#each [['folders', t('Folders')], ['albums', t('Albums')]] as [mode, label]}<button class:on={rootMode === mode} onclick={() => setRootMode(mode)}>{label}</button>{/each}</div>{/snippet}
+{#snippet rootChips()}<div class="chips">{#each [['albums', t('Albums')], ['folders', t('Folders')]] as [mode, label]}<button class:on={rootMode === mode} onclick={() => setRootMode(mode)}>{label}</button>{/each}</div>{/snippet}
 {#if !folderKey && rootMode === 'albums'}
   <AlbumsOf kind="albums" title={t('Albums')} chips={rootChips} />
 {:else}
