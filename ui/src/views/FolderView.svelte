@@ -19,7 +19,7 @@
     if (depth < 0 || (key && depth === 0)) { openView(key ? { kind: 'folder', key, title: name } : { kind: 'folders', title: t('Folders') }); return }
     while (nav.stack.length > depth) back()
   }
-  // With albums from folders the sidebar's Albums entry lists every album (as Lyrion's Albums menu); a Folders chip switches to the folder tree, remembered
+  // The sidebar's Albums entry lists every album (as Lyrion's Albums menu, cut up as Settings says); a Folders chip switches to the folder tree whichever way albums are built, remembered
   let rootMode = $state(readSetting('albumsRoot', 'albums'))
   const setRootMode = (mode: string) => { rootMode = mode; writeSetting('albumsRoot', mode) }
   const shown = $derived(ui.search.length >= 2 ? (folder.children ?? []).filter((child: any) => plain(child.name).includes(plain(ui.search))) : folder.children ?? [])

@@ -42,7 +42,6 @@
   let height = $state(window.innerHeight)
   const mini = $derived(!ui.hifi && !ui.transporter && !(ui.metersFull && !app.meterSettings.leaveFullWindowWhenSmall) && (height < 400 || width < 460)) // short or narrow windows snap to the mini player, with big meters; full window meters shrink instead unless Settings › Meters says otherwise
   const vertical = $derived(!mini && width <= 900)
-  const folderMode = $derived(app.librarySettings.AlbumSource !== 'tags')
   // Switched-on custom views (SPEC.md › Custom views): one entry each, or one per group for views that share a group
   const levelGlyphs: Record<string, string> = { genre: 'genres', composer: 'composers', artist: 'artists', performer: 'performers' }
   const customSections = $derived(((app.librarySettings.CustomViews ?? []) as any[]).filter(view => view.Enabled).reduce((entries: string[][], view) => { const key = view.Group ? 'customgroup:' + view.Group : 'custom:' + view.Id; if (!entries.some(entry => entry[0] === key)) entries.push([key, view.Group || view.Name, levelGlyphs[view.Levels?.[view.Levels.length - 1]] ?? 'albums']); return entries }, []))
@@ -292,7 +291,7 @@
           {:else if view.kind === 'compilations'}
             <AlbumsOf kind="compilations" title={t('Compilations')} />
           {:else if view.kind === 'folders'}
-            {#if folderMode}<FolderView />{:else}<AlbumsOf kind="albums" title={t('Albums')} />{/if}
+            <FolderView />
           {:else if view.kind === 'folder'}
             {#key view.key}<FolderView folderKey={view.key} />{/key}
           {:else if view.kind === 'album'}
