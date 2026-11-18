@@ -29,7 +29,8 @@ public partial class MainWindow : Window
         Activated += (sender, args) => OnFirstActivation();
         StateChanged += (sender, args) => { UpdateFrameMargin(); PushWindowState(); };
         LocationChanged += (sender, args) => { if (double.IsFinite(Left) && double.IsFinite(Top)) Push(JsonSerializer.Serialize(new { type = "windowMoved", x = (int)Left, y = (int)Top })); }; // the VU needles jog when the window is dragged
-        IsVisibleChanged += (sender, args) => App.UpdatePolling();
+        IsVisibleChanged += (sender, args) => { App.UpdatePolling(); if (IsVisible) RefreshDpi(); };
+        Activated += (sender, args) => RefreshDpi();
         App.StatusChanged += () => Push(App.StatusJson());
         App.HistoryChanged += () => Push("{\"type\":\"historyChanged\"}");
         App.Session.StatusUpdated += () => Push($"{{\"type\":\"nowPlaying\",\"status\":{App.Session.LastStatusJson}}}");
@@ -41,7 +42,7 @@ public partial class MainWindow : Window
         App.DamagedFound += (damagedFile, what) => Push(JsonSerializer.Serialize(new { type = "damagedFound", id = damagedFile.Id, title = damagedFile.Title, what }));
         // Meter data, only while the window is on screen
         App.Visualiser.LevelsReady += levelsJson => { if (webViewReady) Dispatcher.BeginInvoke(() => { if (IsVisible && WindowState != WindowState.Minimized) webView.CoreWebView2?.PostWebMessageAsJson(levelsJson); }); };
-        Microsoft.Win32.SystemEvents.DisplaySettingsChanged += (sender, args) => Dispatcher.BeginInvoke(RestoreBoundsForDisplays);
+        Microsoft.Win32.SystemEvents.DisplaySettingsChanged += (sender, args) => Dispatcher.BeginInvoke(async () => { RefreshDpi(); RestoreBoundsForDisplays(); await Task.Delay(1500); RefreshDpi(); }); // Windows moves windows a moment after the event
         App.LibraryChanged += () => { PushSettings(); Push("{\"type\":\"indexUpdated\"}"); };
         App.HintsChanged += PushSettings;
         App.TrackInfoChanged += PushSettings;
@@ -435,6 +436,22 @@ public partial class MainWindow : Window
         App.Settings.General.WindowBounds[DisplayKey] = new[] { bounds.Left, bounds.Top, bounds.Width, bounds.Height, (fullScreen ? maximisedBeforeFullScreen : boundsBeforeHifi != null ? maximisedBeforeHifi : WindowState == WindowState.Maximized) ? 1 : 0 };
     }
 
+    // After a dock or monitor change Windows can move the window to a screen with another scale without telling WPF (WM_DPICHANGED never arrives, e.g. while hidden in the tray),
+    // leaving the whole window drawn at the old scale (tiny or huge). If the monitor's real DPI differs from WPF's, replay WM_DPICHANGED with the current rect so WPF and WebView2 rescale.
+    [DllImport("user32.dll")] static extern uint GetDpiForWindow(IntPtr windowHandle);
+    [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr windowHandle, out NativeRect rect);
+    struct NativeRect { public int Left, Top, Right, Bottom; }
+    void RefreshDpi()
+    {
+        var windowHandle = new WindowInteropHelper(this).Handle;
+        if (windowHandle == IntPtr.Zero || WindowState == WindowState.Minimized) return;
+        var monitorDpi = GetDpiForWindow(windowHandle);
+        if (monitorDpi == 0 || Math.Abs(monitorDpi / 96.0 - VisualTreeHelper.GetDpi(this).DpiScaleX) < 0.01 || !GetWindowRect(windowHandle, out var windowRect)) return;
+        var rectPointer = Marshal.AllocHGlobal(Marshal.SizeOf<NativeRect>());
+        try { Marshal.StructureToPtr(windowRect, rectPointer, false); SendMessage(windowHandle, 0x02E0, (IntPtr)(monitorDpi | (monitorDpi << 16)), rectPointer); }
+        finally { Marshal.FreeHGlobal(rectPointer); }
+    }
+
     public void RestoreBoundsForDisplays()
     {
         if (App.Settings.General.WindowBounds.TryGetValue(DisplayKey, out var saved) && saved.Length == 5 && saved[2] >= 200 && saved[3] >= 150)
@@ -452,6 +469,14 @@ public partial class MainWindow : Window
     {
         if (double.IsNaN(Left) || double.IsNaN(Top)) return;
         var scale = PresentationSource.FromVisual(this)?.CompositionTarget?.TransformToDevice.M11 ?? 1;
+        // Never bigger than the screen it is on (a smaller monitor after a dock change)
+        var windowHandle = new WindowInteropHelper(this).Handle;
+        if (windowHandle != IntPtr.Zero && WindowState == WindowState.Normal)
+        {
+            var currentArea = System.Windows.Forms.Screen.FromHandle(windowHandle).WorkingArea;
+            if (Width > currentArea.Width / scale) { Width = currentArea.Width / scale; Left = currentArea.X / scale; }
+            if (Height > currentArea.Height / scale) { Height = currentArea.Height / scale; Top = currentArea.Y / scale; }
+        }
         var dragPoint = new Point(Left + Math.Min(Width, 400) / 2, Top + 12);
         var onScreen = System.Windows.Forms.Screen.AllScreens.Any(screen => new Rect(screen.WorkingArea.X / scale, screen.WorkingArea.Y / scale, screen.WorkingArea.Width / scale, screen.WorkingArea.Height / scale).Contains(dragPoint));
         if (onScreen) return;
