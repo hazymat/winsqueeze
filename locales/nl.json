@@ -1334,5 +1334,5 @@
   "WinSqueeze {version} is downloaded. The blue dot stays until you update.": "WinSqueeze {version} is gedownload. De blauwe stip blijft tot je bijwerkt.",
   "Update WinSqueeze now": "WinSqueeze nu bijwerken",
   "Update ready: {version}": "Update klaar: {version}",
-  "Flash a blue dot on the tray icon when an update is ready": "Een blauwe stip laten knipperen op het systeemvakpictogram als er een update klaarstaat"
+  "Update notifications: the bar in the window and the flashing blue dot on the tray icon": "Updatemeldingen: de balk in het venster en de knipperende blauwe stip op het systeemvakpictogram"
 }

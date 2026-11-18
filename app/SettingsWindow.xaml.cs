@@ -158,14 +158,13 @@ public partial class SettingsWindow : Window
         void ShowTrayChoices()
         {
             var showTray = Settings.General.ShowTrayIcon;
-            updateDotBox.IsEnabled = showTray;
             startMinimisedBox.Content = showTray ? L.T("Start minimised to tray") : L.T("Start minimised to the taskbar");
             closeHidesBox.Content = showTray ? L.T("Close (X) keeps WinSqueeze running in the tray (otherwise it quits)") : L.T("Close (X) keeps WinSqueeze running on the taskbar (otherwise it quits)");
         }
         trayIconBox.IsChecked = Settings.General.ShowTrayIcon;
         ShowTrayChoices();
-        updateDotBox.IsChecked = Settings.General.UpdateDot;
-        updateDotBox.Click += (sender, args) => { Settings.General.UpdateDot = updateDotBox.IsChecked == true; Settings.Save(); App.RefreshTrayDot(); };
+        updateNoticesBox.IsChecked = Settings.General.UpdateNotices;
+        updateNoticesBox.Click += (sender, args) => { Settings.General.UpdateNotices = updateNoticesBox.IsChecked == true; Settings.Save(); App.ApplyUpdateNotices(); };
         trayIconBox.Click += (sender, args) => { Settings.General.ShowTrayIcon = trayIconBox.IsChecked == true; Settings.Save(); App.ApplyTrayIcon(); ShowTrayChoices(); };
         exportSettingsButton.Click += (sender, args) =>
         {

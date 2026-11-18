@@ -14,7 +14,7 @@ public sealed class TrayIcon : IDisposable
     string tipText = "WinSqueeze", iconKey = "";
     readonly Image blueDot = Dot(NoticeCard.UpdateColour), noDot = new Bitmap(64, 64);
     string ReadyVersion => App.Updater.ReadyVersion;
-    bool DotShown => ReadyVersion != "" && App.Settings.General.UpdateDot; // Settings › General › Show a blue dot on the tray icon when an update is ready
+    bool DotShown => ReadyVersion != "" && App.Settings.General.UpdateNotices; // Settings › About › Update notifications
     readonly ToolStripMenuItem outputMenu = new(L.T("Output device")), playerMenu = new(L.T("Player")), sleepMenu = new(L.T("Sleep")), windowModeMenu = new(L.T("Window mode")), skinMenu = new(L.T("Skin"));
     App App => App.Instance;
 

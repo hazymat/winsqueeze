@@ -1334,5 +1334,5 @@
   "WinSqueeze {version} is downloaded. The blue dot stays until you update.": "WinSqueeze {version} är nedladdad. Den blå pricken finns kvar tills du uppdaterar.",
   "Update WinSqueeze now": "Uppdatera WinSqueeze nu",
   "Update ready: {version}": "Uppdatering klar: {version}",
-  "Flash a blue dot on the tray icon when an update is ready": "Blinka en blå prick på ikonen i meddelandefältet när en uppdatering är klar"
+  "Update notifications: the bar in the window and the flashing blue dot on the tray icon": "Uppdateringsaviseringar: fältet i fönstret och den blinkande blå pricken på ikonen i meddelandefältet"
 }
