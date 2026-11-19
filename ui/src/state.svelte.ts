@@ -8,7 +8,7 @@ export type PlaylistItem = { id: number; title: string; artist: string; duration
 
 export const app = $state({
   status: null as any, nowPlaying: null as any, players: [] as any[], syncGroups: [] as string[][], groupVolumes: {} as Record<string, number>, selectedPlayer: '', ownPlayer: '',
-  library: { text: '', done: 0, total: 0 }, librarySettings: { AlbumSource: 'folders', ContributorGrouping: 'any' } as any, playback: { QueueEnd: 'stop', ContinueAdds: 'album', ContinueFrom: 'artist' } as Record<string, string>, hints: { hidden: false, dismissed: [] as string[] }, trackInfoTabs: [] as string[], indexVersion: 0, receivedAt: 0,
+  library: { text: '', done: 0, total: 0 }, librarySync: { failing: false, bar: false, recovered: false, problem: '', since: '', synced: '' }, librarySettings: { AlbumSource: 'folders', ContributorGrouping: 'any' } as any, playback: { QueueEnd: 'stop', ContinueAdds: 'album', ContinueFrom: 'artist' } as Record<string, string>, hints: { hidden: false, dismissed: [] as string[] }, trackInfoTabs: [] as string[], indexVersion: 0, receivedAt: 0,
   // Meter data from Squeezelite (~30 a second while playing): VU in dBFS, peak amplitude 0..1, spectrum bands 0..1
   levels: { vu: [-90, -90], peak: [0, 0], bands: Array(10).fill(0), wide: [] as number[], at: 0 }, // wide: Transporter's spectrum, 53 bands a channel (left then right), sent only while it's up
   meterSettings: { referenceDbfs: -18, autoReference: true, leaveFullWindowWhenSmall: false, styles: ['vu', 'green', 'oled'] as string[], designs: {} as Record<string, any> }, // Settings › Meters (styles: the ones a click cycles through, in order)

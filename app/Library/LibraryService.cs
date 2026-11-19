@@ -28,19 +28,87 @@ public sealed class LibraryService
         refreshTimer.Interval = TimeSpan.FromMinutes(Math.Max(1, App.Settings.Library.RefreshMinutes));
         refreshTimer.Tick += async (sender, args) => await RefreshAsync(false);
         refreshTimer.Start();
+        retryTimer.Tick += async (sender, args) => { retryTimer.Stop(); await RefreshAsync(false); };
+        recoveredTimer.Tick += (sender, args) => { recoveredTimer.Stop(); RecoveredAt = null; Changed?.Invoke(); };
+        try { if (App.Settings.ActiveProfile is { } profile && long.TryParse(File.ReadAllText(LastSyncPath(profile)), out var ticks)) LastGoodSync = new DateTime(ticks); } catch { }
         _ = RefreshAsync(false);
     }
+
+    // Sync problems (SPEC.md › Library sync problems): each failure is logged to logs\library.log and retried after 1, 2, 4, 8, then every 10 minutes.
+    // A failure that has lasted 3 minutes shows the amber bar in the main window; Settings › Library & cache always shows the details
+    public const int BarAfterMinutes = 3;
+    readonly DispatcherTimer retryTimer = new(), recoveredTimer = new() { Interval = TimeSpan.FromSeconds(6) };
+    public DateTime? FailingSince { get; private set; }
+    public DateTime? LastGoodSync { get; private set; }
+    public DateTime? NextTry { get; private set; }
+    public DateTime? RecoveredAt { get; private set; } // the bar turns green for a few seconds when a shown failure clears
+    public int FailedTries { get; private set; }
+    public string ErrorText { get; private set; } = ""; // the exception's own words
+    public string ProblemKind { get; private set; } = ""; // unreachable, timeout, password, other
+    public bool Syncing { get; private set; }
+    string hiddenProblem = ""; // the failure the bar was closed on; a different failure, or the same one after a recovery, shows it again
+    string ProblemKey => $"{ProblemKind}|{FailingSince?.Ticks}";
+    public bool BarHidden => FailingSince != null && hiddenProblem == ProblemKey;
+    public bool BarDue => FailingSince is { } since && FailedTries > 1 && DateTime.Now - since >= TimeSpan.FromMinutes(BarAfterMinutes) && !App.IsOffline; // offline, the Downloaded banner already says so
+    public void HideBar() { hiddenProblem = ProblemKey; Changed?.Invoke(); }
+    public string ProblemText => ProblemKind switch { "unreachable" => L.T("can't reach Lyrion"), "timeout" => L.T("Lyrion isn't answering"), "password" => L.T("Lyrion turned down the user name or password"), _ => L.T("Lyrion sent something unexpected") };
+    static string LastSyncPath(ServerProfile profile) => Path.Combine(LibraryDatabase.ProfileFolder(profile), "lastsync.txt");
 
     public async Task RefreshAsync(bool forceRebuild)
     {
         var profile = App.Settings.ActiveProfile;
-        if (profile is not { Host.Length: > 0 } || App.IsOffline) return;
+        if (profile is not { Host.Length: > 0 } || App.IsOffline || librarySync.IsRunning) return;
+        Syncing = true; Changed?.Invoke();
         try
         {
-            if (await librarySync.SyncIfChangedAsync(profile, App.Settings.Library, forceRebuild)) IndexUpdated?.Invoke();
+            var updated = await librarySync.SyncIfChangedAsync(profile, App.Settings.Library, forceRebuild);
+            SyncWorked(profile);
+            if (updated) IndexUpdated?.Invoke();
         }
-        catch (Exception syncError) { ProgressText = L.T("Library sync failed: {error}", ("error", syncError.Message)); Changed?.Invoke(); }
+        catch (Exception syncError) { SyncFailed(syncError, profile); }
+        finally { Syncing = false; Changed?.Invoke(); }
     }
+
+    void SyncWorked(ServerProfile profile)
+    {
+        ProgressText = ""; ProgressDone = ProgressTotal = 0; // a failure's text used to stay until the next full rebuild
+        LastGoodSync = DateTime.Now;
+        try { File.WriteAllText(LastSyncPath(profile), LastGoodSync.Value.Ticks.ToString()); } catch { }
+        if (FailingSince == null) return;
+        if (BarDue && !BarHidden) { RecoveredAt = DateTime.Now; recoveredTimer.Stop(); recoveredTimer.Start(); }
+        Log($"Sync works again after {FailedTries} failed {(FailedTries == 1 ? "try" : "tries")}");
+        FailingSince = NextTry = null; FailedTries = 0; ErrorText = ProblemKind = ""; retryTimer.Stop();
+    }
+
+    void SyncFailed(Exception syncError, ServerProfile profile)
+    {
+        var message = syncError.Message.Replace(profile.Host, "server"); // the repo and logs never carry addresses
+        ProgressText = ""; ProgressDone = ProgressTotal = 0;
+        var kind = syncError switch { TaskCanceledException or TimeoutException => "timeout", HttpRequestException { StatusCode: System.Net.HttpStatusCode.Unauthorized } => "password", HttpRequestException { StatusCode: null } => "unreachable", _ => "other" };
+        var sameError = FailingSince != null && kind == ProblemKind && message == ErrorText;
+        FailingSince ??= DateTime.Now; FailedTries++; ProblemKind = kind; ErrorText = message;
+        var waitMinutes = Math.Min(10, 1 << Math.Min(FailedTries - 1, 4));
+        NextTry = DateTime.Now.AddMinutes(waitMinutes); retryTimer.Stop(); retryTimer.Interval = TimeSpan.FromMinutes(waitMinutes); retryTimer.Start();
+        Log(sameError ? $"Sync failed again, same error (try {FailedTries}, next in {waitMinutes} min)" : $"Sync failed: {syncError.GetType().Name}: {message} (try {FailedTries}, next in {waitMinutes} min)");
+    }
+
+    // logs\library.log: sync failures and recoveries, no addresses. Kept to its last 300 lines
+    static readonly object logLock = new();
+    public static void Log(string line)
+    {
+        try
+        {
+            lock (logLock)
+            {
+                var logPath = Path.Combine(AppPaths.LogsFolder, "library.log");
+                var keptLines = File.Exists(logPath) ? File.ReadAllLines(logPath).TakeLast(299).ToList() : new List<string>();
+                keptLines.Add($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {line}");
+                File.WriteAllLines(logPath, keptLines);
+            }
+        }
+        catch { }
+    }
+    public static string LogTail(int lineCount) { try { var logPath = Path.Combine(AppPaths.LogsFolder, "library.log"); return File.Exists(logPath) ? string.Join("\n", File.ReadAllLines(logPath).TakeLast(lineCount)) : ""; } catch { return ""; } }
 
     // Library health (SPEC.md › Library health): built from the local index and kept until the index changes. Rescan asks the server for changes first and checks covers known to be missing again
     Task<JsonElement>? healthRun;
