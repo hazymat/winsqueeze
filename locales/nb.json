@@ -1059,7 +1059,7 @@
   "Start with Windows": "Start med Windows",
   "Resume playing on startup (if the server is still playing to this player)": "Fortsett avspillingen ved oppstart (hvis serveren fortsatt spiller til denne spilleren)",
   "Music may start playing as soon as your PC restarts, if the server was still playing to this player when it shut down.": "Musikk kan begynne å spille så snart PC-en starter på nytt, hvis serveren fortsatt spilte til denne spilleren da den ble slått av.",
-  "Resume playing after an update restarts WinSqueeze": "Fortsett avspillingen etter at en oppdatering har startet WinSqueeze på nytt",
+  "Resume playing after WinSqueeze update": "Fortsett avspillingen etter oppdatering av WinSqueeze",
   "Start minimised to tray": "Start minimert til systemstatusfeltet",
   "Close (X) keeps WinSqueeze running in the tray (otherwise it quits)": "Lukk (X) holder WinSqueeze i gang i systemstatusfeltet (ellers avsluttes den)",
   "Show system tray icon": "Vis ikon i systemstatusfeltet",

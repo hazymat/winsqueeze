@@ -1059,7 +1059,7 @@
   "Start with Windows": "Käynnistä Windowsin mukana",
   "Resume playing on startup (if the server is still playing to this player)": "Jatka soittoa käynnistettäessä (jos palvelin soittaa yhä tähän soittimeen)",
   "Music may start playing as soon as your PC restarts, if the server was still playing to this player when it shut down.": "Musiikki voi alkaa soida heti PC:n käynnistyttyä uudelleen, jos palvelin soitti yhä tähän soittimeen sammutuksen hetkellä.",
-  "Resume playing after an update restarts WinSqueeze": "Jatka soittoa, kun päivitys käynnistää WinSqueezen uudelleen",
+  "Resume playing after WinSqueeze update": "Jatka soittoa WinSqueezen päivityksen jälkeen",
   "Start minimised to tray": "Käynnistä pienennettynä ilmoitusalueelle",
   "Close (X) keeps WinSqueeze running in the tray (otherwise it quits)": "Sulje (X) jättää WinSqueezen käyntiin ilmoitusalueelle (muuten se lopetetaan)",
   "Show system tray icon": "Näytä kuvake ilmoitusalueella",

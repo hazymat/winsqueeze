@@ -1034,7 +1034,7 @@
   "Start with Windows": "Starten met Windows",
   "Resume playing on startup (if the server is still playing to this player)": "Bij het starten verder afspelen (als de server nog naar deze speler afspeelt)",
   "Music may start playing as soon as your PC restarts, if the server was still playing to this player when it shut down.": "Muziek kan beginnen te spelen zodra je pc herstart, als de server nog naar deze speler afspeelde toen hij werd afgesloten.",
-  "Resume playing after an update restarts WinSqueeze": "Verder afspelen nadat een update WinSqueeze herstart",
+  "Resume playing after WinSqueeze update": "Verder afspelen na een WinSqueeze-update",
   "Start minimised to tray": "Geminimaliseerd starten in het systeemvak",
   "Close (X) keeps WinSqueeze running in the tray (otherwise it quits)": "Sluiten (X) laat WinSqueeze in het systeemvak draaien (anders sluit het af)",
   "Show system tray icon": "Pictogram in het systeemvak tonen",
