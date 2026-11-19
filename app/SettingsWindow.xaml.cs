@@ -932,7 +932,7 @@ public partial class SettingsWindow : Window
     {
         updateStatusText.Text = App.Updater.StatusText;
         restartToUpdateButton.Visibility = App.Updater.ReadyVersion == "" ? Visibility.Collapsed : Visibility.Visible;
-        restartToUpdateButton.Content = L.T("Restart to update to {version}", ("version", App.Updater.ReadyVersion));
+        restartToUpdateButton.Content = L.T("Update to {version}", ("version", App.Updater.ReadyVersion));
     }
 
     static void OpenUrl(string url) => Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });

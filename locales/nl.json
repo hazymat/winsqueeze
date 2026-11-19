@@ -122,7 +122,6 @@
   "Update ready": "Update klaar",
   "WinSqueeze {version} is ready": "WinSqueeze {version} staat klaar",
   "Version {version} is ready": "Versie {version} staat klaar",
-  "Restart to update": "Herstarten om bij te werken",
   "Later": "Later",
   "Hold and drag to move": "Vasthouden en slepen om te verplaatsen",
   "Remove spacer": "Tussenruimte verwijderen",
@@ -261,7 +260,6 @@
   "Fast-forward (hold to scan)": "Vooruitspoelen (vasthouden om te zoeken)",
   "Next track": "Volgend nummer",
   "Hi-fi": "Hi-fi",
-  "Restart to update to {version}": "Herstarten om bij te werken naar {version}",
   "Position": "Positie",
   "Click or drag to move through the track": "Klik of sleep om door het nummer te gaan",
   "Volume {volume} (drag up or down, or scroll)": "Volume {volume} (sleep omhoog of omlaag, of scroll)",
@@ -853,7 +851,6 @@
   "Checking for updates…": "Controleren op updates…",
   "Up to date ({version}). Checked {time}.": "Up-to-date ({version}). Gecontroleerd {time}.",
   "Downloading {version}…": "{version} downloaden…",
-  "WinSqueeze {version} is downloaded and ready. Restart to update.": "WinSqueeze {version} is gedownload en staat klaar. Herstart om bij te werken.",
   "WinSqueeze {version} is ready. Click Restart to update in the window or Settings › About.": "WinSqueeze {version} staat klaar. Klik op Herstarten om bij te werken in het venster of in Instellingen › Over.",
   "{version} is already running.": "{version} draait al.",
   "Could not switch to {version}: {error}": "Kan niet overschakelen naar {version}: {error}",
@@ -1336,5 +1333,8 @@
   "WinSqueeze {version} is downloaded. The blue dot stays until you update.": "WinSqueeze {version} is gedownload. De blauwe stip blijft tot je bijwerkt.",
   "Update WinSqueeze now": "WinSqueeze nu bijwerken",
   "Update ready: {version}": "Update klaar: {version}",
-  "Update notifications: the bar in the window and the flashing blue dot on the tray icon": "Updatemeldingen: de balk in het venster en de knipperende blauwe stip op het systeemvakpictogram"
+  "Update notifications: the bar in the window and the flashing blue dot on the tray icon": "Updatemeldingen: de balk in het venster en de knipperende blauwe stip op het systeemvakpictogram",
+  "Update now": "Nu bijwerken",
+  "Update to {version}": "Bijwerken naar {version}",
+  "WinSqueeze {version} is downloaded and ready.": "WinSqueeze {version} is gedownload en staat klaar."
 }

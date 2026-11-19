@@ -122,7 +122,6 @@
   "Update ready": "更新已就绪",
   "WinSqueeze {version} is ready": "WinSqueeze {version} 已就绪",
   "Version {version} is ready": "版本 {version} 已就绪",
-  "Restart to update": "重启以更新",
   "Later": "稍后",
   "Hold and drag to move": "按住并拖动以移动",
   "Remove spacer": "移除分隔符",
@@ -261,7 +260,6 @@
   "Fast-forward (hold to scan)": "快进（按住搜索）",
   "Next track": "下一首",
   "Hi-fi": "Hi-Fi",
-  "Restart to update to {version}": "重启以更新到 {version}",
   "Position": "位置",
   "Click or drag to move through the track": "点击或拖动以在曲目中移动",
   "Volume {volume} (drag up or down, or scroll)": "音量 {volume}（上下拖动或滚动滚轮）",
@@ -853,7 +851,6 @@
   "Checking for updates…": "正在检查更新…",
   "Up to date ({version}). Checked {time}.": "已是最新（{version}）。检查于 {time}。",
   "Downloading {version}…": "正在下载 {version}…",
-  "WinSqueeze {version} is downloaded and ready. Restart to update.": "WinSqueeze {version} 已下载完毕。重启即可更新。",
   "WinSqueeze {version} is ready. Click Restart to update in the window or Settings › About.": "WinSqueeze {version} 已准备就绪。在窗口或 设置 › 关于 中点击“重启以更新”。",
   "{version} is already running.": "{version} 已在运行。",
   "Could not switch to {version}: {error}": "无法切换到 {version}：{error}",
@@ -1336,5 +1333,8 @@
   "WinSqueeze {version} is downloaded. The blue dot stays until you update.": "WinSqueeze {version} 已下载。蓝点会一直显示，直到你更新。",
   "Update WinSqueeze now": "立即更新 WinSqueeze",
   "Update ready: {version}": "更新已就绪：{version}",
-  "Update notifications: the bar in the window and the flashing blue dot on the tray icon": "更新提醒：窗口中的提示栏和通知区域图标上闪烁的蓝点"
+  "Update notifications: the bar in the window and the flashing blue dot on the tray icon": "更新提醒：窗口中的提示栏和通知区域图标上闪烁的蓝点",
+  "Update now": "立即更新",
+  "Update to {version}": "更新到 {version}",
+  "WinSqueeze {version} is downloaded and ready.": "WinSqueeze {version} 已下载并就绪。"
 }

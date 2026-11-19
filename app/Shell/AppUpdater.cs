@@ -124,7 +124,7 @@ public sealed class AppUpdater
             SetStatus(L.T("Downloading {version}…", ("version", foundUpdate.TargetFullRelease.Version)));
             await updateManager.DownloadUpdatesAsync(foundUpdate);
             readyManager = updateManager; readyUpdate = foundUpdate;
-            SetStatus(L.T("WinSqueeze {version} is downloaded and ready. Restart to update.", ("version", ReadyVersion)));
+            SetStatus(L.T("WinSqueeze {version} is downloaded and ready.", ("version", ReadyVersion)));
         }
     }
 
@@ -184,7 +184,7 @@ public sealed class AppUpdater
         SetStatus(L.T("Downloading {version}…", ("version", newestVersion)));
         portableStagedPath = await DownloadPortableAsync(newestTag);
         portableReadyVersion = newestVersion;
-        SetStatus(L.T("WinSqueeze {version} is downloaded and ready. Restart to update.", ("version", ReadyVersion)));
+        SetStatus(L.T("WinSqueeze {version} is downloaded and ready.", ("version", ReadyVersion)));
     }
 
     static async Task<string> DownloadPortableAsync(string releaseTag)

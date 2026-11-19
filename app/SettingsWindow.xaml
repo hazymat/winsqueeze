@@ -635,7 +635,7 @@
               <CheckBox x:Name="updateNoticesBox" Content="Update notifications: the bar in the window and the flashing blue dot on the tray icon" Margin="0,8,0,0" />
               <WrapPanel Margin="0,10,0,0">
                 <Button x:Name="checkNowButton" Content="Check now" />
-                <Button x:Name="restartToUpdateButton" Content="Restart to update" Visibility="Collapsed" FontWeight="SemiBold" />
+                <Button x:Name="restartToUpdateButton" Content="Update now" Visibility="Collapsed" FontWeight="SemiBold" />
               </WrapPanel>
               <TextBlock x:Name="updateStatusText" Style="{StaticResource Quiet}" />
             </StackPanel>

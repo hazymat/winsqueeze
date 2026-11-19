@@ -122,7 +122,6 @@
   "Update ready": "Update bereit",
   "WinSqueeze {version} is ready": "WinSqueeze {version} ist bereit",
   "Version {version} is ready": "Version {version} ist bereit",
-  "Restart to update": "Zum Aktualisieren neu starten",
   "Later": "Später",
   "Hold and drag to move": "Halten und ziehen zum Verschieben",
   "Remove spacer": "Abstand entfernen",
@@ -827,7 +826,6 @@
   "running now": "läuft gerade",
   "No versions published yet.": "Noch keine Versionen veröffentlicht.",
   "Could not load versions: {error}": "Versionen konnten nicht geladen werden: {error}",
-  "Restart to update to {version}": "Neu starten für Update auf {version}",
   "This scan added {count} album": "Dieser Scan hat {count} Album hinzugefügt",
   "This scan added {count} albums": "Dieser Scan hat {count} Alben hinzugefügt",
   "{count} damaged file found while playing.": "{count} beschädigte Datei beim Abspielen gefunden.",
@@ -839,7 +837,6 @@
   "Checking for updates…": "Suche nach Updates …",
   "Up to date ({version}). Checked {time}.": "Aktuell ({version}). Geprüft {time}.",
   "Downloading {version}…": "Lade {version} herunter …",
-  "WinSqueeze {version} is downloaded and ready. Restart to update.": "WinSqueeze {version} ist heruntergeladen und bereit. Zum Aktualisieren neu starten.",
   "WinSqueeze {version} is ready. Click Restart to update in the window or Settings › About.": "WinSqueeze {version} ist bereit. Klicke im Fenster oder unter Einstellungen › Info auf „Zum Aktualisieren neu starten“.",
   "{version} is already running.": "{version} läuft bereits.",
   "Could not switch to {version}: {error}": "Wechsel zu {version} fehlgeschlagen: {error}",
@@ -1336,5 +1333,8 @@
   "WinSqueeze {version} is downloaded. The blue dot stays until you update.": "WinSqueeze {version} ist heruntergeladen. Der blaue Punkt bleibt, bis du aktualisierst.",
   "Update WinSqueeze now": "WinSqueeze jetzt aktualisieren",
   "Update ready: {version}": "Update bereit: {version}",
-  "Update notifications: the bar in the window and the flashing blue dot on the tray icon": "Update-Hinweise: die Leiste im Fenster und der blinkende blaue Punkt am Symbol im Infobereich"
+  "Update notifications: the bar in the window and the flashing blue dot on the tray icon": "Update-Hinweise: die Leiste im Fenster und der blinkende blaue Punkt am Symbol im Infobereich",
+  "Update now": "Jetzt aktualisieren",
+  "Update to {version}": "Auf {version} aktualisieren",
+  "WinSqueeze {version} is downloaded and ready.": "WinSqueeze {version} ist heruntergeladen und bereit."
 }
