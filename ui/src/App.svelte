@@ -5,7 +5,7 @@
   import { noteLongTrack } from './lib/resume'
   import { prefetchInfo } from './lib/nowPlayingInfo'
   import { sendToShell, onShellMessage, request, command, trackArt } from './bridge'
-  import { app, nav, ui, playlist, openSection, back, forward, forwardHistory, currentView, newPlaylist, pins, togglePin, undoToast, undoLast, redoLast, history, toast, noteTrackChange, receiveLevels, windowMoved, cycleMeterView, setHifi, setTransporter, writeSetting, readSetting, currentTrack } from './state.svelte'
+  import { app, nav, ui, playlist, openSection, back, canGoBack, forward, forwardHistory, currentView, newPlaylist, pins, togglePin, undoToast, undoLast, redoLast, history, toast, noteTrackChange, receiveLevels, windowMoved, cycleMeterView, setHifi, setTransporter, writeSetting, readSetting, currentTrack } from './state.svelte'
   import TransportBar from './parts/TransportBar.svelte'
   import WhatsNew from './parts/WhatsNew.svelte'
   import TrackInfo from './parts/TrackInfo.svelte'
@@ -191,7 +191,7 @@
     else if (event.ctrlKey && ((event.shiftKey && event.key.toLowerCase() === 'z') || event.key.toLowerCase() === 'y') && !typing) { event.preventDefault(); redoLast() }
     else if (event.ctrlKey && event.key.toLowerCase() === 'z' && !typing) { event.preventDefault(); if (ui.toast?.undo && ui.toast.undo !== undoLast) undoToast(); else undoLast() }
     else if (!event.ctrlKey && !event.altKey && !typing && ui.toast?.action && event.key.toUpperCase() === ui.toast.action.key) { event.preventDefault(); const action = ui.toast.action; ui.toast = null; action.run() }
-    else if (event.altKey && event.key === 'ArrowLeft' && nav.stack.length) { event.preventDefault(); back() }
+    else if (event.altKey && event.key === 'ArrowLeft' && canGoBack()) { event.preventDefault(); back() }
     else if (event.altKey && event.key === 'ArrowRight' && forwardHistory.views.length) { event.preventDefault(); forward() }
   }
   // Full-window meters: the normal large meters, zoomed evenly to fill the window (everything scales together, like a bigger copy)
@@ -208,7 +208,7 @@
   const toggleMetersScreen = () => sendToShell({ type: 'fullScreen', on: !app.window.fullScreen })
 </script>
 
-<svelte:window bind:innerWidth={width} bind:innerHeight={height} onkeydown={onKey} onmouseup={(event) => { if (event.button === 3 && nav.stack.length) back(); if (event.button === 4) forward() }} oncontextmenu={onContextMenu} onpointerdown={(event) => { if (copyMenu && !(event.target as HTMLElement).closest('.copy-menu')) copyMenu = null }} />
+<svelte:window bind:innerWidth={width} bind:innerHeight={height} onkeydown={onKey} onmouseup={(event) => { if (event.button === 3 && canGoBack()) back(); if (event.button === 4) forward() }} oncontextmenu={onContextMenu} onpointerdown={(event) => { if (copyMenu && !(event.target as HTMLElement).closest('.copy-menu')) copyMenu = null }} />
 <WhatsNew {mini} offset={!!app.status?.updateReady} />
 {#if (ui.trackInfo || ui.itemInfo) && !mini}<TrackInfo ids={ui.trackInfo ?? []} items={ui.itemInfo} />{/if}
 {#if ui.metersFull && !mini}<!-- svelte-ignore a11y_no_noninteractive_element_interactions --><!-- blank frosted areas drag the window, like the meters themselves -->
@@ -263,7 +263,7 @@
         <div class="update-notice"><span>{t('WinSqueeze {version} is ready.', { version: app.status.updateReady })}</span><button class="primary" onclick={() => sendToShell({ type: 'applyUpdate' })}>{t('Update now')}</button></div>
       {/if}
       <header class="topbar" role="presentation" onmousedown={dragWindow}>
-        {#if nav.stack.length || forwardHistory.views.length}<div class="history"><button class="ghost back" onclick={back} disabled={!nav.stack.length} aria-label={t('Back')} title={t('Back (Alt+Left)')}><Icon name="back" size={18} /></button><button class="ghost back" onclick={forward} disabled={!forwardHistory.views.length} aria-label={t('Forward')} title={t('Forward (Alt+Right)')}><Icon name="forward" size={18} /></button></div>{/if}
+        {#if canGoBack() || forwardHistory.views.length}<div class="history"><button class="ghost back" onclick={back} disabled={!canGoBack()} aria-label={t('Back')} title={t('Back (Alt+Left)')}><Icon name="back" size={18} /></button><button class="ghost back" onclick={forward} disabled={!forwardHistory.views.length} aria-label={t('Forward')} title={t('Forward (Alt+Right)')}><Icon name="forward" size={18} /></button></div>{/if}
         <div class="search">
           <input bind:this={searchBox} bind:value={ui.search} onkeydown={(event) => { if (event.key === 'ArrowDown' && everything && searchView) { event.preventDefault(); searchView.focusFirstResult() } }} placeholder={ui.scope === 'everything' ? t('Search everything') : t('Search this list')} aria-label={t('Search')} />
           <div class="scope">
