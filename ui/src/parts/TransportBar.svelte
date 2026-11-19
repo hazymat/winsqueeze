@@ -2,7 +2,7 @@
   import { t } from '../lib/i18n'
   import Hint from './Hint.svelte'
   import { command, sendToShell, trackArt } from '../bridge'
-  import { app, ui, meters, nav, openSection, currentTrack, formatTime } from '../state.svelte'
+  import { app, ui, meters, nav, openSection, back, canGoBack, currentTrack, formatTime } from '../state.svelte'
   import Analyser from './Analyser.svelte'
   import FidelityBadge from './FidelityBadge.svelte'
   import Icon from './Icon.svelte'
@@ -17,9 +17,8 @@
   // The wheel over the mini player steps the volume
   function wheelVolume(event: WheelEvent) { if (!mini) return; const nextVolume = Math.max(0, Math.min(100, volume + (event.deltaY < 0 ? 2 : -2))); draggingVolume = nextVolume; command('mixer', 'volume', nextVolume); clearTimeout(volumeReleaseTimer); volumeReleaseTimer = window.setTimeout(() => draggingVolume = null, 1200); showMiniVolume() }
   $effect(() => { const ticker = setInterval(() => now = Date.now(), 250); return () => clearInterval(ticker) })
-  // The art opens Now playing; again goes back to where you were
-  let previousSection = 'artists'
-  function showNowPlaying() { if (nav.section === 'queue' && !nav.stack.length) openSection(previousSection, true); else { previousSection = nav.section === 'queue' ? previousSection : nav.section; openSection('queue') } }
+  // The art opens Now playing; again goes back to exactly where you were (level, search, scroll)
+  function showNowPlaying() { if (nav.section !== 'queue' || nav.stack.length) openSection('queue'); else if (canGoBack()) back(); else openSection('artists') }
   const status = $derived(app.nowPlaying)
   const track = $derived(currentTrack())
   const playing = $derived(status?.mode === 'play')

@@ -1,7 +1,7 @@
 import { sendToShell, query, command } from './bridge'
 import { t } from './lib/i18n'
 
-export type View = { kind: string; key?: string; title?: string; highlight?: string; filters?: CustomStep[]; scroll?: number; words?: string }
+export type View = { kind: string; key?: string; title?: string; highlight?: string; filters?: CustomStep[]; scroll?: number; words?: string; search?: string; scope?: 'list' | 'everything'; searchScroll?: number }
 // A step taken inside a custom view (SPEC.md › Custom views): the row chosen at that level
 export type CustomStep = { kind: string; key: string; name: string }
 export type PlaylistItem = { id: number; title: string; artist: string; duration: number }
@@ -24,24 +24,28 @@ export const playlist = $state({ open: false, collapsed: false, name: t('Untitle
 export function readSetting(name: string, fallback: string) { try { return localStorage.getItem('ws.' + name) ?? fallback } catch { return fallback } }
 export function writeSetting(name: string, value: string) { try { localStorage.setItem('ws.' + name, value) } catch { } }
 
-// Forward history, like a browser: Back keeps what it left, any new navigation clears it
+// Back and Forward, like a browser (SPEC.md › Back and Forward). Each view keeps how far down it was and any search typed on it (text, This list/Everything, how far down the results were), so returning to it puts all of that back; new views start at the top with no search
 export const forwardHistory = $state({ views: [] as View[] })
-// A sidebar click starts its section afresh from the top; the cover art on the transport bar flips between Now playing and the view before it, which comes back at the same level and scroll (restore)
-type SectionMemory = { stack: View[]; scroll: number; forward: View[] }
-const sectionMemory: Record<string, SectionMemory> = {}
-export function openSection(section: string, restore = false) {
-  rememberScroll(); sectionMemory[nav.section] = { stack: nav.stack, scroll: sectionScroll, forward: forwardHistory.views }
-  const saved = restore ? sectionMemory[section] : undefined
-  nav.section = section; nav.stack = saved?.stack ?? []; ui.search = ''; forwardHistory.views = saved?.forward ?? []; sectionScroll = saved?.scroll ?? 0
-  restoreScroll(nav.stack.length ? nav.stack[nav.stack.length - 1].scroll ?? 0 : sectionScroll)
+// A sidebar click starts its section afresh from the top; the section left goes on a trail, so Back (and the transport-bar cover from Now playing) returns to it at the same level, search and scroll
+type SectionVisit = { section: string; stack: View[]; forward: View[]; root: View }
+const sectionTrail = $state({ visits: [] as SectionVisit[] })
+let sectionRoot: View = { kind: '' } // the section's own page: its scroll and search
+export const canGoBack = () => nav.stack.length > 0 || sectionTrail.visits.length > 0
+export function openSection(section: string) {
+  rememberPlace()
+  if (section !== nav.section || nav.stack.length || sectionRoot.search) sectionTrail.visits = sectionTrail.visits.slice(-29).concat([{ section: nav.section, stack: nav.stack, forward: forwardHistory.views, root: sectionRoot }])
+  nav.section = section; nav.stack = []; forwardHistory.views = []; sectionRoot = { kind: '' }; arrive(sectionRoot)
 }
-// Scroll positions, like a browser: each view keeps how far down it was, Back and Forward return there, new views start at the top
-let sectionScroll = 0, restoreRun = 0
+let restoreRun = 0
 const scrollHost = () => document.querySelector<HTMLElement>('.body > main.content:not(.now-playing-host)')
-function rememberScroll() {
-  if (ui.search.length >= 2 && ui.scope === 'everything') return // search results fill the pane, not this view
-  const top = scrollHost()?.scrollTop ?? 0, leaving = nav.stack[nav.stack.length - 1]
-  if (leaving) leaving.scroll = top; else sectionScroll = top
+function rememberPlace() {
+  const leaving = nav.stack[nav.stack.length - 1] ?? sectionRoot, top = scrollHost()?.scrollTop ?? 0
+  leaving.search = ui.search || undefined; leaving.scope = ui.scope
+  if (ui.search.length >= 2) leaving.searchScroll = top; else leaving.scroll = top // search results (or a filtered list) keep their own position, the page under them keeps its own
+}
+function arrive(place: View) {
+  ui.search = place.search ?? ''; if (place.search && place.scope) ui.scope = place.scope
+  restoreScroll((ui.search.length >= 2 ? place.searchScroll : place.scroll) ?? 0)
 }
 // Lists fill in once their data arrives, so keep putting the position back until the view is tall enough; the person scrolling or a 4 s limit ends it
 function restoreScroll(top: number) {
@@ -59,9 +63,14 @@ function restoreScroll(top: number) {
 }
 // A person named in tag text ("Kapustin, Nikolai; Bach, J.S."): the shell splits it the way the lists do and gives the first person's key
 export async function personView(kind: string, name: string): Promise<View> { const person = await query('personKey', { name, kind }); return { kind, key: person?.key ?? name.toLowerCase(), title: person?.name ?? name } }
-export function openView(view: View) { rememberScroll(); nav.stack = nav.stack.concat([view]); ui.search = ''; forwardHistory.views = []; restoreScroll(0) }
-export function back() { if (!nav.stack.length) return; rememberScroll(); forwardHistory.views = forwardHistory.views.concat([nav.stack[nav.stack.length - 1]]); nav.stack = nav.stack.slice(0, -1); restoreScroll(nav.stack[nav.stack.length - 1]?.scroll ?? sectionScroll) }
-export function forward() { if (!forwardHistory.views.length) return; rememberScroll(); const next = forwardHistory.views[forwardHistory.views.length - 1]; nav.stack = nav.stack.concat([next]); forwardHistory.views = forwardHistory.views.slice(0, -1); restoreScroll(next.scroll ?? 0) }
+export function openView(view: View) { rememberPlace(); nav.stack = nav.stack.concat([view]); ui.search = ''; forwardHistory.views = []; restoreScroll(0) }
+export function back() {
+  if (nav.stack.length) { rememberPlace(); forwardHistory.views = forwardHistory.views.concat([nav.stack[nav.stack.length - 1]]); nav.stack = nav.stack.slice(0, -1); arrive(nav.stack[nav.stack.length - 1] ?? sectionRoot); return }
+  const visit = sectionTrail.visits[sectionTrail.visits.length - 1]; if (!visit) return
+  sectionTrail.visits = sectionTrail.visits.slice(0, -1); nav.section = visit.section; nav.stack = visit.stack; forwardHistory.views = visit.forward; sectionRoot = visit.root
+  arrive(visit.stack[visit.stack.length - 1] ?? visit.root)
+}
+export function forward() { if (!forwardHistory.views.length) return; rememberPlace(); const next = forwardHistory.views[forwardHistory.views.length - 1]; nav.stack = nav.stack.concat([next]); forwardHistory.views = forwardHistory.views.slice(0, -1); arrive(next) }
 export const currentView = (): View => nav.stack.length ? nav.stack[nav.stack.length - 1] : pins.views[nav.section] ?? sectionView(nav.section)
 // Custom views sit in the sidebar as "custom:<id>", or several under one "customgroup:<group name>"
 const sectionView = (section: string): View => section.startsWith('custom:') ? { kind: 'custom', key: section.slice(7), filters: [] } : section.startsWith('customgroup:') ? { kind: 'customGroup', key: section.slice(12) } : { kind: section }
