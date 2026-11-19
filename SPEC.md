@@ -355,6 +355,10 @@ Chosen direction: **Frosted Dark**, frosted glass meets Squeezebox hardware. iOS
 
 Squeezelite logs each decode error (for example a FLAC frame it can't read). WinSqueeze ties the errors to the track they belong to (decoding runs ahead of playback, so "codec open" and "track start" log lines are matched up), and only counts library files, not radio. On the first error it says the file has damaged frames and is playing past them, and Now playing shows the same note. It never skips a damaged file: the decoder resyncs past bad frames and plays as much of the file as it can. The first error message is kept with the file. A file the decoder rejects outright is reported as unplayable. Damaged files are remembered (`damaged-files.json` in the data folder): track lists mark them with ⚠, and Library health lists them with their server paths and first error, with Copy list and Clear list buttons. There is no up-front scan of the library.
 
+## Dropped streams
+
+Squeezelite treats a broken connection to the server as the end of the file: it plays what it has buffered (about a minute) and the server moves on to the next track, so the rest of the track is silently skipped. The usual cause is a track left paused while the PC slept or the network changed, so its half-read stream is dead by the time it resumes. When Squeezelite logs a read error on the stream of the track that is playing, WinSqueeze asks the server where the track is and seeks it there, which opens a fresh stream with only a brief gap. At most three times a track; not in its last 3 seconds; a drop while the next track is still loading, or while paused or stopped, is only logged. Each drop is written to `logs\playback.log` (time, track, position, the Windows error in plain words, and whether it reconnected; last 300 lines), which Copy diagnostics includes.
+
 ## Library health
 
 A sidebar section (and a button in Settings › Library & cache) listing what in the library needs fixing in a tagger. WinSqueeze never changes files or the server. Checks run on the local index, per album folder (one folder = one CD), or per tag album when the library has no folders:
@@ -372,7 +376,7 @@ Each row opens its album (a damaged file opens its album at that track; a person
 
 Unhandled errors, background task errors, WebView2 renderer failures and UI-thread freezes over 8 seconds (hang watchdog) are written to `logs\crash.log` with the version and the last shell activity. The next launch shows a tip pointing to it. Squeezelite's log keeps at most 50 lines a second, so a retry loop can't flood it.
 
-**Copy diagnostics** (Settings › About) copies a plain-text report to the clipboard: version and channel, Windows, server address, player state, output device, and the end of crash.log and squeezelite.log. No passwords.
+**Copy diagnostics** (Settings › About) copies a plain-text report to the clipboard: version and channel, Windows, server address, player state, output device, and the end of crash.log, connection.log, playback.log and squeezelite.log. No passwords.
 
 **Send diagnostics…** (next to it) shows the same report in an editable box with server and other URL host names, PC, player and Windows user names, IP and MAC addresses and folder paths replaced by `<server>`, `<host>`, `<pc>`, `<player>`, `<user>`, `<ip>`, `<mac>`, `<path>`. Copy and open GitHub Discussions copies it and opens a new Discussion (General) with a "What happened?" prompt and the report filled in (or a note to paste it, when the link would be too long). Nothing is sent until the user posts it there. There is no telemetry.
 

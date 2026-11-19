@@ -28,7 +28,7 @@ public sealed partial class SqueezeliteHost : IDisposable
     public int OutputSampleRate { get; private set; }
     public int OutputLatencyMs { get; private set; } // what PortAudio reports once the device is open (shared mode adds to the requested latency)
     public event Action? StatusChanged;
-    public event Action<string>? DecodeLine; // lines DamagedFiles cares about, on Squeezelite's reader thread
+    public event Action<string>? DecodeLine; // lines DamagedFiles and StreamDrops care about, on Squeezelite's reader thread
 
     [GeneratedRegex(@"opened device \d+ - (.+) at (\d+) latency(?: (\d+) ms)?")] private static partial Regex OpenedDeviceRegex();
     // A refused open, with the Windows error code our Squeezelite adds: mid-play ("error opening device") or at startup when every rate is refused (then it exits)
@@ -126,7 +126,7 @@ public sealed partial class SqueezeliteHost : IDisposable
         var thisSecond = Environment.TickCount64 / 1000;
         if (thisSecond != logSecond) { if (droppedLines > 0) try { logWriter?.WriteLine($"(… {droppedLines} repeated lines skipped)"); } catch (ObjectDisposedException) { } logSecond = thisSecond; linesThisSecond = 0; droppedLines = 0; }
         if (++linesThisSecond <= 50) try { logWriter?.WriteLine(logLine); } catch (ObjectDisposedException) { } else droppedLines++;
-        if (DamagedFiles.Matters(logLine)) DecodeLine?.Invoke(logLine);
+        if (DamagedFiles.Matters(logLine) || StreamDrops.Matters(logLine)) DecodeLine?.Invoke(logLine);
         var openedMatch = OpenedDeviceRegex().Match(logLine);
         var refusedMatch = OpenRefusedRegex().Match(logLine);
         if (logLine.Contains("opening WASAPI device in exclusive mode")) ExclusiveActive = true;
