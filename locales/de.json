@@ -1336,5 +1336,5 @@
   "WinSqueeze {version} is downloaded. The blue dot stays until you update.": "WinSqueeze {version} ist heruntergeladen. Der blaue Punkt bleibt, bis du aktualisierst.",
   "Update WinSqueeze now": "WinSqueeze jetzt aktualisieren",
   "Update ready: {version}": "Update bereit: {version}",
-  "Flash a blue dot on the tray icon when an update is ready": "Blauen Punkt am Symbol im Infobereich blinken lassen, wenn ein Update bereit ist"
+  "Update notifications: the bar in the window and the flashing blue dot on the tray icon": "Update-Hinweise: die Leiste im Fenster und der blinkende blaue Punkt am Symbol im Infobereich"
 }

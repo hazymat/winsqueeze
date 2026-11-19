@@ -571,7 +571,7 @@ public partial class App : Application
         offlineAutomatic = OfflineAutomatic,
         serverBack = ServerBack,
         version = Updater.CurrentVersion,
-        updateReady = Updater.ReadyVersion
+        updateReady = Settings.General.UpdateNotices ? Updater.ReadyVersion : "" // the window's update bar, mini dot and hi-fi lamp
     });
 
     public async Task ReplaceSettingsAsync(AppSettings importedSettings)
@@ -599,7 +599,7 @@ public partial class App : Application
     }
     public void ToggleMainWindow() { if (mainWindow.IsVisible && mainWindow.WindowState != WindowState.Minimized) mainWindow.Hide(); else ShowMainWindow(); }
     public void ShowTip(string title, string text) => trayIcon.ShowTip(title, text);
-    public void RefreshTrayDot() => trayIcon.RefreshDot();
+    public void ApplyUpdateNotices() { trayIcon.RefreshDot(); StatusChanged?.Invoke(); }
 
     // VU Builder (SPEC.md › VU Builder): one window, opened from Settings › Meters
     VuBuilderWindow? vuBuilderWindow;
