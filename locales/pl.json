@@ -1034,7 +1034,7 @@
   "Start with Windows": "Uruchamiaj z Windows",
   "Resume playing on startup (if the server is still playing to this player)": "Wznawiaj odtwarzanie przy starcie (jeśli serwer wciąż gra na tym odtwarzaczu)",
   "Music may start playing as soon as your PC restarts, if the server was still playing to this player when it shut down.": "Muzyka może zacząć grać zaraz po restarcie komputera, jeśli serwer wciąż grał na tym odtwarzaczu przy wyłączaniu.",
-  "Resume playing after an update restarts WinSqueeze": "Wznawiaj odtwarzanie, gdy aktualizacja uruchomi ponownie WinSqueeze",
+  "Resume playing after WinSqueeze update": "Wznawiaj odtwarzanie po aktualizacji WinSqueeze",
   "Start minimised to tray": "Uruchamiaj zminimalizowany do zasobnika",
   "Close (X) keeps WinSqueeze running in the tray (otherwise it quits)": "Zamknij (X) zostawia WinSqueeze w zasobniku (w przeciwnym razie kończy działanie)",
   "Show system tray icon": "Pokazuj ikonę w zasobniku systemowym",

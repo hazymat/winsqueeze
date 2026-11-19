@@ -177,7 +177,7 @@ public partial class App : Application
         await CheckOtherPlayersAsync();
         await RefreshDevicesAsync();
         // After an update or version switch, carry on from where playback was (no startup check: it was playing a moment ago).
-        // With "Resume playing after an update" unticked, the held startup check runs instead and pauses whatever the server restarts
+        // With "Resume playing after WinSqueeze update" unticked, the held startup check runs instead and pauses whatever the server restarts
         var resumeArgument = startupArgs.Args.FirstOrDefault(argument => argument.StartsWith("--resume="));
         restartedForUpdate = startupArgs.Args.Any(argument => argument.StartsWith("--window="));
         startupPlaybackChecked = restartedForUpdate && Settings.General.ResumeAfterUpdate;

@@ -1059,7 +1059,7 @@
   "Start with Windows": "Spouštět s Windows",
   "Resume playing on startup (if the server is still playing to this player)": "Po spuštění pokračovat v přehrávání (pokud server stále hraje na tento přehrávač)",
   "Music may start playing as soon as your PC restarts, if the server was still playing to this player when it shut down.": "Hudba může začít hrát hned po restartu PC, pokud server při vypnutí ještě hrál na tento přehrávač.",
-  "Resume playing after an update restarts WinSqueeze": "Pokračovat v přehrávání, když aktualizace restartuje WinSqueeze",
+  "Resume playing after WinSqueeze update": "Pokračovat v přehrávání po aktualizaci WinSqueeze",
   "Start minimised to tray": "Spouštět minimalizovaně do oznamovací oblasti",
   "Close (X) keeps WinSqueeze running in the tray (otherwise it quits)": "Zavřít (X) nechá WinSqueeze běžet v oznamovací oblasti (jinak se ukončí)",
   "Show system tray icon": "Zobrazovat ikonu v oznamovací oblasti",
