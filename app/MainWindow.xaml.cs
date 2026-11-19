@@ -93,7 +93,12 @@ public partial class MainWindow : Window
         Push(downloadsJson);
     }
     void PushDamaged() => Push(JsonSerializer.Serialize(new { type = "damagedFiles", ids = App.Damaged.Files.Select(damagedFile => damagedFile.Id) }));
-    void PushLibraryStatus() => Push(JsonSerializer.Serialize(new { type = "library", text = App.Library.ProgressText, done = App.Library.ProgressDone, total = App.Library.ProgressTotal }));
+    void PushLibraryStatus()
+    {
+        var library = App.Library;
+        Push(JsonSerializer.Serialize(new { type = "library", text = library.ProgressText, done = library.ProgressDone, total = library.ProgressTotal }));
+        Push(JsonSerializer.Serialize(new { type = "librarySync", failing = library.FailingSince != null, bar = library.BarDue && !library.BarHidden, recovered = library.RecoveredAt != null, problem = library.FailingSince != null ? library.ProblemText : "", since = library.FailingSince?.ToString("t") ?? "", synced = library.LastGoodSync?.ToString("t") ?? "" }));
+    }
 
     static object[] CommandParts(JsonElement commandArray) => commandArray.EnumerateArray().Select(part => part.ValueKind == JsonValueKind.String ? (object)(part.GetString() ?? "") : part.GetRawText()).ToArray();
     static List<long> Ids(JsonElement idArray) => idArray.EnumerateArray().Select(idElement => idElement.ValueKind == JsonValueKind.Number ? idElement.GetInt64() : long.Parse(idElement.GetString() ?? "0")).ToList();
@@ -114,6 +119,7 @@ public partial class MainWindow : Window
                 case "dismissHint": if (!App.Settings.General.DismissedHints.Contains(Text(message, "id"))) { App.Settings.General.DismissedHints.Add(Text(message, "id")); App.Settings.Save(); } break;
                 case "setCustomViews": App.Settings.Library.CustomViews = message.GetProperty("views").Deserialize<List<CustomView>>() ?? new(); App.Settings.Save(); App.NotifyLibraryChanged(); break;
                 case "openSettings": App.OpenSettings(Text(message, "tab")); break;
+                case "hideSyncBar": App.Library.HideBar(); break;
                 case "openUrl": if (Uri.TryCreate(Text(message, "url"), UriKind.Absolute, out var webAddress) && (webAddress.Scheme == "https" || webAddress.Scheme == "http")) System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(webAddress.AbsoluteUri) { UseShellExecute = true }); break;
                 case "openExtra": Server.ServerExtras.Open(Text(message, "title"), Text(message, "url")); break;
                 case "quit": App.Quit(); break;

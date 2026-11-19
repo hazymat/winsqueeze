@@ -87,6 +87,7 @@
   onShellMessage('nowPlaying', message => { noteTrackChange(app.nowPlaying, message.status); noteLongTrack(app.nowPlaying, message.status); app.nowPlaying = message.status; checkKeepPlaying(message.status); app.receivedAt = Date.now() })
   onShellMessage('players', message => { app.players = message.players ?? []; app.syncGroups = message.syncGroups ?? []; app.groupVolumes = message.groupVolumes ?? {}; app.ownPlayer = message.own ?? ''; app.selectedPlayer = message.selected ?? app.selectedPlayer })
   onShellMessage('library', message => app.library = { text: message.text ?? '', done: message.done ?? 0, total: message.total ?? 0 })
+  onShellMessage('librarySync', message => app.librarySync = message as any)
   onShellMessage('indexUpdated', () => app.indexVersion++)
   onShellMessage('openSection', message => openSection(message.section))
   onShellMessage('newPlaylist', () => { if (!playlist.open) newPlaylist(); else playlist.collapsed = false })
@@ -251,10 +252,13 @@
         <div class="spacer"></div>
         {#if app.library.total && app.library.done < app.library.total}<div class="sync" title={app.library.text}><div class="bar" style:width={`${(app.library.done / app.library.total) * 100}%`}></div></div>{/if}
         {#if app.library.text}<div class="sync-text">{app.library.text}</div>{/if}
-        <button class="section" onclick={() => sendToShell({ type: 'openSettings' })}><span class="glyph"><Icon name="settings" /></span>{t('Settings')}</button>
+        <button class="section" onclick={() => sendToShell({ type: 'openSettings', tab: app.librarySync.failing ? 'Library' : '' })} title={app.librarySync.failing ? t('Library sync isn\'t working: {problem}', { problem: app.librarySync.problem }) : undefined}><span class="glyph"><Icon name="settings" /></span>{t('Settings')}{#if app.librarySync.failing}<span class="alert-dot"></span>{/if}</button>
       </nav>
     {/if}
     <div class="content-column">
+      <!-- Library sync problems (SPEC.md › Library sync problems): amber while a failure has lasted a few minutes, Details opens Settings › Library & cache; × only hides it; green for a moment once it works again -->
+      {#if app.librarySync.recovered && !app.status?.offline}<div class="sync-bar ok" role="status"><span class="led"></span><span class="sync-message">{t('Library sync is working again')}{#if app.librarySync.synced}<span class="quiet">{' · '}{t('synced {time}', { time: app.librarySync.synced })}</span>{/if}</span></div>
+      {:else if app.librarySync.bar && !app.status?.offline}<div class="sync-bar" role="alert"><span class="led"></span><span class="sync-message">{t('Library sync isn\'t working: {problem}', { problem: app.librarySync.problem })}<span class="quiet">{' · '}{t('since {time}', { time: app.librarySync.since })}</span></span><button class="sync-details" onclick={() => sendToShell({ type: 'openSettings', tab: 'Library' })}>{t('Details')}</button><button class="sync-hide" onclick={() => sendToShell({ type: 'hideSyncBar' })} aria-label={t('Hide')} title={t('Hide until something changes. Settings › Library & cache keeps the details.')}>×</button></div>{/if}
       {#if app.status?.updateReady}
         <div class="update-notice"><span>{t('WinSqueeze {version} is ready.', { version: app.status.updateReady })}</span><button class="primary" onclick={() => sendToShell({ type: 'applyUpdate' })}>{t('Update now')}</button></div>
       {/if}
@@ -364,6 +368,16 @@
   .bar { height: 100%; background: var(--accent); }
   .sync-text { color: var(--fg-quiet); font-size: 11px; padding: 4px 10px 8px; }
   .content-column { display: flex; flex-direction: column; min-width: 0; min-height: 0; height: 100vh; }
+  .sync-bar { display: flex; align-items: center; gap: 10px; padding: 4px 8px 4px 14px; font-size: 13px; background: color-mix(in srgb, #E0912F 16%, var(--panel-solid)); border-bottom: 1px solid color-mix(in srgb, #E0912F 45%, transparent); }
+  .sync-bar.ok { background: color-mix(in srgb, #3FB950 16%, var(--panel-solid)); border-color: color-mix(in srgb, #3FB950 45%, transparent); padding: 7px 14px; }
+  .sync-bar .led { flex: none; width: 9px; height: 9px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #ffe2b0, #E0912F 55%, #7a4a10); animation: amber-breathe 1.6s ease-in-out infinite; }
+  .sync-bar.ok .led { background: radial-gradient(circle at 35% 35%, #c8f5d0, #3FB950 55%, #1d5a28); animation: none; }
+  @keyframes amber-breathe { 0%, 100% { box-shadow: 0 0 3px color-mix(in srgb, #E0912F 35%, transparent); filter: brightness(0.75); } 50% { box-shadow: 0 0 10px color-mix(in srgb, #E0912F 85%, transparent); filter: brightness(1.3); } }
+  .sync-message { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .sync-message .quiet { color: var(--fg-quiet); }
+  .sync-details { flex: none; background: #E0912F; color: #1a1206; border: 0; border-radius: 6px; padding: 3px 12px; font: inherit; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .sync-hide { flex: none; background: none; border: 0; color: var(--fg-quiet); font-size: 18px; line-height: 1; padding: 0 4px; cursor: pointer; } .sync-hide:hover { color: var(--fg); }
+  .alert-dot { width: 7px; height: 7px; margin-left: auto; margin-right: 4px; border-radius: 50%; background: #E0912F; box-shadow: 0 0 6px #E0912F; }
+  @media (prefers-reduced-motion: reduce) { .sync-bar .led { animation: none; } }
   .update-notice { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 6px 12px; background: var(--accent-soft); font-size: 13px; }
   .topbar { display: flex; align-items: center; gap: 8px; padding: 10px 16px; }
   .window-controls { display: flex; gap: 2px; } /* follows the pin, which takes the free space */

@@ -29,11 +29,12 @@
     </Style>
     <Style TargetType="TabItem">
       <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TabItem">
-        <Border x:Name="itemBorder" Background="Transparent" CornerRadius="4" Padding="10,6" Margin="0,1"><Grid>
+        <Border x:Name="itemBorder" Background="Transparent" CornerRadius="4" Padding="10,6" Margin="0,1"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
           <Border x:Name="selectedBar" Width="3" CornerRadius="1.5" Background="#2F7FD8" HorizontalAlignment="Left" Margin="-8,2,0,2" Visibility="Collapsed" />
-          <ContentPresenter ContentSource="Header" /></Grid></Border>
+          <ContentPresenter ContentSource="Header" /><Ellipse x:Name="alertDot" Grid.Column="1" Width="7" Height="7" Fill="#E0912F" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="10,0,0,0" Visibility="Collapsed" /></Grid></Border>
         <ControlTemplate.Triggers>
           <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="itemBorder" Property="Background" Value="#E6E6E6" /></Trigger>
+          <Trigger Property="Tag" Value="alert"><Setter TargetName="alertDot" Property="Visibility" Value="Visible" /></Trigger>
           <Trigger Property="IsSelected" Value="True"><Setter TargetName="itemBorder" Property="Background" Value="#DDE8F6" /><Setter TargetName="selectedBar" Property="Visibility" Value="Visible" /><Setter Property="FontWeight" Value="SemiBold" /></Trigger>
         </ControlTemplate.Triggers>
       </ControlTemplate></Setter.Value></Setter>
@@ -295,6 +296,28 @@
     <TabItem Header="Library &amp; cache" x:Name="libraryTab">
       <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel Margin="20,8,20,16">
+        <!-- Library sync (SPEC.md › Library sync problems): whether syncing with Lyrion works; when it doesn't, how and since when, the connection checks, Try again now with live steps, and the log -->
+        <Border x:Name="syncCard" Style="{StaticResource Card}">
+          <StackPanel>
+            <TextBlock Text="Library sync" Style="{StaticResource CardTitle}" />
+            <DockPanel Margin="0,2,0,0"><Ellipse x:Name="syncLed" Width="10" Height="10" Margin="0,0,8,0" VerticalAlignment="Center"><Ellipse.Effect><DropShadowEffect x:Name="syncLedGlow" ShadowDepth="0" BlurRadius="6" Opacity="0.6" Color="#E0912F" /></Ellipse.Effect></Ellipse><TextBlock x:Name="syncStateText" FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center" /></DockPanel>
+            <TextBlock x:Name="syncQuietText" Style="{StaticResource Quiet}" />
+            <Border x:Name="syncChecksBox" Background="#FAFAFB" BorderBrush="#ECEDEF" BorderThickness="1" CornerRadius="6" Padding="10,6" Margin="0,10,0,0" Visibility="Collapsed">
+              <StackPanel><StackPanel x:Name="syncChecks" /><ProgressBar x:Name="syncProgressBar" Height="4" Margin="22,4,0,2" Foreground="#2F7FD8" Background="#D3E2F5" BorderThickness="0" Visibility="Collapsed" /></StackPanel>
+            </Border>
+            <Border x:Name="syncVerdictBox" Background="#FDF3E6" BorderBrush="#EBC18A" BorderThickness="1" CornerRadius="6" Padding="10,8" Margin="0,8,0,0" Visibility="Collapsed">
+              <StackPanel><TextBlock x:Name="syncVerdictText" TextWrapping="Wrap" /><TextBlock x:Name="syncErrorText" FontFamily="Consolas" FontSize="11.5" Foreground="#555" TextWrapping="Wrap" Margin="0,3,0,0" /></StackPanel>
+            </Border>
+            <WrapPanel Margin="0,12,0,0">
+              <Button x:Name="syncNowButton" Content="Try again now" />
+              <Button x:Name="openSyncLogButton" Content="Open log" />
+              <Button x:Name="copySyncButton" Content="Copy details" />
+            </WrapPanel>
+            <Expander x:Name="syncLogExpander" Header="Last log lines" Style="{StaticResource More}" Visibility="Collapsed">
+              <TextBox x:Name="syncLogText" IsReadOnly="True" FontFamily="Consolas" FontSize="11.5" Background="#1E222A" Foreground="#C9D1D9" BorderThickness="0" Padding="8,6" Margin="0,6,0,0" TextWrapping="Wrap" MaxHeight="160" VerticalScrollBarVisibility="Auto" />
+            </Expander>
+          </StackPanel>
+        </Border>
         <Border Style="{StaticResource Card}">
           <StackPanel>
             <TextBlock Text="What counts as an album" Style="{StaticResource CardTitle}" />
