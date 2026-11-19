@@ -50,7 +50,20 @@ public partial class EqualiserWindow : Window
     // Closing only hides it, so opening again is instant; it really closes with the main window
     public bool HiddenByUser;
     public void HideByUser() { SaveBounds(); HiddenByUser = true; Hide(); App.Visualiser.AnalyserWanted = false; }
-    public void ShowByUser() { HiddenByUser = false; App.Visualiser.AnalyserWanted = true; Show(); FollowOwner(); Activate(); }
+    public void ShowByUser() { HiddenByUser = false; App.Visualiser.AnalyserWanted = true; Show(); FollowOwner(); KeepOnScreen(); Activate(); }
+    // A saved spot on a screen that's gone (dock change, monitor unplugged) would open it out of sight: bring it beside the main window
+    void KeepOnScreen()
+    {
+        if (Tuning.DockSide != "" || Handle == IntPtr.Zero) return;
+        GetWindowRect(Handle, out var own); GetWindowRect(MainHandle, out var main);
+        var grabPoint = new System.Drawing.Point(own.Left + Math.Min(own.Right - own.Left, 400) / 2, own.Top + 12);
+        if (System.Windows.Forms.Screen.AllScreens.Any(screen => screen.WorkingArea.Contains(grabPoint))) return;
+        var area = System.Windows.Forms.Screen.FromHandle(MainHandle).WorkingArea;
+        int width = Math.Min(own.Right - own.Left, area.Width), height = Math.Min(own.Bottom - own.Top, area.Height);
+        int left = Math.Clamp(main.Left + (main.Right - main.Left - width) / 2, area.Left, area.Right - width), top = main.Bottom + height <= area.Bottom ? main.Bottom : Math.Clamp(main.Bottom - height, area.Top, area.Bottom - height);
+        SetWindowPos(Handle, IntPtr.Zero, left, top, width, height, 0x0004 /*NOZORDER*/ | 0x0010 /*NOACTIVATE*/);
+        SaveBounds();
+    }
     bool revealed;
     async Task RevealAsync(int delayMs) { await Task.Delay(delayMs); if (revealed) return; revealed = true; Cloak(false); }
     void Cloak(bool cloaked) { var value = cloaked ? 1 : 0; DwmSetWindowAttribute(Handle, 13 /*DWMWA_CLOAK*/, ref value, sizeof(int)); }
