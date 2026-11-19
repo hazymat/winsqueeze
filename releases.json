@@ -2174,7 +2174,7 @@
   "assets": {
    "WinSqueeze-1.29.430-stable-full.nupkg": 10,
    "WinSqueeze-Portable.exe": 37,
-   "WinSqueeze-Setup.exe": 37,
+   "WinSqueeze-Setup.exe": 38,
    "releases.stable.json": 10
   },
   "prerelease": false,
@@ -2713,13 +2713,93 @@
  },
  "v1.30.525": {
   "assets": {
-   "WinSqueeze-1.30.525-dev-full.nupkg": 0,
-   "WinSqueeze-Portable.exe": 0,
-   "WinSqueeze-Setup.exe": 0,
-   "releases.dev.json": 0
+   "WinSqueeze-1.30.525-dev-full.nupkg": 4,
+   "WinSqueeze-Portable.exe": 1,
+   "WinSqueeze-Setup.exe": 1,
+   "releases.dev.json": 4
   },
   "prerelease": true,
   "published": "2026-11-18T21:52:50Z"
+ },
+ "v1.30.527": {
+  "assets": {
+   "WinSqueeze-1.30.527-dev-full.nupkg": 3,
+   "WinSqueeze-Portable.exe": 1,
+   "WinSqueeze-Setup.exe": 1,
+   "releases.dev.json": 3
+  },
+  "prerelease": true,
+  "published": "2026-11-18T23:28:53Z"
+ },
+ "v1.30.529": {
+  "assets": {
+   "WinSqueeze-1.30.529-dev-full.nupkg": 3,
+   "WinSqueeze-Portable.exe": 1,
+   "WinSqueeze-Setup.exe": 1,
+   "releases.dev.json": 3
+  },
+  "prerelease": true,
+  "published": "2026-11-18T23:48:09Z"
+ },
+ "v1.30.531": {
+  "assets": {
+   "WinSqueeze-1.30.531-dev-full.nupkg": 3,
+   "WinSqueeze-Portable.exe": 1,
+   "WinSqueeze-Setup.exe": 1,
+   "releases.dev.json": 3
+  },
+  "prerelease": true,
+  "published": "2026-11-18T23:53:51Z"
+ },
+ "v1.30.535": {
+  "assets": {
+   "WinSqueeze-1.30.535-dev-full.nupkg": 3,
+   "WinSqueeze-Portable.exe": 1,
+   "WinSqueeze-Setup.exe": 1,
+   "releases.dev.json": 3
+  },
+  "prerelease": true,
+  "published": "2026-11-18T23:57:40Z"
+ },
+ "v1.30.538": {
+  "assets": {
+   "WinSqueeze-1.30.538-dev-full.nupkg": 2,
+   "WinSqueeze-Portable.exe": 1,
+   "WinSqueeze-Setup.exe": 1,
+   "releases.dev.json": 2
+  },
+  "prerelease": true,
+  "published": "2026-11-19T00:02:13Z"
+ },
+ "v1.30.539": {
+  "assets": {
+   "WinSqueeze-1.30.539-dev-full.nupkg": 2,
+   "WinSqueeze-Portable.exe": 1,
+   "WinSqueeze-Setup.exe": 1,
+   "releases.dev.json": 2
+  },
+  "prerelease": true,
+  "published": "2026-11-19T00:03:52Z"
+ },
+ "v1.30.541": {
+  "assets": {
+   "WinSqueeze-1.30.541-dev-full.nupkg": 2,
+   "WinSqueeze-Portable.exe": 1,
+   "WinSqueeze-Setup.exe": 1,
+   "releases.dev.json": 2
+  },
+  "prerelease": true,
+  "published": "2026-11-19T00:14:51Z"
+ },
+ "v1.30.543": {
+  "assets": {
+   "WinSqueeze-1.30.543-dev-full.nupkg": 3,
+   "WinSqueeze-Portable.exe": 1,
+   "WinSqueeze-Setup.exe": 1,
+   "releases.dev.json": 3
+  },
+  "prerelease": true,
+  "published": "2026-11-19T00:32:32Z"
  },
  "v1.4.139": {
   "assets": {
