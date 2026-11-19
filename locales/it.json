@@ -122,7 +122,6 @@
   "Update ready": "Aggiornamento pronto",
   "WinSqueeze {version} is ready": "WinSqueeze {version} è pronto",
   "Version {version} is ready": "La versione {version} è pronta",
-  "Restart to update": "Riavvia per aggiornare",
   "Later": "Più tardi",
   "Hold and drag to move": "Tieni premuto e trascina per spostare",
   "Remove spacer": "Rimuovi spaziatore",
@@ -261,7 +260,6 @@
   "Fast-forward (hold to scan)": "Avanti veloce (tieni premuto per scorrere)",
   "Next track": "Brano successivo",
   "Hi-fi": "Hi-fi",
-  "Restart to update to {version}": "Riavvia per aggiornare a {version}",
   "Position": "Posizione",
   "Click or drag to move through the track": "Clicca o trascina per muoverti nel brano",
   "Volume {volume} (drag up or down, or scroll)": "Volume {volume} (trascina su o giù, o usa la rotellina)",
@@ -853,7 +851,6 @@
   "Checking for updates…": "Ricerca aggiornamenti…",
   "Up to date ({version}). Checked {time}.": "Aggiornato ({version}). Controllato {time}.",
   "Downloading {version}…": "Download di {version}…",
-  "WinSqueeze {version} is downloaded and ready. Restart to update.": "WinSqueeze {version} è scaricato e pronto. Riavvia per aggiornare.",
   "WinSqueeze {version} is ready. Click Restart to update in the window or Settings › About.": "WinSqueeze {version} è pronto. Clicca Riavvia per aggiornare nella finestra o in Impostazioni › Informazioni.",
   "{version} is already running.": "{version} è già in esecuzione.",
   "Could not switch to {version}: {error}": "Impossibile passare a {version}: {error}",
@@ -1336,5 +1333,8 @@
   "WinSqueeze {version} is downloaded. The blue dot stays until you update.": "WinSqueeze {version} è scaricato. Il punto blu resta finché non aggiorni.",
   "Update WinSqueeze now": "Aggiorna WinSqueeze ora",
   "Update ready: {version}": "Aggiornamento pronto: {version}",
-  "Update notifications: the bar in the window and the flashing blue dot on the tray icon": "Avvisi di aggiornamento: la barra nella finestra e il punto blu lampeggiante sull'icona nell'area di notifica"
+  "Update notifications: the bar in the window and the flashing blue dot on the tray icon": "Avvisi di aggiornamento: la barra nella finestra e il punto blu lampeggiante sull'icona nell'area di notifica",
+  "Update now": "Aggiorna ora",
+  "Update to {version}": "Aggiorna a {version}",
+  "WinSqueeze {version} is downloaded and ready.": "WinSqueeze {version} è scaricato e pronto."
 }

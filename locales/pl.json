@@ -122,7 +122,6 @@
   "Update ready": "Aktualizacja gotowa",
   "WinSqueeze {version} is ready": "WinSqueeze {version} jest gotowy",
   "Version {version} is ready": "Wersja {version} jest gotowa",
-  "Restart to update": "Uruchom ponownie, aby zaktualizować",
   "Later": "Później",
   "Hold and drag to move": "Przytrzymaj i przeciągnij, aby przenieść",
   "Remove spacer": "Usuń odstęp",
@@ -261,7 +260,6 @@
   "Fast-forward (hold to scan)": "Przewiń do przodu (przytrzymaj, aby szukać)",
   "Next track": "Następny utwór",
   "Hi-fi": "Hi-fi",
-  "Restart to update to {version}": "Uruchom ponownie, aby zaktualizować do {version}",
   "Position": "Pozycja",
   "Click or drag to move through the track": "Kliknij lub przeciągnij, aby przejść po utworze",
   "Volume {volume} (drag up or down, or scroll)": "Głośność {volume} (przeciągnij w górę lub w dół albo przewiń)",
@@ -853,7 +851,6 @@
   "Checking for updates…": "Sprawdzanie aktualizacji…",
   "Up to date ({version}). Checked {time}.": "Aktualna wersja ({version}). Sprawdzono {time}.",
   "Downloading {version}…": "Pobieranie {version}…",
-  "WinSqueeze {version} is downloaded and ready. Restart to update.": "WinSqueeze {version} jest pobrany i gotowy. Uruchom ponownie, aby zaktualizować.",
   "WinSqueeze {version} is ready. Click Restart to update in the window or Settings › About.": "WinSqueeze {version} jest gotowy. Kliknij Uruchom ponownie, aby zaktualizować w oknie lub w Ustawienia › O programie.",
   "{version} is already running.": "{version} już działa.",
   "Could not switch to {version}: {error}": "Nie udało się przełączyć na {version}: {error}",
@@ -1336,5 +1333,8 @@
   "WinSqueeze {version} is downloaded. The blue dot stays until you update.": "WinSqueeze {version} jest pobrany. Niebieska kropka zostaje, dopóki nie zaktualizujesz.",
   "Update WinSqueeze now": "Zaktualizuj WinSqueeze teraz",
   "Update ready: {version}": "Aktualizacja gotowa: {version}",
-  "Update notifications: the bar in the window and the flashing blue dot on the tray icon": "Powiadomienia o aktualizacji: pasek w oknie i migająca niebieska kropka na ikonie w zasobniku"
+  "Update notifications: the bar in the window and the flashing blue dot on the tray icon": "Powiadomienia o aktualizacji: pasek w oknie i migająca niebieska kropka na ikonie w zasobniku",
+  "Update now": "Zaktualizuj teraz",
+  "Update to {version}": "Zaktualizuj do {version}",
+  "WinSqueeze {version} is downloaded and ready.": "WinSqueeze {version} jest pobrany i gotowy."
 }

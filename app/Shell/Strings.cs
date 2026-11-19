@@ -25,7 +25,7 @@ public static class L
     }
 
     public static string T(string english) => dictionary.TryGetValue(english, out var text) && text != "" ? text : english;
-    // T("Restart to update to {version}", ("version", ready)) fills {names} after translating
+    // T("Update to {version}", ("version", ready)) fills {names} after translating
     public static string T(string english, params (string name, object? value)[] values)
     {
         var text = T(english);

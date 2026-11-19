@@ -136,7 +136,6 @@
   "Update ready": "Päivitys valmis",
   "WinSqueeze {version} is ready": "WinSqueeze {version} on valmis",
   "Version {version} is ready": "Versio {version} on valmis",
-  "Restart to update": "Käynnistä uudelleen ja päivitä",
   "Later": "Myöhemmin",
   "Hold and drag to move": "Pidä painettuna ja vedä siirtääksesi",
   "Remove spacer": "Poista väli",
@@ -277,7 +276,6 @@
   "Fast-forward (hold to scan)": "Kelaa eteenpäin (pidä painettuna)",
   "Next track": "Seuraava kappale",
   "Hi-fi": "Hi-fi",
-  "Restart to update to {version}": "Käynnistä uudelleen ja päivitä versioon {version}",
   "Position": "Kohta",
   "Click or drag to move through the track": "Napsauta tai vedä liikkuaksesi kappaleessa",
   "Volume {volume} (drag up or down, or scroll)": "Äänenvoimakkuus {volume} (vedä ylös tai alas, tai vieritä)",
@@ -878,7 +876,6 @@
   "Checking for updates…": "Tarkistetaan päivityksiä…",
   "Up to date ({version}). Checked {time}.": "Ajan tasalla ({version}). Tarkistettu {time}.",
   "Downloading {version}…": "Ladataan {version}…",
-  "WinSqueeze {version} is downloaded and ready. Restart to update.": "WinSqueeze {version} on ladattu ja valmis. Käynnistä uudelleen päivittääksesi.",
   "WinSqueeze {version} is ready. Click Restart to update in the window or Settings › About.": "WinSqueeze {version} on valmis. Napsauta Käynnistä uudelleen ja päivitä ikkunassa tai kohdassa Asetukset › Tietoja.",
   "{version} is already running.": "{version} on jo käynnissä.",
   "Could not switch to {version}: {error}": "Versioon {version} ei voitu vaihtaa: {error}",
@@ -1336,5 +1333,8 @@
   "WinSqueeze {version} is downloaded. The blue dot stays until you update.": "WinSqueeze {version} on ladattu. Sininen piste pysyy, kunnes päivität.",
   "Update WinSqueeze now": "Päivitä WinSqueeze nyt",
   "Update ready: {version}": "Päivitys valmis: {version}",
-  "Update notifications: the bar in the window and the flashing blue dot on the tray icon": "Päivitysilmoitukset: ikkunan palkki ja ilmoitusalueen kuvakkeen vilkkuva sininen piste"
+  "Update notifications: the bar in the window and the flashing blue dot on the tray icon": "Päivitysilmoitukset: ikkunan palkki ja ilmoitusalueen kuvakkeen vilkkuva sininen piste",
+  "Update now": "Päivitä nyt",
+  "Update to {version}": "Päivitä versioon {version}",
+  "WinSqueeze {version} is downloaded and ready.": "WinSqueeze {version} on ladattu ja valmis."
 }

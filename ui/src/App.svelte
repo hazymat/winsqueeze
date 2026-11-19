@@ -223,7 +223,7 @@
     <!-- Update ready: a pulsing dot in the corner; clicking it slides the restart notice down over the player -->
     {#if app.status?.updateReady}
       <button class="update-dot" onclick={() => miniUpdateOpen = !miniUpdateOpen} aria-label={t('Update ready')} title={t('WinSqueeze {version} is ready', { version: app.status.updateReady })}></button>
-      <div class="mini-update" class:open={miniUpdateOpen}><span>{t('Version {version} is ready', { version: app.status.updateReady })}</span><button class="primary" onclick={() => sendToShell({ type: 'applyUpdate' })}>{t('Restart to update')}</button><button class="ghost" onclick={() => miniUpdateOpen = false} aria-label={t('Later')}>×</button></div>
+      <div class="mini-update" class:open={miniUpdateOpen}><span>{t('Version {version} is ready', { version: app.status.updateReady })}</span><button class="primary" onclick={() => sendToShell({ type: 'applyUpdate' })}>{t('Update now')}</button><button class="ghost" onclick={() => miniUpdateOpen = false} aria-label={t('Later')}>×</button></div>
     {/if}
   </div>
 {:else}
@@ -256,7 +256,7 @@
     {/if}
     <div class="content-column">
       {#if app.status?.updateReady}
-        <div class="update-notice"><span>{t('WinSqueeze {version} is ready.', { version: app.status.updateReady })}</span><button class="primary" onclick={() => sendToShell({ type: 'applyUpdate' })}>{t('Restart to update')}</button></div>
+        <div class="update-notice"><span>{t('WinSqueeze {version} is ready.', { version: app.status.updateReady })}</span><button class="primary" onclick={() => sendToShell({ type: 'applyUpdate' })}>{t('Update now')}</button></div>
       {/if}
       <header class="topbar" role="presentation" onmousedown={dragWindow}>
         {#if nav.stack.length || forwardHistory.views.length}<div class="history"><button class="ghost back" onclick={back} disabled={!nav.stack.length} aria-label={t('Back')} title={t('Back (Alt+Left)')}><Icon name="back" size={18} /></button><button class="ghost back" onclick={forward} disabled={!forwardHistory.views.length} aria-label={t('Forward')} title={t('Forward (Alt+Right)')}><Icon name="forward" size={18} /></button></div>{/if}

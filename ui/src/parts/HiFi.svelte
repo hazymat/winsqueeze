@@ -207,7 +207,7 @@
     <div class="update-zone" role="presentation" onpointerenter={enterUpdate} onpointerleave={leaveUpdate}>
       <div class="brand">WinSqueeze</div>
       <div class="standby" class:on={playing} class:update={!!updateReady} class:upgrading={!!upgradeStartedAt} title={updateReady ? t('WinSqueeze {version} is ready', { version: updateReady }) : ''}></div>
-      {#if updateReady}<button class="update-key" class:shown={updateHover || !!upgradeStartedAt} onclick={startUpgrade} title={t('Restart to update to {version}', { version: updateReady })}>UPDATE</button>{/if}
+      {#if updateReady}<button class="update-key" class:shown={updateHover || !!upgradeStartedAt} onclick={startUpgrade} title={t('Update to {version}', { version: updateReady })}>UPDATE</button>{/if}
     </div>
     {#if remote}<!-- svelte-ignore a11y_no_static_element_interactions --><div class="display link-display" title={remoteHeading} oncontextmenu={(event) => { event.preventDefault(); event.stopPropagation(); cycleMeterView() }}><canvas bind:this={linkCanvas} style:width="{linkWidth}px" style:height="{linkHeight}px"></canvas><div class="mesh"></div><div class="pane"></div></div>
     {:else}<div class="meter-window"><div class="meter-zoom" bind:this={meterBox} style:transform="scale({meterZoom})"><Meters size="large" zoom={meterZoom * stageZoom} moveWindow={true} hifi={true} /></div></div>{/if}

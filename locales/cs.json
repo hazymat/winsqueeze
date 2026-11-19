@@ -136,7 +136,6 @@
   "Update ready": "Aktualizace připravena",
   "WinSqueeze {version} is ready": "WinSqueeze {version} je připraven",
   "Version {version} is ready": "Verze {version} je připravena",
-  "Restart to update": "Restartovat a aktualizovat",
   "Later": "Později",
   "Hold and drag to move": "Podrž a přetáhni pro přesun",
   "Remove spacer": "Odebrat mezeru",
@@ -277,7 +276,6 @@
   "Fast-forward (hold to scan)": "Přetočit vpřed (podrž pro hledání)",
   "Next track": "Další skladba",
   "Hi-fi": "Hi-fi",
-  "Restart to update to {version}": "Restartovat a aktualizovat na {version}",
   "Position": "Pozice",
   "Click or drag to move through the track": "Klikni nebo táhni pro pohyb ve skladbě",
   "Volume {volume} (drag up or down, or scroll)": "Hlasitost {volume} (táhni nahoru či dolů, nebo kolečko)",
@@ -878,7 +876,6 @@
   "Checking for updates…": "Hledají se aktualizace…",
   "Up to date ({version}). Checked {time}.": "Aktuální ({version}). Zkontrolováno {time}.",
   "Downloading {version}…": "Stahuje se {version}…",
-  "WinSqueeze {version} is downloaded and ready. Restart to update.": "WinSqueeze {version} je stažen a připraven. Restartuj pro aktualizaci.",
   "WinSqueeze {version} is ready. Click Restart to update in the window or Settings › About.": "WinSqueeze {version} je připraven. Klikni na Restartovat a aktualizovat v okně nebo v Nastavení › O aplikaci.",
   "{version} is already running.": "{version} už běží.",
   "Could not switch to {version}: {error}": "Nelze přepnout na {version}: {error}",
@@ -1336,5 +1333,8 @@
   "WinSqueeze {version} is downloaded. The blue dot stays until you update.": "WinSqueeze {version} je stažený. Modrá tečka zůstane, dokud neaktualizuješ.",
   "Update WinSqueeze now": "Aktualizovat WinSqueeze teď",
   "Update ready: {version}": "Aktualizace připravena: {version}",
-  "Update notifications: the bar in the window and the flashing blue dot on the tray icon": "Upozornění na aktualizace: lišta v okně a blikající modrá tečka na ikoně v oznamovací oblasti"
+  "Update notifications: the bar in the window and the flashing blue dot on the tray icon": "Upozornění na aktualizace: lišta v okně a blikající modrá tečka na ikoně v oznamovací oblasti",
+  "Update now": "Aktualizovat teď",
+  "Update to {version}": "Aktualizovat na {version}",
+  "WinSqueeze {version} is downloaded and ready.": "WinSqueeze {version} je stažený a připravený."
 }

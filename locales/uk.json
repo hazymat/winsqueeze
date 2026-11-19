@@ -122,7 +122,6 @@
   "Update ready": "Оновлення готове",
   "WinSqueeze {version} is ready": "WinSqueeze {version} готовий",
   "Version {version} is ready": "Версія {version} готова",
-  "Restart to update": "Перезапустити для оновлення",
   "Later": "Пізніше",
   "Hold and drag to move": "Утримуй і тягни, щоб перемістити",
   "Remove spacer": "Прибрати розділювач",
@@ -261,7 +260,6 @@
   "Fast-forward (hold to scan)": "Вперед (утримуй для перемотування)",
   "Next track": "Наступний трек",
   "Hi-fi": "Hi-fi",
-  "Restart to update to {version}": "Перезапустити для оновлення до {version}",
   "Position": "Позиція",
   "Click or drag to move through the track": "Клацни або тягни, щоб переміщатися треком",
   "Volume {volume} (drag up or down, or scroll)": "Гучність {volume} (тягни вгору чи вниз або крути колесо)",
@@ -853,7 +851,6 @@
   "Checking for updates…": "Перевіряю оновлення…",
   "Up to date ({version}). Checked {time}.": "Актуальна версія ({version}). Перевірено {time}.",
   "Downloading {version}…": "Завантажую {version}…",
-  "WinSqueeze {version} is downloaded and ready. Restart to update.": "WinSqueeze {version} завантажено й готово. Перезапусти для оновлення.",
   "WinSqueeze {version} is ready. Click Restart to update in the window or Settings › About.": "WinSqueeze {version} готовий. Натисни «Перезапустити для оновлення» у вікні або в Налаштування › Про програму.",
   "{version} is already running.": "{version} уже запущено.",
   "Could not switch to {version}: {error}": "Не вдалося перейти на {version}: {error}",
@@ -1336,5 +1333,8 @@
   "WinSqueeze {version} is downloaded. The blue dot stays until you update.": "WinSqueeze {version} завантажено. Синя крапка лишається, доки ти не оновиш.",
   "Update WinSqueeze now": "Оновити WinSqueeze зараз",
   "Update ready: {version}": "Оновлення готове: {version}",
-  "Update notifications: the bar in the window and the flashing blue dot on the tray icon": "Сповіщення про оновлення: панель у вікні та блимаюча синя крапка на значку в області сповіщень"
+  "Update notifications: the bar in the window and the flashing blue dot on the tray icon": "Сповіщення про оновлення: панель у вікні та блимаюча синя крапка на значку в області сповіщень",
+  "Update now": "Оновити зараз",
+  "Update to {version}": "Оновити до {version}",
+  "WinSqueeze {version} is downloaded and ready.": "WinSqueeze {version} завантажено й готово."
 }

@@ -136,7 +136,6 @@
   "Update ready": "Uppdatering klar",
   "WinSqueeze {version} is ready": "WinSqueeze {version} är klar",
   "Version {version} is ready": "Version {version} är klar",
-  "Restart to update": "Starta om för att uppdatera",
   "Later": "Senare",
   "Hold and drag to move": "Håll ned och dra för att flytta",
   "Remove spacer": "Ta bort mellanrum",
@@ -277,7 +276,6 @@
   "Fast-forward (hold to scan)": "Spola framåt (håll för att söka)",
   "Next track": "Nästa spår",
   "Hi-fi": "Hi-fi",
-  "Restart to update to {version}": "Starta om för att uppdatera till {version}",
   "Position": "Position",
   "Click or drag to move through the track": "Klicka eller dra för att flytta i spåret",
   "Volume {volume} (drag up or down, or scroll)": "Volym {volume} (dra uppåt eller nedåt, eller scrolla)",
@@ -878,7 +876,6 @@
   "Checking for updates…": "Söker efter uppdateringar…",
   "Up to date ({version}). Checked {time}.": "Uppdaterad ({version}). Kontrollerat {time}.",
   "Downloading {version}…": "Laddar ned {version}…",
-  "WinSqueeze {version} is downloaded and ready. Restart to update.": "WinSqueeze {version} är nedladdad och klar. Starta om för att uppdatera.",
   "WinSqueeze {version} is ready. Click Restart to update in the window or Settings › About.": "WinSqueeze {version} är klar. Klicka på Starta om för att uppdatera i fönstret eller i Inställningar › Om.",
   "{version} is already running.": "{version} körs redan.",
   "Could not switch to {version}: {error}": "Kunde inte byta till {version}: {error}",
@@ -1336,5 +1333,8 @@
   "WinSqueeze {version} is downloaded. The blue dot stays until you update.": "WinSqueeze {version} är nedladdad. Den blå pricken finns kvar tills du uppdaterar.",
   "Update WinSqueeze now": "Uppdatera WinSqueeze nu",
   "Update ready: {version}": "Uppdatering klar: {version}",
-  "Update notifications: the bar in the window and the flashing blue dot on the tray icon": "Uppdateringsaviseringar: fältet i fönstret och den blinkande blå pricken på ikonen i meddelandefältet"
+  "Update notifications: the bar in the window and the flashing blue dot on the tray icon": "Uppdateringsaviseringar: fältet i fönstret och den blinkande blå pricken på ikonen i meddelandefältet",
+  "Update now": "Uppdatera nu",
+  "Update to {version}": "Uppdatera till {version}",
+  "WinSqueeze {version} is downloaded and ready.": "WinSqueeze {version} är nedladdad och klar."
 }

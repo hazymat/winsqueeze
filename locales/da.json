@@ -136,7 +136,6 @@
   "Update ready": "Opdatering klar",
   "WinSqueeze {version} is ready": "WinSqueeze {version} er klar",
   "Version {version} is ready": "Version {version} er klar",
-  "Restart to update": "Genstart for at opdatere",
   "Later": "Senere",
   "Hold and drag to move": "Hold nede og træk for at flytte",
   "Remove spacer": "Fjern afstand",
@@ -277,7 +276,6 @@
   "Fast-forward (hold to scan)": "Spol frem (hold for at søge)",
   "Next track": "Næste nummer",
   "Hi-fi": "Hi-fi",
-  "Restart to update to {version}": "Genstart for at opdatere til {version}",
   "Position": "Position",
   "Click or drag to move through the track": "Klik eller træk for at flytte i nummeret",
   "Volume {volume} (drag up or down, or scroll)": "Lydstyrke {volume} (træk op eller ned, eller scroll)",
@@ -878,7 +876,6 @@
   "Checking for updates…": "Søger efter opdateringer…",
   "Up to date ({version}). Checked {time}.": "Opdateret ({version}). Tjekket {time}.",
   "Downloading {version}…": "Downloader {version}…",
-  "WinSqueeze {version} is downloaded and ready. Restart to update.": "WinSqueeze {version} er downloadet og klar. Genstart for at opdatere.",
   "WinSqueeze {version} is ready. Click Restart to update in the window or Settings › About.": "WinSqueeze {version} er klar. Klik på Genstart for at opdatere i vinduet eller under Indstillinger › Om.",
   "{version} is already running.": "{version} kører allerede.",
   "Could not switch to {version}: {error}": "Kunne ikke skifte til {version}: {error}",
@@ -1336,5 +1333,8 @@
   "WinSqueeze {version} is downloaded. The blue dot stays until you update.": "WinSqueeze {version} er hentet. Den blå prik bliver, indtil du opdaterer.",
   "Update WinSqueeze now": "Opdater WinSqueeze nu",
   "Update ready: {version}": "Opdatering klar: {version}",
-  "Update notifications: the bar in the window and the flashing blue dot on the tray icon": "Opdateringsbeskeder: bjælken i vinduet og den blinkende blå prik på ikonet i meddelelsesområdet"
+  "Update notifications: the bar in the window and the flashing blue dot on the tray icon": "Opdateringsbeskeder: bjælken i vinduet og den blinkende blå prik på ikonet i meddelelsesområdet",
+  "Update now": "Opdater nu",
+  "Update to {version}": "Opdater til {version}",
+  "WinSqueeze {version} is downloaded and ready.": "WinSqueeze {version} er hentet og klar."
 }
