@@ -1034,7 +1034,7 @@
   "Start with Windows": "Запускати з Windows",
   "Resume playing on startup (if the server is still playing to this player)": "Продовжувати відтворення під час запуску (якщо сервер усе ще грає на цей плеєр)",
   "Music may start playing as soon as your PC restarts, if the server was still playing to this player when it shut down.": "Музика може заграти, щойно ПК перезапуститься, якщо сервер усе ще грав на цей плеєр, коли він вимкнувся.",
-  "Resume playing after an update restarts WinSqueeze": "Продовжувати відтворення після того, як оновлення перезапустить WinSqueeze",
+  "Resume playing after WinSqueeze update": "Продовжувати відтворення після оновлення WinSqueeze",
   "Start minimised to tray": "Запускати згорнутим в область сповіщень",
   "Close (X) keeps WinSqueeze running in the tray (otherwise it quits)": "Закриття (X) лишає WinSqueeze працювати в області сповіщень (інакше програма закривається)",
   "Show system tray icon": "Показувати значок в області сповіщень",

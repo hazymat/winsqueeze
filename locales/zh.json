@@ -1034,7 +1034,7 @@
   "Start with Windows": "随 Windows 启动",
   "Resume playing on startup (if the server is still playing to this player)": "启动时继续播放（如果服务器仍在向此播放器播放）",
   "Music may start playing as soon as your PC restarts, if the server was still playing to this player when it shut down.": "如果关机时服务器仍在向此播放器播放，电脑重启后音乐可能会立即开始播放。",
-  "Resume playing after an update restarts WinSqueeze": "更新重启 WinSqueeze 后继续播放",
+  "Resume playing after WinSqueeze update": "WinSqueeze 更新后继续播放",
   "Start minimised to tray": "启动时最小化到通知区域",
   "Close (X) keeps WinSqueeze running in the tray (otherwise it quits)": "关闭 (X) 时让 WinSqueeze 在通知区域继续运行（否则退出）",
   "Show system tray icon": "在通知区域显示图标",
