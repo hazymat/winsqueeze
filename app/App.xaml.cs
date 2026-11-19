@@ -24,6 +24,7 @@ public partial class App : Application
     public Offline.DownloadManager Downloads { get; } = new();
     public PlayHistory History { get; } = new();
     public DamagedFiles Damaged { get; } = new();
+    public StreamDrops Drops { get; } = new();
     public TrackInfo TrackInfo { get; } = new();
     public event Action<DamagedFiles.DamagedFile, string>? DamagedFound;
     public event Action? HistoryChanged;
@@ -142,7 +143,8 @@ public partial class App : Application
         Player.StatusChanged += () => Dispatcher.BeginInvoke(OnPlayerStatusChanged);
         Player.ExclusiveFailed += (deviceName, reason) => Dispatcher.BeginInvoke(async () => { trayIcon.ShowTip(L.T("Playing in shared mode"), L.T("{device} refused exclusive mode: {reason}. WinSqueeze is playing it shared.", ("device", deviceName), ("reason", reason))); await StartPlayerAsync(true); });
         Damaged.Load(); Damaged.PlayerRequest = command => ServerRequestAsync(Settings.PlayerMac, command);
-        Player.DecodeLine += decodeLine => Dispatcher.BeginInvoke(() => Damaged.OnLogLine(decodeLine));
+        Drops.PlayerRequest = command => ServerRequestAsync(Settings.PlayerMac, command);
+        Player.DecodeLine += decodeLine => Dispatcher.BeginInvoke(() => { if (DamagedFiles.Matters(decodeLine)) Damaged.OnLogLine(decodeLine); if (StreamDrops.Matters(decodeLine)) Drops.OnLogLine(decodeLine); });
         Damaged.Found += OnDamagedFound;
         HwndSource.FromHwnd(new WindowInteropHelper(mainWindow).EnsureHandle()).AddHook(WindowMessageHook);
         deviceChangeTimer.Tick += async (sender, args) => { deviceChangeTimer.Stop(); await OnDevicesChangedAsync(); };
@@ -353,7 +355,7 @@ public partial class App : Application
         var checkStartup = !startupPlaybackChecked; startupPlaybackChecked = true;
         (string mode, double seconds) serverBefore = checkStartup ? await ReadPlaybackStateAsync() : ("", 0);
         Recorder.Flush(); // finish the file cleanly; it carries on in a new one once Squeezelite is back
-        Damaged.Reset();
+        Damaged.Reset(); Drops.Reset();
         Player.Start(Offline is { } offlineServer ? $"127.0.0.1:{offlineServer.SlimPort}" : profile.Host, outputDevice, Settings.Audio, Settings.PlayerMac, checkStartup);
         if (SqueezeliteHost.SupportsRecording) Recorder.Start(Settings.PlayerMac);
         Visualiser.Tuning = Settings.Meters;

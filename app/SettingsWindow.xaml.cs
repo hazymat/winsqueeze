@@ -836,6 +836,7 @@ public partial class SettingsWindow : Window
         report.AppendLine($"Output device: {(profile is null || profile.DeviceName == "" ? $"Windows default ({App.WindowsDefaultName})" : $"{profile.DeviceName} ({profile.DeviceHostApi})")} · exclusive {(audio.Exclusive ? "on" : "off")}");
         report.AppendLine().AppendLine("--- crash.log (end) ---").AppendLine(LogTail("crash.log", 60));
         report.AppendLine().AppendLine("--- connection.log (end) ---").AppendLine(LogTail("connection.log", 30));
+        report.AppendLine().AppendLine("--- playback.log (end) ---").AppendLine(LogTail("playback.log", 20));
         report.AppendLine().AppendLine("--- squeezelite.log (end) ---").AppendLine(LogTail("squeezelite.log", 60));
         return report.ToString();
     }
