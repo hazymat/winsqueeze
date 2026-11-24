@@ -2172,10 +2172,10 @@
  },
  "v1.29.430": {
   "assets": {
-   "WinSqueeze-1.29.430-stable-full.nupkg": 11,
+   "WinSqueeze-1.29.430-stable-full.nupkg": 12,
    "WinSqueeze-Portable.exe": 38,
-   "WinSqueeze-Setup.exe": 41,
-   "releases.stable.json": 11
+   "WinSqueeze-Setup.exe": 46,
+   "releases.stable.json": 12
   },
   "prerelease": false,
   "published": "2026-11-10T02:34:30Z"
