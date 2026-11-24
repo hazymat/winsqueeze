@@ -18,7 +18,7 @@ public sealed class PlayerSession
     public event Action? StatusUpdated;
     public event Action? PlayersUpdated;
     public event Action? ServerUnreachable; // several polls in a row failed
-    int failedPolls;
+    int failedPolls; bool slowLogged;
     public string LastPollError { get; private set; } = ""; // for logs\connection.log
     App App => App.Instance;
     public string PlayerId => SelectedPlayerId == "" ? App.Settings.PlayerMac : SelectedPlayerId;
@@ -56,20 +56,29 @@ public sealed class PlayerSession
         polling = true;
         try
         {
-            LastStatus = await App.ServerRequestAsync(PlayerId, "status", 0, 500, "tags:aAcdlKjJotTIrsSeNfYmuy");
-            failedPolls = 0;
+            LastStatus = await App.ServerPollAsync(PlayerId, "status", 0, 500, "tags:aAcdlKjJotTIrsSeNfYmuy");
+            failedPolls = 0; slowLogged = false;
             LastStatusJson = LastStatus.ValueKind == JsonValueKind.Undefined ? "{}" : LastStatus.GetRawText();
             StatusUpdated?.Invoke();
             if (pollTick++ % 10 == 0)
             {
-                var players = await App.ServerRequestAsync("", "players", 0, 50);
+                var players = await App.ServerPollAsync("", "players", 0, 50);
                 LastPlayersJson = players.ValueKind == JsonValueKind.Object && players.TryGetProperty("players_loop", out var playersLoop) ? playersLoop.GetRawText() : "[]";
                 if (rememberedPlayerId != "") { if (SelectedPlayerId == rememberedPlayerId && !LastPlayersJson.Contains($"\"{rememberedPlayerId}\"")) { SelectedPlayerId = ""; pollAgain = true; } rememberedPlayerId = ""; }
                 await LoadSyncGroupsAsync();
                 PlayersUpdated?.Invoke();
             }
         }
-        catch (Exception pollError) { LastPollError = pollError is TaskCanceledException ? "no reply in 10 s" : pollError.GetType().Name + ": " + pollError.Message; if (++failedPolls == 5 && !App.IsOffline) ServerUnreachable?.Invoke(); }
+        catch (Exception pollError)
+        {
+            LastPollError = pollError is TaskCanceledException ? $"no reply in {WinSqueeze.Offline.ConnectionCheck.ReplyTimeoutSeconds} s" : pollError.GetType().Name + ": " + pollError.Message;
+            // Only a server that can't be reached counts towards going offline; slow or erroring replies with the port answering stay online
+            if (!App.IsOffline && App.Settings.ActiveProfile is { } profile && await WinSqueeze.Offline.ConnectionCheck.PortProblemAsync(profile) == "")
+            {
+                if (!slowLogged) { slowLogged = true; WinSqueeze.Offline.ConnectionCheck.Log("status check failed but Lyrion's port answers, staying online: " + LastPollError.Replace(profile.Host, "<server>")); }
+            }
+            else if (++failedPolls == 5 && !App.IsOffline) ServerUnreachable?.Invoke();
+        }
         finally { polling = false; }
         if (pollAgain) { pollAgain = false; await PollAsync(); }
     }

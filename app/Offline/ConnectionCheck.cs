@@ -14,7 +14,7 @@ public record ConnectionReport(bool Network, string NetworkKind, bool Ping, long
 
 public static class ConnectionCheck
 {
-    public const int PingTimeoutMs = 2000, PortTimeoutMs = 4000, ReplyTimeoutSeconds = 10;
+    public const int PingTimeoutMs = 2000, PortTimeoutMs = 4000, ReplyTimeoutSeconds = 30; // a slow reply (VPN, busy server) is still online: status checks and Why? wait this long
     static readonly object logLock = new();
 
     public static async Task<ConnectionReport> RunAsync(ServerProfile profile)
@@ -48,19 +48,26 @@ public static class ConnectionCheck
     // "" when Lyrion answers; else notfound (name doesn't resolve), refused (nothing listening), timeout, password, http (see status) or error
     static async Task<(string problem, int httpStatus)> LyrionAsync(ServerProfile profile)
     {
+        if (await PortProblemAsync(profile) is { Length: > 0 } portProblem) return (portProblem, 0);
+        try { using var lyrionClient = new LyrionClient(profile, ReplyTimeoutSeconds); await lyrionClient.GetServerStatusAsync(); return ("", 0); }
+        catch (TaskCanceledException) { return ("noreply", 0); }
+        catch (HttpRequestException httpError) when (httpError.StatusCode is { } statusCode) { return ((int)statusCode == 401 ? "password" : "http", (int)statusCode); }
+        catch { return ("error", 0); }
+    }
+
+    // "" when Lyrion's port accepts a connection (reachable, however slow its replies); else notfound, refused, timeout, unreachable or error
+    public static async Task<string> PortProblemAsync(ServerProfile profile)
+    {
         try
         {
             using var portProbe = new TcpClient();
             using var portTimeout = new CancellationTokenSource(PortTimeoutMs);
             await portProbe.ConnectAsync(profile.Host, profile.Port, portTimeout.Token);
+            return "";
         }
-        catch (OperationCanceledException) { return ("timeout", 0); }
-        catch (SocketException socketError) { return (socketError.SocketErrorCode switch { SocketError.ConnectionRefused => "refused", SocketError.HostNotFound or SocketError.NoData or SocketError.TryAgain => "notfound", SocketError.TimedOut => "timeout", _ => "unreachable" }, 0); }
-        catch { return ("error", 0); }
-        try { using var lyrionClient = new LyrionClient(profile); await lyrionClient.GetServerStatusAsync(); return ("", 0); }
-        catch (TaskCanceledException) { return ("noreply", 0); }
-        catch (HttpRequestException httpError) when (httpError.StatusCode is { } statusCode) { return ((int)statusCode == 401 ? "password" : "http", (int)statusCode); }
-        catch { return ("error", 0); }
+        catch (OperationCanceledException) { return "timeout"; }
+        catch (SocketException socketError) { return socketError.SocketErrorCode switch { SocketError.ConnectionRefused => "refused", SocketError.HostNotFound or SocketError.NoData or SocketError.TryAgain => "notfound", SocketError.TimedOut => "timeout", _ => "unreachable" }; }
+        catch { return "error"; }
     }
 
     // logs\connection.log: when and why the app went offline and came back; no addresses. Kept to its last 300 lines

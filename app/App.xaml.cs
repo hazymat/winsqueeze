@@ -432,6 +432,14 @@ public partial class App : Application
         return await lyrionClient.RequestAsync(playerId, command);
     }
 
+    // Status checks wait longer, so a slow link (VPN) isn't mistaken for the server being gone
+    public async Task<JsonElement> ServerPollAsync(string playerId, params object[] command)
+    {
+        if (Offline is { } offlineServer) return offlineServer.Request(command);
+        using var lyrionClient = new LyrionClient(Settings.ActiveProfile!, WinSqueeze.Offline.ConnectionCheck.ReplyTimeoutSeconds);
+        return await lyrionClient.RequestAsync(playerId, command);
+    }
+
     // New music shows as many albums as the server's own New Music Limit (Server Settings > Behavior, pref browseagelimit); the last answer is kept for offline
     int newMusicLimit = 100;
     public async Task<int> NewMusicLimitAsync()
@@ -483,7 +491,7 @@ public partial class App : Application
         Offline.Changed += () => Dispatcher.BeginInvoke(async () => await Session.PollAsync());
         Offline.Log += line => CrashReporter.Note("offline: " + line);
         Session.SelectedPlayerId = ""; ServerBack = false; OfflineSince = DateTime.Now; OfflineAutomatic = automatic;
-        if (automatic) { WinSqueeze.Offline.ConnectionCheck.Log("went offline: 5 status checks in a row failed, last: " + Session.LastPollError.Replace(profile.Host, "<server>")); _ = CheckConnectionAsync("at that moment"); }
+        if (automatic) { WinSqueeze.Offline.ConnectionCheck.Log("went offline: 5 status checks in a row failed and Lyrion's port didn't answer, last: " + Session.LastPollError.Replace(profile.Host, "<server>")); _ = CheckConnectionAsync("at that moment"); }
         else WinSqueeze.Offline.ConnectionCheck.Log("went offline: Play offline chosen");
         await StartPlayerAsync(false);
         serverBackTimer.Start();
@@ -520,7 +528,7 @@ public partial class App : Application
     async Task CheckServerBackAsync()
     {
         if (Offline is not { } offlineServer || Settings.ActiveProfile is not { Host.Length: > 0 } profile) return;
-        try { using var lyrionClient = new LyrionClient(profile); await lyrionClient.GetServerStatusAsync(); }
+        try { using var lyrionClient = new LyrionClient(profile, WinSqueeze.Offline.ConnectionCheck.ReplyTimeoutSeconds); await lyrionClient.GetServerStatusAsync(); }
         catch { if (ServerBack) { ServerBack = false; StatusChanged?.Invoke(); } return; }
         if (!offlineServer.IsPlaying) { await GoOnlineAsync(); ShowTip(L.T("Back online"), L.T("The server is reachable again.")); }
         else if (!ServerBack) { ServerBack = true; StatusChanged?.Invoke(); }

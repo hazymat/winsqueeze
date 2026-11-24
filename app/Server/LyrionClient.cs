@@ -11,9 +11,9 @@ public record ServerStatus(string Version, int PlayerCount, long LastScan, int T
 public sealed class LyrionClient : IDisposable
 {
     readonly HttpClient httpClient;
-    public LyrionClient(ServerProfile profile)
+    public LyrionClient(ServerProfile profile, int timeoutSeconds = 10)
     {
-        httpClient = new HttpClient { BaseAddress = new Uri($"http://{profile.Host}:{profile.Port}/"), Timeout = TimeSpan.FromSeconds(10) };
+        httpClient = new HttpClient { BaseAddress = new Uri($"http://{profile.Host}:{profile.Port}/"), Timeout = TimeSpan.FromSeconds(timeoutSeconds) };
         if (profile.Username != "") httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{profile.Username}:{profile.Password}")));
     }
 
