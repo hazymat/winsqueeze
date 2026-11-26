@@ -2853,10 +2853,10 @@
  },
  "v1.30.555": {
   "assets": {
-   "WinSqueeze-1.30.555-dev-full.nupkg": 8,
+   "WinSqueeze-1.30.555-dev-full.nupkg": 9,
    "WinSqueeze-Portable.exe": 2,
    "WinSqueeze-Setup.exe": 1,
-   "releases.dev.json": 7
+   "releases.dev.json": 8
   },
   "prerelease": true,
   "published": "2026-11-24T14:26:52Z"
