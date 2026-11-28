@@ -2173,7 +2173,7 @@
  "v1.29.430": {
   "assets": {
    "WinSqueeze-1.29.430-stable-full.nupkg": 12,
-   "WinSqueeze-Portable.exe": 40,
+   "WinSqueeze-Portable.exe": 41,
    "WinSqueeze-Setup.exe": 50,
    "releases.stable.json": 12
   },
@@ -2854,7 +2854,7 @@
  "v1.30.555": {
   "assets": {
    "WinSqueeze-1.30.555-dev-full.nupkg": 10,
-   "WinSqueeze-Portable.exe": 2,
+   "WinSqueeze-Portable.exe": 3,
    "WinSqueeze-Setup.exe": 1,
    "releases.dev.json": 9
   },
